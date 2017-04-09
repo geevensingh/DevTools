@@ -24,7 +24,7 @@ namespace Utilities
             set { _workingDirectory = value; }
         }
 
-        public string[] Go()
+        public string[] Go(bool skipLines = false)
         {
             ProcessStartInfo psi = new ProcessStartInfo(_fileName, _arguments);
             if (_workingDirectory.Length > 0)
@@ -41,19 +41,25 @@ namespace Utilities
             StreamReader cmdOutput = proc.StandardOutput;
             List<string> output = new List<string>();
             Debug.Assert(!proc.HasExited);
-            string line = cmdOutput.ReadLine();
-            while (line != null)
+            if (!skipLines)
             {
-                output.Add(line);
-                line = cmdOutput.ReadLine();
+                string line = cmdOutput.ReadLine();
+                while (line != null)
+                {
+                    output.Add(line);
+                    line = cmdOutput.ReadLine();
+                }
             }
             proc.WaitForExit();
             Debug.Assert(proc.HasExited);
-            line = cmdOutput.ReadLine();
-            while (line != null)
+            if (!skipLines)
             {
-                output.Add(line);
-                line = cmdOutput.ReadLine();
+                string line = cmdOutput.ReadLine();
+                while (line != null)
+                {
+                    output.Add(line);
+                    line = cmdOutput.ReadLine();
+                }
             }
             Logger.Stop(logEventName);
             return output.ToArray();

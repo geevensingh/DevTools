@@ -4,20 +4,25 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Utilities-Tests")]
 namespace Utilities
 {
     public class GitStatus
     {
         public static GitStatus GetStatus()
         {
-            return new GitStatus();
+            ProcessHelper proc = new ProcessHelper("git.exe", "status");
+            return ParseLines(proc.Go());
         }
 
         private GitStatus()
         {
-            ProcessHelper proc = new ProcessHelper("git.exe", "status");
+        }
+
+        static internal GitStatus ParseLines(string[] lines)
+        {
+            GitStatus that = new GitStatus();
             bool staged = true;
-            string[] lines = proc.Go();
             for (int ii = 0; ii < lines.Length; ii++)
             {
                 string line = lines[ii].Trim();
@@ -29,10 +34,14 @@ namespace Utilities
                 {
                     for (int jj = ii + 2; jj < lines.Length; jj++)
                     {
-                        string filename = GetFileName(lines[jj].Trim());
-                        if (!string.IsNullOrEmpty(filename))
+                        string innerLine = lines[jj];
+                        if (innerLine != innerLine.TrimStart() && !innerLine.Trim().StartsWith("("))
                         {
-                            m_unstagedAdded.Add(filename);
+                            string filename = GetFileName(innerLine.Trim());
+                            if (!string.IsNullOrEmpty(filename))
+                            {
+                                that.m_unstagedAdded.Add(filename);
+                            }
                         }
                     }
                     break;
@@ -44,33 +53,33 @@ namespace Utilities
                     {
                         if (staged)
                         {
-                            list = m_stagedAdded;
+                            list = that.m_stagedAdded;
                         }
                         else
                         {
-                            list = m_unstagedAdded;
+                            list = that.m_unstagedAdded;
                         }
                     }
                     else if (line.StartsWith("modified:"))
                     {
                         if (staged)
                         {
-                            list = m_stagedModified;
+                            list = that.m_stagedModified;
                         }
                         else
                         {
-                            list = m_unstagedModified;
+                            list = that.m_unstagedModified;
                         }
                     }
                     else if(line.StartsWith("deleted:"))
                     {
                         if (staged)
                         {
-                            list = m_stagedDeleted;
+                            list = that.m_stagedDeleted;
                         }
                         else
                         {
-                            list = m_unstagedDeleted;
+                            list = that.m_unstagedDeleted;
                         }
                     }
 
@@ -80,6 +89,7 @@ namespace Utilities
                     }
                 }
             }
+            return that;
         }
 
         public void WriteToConsole()
@@ -89,13 +99,13 @@ namespace Utilities
             Console.ForegroundColor = ConsoleColor.Green;
             Console.Write("+" + StagedAdded + " ");
             Console.Write("~" + StagedModified + " ");
-            Console.Write("!" + StagedDeleted);
+            Console.Write("-" + StagedDeleted);
             Console.ForegroundColor = previousColor;
             Console.Write(" | ");
             Console.ForegroundColor = ConsoleColor.Red;
             Console.Write("+" + UnstagedAdded + " ");
             Console.Write("~" + UnstagedModified + " ");
-            Console.Write("!" + UnstagedDeleted);
+            Console.Write("-" + UnstagedDeleted);
             Console.ForegroundColor = previousColor;
             Console.Write(" ]");
         }
@@ -105,13 +115,13 @@ namespace Utilities
             return "[ " +
                 "+" + StagedAdded + " " +
                 "~" + StagedModified + " " +
-                "!" + StagedDeleted + " | " +
+                "-" + StagedDeleted + " | " +
                 "+" + UnstagedAdded + " " +
                 "~" + UnstagedModified + " " +
-                "!" + UnstagedDeleted + " ]";
+                "-" + UnstagedDeleted + " ]";
         }
 
-        private string GetFileName(string line)
+        private static string GetFileName(string line)
         {
             // TODO: get the filename out of the line
             return line;
@@ -140,6 +150,14 @@ namespace Utilities
         public int UnstagedDeleted
         {
             get { return m_unstagedDeleted.Count; }
+        }
+
+        public bool AnyChanged
+        {
+            get
+            {
+                return StagedAdded + StagedModified + StagedDeleted + UnstagedAdded + UnstagedModified + UnstagedDeleted > 0;
+            }
         }
 
         private List<string> m_stagedAdded = new List<string>();
