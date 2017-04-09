@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Diagnostics;
 
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Utilities-Tests")]
 namespace Utilities
@@ -22,10 +23,16 @@ namespace Utilities
         static internal GitStatus ParseLines(string[] lines)
         {
             GitStatus that = new GitStatus();
+            Debug.Assert(lines[0].StartsWith("On branch "));
+            that.m_branch = lines[0].Split(new string[] { "On branch " }, StringSplitOptions.RemoveEmptyEntries)[0];
             bool staged = true;
-            for (int ii = 0; ii < lines.Length; ii++)
+            for (int ii = 1; ii < lines.Length; ii++)
             {
                 string line = lines[ii].Trim();
+                if (line.StartsWith("Your branch is"))
+                {
+                    that.ParseBranchStatusLine(line);
+                }
                 if (line == "Changes not staged for commit:")
                 {
                     staged = false;
@@ -92,6 +99,40 @@ namespace Utilities
             return that;
         }
 
+        private void ParseBranchStatusLine(string line)
+        {
+            m_remoteStatusCount = 0;
+            if (line.StartsWith("Your branch is up-to-date"))
+            {
+                return;
+            }
+
+            string[] splits = line.Split(new string[] { " ", ".", "," }, StringSplitOptions.None);
+            for (int ii = 0; ii < splits.Length; ii++)
+            {
+                string split = splits[ii];
+                if (split == "commit" || split == "commits")
+                {
+                    m_remoteStatusCount = Int32.Parse(splits[ii - 1]);
+                    break;
+                }
+            }
+            Debug.Assert(m_remoteStatusCount != 0);
+
+            if (line.StartsWith("Your branch is behind"))
+            {
+                m_remoteStatusCount *= -1;
+            }
+            else
+            {
+                Debug.Assert(line.StartsWith("Your branch is ahead"));
+            }
+        }
+
+        internal const string UpToDateString = "≡";
+        internal const string BehindString= "↓";
+        internal const string AheadString = "↑";
+
         public void WriteToConsole()
         {
             ConsoleColor previousColor = Console.ForegroundColor;
@@ -110,15 +151,34 @@ namespace Utilities
             Console.Write(" ]");
         }
 
-        public override string ToString()
+        public string RemoteChanges
         {
-            return "[ " +
-                "+" + StagedAdded + " " +
-                "~" + StagedModified + " " +
-                "-" + StagedDeleted + " | " +
-                "+" + UnstagedAdded + " " +
-                "~" + UnstagedModified + " " +
-                "-" + UnstagedDeleted + " ]";
+            get
+            {
+                if (m_remoteStatusCount < 0)
+                {
+                    return (m_remoteStatusCount * -1) + BehindString;
+                }
+                if (m_remoteStatusCount > 0)
+                {
+                    return m_remoteStatusCount + AheadString;
+                }
+                return UpToDateString;
+            }
+        }
+
+        public string LocalChanges
+        {
+            get
+            {
+                return "[ " +
+                    "+" + StagedAdded + " " +
+                    "~" + StagedModified + " " +
+                    "-" + StagedDeleted + " | " +
+                    "+" + UnstagedAdded + " " +
+                    "~" + UnstagedModified + " " +
+                    "-" + UnstagedDeleted + " ]";
+            }
         }
 
         private static string GetFileName(string line)
@@ -127,6 +187,12 @@ namespace Utilities
             return line;
         }
 
+        private int m_remoteStatusCount;
+
+        public string Branch
+        {
+            get { return m_branch; }
+        }
         public int StagedAdded
         {
             get { return m_stagedAdded.Count; }
@@ -160,6 +226,7 @@ namespace Utilities
             }
         }
 
+        private string m_branch = null;
         private List<string> m_stagedAdded = new List<string>();
         private List<string> m_stagedModified = new List<string>();
         private List<string> m_stagedDeleted = new List<string>();

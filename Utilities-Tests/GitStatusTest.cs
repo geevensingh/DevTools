@@ -8,10 +8,10 @@ namespace Utilities_Tests
     public class GitStatusTest
     {
         [TestMethod]
-        public void TestMethod1()
+        public void TestFileCounts()
         {
             string[] lines = @"On branch u/geevens/test
-Your branch is ahead of 'origin/u/geevens/test' by 1 commit.
+Your branch is up-to-date with 'origin/u/geevens/test'
   (use ""git push"" to publish your local commits)
 Changes to be committed:
   (use ""git reset HEAD <file>..."" to unstage)
@@ -39,7 +39,37 @@ Untracked files:
 no changes added to commit (use ""git add"" and/or ""git commit -a"")
 ".Split(new string[] { "\r\n" }, StringSplitOptions.None);
             GitStatus status = GitStatus.ParseLines(lines);
-            Assert.AreEqual(@"[ +1 ~1 -2 | +3 ~1 -2 ]", status.ToString());
+            Assert.AreEqual(@"u/geevens/test", status.Branch);
+            Assert.AreEqual(GitStatus.UpToDateString, status.RemoteChanges);
+            Assert.AreEqual(@"[ +1 ~1 -2 | +3 ~1 -2 ]", status.LocalChanges);
+        }
+
+        [TestMethod]
+        public void TestBranchAhead()
+        {
+            string[] lines = @"On branch u/geevens/test
+Your branch is ahead of 'origin/u/geevens/test' by 1 commit.
+  (use ""git push"" to publish your local commits)
+nothing to commit, working tree clean
+".Split(new string[] { "\r\n" }, StringSplitOptions.None);
+            GitStatus status = GitStatus.ParseLines(lines);
+            Assert.AreEqual(@"u/geevens/test", status.Branch);
+            Assert.AreEqual("1" + GitStatus.AheadString, status.RemoteChanges);
+            Assert.AreEqual(@"[ +0 ~0 -0 | +0 ~0 -0 ]", status.LocalChanges);
+        }
+
+        [TestMethod]
+        public void TestBranchBehind()
+        {
+            string[] lines = @"On branch u/geevens/test
+Your branch is behind 'origin/u/geevens/test' by 32 commits, and can be fast-forwarded.
+  (use ""git pull"" to update your local branch)
+nothing to commit, working tree clean
+".Split(new string[] { "\r\n" }, StringSplitOptions.None);
+            GitStatus status = GitStatus.ParseLines(lines);
+            Assert.AreEqual(@"u/geevens/test", status.Branch);
+            Assert.AreEqual("32" + GitStatus.BehindString, status.RemoteChanges);
+            Assert.AreEqual(@"[ +0 ~0 -0 | +0 ~0 -0 ]", status.LocalChanges);
         }
     }
 }

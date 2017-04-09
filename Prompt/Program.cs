@@ -12,15 +12,13 @@ namespace Prompt
         static void Main(string[] args)
         {
             Logger.AnnounceStartStopActions = false;
-            //Logger.LogLine(GitOperations.GetCurrentBranchName());
+#if DEBUG
+            Logger.AnnounceStartStopActions = true;
+#endif
+
             GitStatus status = GitStatus.GetStatus();
-            //Logger.LogLine(status.ToString());
-
             string root = Environment.GetEnvironmentVariable("REPO_ROOT");
-            string branch = GitOperations.GetCurrentBranchName();
-            string changes = status.AnyChanged ? status.ToString() : string.Empty;
-
-            Logger.LogLine(String.Join(" ", new string[] { root, branch, changes }));
+            Logger.LogLine(String.Join(" ", new string[] { root, status.Branch, status.RemoteChanges, status.LocalChanges }));
         }
     }
 }
