@@ -130,8 +130,8 @@ namespace Utilities
         }
 
         internal const string UpToDateString = "≡";
-        internal const string BehindString= "↓";
-        internal const string AheadString = "↑";
+        internal const string BehindString = "behind";  //"↓";
+        internal const string AheadString = "ahead";    //"↑";
 
         public void WriteToConsole()
         {
