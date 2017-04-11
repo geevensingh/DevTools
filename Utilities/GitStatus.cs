@@ -12,7 +12,7 @@ namespace Utilities
     {
         public static GitStatus GetStatus()
         {
-            ProcessHelper proc = new ProcessHelper("git.exe", "status");
+            ProcessHelper proc = new ProcessHelper("git.exe", "status -b --porcelain=v1");
             return ParseLines(proc.Go());
         }
 
@@ -23,115 +23,104 @@ namespace Utilities
         static internal GitStatus ParseLines(string[] lines)
         {
             GitStatus that = new GitStatus();
-            Debug.Assert(lines[0].StartsWith("On branch "));
-            that.m_branch = lines[0].Split(new string[] { "On branch " }, StringSplitOptions.RemoveEmptyEntries)[0];
-            bool staged = true;
+            that.ParseBranchLine(lines[0]);
             for (int ii = 1; ii < lines.Length; ii++)
             {
-                string line = lines[ii].Trim();
-                if (line.StartsWith("Your branch is"))
-                {
-                    that.ParseBranchStatusLine(line);
-                }
-                if (line == "Changes not staged for commit:")
-                {
-                    staged = false;
-                }
-                else if (line == "Untracked files:")
-                {
-                    for (int jj = ii + 2; jj < lines.Length; jj++)
-                    {
-                        string innerLine = lines[jj];
-                        if (innerLine != innerLine.TrimStart() && !innerLine.Trim().StartsWith("("))
-                        {
-                            string filename = GetFileName(innerLine.Trim());
-                            if (!string.IsNullOrEmpty(filename))
-                            {
-                                that.m_unstagedAdded.Add(filename);
-                            }
-                        }
-                    }
-                    break;
-                }
-                else
-                {
-                    List<string> list = null;
-                    if (line.StartsWith("new file:"))
-                    {
-                        if (staged)
-                        {
-                            list = that.m_stagedAdded;
-                        }
-                        else
-                        {
-                            list = that.m_unstagedAdded;
-                        }
-                    }
-                    else if (line.StartsWith("modified:"))
-                    {
-                        if (staged)
-                        {
-                            list = that.m_stagedModified;
-                        }
-                        else
-                        {
-                            list = that.m_unstagedModified;
-                        }
-                    }
-                    else if(line.StartsWith("deleted:"))
-                    {
-                        if (staged)
-                        {
-                            list = that.m_stagedDeleted;
-                        }
-                        else
-                        {
-                            list = that.m_unstagedDeleted;
-                        }
-                    }
-
-                    if (list != null)
-                    {
-                        list.Add(GetFileName(line));
-                    }
-                }
+                that.ParseLocalChangeLine(lines[ii]);
             }
             return that;
         }
 
-        private void ParseBranchStatusLine(string line)
+        private void ParseLocalChangeLine(string line)
         {
-            m_remoteStatusCount = 0;
-            if (line.StartsWith("Your branch is up-to-date"))
+            if (string.IsNullOrEmpty(line))
             {
                 return;
             }
 
-            string[] splits = line.Split(new string[] { " ", ".", "," }, StringSplitOptions.None);
-            for (int ii = 0; ii < splits.Length; ii++)
-            {
-                string split = splits[ii];
-                if (split == "commit" || split == "commits")
-                {
-                    m_remoteStatusCount = Int32.Parse(splits[ii - 1]);
-                    break;
-                }
-            }
-            Debug.Assert(m_remoteStatusCount != 0);
+            Debug.Assert(line[2] == ' ');
+            string fileName = GetFileName(line);
 
-            if (line.StartsWith("Your branch is behind"))
+            if (line.StartsWith("?? "))
             {
-                m_remoteStatusCount *= -1;
+                m_unstagedAdded.Add(fileName);
+                return;
             }
-            else
+
+            switch (line[0])
             {
-                Debug.Assert(line.StartsWith("Your branch is ahead"));
+                case 'A':
+                    m_stagedAdded.Add(fileName);
+                    break;
+                case 'D':
+                    m_stagedDeleted.Add(fileName);
+                    break;
+                case 'M':
+                    m_stagedModified.Add(fileName);
+                    break;
+                case ' ':
+                    break;
+                default:
+                    throw new Exception("Unexpected status.  Line: " + line);
+            }
+            switch (line[1])
+            {
+                case 'A':
+                    m_unstagedAdded.Add(fileName);
+                    break;
+                case 'D':
+                    m_unstagedDeleted.Add(fileName);
+                    break;
+                case 'M':
+                    m_unstagedModified.Add(fileName);
+                    break;
+                case ' ':
+                    break;
+                default:
+                    throw new Exception("Unexpected status.  Line: " + line);
+            }
+        }
+
+        private void ParseBranchLine(string line)
+        {
+            Debug.Assert(line.StartsWith("## "));
+            string[] splits = line.Split(new char[] { ' ' });
+            Debug.Assert(splits[0] == "##");
+            string[] branches = splits[1].Split(new string[] { "..." }, StringSplitOptions.None);
+            Debug.Assert(branches.Length > 0);
+            Debug.Assert(branches.Length <= 2);
+            m_branch = branches[0];
+            m_upstreamName = branches.Length > 1 ? branches[1] : string.Empty;
+
+            string[] remoteChanges = line.Split(new char[] { '[', ']' }, StringSplitOptions.RemoveEmptyEntries);
+            Debug.Assert(remoteChanges.Length == 1 || remoteChanges.Length == 2);
+            if (remoteChanges.Length == 2 && !string.IsNullOrEmpty(remoteChanges[1]))
+            {
+                string[] remoteChangeSplit = remoteChanges[1].Split(new char[] { ',' });
+                for (int ii = 0; ii < remoteChangeSplit.Length; ii++)
+                {
+                    string[] subSplit = remoteChangeSplit[ii].Trim().Split(new char[] { ' ' });
+                    Debug.Assert(subSplit.Length == 2);
+                    int count = int.Parse(subSplit[1]);
+                    if (subSplit[0] == "ahead")
+                    {
+                        m_aheadCount = count;
+                    }
+                    else if (subSplit[0] == "behind")
+                    {
+                        m_behindCount = count;
+                    }
+                    else
+                    {
+                        throw new Exception("Unknown branch status.  Line: " + line);
+                    }
+                }
             }
         }
 
         internal const string UpToDateString = "≡";
-        internal const string BehindString= "↓";
-        internal const string AheadString = "↑";
+        internal const string BehindString = "behind";  //"↓";
+        internal const string AheadString = "ahead";    //"↑";
 
         public void WriteToConsole()
         {
@@ -155,19 +144,29 @@ namespace Utilities
         {
             get
             {
-                if (m_remoteStatusCount < 0)
+                if (string.IsNullOrEmpty(m_upstreamName))
                 {
-                    return (m_remoteStatusCount * -1) + BehindString;
+                    return "no-remote";
                 }
-                if (m_remoteStatusCount > 0)
+
+                List<string> strings = new List<string>();
+                if (m_aheadCount > 0)
                 {
-                    return m_remoteStatusCount + AheadString;
+                    strings.Add(m_aheadCount + " " + AheadString);
+                }
+                if (m_behindCount > 0)
+                {
+                    strings.Add(m_behindCount + " " + BehindString);
+                }
+                if (strings.Count > 0)
+                {
+                    return string.Join(" ", strings);
                 }
                 return UpToDateString;
             }
         }
 
-        public string LocalChanges
+        public string AllLocalChanges
         {
             get
             {
@@ -177,7 +176,36 @@ namespace Utilities
                     "-" + StagedDeleted + " | " +
                     "+" + UnstagedAdded + " " +
                     "~" + UnstagedModified + " " +
-                    "-" + UnstagedDeleted + " ]";
+                    "-" + UnstagedDeleted + " ! ]";
+            }
+        }
+
+        public string MimimalLocalChanges
+        {
+            get
+            {
+                List<string> strings = new List<string>();
+                if (StagedAdded + StagedModified + StagedDeleted != 0)
+                {
+                    strings.Add(string.Join(" ", new string[] { "+" + StagedAdded, "~" + StagedModified, "-" + StagedDeleted }));
+                }
+                if (UnstagedAdded + UnstagedModified + UnstagedDeleted != 0)
+                {
+                    strings.Add(string.Join(" ", new string[] { "+" + UnstagedAdded, "~" + UnstagedModified, "-" + UnstagedDeleted, "!" }));
+                }
+                if (strings.Count == 0)
+                {
+                    return string.Empty;
+                }
+
+                if (strings.Count == 2)
+                {
+                    strings.Insert(1, "|");
+                }
+
+                strings.Insert(0, "[");
+                strings.Add("]");
+                return string.Join(" ", strings.ToArray());
             }
         }
 
@@ -187,7 +215,9 @@ namespace Utilities
             return line;
         }
 
-        private int m_remoteStatusCount;
+        private string m_upstreamName;
+        private int m_aheadCount;
+        private int m_behindCount;
 
         public string Branch
         {

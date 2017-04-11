@@ -18,7 +18,7 @@ namespace Prompt
 
             GitStatus status = GitStatus.GetStatus();
             string root = Environment.GetEnvironmentVariable("REPO_ROOT");
-            Logger.LogLine(String.Join(" ", new string[] { root, status.Branch, status.RemoteChanges, status.LocalChanges }));
+            Logger.LogLine(String.Join(" ", new string[] { root, status.Branch, status.RemoteChanges, status.AllLocalChanges }));
         }
     }
 }
