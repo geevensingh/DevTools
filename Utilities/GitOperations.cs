@@ -77,23 +77,10 @@ namespace Utilities
             (new ProcessHelper("git.exe", "pull")).Go();
         }
 
-        public static String GetFileStatus()
-        {
-            GitStatus status = GitStatus.Get();
-            status.WriteToConsole();
-            Console.WriteLine();
-            return "[ " +
-                "+" + status.StagedAdded + " " +
-                "~" + status.StagedModified + " " +
-                "!" + status.StagedDeleted + " | " +
-                "+" + status.UnstagedAdded + " " +
-                "~" + status.UnstagedModified + " " +
-                "!" + status.UnstagedDeleted + " ]";
-        }
-
         public static void Stash()
         {
             DateTime now = DateTime.Now;
+            Logger.LogLine("Stashing current work");
             string stashMessage = "Automated stash at " + now.ToLongTimeString() + " on " + now.ToShortDateString();
             (new ProcessHelper("git.exe", "stash save -u \"" + stashMessage + "\"")).Go();
         }
@@ -101,6 +88,7 @@ namespace Utilities
         public static void StashPop()
         {
             Debug.Assert(!GetStatus().AnyChanges);
+            Logger.LogLine("Restoring work from the stash");
             (new ProcessHelper("git.exe", "stash pop")).Go();
         }
 
