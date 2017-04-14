@@ -35,6 +35,8 @@ namespace GitNightly
                 GitOperations.Stash();
             }
 
+            string[] releaseBranchNames = GitOperations.GetReleaseBranchNames();
+
             GitOperations.SwitchBranch("master");
             GitOperations.PullCurrentBranch();
             string[] branches = GitOperations.GetLocalBranches();
@@ -46,6 +48,12 @@ namespace GitNightly
                 }
 
                 GitOperations.SwitchBranch(branch);
+                if (GitOperations.BranchContains(branch, releaseBranchNames))
+                {
+                    Logger.LogLine("Ignoring branch " + branch + " because it comes from a release branch", Logger.LevelValue.Warning);
+                    continue;
+                }
+
                 GitStatus status = GitOperations.GetStatus();
                 if (status.RemoteChanges == "remote-gone")
                 {

@@ -42,6 +42,45 @@ namespace Utilities
             return branches.ToArray();
         }
 
+        public static string[] GetReleaseForkPoints()
+        {
+            List<string> forkPoints = new List<string>();
+            foreach(string branch in GetReleaseBranchNames())
+            {
+                forkPoints.Add((new ProcessHelper("git.exe", "merge-base --fork-point " + branch)).Go()[0]);
+            }
+            return forkPoints.ToArray();
+        }
+        public static string[] GetReleaseBranchNames()
+        {
+            List<string> releaseBranches = new List<string>();
+            ProcessHelper proc = new ProcessHelper("git.exe", "branch -r");
+            foreach (string line in proc.Go())
+            {
+                if (line.Trim().StartsWith("origin/release/"))
+                {
+                    releaseBranches.Add(line.Trim());
+                }
+            }
+            return releaseBranches.ToArray();
+        }
+
+        public static bool BranchContains(string branchName, string[] releaseBranchNames)
+        {
+            foreach (string forkpoint in releaseBranchNames)
+            {
+                ProcessHelper proc = new ProcessHelper("git.exe", "branch --contains " + forkpoint);
+                foreach (string line in proc.Go())
+                {
+                    if (line.Substring(2).Trim() == branchName)
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
         public static void DeleteBranch(string branchName, bool force = false)
         {
             Debug.Assert(GetStatus().Branch != branchName);
