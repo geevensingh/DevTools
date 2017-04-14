@@ -146,5 +146,17 @@ A  sixteenth
             Assert.AreEqual(@"[ +0 ~0 -0 | +0 ~0 -0 ! ]", status.AllLocalChanges);
             Assert.AreEqual(@"", status.MimimalLocalChanges);
         }
+
+        [TestMethod]
+        public void TestNoRemote()
+        {
+            string[] lines = @"## u/geevens/add-git-status-to-title...origin/u/geevens/add-git-status-to-title [gone]
+".Split(new string[] { "\r\n" }, StringSplitOptions.None);
+            GitStatus status = GitStatus.ParseLines(lines);
+            Assert.AreEqual(@"improve-status-parsing", status.Branch);
+            Assert.AreEqual(GitStatus.UpToDateString, status.RemoteChanges);
+            Assert.AreEqual(@"[ +0 ~0 -0 | +0 ~0 -0 ! ]", status.AllLocalChanges);
+            Assert.AreEqual(@"", status.MimimalLocalChanges);
+        }
     }
 }

@@ -96,23 +96,30 @@ namespace Utilities
             Debug.Assert(remoteChanges.Length == 1 || remoteChanges.Length == 2);
             if (remoteChanges.Length == 2 && !string.IsNullOrEmpty(remoteChanges[1]))
             {
-                string[] remoteChangeSplit = remoteChanges[1].Split(new char[] { ',' });
-                for (int ii = 0; ii < remoteChangeSplit.Length; ii++)
+                if (remoteChanges[1] == "gone")
                 {
-                    string[] subSplit = remoteChangeSplit[ii].Trim().Split(new char[] { ' ' });
-                    Debug.Assert(subSplit.Length == 2);
-                    int count = int.Parse(subSplit[1]);
-                    if (subSplit[0] == "ahead")
+                    m_remoteGone = true;
+                }
+                else
+                {
+                    string[] remoteChangeSplit = remoteChanges[1].Split(new char[] { ',' });
+                    for (int ii = 0; ii < remoteChangeSplit.Length; ii++)
                     {
-                        m_aheadCount = count;
-                    }
-                    else if (subSplit[0] == "behind")
-                    {
-                        m_behindCount = count;
-                    }
-                    else
-                    {
-                        throw new Exception("Unknown branch status.  Line: " + line);
+                        string[] subSplit = remoteChangeSplit[ii].Trim().Split(new char[] { ' ' });
+                        Debug.Assert(subSplit.Length == 2);
+                        int count = int.Parse(subSplit[1]);
+                        if (subSplit[0] == "ahead")
+                        {
+                            m_aheadCount = count;
+                        }
+                        else if (subSplit[0] == "behind")
+                        {
+                            m_behindCount = count;
+                        }
+                        else
+                        {
+                            throw new Exception("Unknown branch status.  Line: " + line);
+                        }
                     }
                 }
             }
@@ -121,6 +128,7 @@ namespace Utilities
         internal const string UpToDateString = "≡";
         internal const string BehindString = "behind";  //"↓";
         internal const string AheadString = "ahead";    //"↑";
+        internal const string GoneString = "xxx";
 
         public void WriteToConsole()
         {
@@ -144,6 +152,11 @@ namespace Utilities
         {
             get
             {
+                if (m_remoteGone)
+                {
+                    return "remote-gone";
+                }
+
                 if (string.IsNullOrEmpty(m_upstreamName))
                 {
                     return "no-remote";
@@ -215,6 +228,7 @@ namespace Utilities
             return line;
         }
 
+        private bool m_remoteGone = false;
         private string m_upstreamName;
         private int m_aheadCount;
         private int m_behindCount;
