@@ -24,7 +24,7 @@ namespace Utilities
             set { _workingDirectory = value; }
         }
 
-        public string[] Go(bool skipLines = false)
+        public string[] Go()
         {
             ProcessStartInfo psi = new ProcessStartInfo(_fileName, _arguments);
             if (_workingDirectory.Length > 0)
@@ -34,6 +34,7 @@ namespace Utilities
             string logEventName = "Process: " + _fileName.Substring(_fileName.LastIndexOf('\\') + 1) + " " + _arguments + " ( " + psi.WorkingDirectory + " )";
             Logger.Start(logEventName);
 
+            psi.RedirectStandardError = true;
             psi.RedirectStandardOutput = true;
             psi.WindowStyle = ProcessWindowStyle.Hidden;
             psi.UseShellExecute = false;
@@ -41,28 +42,39 @@ namespace Utilities
             StreamReader cmdOutput = proc.StandardOutput;
             List<string> output = new List<string>();
             Debug.Assert(!proc.HasExited);
-            if (!skipLines)
+            string line = cmdOutput.ReadLine();
+            while (line != null)
             {
-                string line = cmdOutput.ReadLine();
-                while (line != null)
-                {
-                    output.Add(line);
-                    line = cmdOutput.ReadLine();
-                }
+                output.Add(line);
+                line = cmdOutput.ReadLine();
             }
             proc.WaitForExit();
             Debug.Assert(proc.HasExited);
-            if (!skipLines)
+            line = cmdOutput.ReadLine();
+            while (line != null)
             {
-                string line = cmdOutput.ReadLine();
-                while (line != null)
-                {
-                    output.Add(line);
-                    line = cmdOutput.ReadLine();
-                }
+                output.Add(line);
+                line = cmdOutput.ReadLine();
             }
+
+            StreamReader cmdError = proc.StandardError;
+            List<string> errors = new List<string>();
+            line = cmdError.ReadLine();
+            while (line != null)
+            {
+                errors.Add(line);
+                line = cmdError.ReadLine();
+            }
+            _standardError = errors.ToArray();
+
             Logger.Stop(logEventName);
             return output.ToArray();
+        }
+
+        private string[] _standardError = new string[] { };
+        public string[] StandardError
+        {
+            get { return _standardError; }
         }
     }
 }

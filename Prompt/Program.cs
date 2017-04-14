@@ -16,7 +16,7 @@ namespace Prompt
             Logger.AnnounceStartStopActions = true;
 #endif
 
-            GitStatus status = GitStatus.GetStatus();
+            GitStatus status = GitStatus.Get();
             string root = Environment.GetEnvironmentVariable("REPO_ROOT");
             Logger.LogLine(String.Join(" ", new string[] { root, status.Branch, status.RemoteChanges, status.AllLocalChanges }));
         }

@@ -10,7 +10,7 @@ namespace Utilities
 {
     public class GitStatus
     {
-        public static GitStatus GetStatus()
+        public static GitStatus Get()
         {
             ProcessHelper proc = new ProcessHelper("git.exe", "status -b --porcelain=v1");
             return ParseLines(proc.Go());

@@ -9,12 +9,11 @@ namespace Utilities
     {
         public enum LevelValue
         {
-            Silent,
-            Quiet,
-            Normal,
             Verbose,
+            Normal,
             Warning,
-            Error
+            Error,
+            Silent,
         };
 
         static bool _startStopAnnounce = true;
@@ -34,7 +33,7 @@ namespace Utilities
             }
         }
 
-        internal static LevelValue Level
+        public static LevelValue Level
         {
             get
             {
@@ -47,22 +46,22 @@ namespace Utilities
             }
         }
 
-        public static void Start(string description)
+        public static void Start(string description, LevelValue level = LevelValue.Verbose)
         {
             Debug.Assert(!_pending.Contains(description));
             _pending.Add(description);
             if (AnnounceStartStopActions)
             {
-                Console.WriteLine(GeneratePrefix() + "Start  " + description);
+                LogLine(GeneratePrefix() + "Start  " + description, level);
             }
         }
 
-        public static void Stop(string description)
+        public static void Stop(string description, LevelValue level = LevelValue.Verbose)
         {
             Debug.Assert(_pending.Contains(description));
             if (AnnounceStartStopActions)
             {
-                Console.WriteLine(GeneratePrefix() + "Stop   " + description);
+                LogLine(GeneratePrefix() + "Stop   " + description, level);
             }
             _pending.Remove(description);
         }
@@ -82,7 +81,6 @@ namespace Utilities
             switch (level)
             {
                 case LevelValue.Silent:
-                case LevelValue.Quiet:
                 case LevelValue.Normal:
                     return ConsoleColor.White;
                 case LevelValue.Verbose:
@@ -104,10 +102,13 @@ namespace Utilities
 
         public static void Log(string message, LevelValue level)
         {
-            ConsoleColor originalColor = Console.ForegroundColor;
-            Console.ForegroundColor = GetColorFromLevel(level);
-            Console.Write(message);
-            Console.ForegroundColor = originalColor;
+            if (level >= Level)
+            {
+                ConsoleColor originalColor = Console.ForegroundColor;
+                Console.ForegroundColor = GetColorFromLevel(level);
+                Console.Write(message);
+                Console.ForegroundColor = originalColor;
+            }
         }
 
         public static void LogLine(string message)
