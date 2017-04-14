@@ -94,7 +94,7 @@ A  sixteenth
 ".Split(new string[] { "\r\n" }, StringSplitOptions.None);
             GitStatus status = GitStatus.ParseLines(lines);
             Assert.AreEqual(@"u/geevens/test", status.Branch);
-            Assert.AreEqual("1 " + GitStatus.AheadString, status.RemoteChanges);
+            Assert.AreEqual("1 ahead", status.RemoteChanges);
             Assert.AreEqual(@"[ +0 ~0 -0 | +0 ~0 -0 ! ]", status.AllLocalChanges);
             Assert.AreEqual(@"", status.MimimalLocalChanges);
         }
@@ -106,7 +106,7 @@ A  sixteenth
 ".Split(new string[] { "\r\n" }, StringSplitOptions.None);
             GitStatus status = GitStatus.ParseLines(lines);
             Assert.AreEqual(@"u/geevens/test", status.Branch);
-            Assert.AreEqual("32 " + GitStatus.BehindString, status.RemoteChanges);
+            Assert.AreEqual("32 behind", status.RemoteChanges);
             Assert.AreEqual(@"[ +0 ~0 -0 | +0 ~0 -0 ! ]", status.AllLocalChanges);
             Assert.AreEqual(@"", status.MimimalLocalChanges);
         }
@@ -118,7 +118,7 @@ A  sixteenth
 ".Split(new string[] { "\r\n" }, StringSplitOptions.None);
             GitStatus status = GitStatus.ParseLines(lines);
             Assert.AreEqual(@"u/geevens/test", status.Branch);
-            Assert.AreEqual("2 " + GitStatus.AheadString + " 5 " + GitStatus.BehindString, status.RemoteChanges);
+            Assert.AreEqual("2 ahead" + " 5 behind", status.RemoteChanges);
             Assert.AreEqual(@"[ +0 ~0 -0 | +0 ~0 -0 ! ]", status.AllLocalChanges);
             Assert.AreEqual(@"", status.MimimalLocalChanges);
         }
@@ -148,13 +148,13 @@ A  sixteenth
         }
 
         [TestMethod]
-        public void TestNoRemote()
+        public void TestDeletedRemote()
         {
-            string[] lines = @"## u/geevens/add-git-status-to-title...origin/u/geevens/add-git-status-to-title [gone]
+            string[] lines = @"## improve-status-parsing...origin/improve-status-parsing [gone]
 ".Split(new string[] { "\r\n" }, StringSplitOptions.None);
             GitStatus status = GitStatus.ParseLines(lines);
             Assert.AreEqual(@"improve-status-parsing", status.Branch);
-            Assert.AreEqual(GitStatus.UpToDateString, status.RemoteChanges);
+            Assert.AreEqual("remote-gone", status.RemoteChanges);
             Assert.AreEqual(@"[ +0 ~0 -0 | +0 ~0 -0 ! ]", status.AllLocalChanges);
             Assert.AreEqual(@"", status.MimimalLocalChanges);
         }

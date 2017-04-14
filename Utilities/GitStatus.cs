@@ -126,9 +126,9 @@ namespace Utilities
         }
 
         internal const string UpToDateString = "≡";
-        internal const string BehindString = "behind";  //"↓";
-        internal const string AheadString = "ahead";    //"↑";
-        internal const string GoneString = "xxx";
+        //internal const string BehindString = "↓";
+        //internal const string AheadString = "↑";
+        //internal const string GoneString = "x";
 
         public void WriteToConsole()
         {
@@ -165,11 +165,11 @@ namespace Utilities
                 List<string> strings = new List<string>();
                 if (m_aheadCount > 0)
                 {
-                    strings.Add(m_aheadCount + " " + AheadString);
+                    strings.Add(m_aheadCount + " ahead");
                 }
                 if (m_behindCount > 0)
                 {
-                    strings.Add(m_behindCount + " " + BehindString);
+                    strings.Add(m_behindCount + " behind");
                 }
                 if (strings.Count > 0)
                 {
@@ -262,7 +262,7 @@ namespace Utilities
             get { return m_unstagedDeleted.Count; }
         }
 
-        public bool AnyChanged
+        public bool AnyChanges
         {
             get
             {
