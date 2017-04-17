@@ -31,7 +31,11 @@ namespace Utilities
             {
                 psi.WorkingDirectory = _workingDirectory;
             }
-            string logEventName = "Process: " + _fileName.Substring(_fileName.LastIndexOf('\\') + 1) + " " + _arguments + " ( " + psi.WorkingDirectory + " )";
+            string logEventName = "Process: " + _fileName.Substring(_fileName.LastIndexOf('\\') + 1) + " " + _arguments;
+            if (!string.IsNullOrEmpty(psi.WorkingDirectory))
+            {
+                logEventName += " ( " + psi.WorkingDirectory + " )";
+            }
             Logger.Start(logEventName);
 
             psi.RedirectStandardError = true;
@@ -40,33 +44,33 @@ namespace Utilities
             psi.UseShellExecute = false;
             Process proc = Process.Start(psi);
             StreamReader cmdOutput = proc.StandardOutput;
-            List<string> output = new List<string>();
-            Debug.Assert(!proc.HasExited);
-            string line = cmdOutput.ReadLine();
-            while (line != null)
-            {
-                output.Add(line);
-                line = cmdOutput.ReadLine();
-            }
-            proc.WaitForExit();
-            Debug.Assert(proc.HasExited);
-            line = cmdOutput.ReadLine();
-            while (line != null)
-            {
-                output.Add(line);
-                line = cmdOutput.ReadLine();
-            }
-
             StreamReader cmdError = proc.StandardError;
+            List<string> output = new List<string>();
             List<string> errors = new List<string>();
-            line = cmdError.ReadLine();
-            while (line != null)
+            while (!proc.HasExited)
             {
-                errors.Add(line);
-                line = cmdError.ReadLine();
+                string x = cmdOutput.ReadToEnd();
+                if (!string.IsNullOrEmpty(x))
+                {
+                    output.AddRange(x.Replace("\r\n", "\n").Replace("\r", "\n").Split(new string[] { "\n" }, StringSplitOptions.None));
+                }
+                x = cmdError.ReadToEnd();
+                if (!string.IsNullOrEmpty(x))
+                {
+                    errors.AddRange(x.Replace("\r\n", "\n").Replace("\r", "\n").Split(new string[] { "\n" }, StringSplitOptions.None));
+                }
             }
-            _standardError = errors.ToArray();
 
+            if (output.Count > 0 && string.IsNullOrEmpty(output[output.Count - 1]))
+            {
+                output.RemoveAt(output.Count - 1);
+            }
+            if (errors.Count > 0 && string.IsNullOrEmpty(errors[errors.Count - 1]))
+            {
+                errors.RemoveAt(errors.Count - 1);
+            }
+
+            _standardError = errors.ToArray();
             Logger.Stop(logEventName);
             return output.ToArray();
         }
