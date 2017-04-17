@@ -16,9 +16,26 @@ namespace Utilities
             Silent,
         };
 
+        static string _logFile = string.Empty;
         static bool _startStopAnnounce = true;
         static List<string> _pending = new List<string>();
         static LevelValue _level = LevelValue.Normal;
+
+        public static string LogFile
+        {
+            get
+            {
+                return _logFile;
+            }
+            set
+            {
+                _logFile = value;
+                if (File.Exists(_logFile))
+                {
+                    File.Delete(_logFile);
+                }
+            }
+        }
 
         public static bool AnnounceStartStopActions
         {
@@ -104,10 +121,13 @@ namespace Utilities
         {
             if (level >= Level)
             {
-                ConsoleColor originalColor = Console.ForegroundColor;
                 Console.ForegroundColor = GetColorFromLevel(level);
                 Console.Write(message);
-                Console.ForegroundColor = originalColor;
+                Console.ResetColor();
+            }
+            if (!string.IsNullOrEmpty(_logFile))
+            {
+                File.AppendAllText(_logFile, message);
             }
         }
 
