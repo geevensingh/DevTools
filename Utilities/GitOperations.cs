@@ -51,6 +51,7 @@ namespace Utilities
             }
             return forkPoints.ToArray();
         }
+
         public static string[] GetReleaseBranchNames()
         {
             List<string> releaseBranches = new List<string>();
@@ -65,11 +66,11 @@ namespace Utilities
             return releaseBranches.ToArray();
         }
 
-        public static bool BranchContains(string branchName, string[] releaseBranchNames)
+        public static bool BranchContains(string branchName, string[] refs)
         {
-            foreach (string forkpoint in releaseBranchNames)
+            foreach (string refHash in refs)
             {
-                ProcessHelper proc = new ProcessHelper("git.exe", "branch --contains " + forkpoint);
+                ProcessHelper proc = new ProcessHelper("git.exe", "branch --contains " + refHash);
                 foreach (string line in proc.Go())
                 {
                     if (line.Substring(2).Trim() == branchName)

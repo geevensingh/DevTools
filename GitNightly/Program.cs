@@ -12,6 +12,9 @@ namespace GitNightly
     {
         static void Main(string[] args)
         {
+#if DEBUG
+            Logger.Level = Logger.LevelValue.Verbose;
+#endif
             foreach (string arg in args)
             {
                 switch(arg.ToLower())
@@ -35,7 +38,7 @@ namespace GitNightly
                 GitOperations.Stash();
             }
 
-            string[] releaseBranchNames = GitOperations.GetReleaseBranchNames();
+            string[] releaseForkPoints = GitOperations.GetReleaseForkPoints();
 
             GitOperations.SwitchBranch("master");
             GitOperations.PullCurrentBranch();
@@ -48,7 +51,7 @@ namespace GitNightly
                 }
 
                 GitOperations.SwitchBranch(branch);
-                if (GitOperations.BranchContains(branch, releaseBranchNames))
+                if (GitOperations.BranchContains(branch, releaseForkPoints))
                 {
                     Logger.LogLine("Ignoring branch " + branch + " because it comes from a release branch", Logger.LevelValue.Warning);
                     continue;
