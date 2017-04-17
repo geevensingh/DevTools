@@ -15,13 +15,17 @@ namespace GitNightly
 #if DEBUG
             Logger.Level = Logger.LevelValue.Verbose;
 #endif
-            foreach (string arg in args)
+            for (int ii = 0; ii < args.Length; ii++)
             {
-                switch(arg.ToLower())
+                string arg = args[ii].ToLower();
+                switch(arg)
                 {
                     case "/v":
                     case "/verbose":
                         Logger.Level = Logger.LevelValue.Verbose;
+                        break;
+                    case "/log":
+                        Logger.LogFile = args[++ii];
                         break;
                     default:
                         Console.WriteLine("Unknown argument: " + arg);
@@ -32,13 +36,13 @@ namespace GitNightly
 
             GitStatus originalStatus = GitOperations.GetStatus();
             String originalBranch = originalStatus.Branch;
-            string root = Environment.GetEnvironmentVariable("REPO_ROOT");
+            Logger.LogLine("Started in " + originalBranch);
             if (originalStatus.AnyChanges)
             {
                 GitOperations.Stash();
             }
 
-            string[] releaseForkPoints = GitOperations.GetReleaseForkPoints();
+            string[] releaseForkPoints = GitOperations.GetFirstChanges(GitOperations.GetReleaseBranchNames());
 
             GitOperations.SwitchBranch("master");
             GitOperations.PullCurrentBranch();
@@ -50,13 +54,15 @@ namespace GitNightly
                     continue;
                 }
 
-                GitOperations.SwitchBranch(branch);
-                if (GitOperations.BranchContains(branch, releaseForkPoints))
+                string releaseForkPoint = GitOperations.BranchContains(branch, releaseForkPoints);
+                if (!string.IsNullOrEmpty(releaseForkPoint))
                 {
                     Logger.LogLine("Ignoring branch " + branch + " because it comes from a release branch", Logger.LevelValue.Warning);
+                    Logger.LogLine("\tBranch contains " + releaseForkPoint, Logger.LevelValue.Normal);
                     continue;
                 }
 
+                GitOperations.SwitchBranch(branch);
                 GitStatus status = GitOperations.GetStatus();
                 if (status.RemoteChanges == "remote-gone")
                 {

@@ -42,14 +42,49 @@ namespace Utilities
             return branches.ToArray();
         }
 
-        public static string[] GetReleaseForkPoints()
+        public static string[] GetFirstChanges(string[] branches)
         {
-            List<string> forkPoints = new List<string>();
-            foreach(string branch in GetReleaseBranchNames())
+            Dictionary<string, string> commits= new Dictionary<string, string>();
+            foreach(string branch in branches)
             {
-                forkPoints.Add((new ProcessHelper("git.exe", "merge-base --fork-point " + branch)).Go()[0]);
+                commits.Add(branch, (new ProcessHelper("git.exe", "merge-base master " + branch)).Go()[0]);
+                Logger.LogLine(branch + " seems to have forked from master at " + commits[branch], Logger.LevelValue.Verbose);
             }
-            return forkPoints.ToArray();
+            List<string> firstChanges = new List<string>();
+            foreach(string branch in commits.Keys)
+            {
+                string firstChange = GetNextCommitInBranch(commits[branch], branch);
+                if (string.IsNullOrEmpty(firstChange))
+                {
+                    Logger.LogLine("Unable to find any commits in " + branch, Logger.LevelValue.Warning);
+                }
+                else
+                {
+                    firstChanges.Add(firstChange);
+                    Logger.LogLine("The first commit in " + branch + " seems to be " + firstChange, Logger.LevelValue.Verbose);
+                }
+            }
+            return firstChanges.ToArray();
+        }
+
+        private static string GetNextCommitInBranch(string commit, string branch)
+        {
+            ProcessHelper proc = new ProcessHelper("git.exe", "log " + commit + ".." + branch);
+            string nextCommit = string.Empty;
+            foreach (string line in proc.Go())
+            {
+                if (line.Trim().StartsWith("commit"))
+                {
+                    nextCommit = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)[1];
+                }
+            }
+
+            if (string.IsNullOrEmpty(nextCommit))
+            {
+                return string.Empty;
+            }
+
+            return nextCommit;
         }
 
         public static string[] GetReleaseBranchNames()
@@ -63,10 +98,15 @@ namespace Utilities
                     releaseBranches.Add(line.Trim());
                 }
             }
+            Logger.LogLine("Found the following release branches:", Logger.LevelValue.Verbose);
+            foreach(string branch in releaseBranches)
+            {
+                Logger.LogLine("\t" + branch, Logger.LevelValue.Verbose);
+            }
             return releaseBranches.ToArray();
         }
 
-        public static bool BranchContains(string branchName, string[] refs)
+        public static string BranchContains(string branchName, string[] refs)
         {
             foreach (string refHash in refs)
             {
@@ -75,11 +115,11 @@ namespace Utilities
                 {
                     if (line.Substring(2).Trim() == branchName)
                     {
-                        return true;
+                        return refHash;
                     }
                 }
             }
-            return false;
+            return string.Empty;
         }
 
         public static void DeleteBranch(string branchName, bool force = false)
@@ -95,7 +135,8 @@ namespace Utilities
             Logger.LogLine("Merging from " + sourceBranch + " to " + GetCurrentBranchName());
             ProcessHelper proc = new ProcessHelper("git.exe", "merge --strategy recursive --strategy-option patience " + sourceBranch);
             bool abort = false;
-            foreach (string line in proc.Go())
+            string[] lines = proc.Go();
+            foreach (string line in lines)
             {
                 if (line.Contains("Automatic merge failed"))
                 {
@@ -106,6 +147,16 @@ namespace Utilities
             if (abort)
             {
                 Logger.LogLine("Unable to automatically merge " + GetCurrentBranchName(), Logger.LevelValue.Warning);
+
+                foreach (string line in lines)
+                {
+                    if (line.StartsWith("CONFLICT"))
+                    {
+                        Logger.LogLine(line, Logger.LevelValue.Normal);
+                    }
+                }
+
+                Logger.LogLine("Aborting merge", Logger.LevelValue.Normal);
                 (new ProcessHelper("git.exe", "merge --abort")).Go();
             }
         }
