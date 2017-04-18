@@ -69,14 +69,12 @@ namespace Utilities
 
         private static string GetNextCommitInBranch(string commit, string branch)
         {
-            ProcessHelper proc = new ProcessHelper("git.exe", "log " + commit + ".." + branch);
+            // %H is full hash
+            ProcessHelper proc = new ProcessHelper("git.exe", "log --pretty=format:%H " + commit + ".." + branch);
             string nextCommit = string.Empty;
             foreach (string line in proc.Go())
             {
-                if (line.Trim().StartsWith("commit"))
-                {
-                    nextCommit = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)[1];
-                }
+                nextCommit = line.Trim();
             }
 
             if (string.IsNullOrEmpty(nextCommit))
