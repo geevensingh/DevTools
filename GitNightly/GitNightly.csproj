@@ -55,4 +55,9 @@
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>if $(ConfigurationName) == Release (
+  copy "$(TargetPath)" D:\Tools
+)</PostBuildEvent>
+  </PropertyGroup>
 </Project>

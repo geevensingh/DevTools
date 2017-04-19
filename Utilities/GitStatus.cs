@@ -56,6 +56,7 @@ namespace Utilities
                     m_stagedDeleted.Add(fileName);
                     break;
                 case 'M':
+                case 'U':
                     m_stagedModified.Add(fileName);
                     break;
                 case ' ':
@@ -72,6 +73,7 @@ namespace Utilities
                     m_unstagedDeleted.Add(fileName);
                     break;
                 case 'M':
+                case 'U':
                     m_unstagedModified.Add(fileName);
                     break;
                 case ' ':

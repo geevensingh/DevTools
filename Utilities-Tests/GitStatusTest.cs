@@ -118,7 +118,7 @@ A  sixteenth
 ".Split(new string[] { "\r\n" }, StringSplitOptions.None);
             GitStatus status = GitStatus.ParseLines(lines);
             Assert.AreEqual(@"u/geevens/test", status.Branch);
-            Assert.AreEqual("2 ahead" + " 5 behind", status.RemoteChanges);
+            Assert.AreEqual("2 ahead 5 behind", status.RemoteChanges);
             Assert.AreEqual(@"[ +0 ~0 -0 | +0 ~0 -0 ! ]", status.AllLocalChanges);
             Assert.AreEqual(@"", status.MimimalLocalChanges);
         }
@@ -157,6 +157,21 @@ A  sixteenth
             Assert.AreEqual("remote-gone", status.RemoteChanges);
             Assert.AreEqual(@"[ +0 ~0 -0 | +0 ~0 -0 ! ]", status.AllLocalChanges);
             Assert.AreEqual(@"", status.MimimalLocalChanges);
+        }
+
+        [TestMethod]
+        public void TestMergeConflict()
+        {
+            string[] lines = @"## improve-status-parsing...origin/improve-status-parsing [ahead 5]
+M  zune/client/xaml/music/UI/Music.UI.vcxproj
+UU zune/client/xaml/music/UI/Music.UI.vcxproj.filters
+M  zune/client/xaml/music/UI/Services/NowPlayingViewManager.cpp
+".Split(new string[] { "\r\n" }, StringSplitOptions.None);
+            GitStatus status = GitStatus.ParseLines(lines);
+            Assert.AreEqual(@"improve-status-parsing", status.Branch);
+            Assert.AreEqual("5 ahead", status.RemoteChanges);
+            Assert.AreEqual(@"[ +0 ~3 -0 | +0 ~1 -0 ! ]", status.AllLocalChanges);
+            Assert.AreEqual(@"[ +0 ~3 -0 | +0 ~1 -0 ! ]", status.MimimalLocalChanges);
         }
     }
 }

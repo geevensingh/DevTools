@@ -24,6 +24,11 @@ namespace Utilities
             set { _workingDirectory = value; }
         }
 
+        public string CommandLine
+        {
+            get { return string.Join(" ", new string[] { _fileName, _arguments }); }
+        }
+
         public string[] Go()
         {
             ProcessStartInfo psi = new ProcessStartInfo(_fileName, _arguments);
