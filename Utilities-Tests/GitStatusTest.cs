@@ -173,5 +173,25 @@ M  zune/client/xaml/music/UI/Services/NowPlayingViewManager.cpp
             Assert.AreEqual(@"[ +0 ~3 -0 | +0 ~1 -0 ! ]", status.AllLocalChanges);
             Assert.AreEqual(@"[ +0 ~3 -0 | +0 ~1 -0 ! ]", status.MimimalLocalChanges);
         }
+
+        [TestMethod]
+        public void TestRename()
+        {
+            string[] lines = @"## improve-status-parsing...origin/improve-status-parsing [ahead 5]
+ M tools/FilterWriter.exe
+R  WECTools/FilterWriter/FilterWriter.sln -> tools/FilterWriter/FilterWriter.sln
+?? tools/FilterWriter/App.config
+?? tools/FilterWriter/FilterWriter.csproj
+?? tools/FilterWriter/Logger.cs
+?? tools/FilterWriter/Node.cs
+?? tools/FilterWriter/Program.cs
+?? tools/FilterWriter/Properties/
+".Split(new string[] { "\r\n" }, StringSplitOptions.None);
+            GitStatus status = GitStatus.ParseLines(lines);
+            Assert.AreEqual(@"improve-status-parsing", status.Branch);
+            Assert.AreEqual("5 ahead", status.RemoteChanges);
+            Assert.AreEqual(@"[ +0 ~1 -0 | +6 ~1 -0 ! ]", status.AllLocalChanges);
+            Assert.AreEqual(@"[ +0 ~1 -0 | +6 ~1 -0 ! ]", status.MimimalLocalChanges);
+        }
     }
 }

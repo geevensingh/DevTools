@@ -55,8 +55,9 @@ namespace Utilities
                 case 'D':
                     m_stagedDeleted.Add(fileName);
                     break;
-                case 'M':
-                case 'U':
+                case 'R':   // Rename
+                case 'M':   // Modified
+                case 'U':   // Merge conflict
                     m_stagedModified.Add(fileName);
                     break;
                 case ' ':
@@ -72,8 +73,9 @@ namespace Utilities
                 case 'D':
                     m_unstagedDeleted.Add(fileName);
                     break;
-                case 'M':
-                case 'U':
+                case 'R':   // Rename
+                case 'M':   // Modified
+                case 'U':   // Merge conflict
                     m_unstagedModified.Add(fileName);
                     break;
                 case ' ':
