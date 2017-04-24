@@ -46,6 +46,7 @@ namespace GitNightly
 
             GitOperations.SwitchBranch("master");
             GitOperations.PullCurrentBranch();
+
             string[] branches = GitOperations.GetLocalBranches();
             foreach (string branch in branches)
             {
