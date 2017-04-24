@@ -17,6 +17,9 @@ namespace Utilities
         private string _fileName = "";
         private string _arguments = "";
         private string _workingDirectory = "";
+        private List<string> _standardOutput = new List<string>();
+        private List<string> _standardError = new List<string>();
+        private bool _processOver = false;
 
         public string WorkingDirectory
         {
@@ -31,59 +34,64 @@ namespace Utilities
 
         public string[] Go()
         {
-            ProcessStartInfo psi = new ProcessStartInfo(_fileName, _arguments);
-            if (_workingDirectory.Length > 0)
+            Process process = new Process();
+            process.StartInfo.FileName = _fileName;
+            process.StartInfo.Arguments = _arguments;
+            if (!string.IsNullOrEmpty(_workingDirectory))
             {
-                psi.WorkingDirectory = _workingDirectory;
+                process.StartInfo.WorkingDirectory = _workingDirectory;
             }
             string logEventName = "Process: " + _fileName.Substring(_fileName.LastIndexOf('\\') + 1) + " " + _arguments;
-            if (!string.IsNullOrEmpty(psi.WorkingDirectory))
+            if (!string.IsNullOrEmpty(process.StartInfo.WorkingDirectory))
             {
-                logEventName += " ( " + psi.WorkingDirectory + " )";
+                logEventName += " ( " + process.StartInfo.WorkingDirectory + " )";
             }
             Logger.Start(logEventName);
 
-            psi.RedirectStandardError = true;
-            psi.RedirectStandardOutput = true;
-            psi.WindowStyle = ProcessWindowStyle.Hidden;
-            psi.UseShellExecute = false;
-            Process proc = Process.Start(psi);
-            StreamReader cmdOutput = proc.StandardOutput;
-            StreamReader cmdError = proc.StandardError;
-            List<string> output = new List<string>();
-            List<string> errors = new List<string>();
-            while (!proc.HasExited)
+            process.StartInfo.RedirectStandardError = true;
+            process.StartInfo.RedirectStandardOutput = true;
+            process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+            process.StartInfo.UseShellExecute = false;
+            process.OutputDataReceived += Process_OutputDataReceived;
+            process.ErrorDataReceived += Process_ErrorDataReceived;
+            process.Start();
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+            process.WaitForExit();
+            _processOver = true;
+
+            if (_standardOutput.Count > 0 && string.IsNullOrEmpty(_standardOutput[_standardOutput.Count - 1]))
             {
-                string x = cmdOutput.ReadToEnd();
-                if (!string.IsNullOrEmpty(x))
-                {
-                    output.AddRange(x.Replace("\r\n", "\n").Replace("\r", "\n").Split(new string[] { "\n" }, StringSplitOptions.None));
-                }
-                x = cmdError.ReadToEnd();
-                if (!string.IsNullOrEmpty(x))
-                {
-                    errors.AddRange(x.Replace("\r\n", "\n").Replace("\r", "\n").Split(new string[] { "\n" }, StringSplitOptions.None));
-                }
+                _standardOutput.RemoveAt(_standardOutput.Count - 1);
+            }
+            if (_standardError.Count > 0 && string.IsNullOrEmpty(_standardError[_standardError.Count - 1]))
+            {
+                _standardError.RemoveAt(_standardError.Count - 1);
             }
 
-            if (output.Count > 0 && string.IsNullOrEmpty(output[output.Count - 1]))
-            {
-                output.RemoveAt(output.Count - 1);
-            }
-            if (errors.Count > 0 && string.IsNullOrEmpty(errors[errors.Count - 1]))
-            {
-                errors.RemoveAt(errors.Count - 1);
-            }
-
-            _standardError = errors.ToArray();
             Logger.Stop(logEventName);
-            return output.ToArray();
+            return _standardOutput.ToArray();
         }
 
-        private string[] _standardError = new string[] { };
+        private void Process_ErrorDataReceived(object sender, DataReceivedEventArgs e)
+        {
+            Debug.Assert(!_processOver);
+            _standardError.Add(e.Data);
+        }
+
+        private void Process_OutputDataReceived(object sender, DataReceivedEventArgs e)
+        {
+            Debug.Assert(!_processOver);
+            _standardOutput.Add(e.Data);
+        }
+
         public string[] StandardError
         {
-            get { return _standardError; }
+            get { return _standardError.ToArray(); }
+        }
+        public string[] StandardOutput
+        {
+            get { return _standardOutput.ToArray(); }
         }
     }
 }
