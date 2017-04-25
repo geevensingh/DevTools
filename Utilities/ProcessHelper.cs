@@ -14,6 +14,7 @@ namespace Utilities
             _arguments = arguments;
         }
 
+        private int _exitCode = -1;
         private string _fileName = "";
         private string _arguments = "";
         private string _workingDirectory = "";
@@ -58,6 +59,7 @@ namespace Utilities
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
             process.WaitForExit();
+            _exitCode = process.ExitCode;
             _processOver = true;
 
             if (_standardOutput.Count > 0 && string.IsNullOrEmpty(_standardOutput[_standardOutput.Count - 1]))
@@ -93,5 +95,7 @@ namespace Utilities
         {
             get { return _standardOutput.ToArray(); }
         }
+
+        public int ExitCode { get => _exitCode; }
     }
 }
