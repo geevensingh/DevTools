@@ -16,26 +16,70 @@ namespace Utilities
             Silent,
         };
 
-        static string _logFile = string.Empty;
+        static LevelValue[] _allLevels = new LevelValue[] { LevelValue.Verbose, LevelValue.Normal, LevelValue.Warning, LevelValue.Error, LevelValue.Silent };
+
+        static Dictionary<LevelValue, string> _logFiles = new Dictionary<LevelValue, string>();
+        static Dictionary<LevelValue, string> _htmlFiles = new Dictionary<LevelValue, string>();
         static bool _startStopAnnounce = true;
         static List<string> _pending = new List<string>();
         static LevelValue _level = LevelValue.Normal;
+        static uint _warningCount = 0;
+        static uint _errorCount = 0;
 
-        public static string LogFile
+        public static void AddLogFile(string v)
+        {
+            AddLogFile(v, LevelValue.Normal);
+        }
+
+        public static void AddLogFile(string v, LevelValue level)
+        {
+            Debug.Assert(!_logFiles.ContainsKey(level));
+            _logFiles.Add(level, v);
+            if (File.Exists(v))
+            {
+                File.Delete(v);
+            }
+        }
+
+        public static void AddHTMLLogFile(string v)
+        {
+            AddHTMLLogFile(v, LevelValue.Normal);
+        }
+
+        public static void AddHTMLLogFile(string v, LevelValue level)
+        {
+            Debug.Assert(!_htmlFiles.ContainsKey(level));
+            _htmlFiles.Add(level, v);
+            File.WriteAllText(v, @"<html><head><style>
+html { white-space: nowrap; font-family: Verdana; background-color: #e0e0e0; }
+.verbose { color: gray; }
+.normal { color: black; }
+.warning { color: darkred; }
+.error { color: red; }
+</style></head>
+<body>");
+        }
+
+        public static void FlushLogs()
+        {
+            foreach (string htmlLog in _htmlFiles.Values)
+            {
+                File.AppendAllText(htmlLog, @"</body></html>");
+            }
+        }
+
+        public static string VerboseLogPath
         {
             get
             {
-                return _logFile;
-            }
-            set
-            {
-                _logFile = value;
-                if (File.Exists(_logFile))
+                if (_logFiles.ContainsKey(LevelValue.Verbose))
                 {
-                    File.Delete(_logFile);
+                    return _logFiles[LevelValue.Verbose];
                 }
+                return string.Empty;
             }
         }
+
 
         public static bool AnnounceStartStopActions
         {
@@ -62,6 +106,16 @@ namespace Utilities
                 _level = value;
             }
         }
+
+        public static uint WarningCount
+        {
+            get
+            {
+                return _warningCount + ErrorCount;
+            }
+        }
+
+        public static uint ErrorCount { get => _errorCount; }
 
         public static void Start(string description, LevelValue level = LevelValue.Verbose)
         {
@@ -111,6 +165,18 @@ namespace Utilities
                     return ConsoleColor.Magenta;
             }
         }
+        static LevelValue[] GetLevels(LevelValue level)
+        {
+            List<LevelValue> levels = new List<LevelValue>();
+            foreach (LevelValue testLevel in _allLevels)
+            {
+                if (level >= testLevel)
+                {
+                    levels.Add(testLevel);
+                }
+            }
+            return levels.ToArray();
+        }
 
         public static void Log(string message)
         {
@@ -119,15 +185,36 @@ namespace Utilities
 
         public static void Log(string message, LevelValue level)
         {
+            switch(level)
+            {
+                case LevelValue.Warning:
+                    _warningCount++;
+                    break;
+                case LevelValue.Error:
+                    _errorCount++;
+                    break;
+            }
+
             if (level >= Level)
             {
                 Console.ForegroundColor = GetColorFromLevel(level);
                 Console.Write(message);
                 Console.ResetColor();
             }
-            if (!string.IsNullOrEmpty(_logFile))
+
+            LevelValue[] levels = GetLevels(level);
+            foreach(LevelValue testLevel in levels)
             {
-                File.AppendAllText(_logFile, message);
+                if (_logFiles.ContainsKey(testLevel))
+                {
+                    File.AppendAllText(_logFiles[testLevel], message);
+                }
+                if (_htmlFiles.ContainsKey(testLevel))
+                {
+                    int indent = message.Length - message.TrimStart(new char[] { '\t' }).Length;
+                    Debug.Assert(indent >= 0);
+                    File.AppendAllText(_htmlFiles[testLevel], "<div style='padding-left:" + (indent * 15) + "px' class='" + level.ToString() + "'>" + message + "</div>");
+                }
             }
         }
 

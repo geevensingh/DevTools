@@ -10,7 +10,7 @@ namespace GitNightly
 {
     class Program
     {
-        static void Main(string[] args)
+        static int Main(string[] args)
         {
 #if DEBUG
             Logger.Level = Logger.LevelValue.Verbose;
@@ -25,13 +25,25 @@ namespace GitNightly
                         Logger.Level = Logger.LevelValue.Verbose;
                         break;
                     case "/log":
-                        Logger.LogFile = args[++ii];
+                        Logger.AddLogFile(args[++ii]);
+                        break;
+                    case "/html":
+                        Logger.AddHTMLLogFile(args[++ii]);
+                        break;
+                    case "/vlog":
+                        Logger.AddLogFile(args[++ii], Logger.LevelValue.Verbose);
                         break;
                     default:
                         Console.WriteLine("Unknown argument: " + arg);
                         PrintUsage();
-                        return;
+                        return -1;
                 }
+            }
+
+            string verboseLogFile = Logger.VerboseLogPath;
+            if (!string.IsNullOrEmpty(verboseLogFile))
+            {
+                Logger.LogLine("Verbose log path: " + verboseLogFile);
             }
 
             GitStatus originalStatus = GitOperations.GetStatus();
@@ -86,6 +98,9 @@ namespace GitNightly
             {
                 GitOperations.StashPop();
             }
+
+            Logger.FlushLogs();
+            return (int)Logger.WarningCount;
         }
 
         private static void PrintUsage()
@@ -94,6 +109,8 @@ namespace GitNightly
     Valid arguments:
         /v
         /verbose
+
+        /log <log-file>
 ");
         }
     }
