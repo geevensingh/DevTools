@@ -46,6 +46,8 @@ namespace GitNightly
                 Logger.LogLine("Verbose log path: " + verboseLogFile);
             }
 
+            GitOperations.FetchAll();
+
             GitStatus originalStatus = GitOperations.GetStatus();
             String originalBranch = originalStatus.Branch;
             Logger.LogLine("Started in " + originalBranch);

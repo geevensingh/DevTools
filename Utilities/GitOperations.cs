@@ -67,6 +67,11 @@ namespace Utilities
             return firstChanges.ToArray();
         }
 
+        public static void FetchAll()
+        {
+            (new ProcessHelper("git.exe", "fetch --all --tags --prune --quiet")).Go();
+        }
+
         private static string GetNextCommitInBranch(string commit, string branch)
         {
             // %H is full hash
@@ -125,7 +130,12 @@ namespace Utilities
             Debug.Assert(GetStatus().Branch != branchName);
             Logger.LogLine((force ? "FORCE " : "") + "Deleting " + branchName, (force ? Logger.LevelValue.Warning : Logger.LevelValue.Normal));
             string deleteArgs = (force ? "-D" : "-d") + " " + branchName;
-            (new ProcessHelper("git.exe", "branch " + deleteArgs)).Go();
+            ProcessHelper proc = new ProcessHelper("git.exe", "branch " + deleteArgs);
+            proc.Go();
+            if (proc.ExitCode != 0)
+            {
+                Logger.LogLine("Unable to delete " + branchName, Logger.LevelValue.Warning);
+            }
         }
 
         public static void MergeFromBranch(string sourceBranch)
