@@ -48,57 +48,65 @@ namespace GitNightly
 
             GitOperations.FetchAll();
 
-            GitStatus originalStatus = GitOperations.GetStatus();
-            String originalBranch = originalStatus.Branch;
-            Logger.LogLine("Started in " + originalBranch);
-            if (originalStatus.AnyChanges)
+            string[] releaseBranches = GitOperations.GetReleaseBranchNames();
+            string[] releaseForkPoints = GitOperations.GetFirstChanges(releaseBranches);
+            if (releaseBranches.Length != releaseForkPoints.Length)
             {
-                GitOperations.Stash();
+                Logger.LogLine("At least one release branch is not unique.", Logger.LevelValue.Error);
+                Logger.LogLine("Without knowing that a branch is unique, we can't update any branches.", Logger.LevelValue.Error);
             }
-
-            string[] releaseForkPoints = GitOperations.GetFirstChanges(GitOperations.GetReleaseBranchNames());
-
-            GitOperations.SwitchBranch("master");
-            GitOperations.PullCurrentBranch();
-
-            string[] branches = GitOperations.GetLocalBranches();
-            foreach (string branch in branches)
+            else
             {
-                if (branch == "master")
+                GitStatus originalStatus = GitOperations.GetStatus();
+                String originalBranch = originalStatus.Branch;
+                Logger.LogLine("Started in " + originalBranch);
+                if (originalStatus.AnyChanges)
                 {
-                    continue;
+                    GitOperations.Stash();
                 }
 
-                string releaseForkPoint = GitOperations.BranchContains(branch, releaseForkPoints);
-                if (!string.IsNullOrEmpty(releaseForkPoint))
-                {
-                    Logger.LogLine("Ignoring branch " + branch + " because it comes from a release branch", Logger.LevelValue.Warning);
-                    Logger.LogLine("\tBranch contains " + releaseForkPoint, Logger.LevelValue.Normal);
-                    continue;
-                }
+                GitOperations.SwitchBranch("master");
+                GitOperations.PullCurrentBranch();
 
-                GitOperations.SwitchBranch(branch);
-                GitStatus status = GitOperations.GetStatus();
-                if (status.RemoteChanges == "remote-gone")
+                string[] branches = GitOperations.GetLocalBranches();
+                foreach (string branch in branches)
                 {
-                    Logger.LogLine("Remote branch is gone for " + branch, Logger.LevelValue.Warning);
-                    GitOperations.SwitchBranch("master");
-                    GitOperations.DeleteBranch(branch, force: false);
-                    if (branch == originalBranch)
+                    if (branch == "master")
                     {
-                        originalBranch = "master";
+                        continue;
+                    }
+
+                    string releaseForkPoint = GitOperations.BranchContains(branch, releaseForkPoints);
+                    if (!string.IsNullOrEmpty(releaseForkPoint))
+                    {
+                        Logger.LogLine("Ignoring branch " + branch + " because it comes from a release branch", Logger.LevelValue.Warning);
+                        Logger.LogLine("\tBranch contains " + releaseForkPoint, Logger.LevelValue.Normal);
+                        continue;
+                    }
+
+                    GitOperations.SwitchBranch(branch);
+                    GitStatus status = GitOperations.GetStatus();
+                    if (status.RemoteChanges == "remote-gone")
+                    {
+                        Logger.LogLine("Remote branch is gone for " + branch, Logger.LevelValue.Warning);
+                        GitOperations.SwitchBranch("master");
+                        GitOperations.DeleteBranch(branch, force: false);
+                        if (branch == originalBranch)
+                        {
+                            originalBranch = "master";
+                        }
+                    }
+                    else
+                    {
+                        GitOperations.MergeFromBranch("master");
                     }
                 }
-                else
-                {
-                    GitOperations.MergeFromBranch("master");
-                }
-            }
 
-            GitOperations.SwitchBranch(originalBranch);
-            if (originalStatus.AnyChanges)
-            {
-                GitOperations.StashPop();
+                GitOperations.SwitchBranch(originalBranch);
+                if (originalStatus.AnyChanges)
+                {
+                    GitOperations.StashPop();
+                }
             }
 
             Logger.FlushLogs();
