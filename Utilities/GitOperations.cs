@@ -33,8 +33,13 @@ namespace Utilities
 
         public static string[] GetLocalBranches()
         {
+            return GetLocalBranches(string.Empty);
+        }
+
+        public static string[] GetLocalBranches(string args)
+        {
             List<string> branches = new List<string>();
-            ProcessHelper proc = new ProcessHelper("git.exe", "branch --list --no-column");
+            ProcessHelper proc = new ProcessHelper("git.exe", "branch --list --no-column" + args);
             foreach (string line in proc.Go())
             {
                 branches.Add(line.Trim(new char[] { ' ', '*' }));
