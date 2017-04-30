@@ -9,7 +9,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Utilities", "Utilities\Util
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChangeLister", "ChangeLister\ChangeLister.csproj", "{12572270-AFB5-41CF-848E-F8D8FF14A3F2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitPrompt", "Prompt\GitPrompt.csproj", "{1CC67AC6-1270-455E-9DCD-2CACFB922082}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitPrompt", "GitPrompt\GitPrompt.csproj", "{1CC67AC6-1270-455E-9DCD-2CACFB922082}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Utilities-Tests", "Utilities-Tests\Utilities-Tests.csproj", "{5EB9A5C4-064B-40F6-9AAD-1211E03FF6D8}"
 EndProject
