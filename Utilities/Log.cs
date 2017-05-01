@@ -16,19 +16,21 @@ namespace Utilities
             Silent,
         };
 
+        private static LevelValue _defaultLevel = LevelValue.Normal;
+
         static LevelValue[] _allLevels = new LevelValue[] { LevelValue.Verbose, LevelValue.Normal, LevelValue.Warning, LevelValue.Error, LevelValue.Silent };
 
         static Dictionary<LevelValue, string> _logFiles = new Dictionary<LevelValue, string>();
         static Dictionary<LevelValue, string> _htmlFiles = new Dictionary<LevelValue, string>();
         static bool _startStopAnnounce = true;
         static List<string> _pending = new List<string>();
-        static LevelValue _level = LevelValue.Normal;
+        static LevelValue _level = _defaultLevel;
         static uint _warningCount = 0;
         static uint _errorCount = 0;
 
         public static void AddLogFile(string v)
         {
-            AddLogFile(v, LevelValue.Normal);
+            AddLogFile(v, _defaultLevel);
         }
 
         public static void AddLogFile(string v, LevelValue level)
@@ -43,7 +45,7 @@ namespace Utilities
 
         public static void AddHTMLLogFile(string v)
         {
-            AddHTMLLogFile(v, LevelValue.Normal);
+            AddHTMLLogFile(v, _defaultLevel);
         }
 
         public static void AddHTMLLogFile(string v, LevelValue level)
@@ -180,7 +182,7 @@ html { white-space: nowrap; font-family: Verdana; background-color: #e0e0e0; }
 
         public static void Log(string message)
         {
-            Log(message, LevelValue.Normal);
+            Log(message, _defaultLevel);
         }
 
         public static void Log(string message, LevelValue level)
@@ -220,12 +222,25 @@ html { white-space: nowrap; font-family: Verdana; background-color: #e0e0e0; }
 
         public static void LogLine(string message)
         {
-            Log(message + "\r\n");
+            LogLine(message, _defaultLevel);
         }
 
         public static void LogLine(string message, LevelValue level)
         {
             Log(message + "\r\n", level);
+        }
+
+        public static void LogLine(string[] messages)
+        {
+            LogLine(messages, _defaultLevel);
+        }
+
+        public static void LogLine(string[] messages, LevelValue level)
+        {
+            foreach(string message in messages)
+            {
+                LogLine(message, level);
+            }
         }
     }
 }
