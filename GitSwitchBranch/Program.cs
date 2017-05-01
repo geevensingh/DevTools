@@ -11,6 +11,11 @@ namespace GitSwitchBranch
     {
         static void Main(string[] args)
         {
+#if DEBUG
+            Logger.AnnounceStartStopActions = true;
+            Logger.Level = Logger.LevelValue.Verbose;
+#endif
+
             string currentBranch = GitOperations.GetCurrentBranchName();
             List<string> branches = new List<string>(GitOperations.GetLocalBranches(" --sort committerdate"));
             branches.Remove(currentBranch);
@@ -21,7 +26,7 @@ namespace GitSwitchBranch
             {
                 Logger.LogLine("\t" + (ii + 1) + " : " + branches[ii]);
             }
-            string input = Console.ReadKey().KeyChar.ToString();
+            string input = Console.ReadKey().KeyChar.ToString().Trim().ToLower();
             if (string.IsNullOrEmpty(input) || (input.ToLower() == "q"))
             {
                 return;
@@ -83,8 +88,19 @@ namespace GitSwitchBranch
                 basedOn = suggestedBasedOn;
             }
 
-            Console.WriteLine("git checkout -b " + branchName + " " + basedOn);
-            Console.WriteLine("git branch --set-upstream-to origin/" + branchName);
+            string remoteBranchName = "origin/" + branchName;
+            Logger.LogLine("Confirming new branch called " + branchName + " based on " + basedOn);
+            Logger.LogLine("This will also be tracking " + remoteBranchName);
+            Logger.Log("That look ok? [y] ");
+            string prompt = Console.ReadKey().KeyChar.ToString().Trim().ToLower();
+            if (string.IsNullOrEmpty(prompt))
+            {
+                prompt = "y";
+            }
+            if (prompt == "y")
+            {
+                GitOperations.CreateBranch(branchName, basedOn);
+            }
         }
     }
 }
