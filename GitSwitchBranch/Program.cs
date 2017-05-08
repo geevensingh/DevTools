@@ -17,7 +17,7 @@ namespace GitSwitchBranch
 #endif
 
             string currentBranch = GitOperations.GetCurrentBranchName();
-            List<string> branches = new List<string>(GitOperations.GetLocalBranches(" --sort committerdate"));
+            List<string> branches = new List<string>(GitOperations.GetLocalBranches("--sort committerdate"));
             branches.Remove(currentBranch);
 
             Logger.LogLine(@"Currently on " + currentBranch);
