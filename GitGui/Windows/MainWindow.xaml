@@ -1,0 +1,28 @@
+﻿<Window x:Class="GitGui.Windows.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:GitGui"
+        mc:Ignorable="d"
+        MinWidth="300"
+        MaxWidth="1000"
+        MinHeight="300"
+        MaxHeight="800"
+        FontFamily="Segoe UI"
+        Title="MainWindow">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="auto" />
+        </Grid.ColumnDefinitions>
+        <Button Grid.Row="0" Grid.Column="1" FontFamily="Segoe UI Symbol" Click="SettingsButton_Click">&#xE115;</Button>
+        <ToolBar Grid.Row="0" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Top">
+            <Button>foo</Button>
+        </ToolBar>
+    </Grid>
+</Window>
