@@ -39,12 +39,17 @@ namespace Utilities
         public static string[] GetLocalBranches(string args)
         {
             List<string> branches = new List<string>();
-            ProcessHelper proc = new ProcessHelper("git.exe", "branch --list --no-column" + args);
+            ProcessHelper proc = new ProcessHelper("git.exe", "branch --list --no-column " + args);
             foreach (string line in proc.Go())
             {
                 branches.Add(line.Trim(new char[] { ' ', '*' }));
             }
             return branches.ToArray();
+        }
+
+        public static string[] GetRemoteBranches()
+        {
+            return GetLocalBranches("--remote");
         }
 
         public static string[] GetFirstChanges(string[] branches)
