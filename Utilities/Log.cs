@@ -22,7 +22,7 @@ namespace Utilities
 
         static Dictionary<LevelValue, string> _logFiles = new Dictionary<LevelValue, string>();
         static Dictionary<LevelValue, string> _htmlFiles = new Dictionary<LevelValue, string>();
-        static bool _startStopAnnounce = true;
+        static bool _startStopAnnounce = false;
         static List<string> _pending = new List<string>();
         static LevelValue _level = _defaultLevel;
         static uint _warningCount = 0;
