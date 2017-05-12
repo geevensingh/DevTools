@@ -12,6 +12,7 @@ namespace GitNightly
     {
         static int Main(string[] args)
         {
+            bool force = false;
 #if DEBUG
             Logger.Level = Logger.LevelValue.Verbose;
 #endif
@@ -33,6 +34,9 @@ namespace GitNightly
                     case "/vlog":
                         Logger.AddLogFile(args[++ii], Logger.LevelValue.Verbose);
                         break;
+                    case "/force":
+                        force = true;
+                        break;
                     default:
                         Console.WriteLine("Unknown argument: " + arg);
                         PrintUsage();
@@ -50,9 +54,13 @@ namespace GitNightly
 
             string[] releaseBranches = GitOperations.GetReleaseBranchNames();
             string[] releaseForkPoints = GitOperations.GetFirstChanges(releaseBranches);
-            if (releaseBranches.Length != releaseForkPoints.Length)
+            bool uniqueReleaseBranches = (releaseBranches.Length == releaseForkPoints.Length);
+            if (!uniqueReleaseBranches)
             {
-                Logger.LogLine("At least one release branch is not unique.", Logger.LevelValue.Error);
+                Logger.LogLine("At least one release branch is not unique.", Logger.LevelValue.Warning);
+            }
+            if (!uniqueReleaseBranches && !force)
+            {
                 Logger.LogLine("Without knowing that a branch is unique, we can't update any branches.", Logger.LevelValue.Error);
             }
             else
