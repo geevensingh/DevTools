@@ -26,7 +26,9 @@ namespace GitSwitchBranch
             {
                 Logger.LogLine("\t" + (ii + 1) + " : " + branches[ii]);
             }
+            Logger.LogLine("\tn : Make a new branch");
             string input = Console.ReadKey().KeyChar.ToString().Trim().ToLower();
+            Logger.LogLine(string.Empty);
             if (string.IsNullOrEmpty(input) || (input.ToLower() == "q"))
             {
                 return;
@@ -93,6 +95,7 @@ namespace GitSwitchBranch
             Logger.LogLine("This will also be tracking " + remoteBranchName);
             Logger.Log("That look ok? [y] ");
             string prompt = Console.ReadKey().KeyChar.ToString().Trim().ToLower();
+            Logger.LogLine(string.Empty);
             if (string.IsNullOrEmpty(prompt))
             {
                 prompt = "y";
