@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Utilities;
 using System.Diagnostics;
 
-namespace GitNightly
+namespace GitSync
 {
     class Program
     {
