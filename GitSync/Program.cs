@@ -23,6 +23,7 @@ namespace GitSync
                 {
                     case "/v":
                     case "/verbose":
+                        Logger.AnnounceStartStopActions = true;
                         Logger.Level = Logger.LevelValue.Verbose;
                         break;
                     case "/log":
@@ -32,6 +33,7 @@ namespace GitSync
                         Logger.AddHTMLLogFile(args[++ii]);
                         break;
                     case "/vlog":
+                        Logger.AnnounceStartStopActions = true;
                         Logger.AddLogFile(args[++ii], Logger.LevelValue.Verbose);
                         break;
                     case "/force":
