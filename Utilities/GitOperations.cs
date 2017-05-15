@@ -49,7 +49,12 @@ namespace Utilities
 
         public static string[] GetRemoteBranches()
         {
-            return GetLocalBranches("--remote");
+            return GetRemoteBranches(string.Empty);
+        }
+
+        public static string[] GetRemoteBranches(string args)
+        {
+            return GetLocalBranches(String.Join(" ", new string[] { "--remote", args }));
         }
 
         public static string[] GetFirstChanges(string[] branches)
