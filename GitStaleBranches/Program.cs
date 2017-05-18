@@ -40,7 +40,7 @@ namespace GitStaleBranches
                     ProcessHelper proc = new ProcessHelper("git.exe", "log -n 1 --since=" + aMonthAgoString + " " + branch);
                     if (proc.Go().Length == 0)
                     {
-                        string[] changeDescription = (new ProcessHelper("git.exe", "log --date=short --pretty=format:\" %an (%ae) was the last person to touch " + StringHelper.TrimStart(branch, "origin/") + " on %ad\" -n 1 " + branch)).Go();
+                        string[] changeDescription = (new ProcessHelper("git.exe", "log --date=short --pretty=format:\"%an (%ae) was the last person to touch " + StringHelper.TrimStart(branch, "origin/") + " on %ad\" -n 1 " + branch)).Go();
                         Debug.Assert(changeDescription.Length == 1);
                         lines.Add(changeDescription[0]);
 
