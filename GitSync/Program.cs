@@ -12,7 +12,8 @@ namespace GitSync
     {
         static int Main(string[] args)
         {
-            bool force = false;
+            bool forceSync = false;
+            bool forceDelete = false;
 #if DEBUG
             Logger.Level = Logger.LevelValue.Verbose;
 #endif
@@ -36,8 +37,11 @@ namespace GitSync
                         Logger.AnnounceStartStopActions = true;
                         Logger.AddLogFile(args[++ii], Logger.LevelValue.Verbose);
                         break;
-                    case "/force":
-                        force = true;
+                    case "/fs":
+                        forceSync = true;
+                        break;
+                    case "/fd":
+                        forceDelete = true;
                         break;
                     default:
                         Console.WriteLine("Unknown argument: " + arg);
@@ -61,7 +65,7 @@ namespace GitSync
             {
                 Logger.LogLine("At least one release branch is not unique.", Logger.LevelValue.Warning);
             }
-            if (!uniqueReleaseBranches && !force)
+            if (!uniqueReleaseBranches && !forceSync)
             {
                 Logger.LogLine("Without knowing that a branch is unique, we can't update any branches.", Logger.LevelValue.Error);
             }
@@ -100,7 +104,7 @@ namespace GitSync
                     {
                         Logger.LogLine("Remote branch is gone for " + branch, Logger.LevelValue.Warning);
                         GitOperations.SwitchBranch("master");
-                        GitOperations.DeleteBranch(branch, force: false);
+                        GitOperations.DeleteBranch(branch, force: forceDelete);
                         if (branch == originalBranch)
                         {
                             originalBranch = "master";
