@@ -31,6 +31,36 @@ namespace Utilities
             return that;
         }
 
+        private void ParseFileLine(int index, bool staged, string line)
+        {
+            char ch = line[index];
+            if (ch == ' ')
+            {
+                return;
+            }
+
+            string fileName = GetFileName(line);
+            switch (ch)
+            {
+                case 'A':
+                    m_files.Add(new FileInfo(fileName, FileState.Added, staged));
+                    break;
+                case 'D':
+                    m_files.Add(new FileInfo(fileName, FileState.Deleted, staged));
+                    break;
+                case 'R':   // Rename
+                case 'M':   // Modified
+                case 'C':   // Copied
+                    m_files.Add(new FileInfo(fileName, FileState.Modified, staged));
+                    break;
+                case 'U':   // Merge conflict
+                    m_files.Add(new FileInfo(fileName, FileState.Critical, staged));
+                    break;
+                default:
+                    throw new Exception("Unexpected status.  Line: " + line);
+            }
+        }
+
         private void ParseLocalChangeLine(string line)
         {
             if (string.IsNullOrEmpty(line))
@@ -39,50 +69,15 @@ namespace Utilities
             }
 
             Debug.Assert(line[2] == ' ');
-            string fileName = GetFileName(line);
-
+            
             if (line.StartsWith("?? "))
             {
-                m_unstagedAdded.Add(fileName);
+                m_files.Add(new FileInfo(GetFileName(line), FileState.Added, false));
                 return;
             }
 
-            switch (line[0])
-            {
-                case 'A':
-                    m_stagedAdded.Add(fileName);
-                    break;
-                case 'D':
-                    m_stagedDeleted.Add(fileName);
-                    break;
-                case 'R':   // Rename
-                case 'M':   // Modified
-                case 'U':   // Merge conflict
-                    m_stagedModified.Add(fileName);
-                    break;
-                case ' ':
-                    break;
-                default:
-                    throw new Exception("Unexpected status.  Line: " + line);
-            }
-            switch (line[1])
-            {
-                case 'A':
-                    m_unstagedAdded.Add(fileName);
-                    break;
-                case 'D':
-                    m_unstagedDeleted.Add(fileName);
-                    break;
-                case 'R':   // Rename
-                case 'M':   // Modified
-                case 'U':   // Merge conflict
-                    m_unstagedModified.Add(fileName);
-                    break;
-                case ' ':
-                    break;
-                default:
-                    throw new Exception("Unexpected status.  Line: " + line);
-            }
+            ParseFileLine(0, true, line);
+            ParseFileLine(1, false, line);
         }
 
         private void ParseBranchLine(string line)
@@ -187,13 +182,27 @@ namespace Utilities
         {
             get
             {
-                return "[ " +
-                    "+" + StagedAdded + " " +
-                    "~" + StagedModified + " " +
-                    "-" + StagedDeleted + " | " +
-                    "+" + UnstagedAdded + " " +
-                    "~" + UnstagedModified + " " +
-                    "-" + UnstagedDeleted + " ! ]";
+                List<string> strings = new List<string>();
+                strings.Add("[");
+                strings.Add("+" + StagedAdded);
+                strings.Add("~" + StagedModified);
+                strings.Add("-" + StagedDeleted);
+                if (StagedCritical > 0)
+                {
+                    strings.Add("#" + StagedCritical);
+                }
+                strings.Add("|");
+                strings.Add("+" + UnstagedAdded);
+                strings.Add("~" + UnstagedModified);
+                strings.Add("-" + UnstagedDeleted);
+                if (UnstagedCritical > 0)
+                {
+                    strings.Add("#" + UnstagedCritical);
+                }
+                strings.Add("!");
+                strings.Add("]");
+
+                return string.Join(" ", strings);
             }
         }
 
@@ -201,28 +210,39 @@ namespace Utilities
         {
             get
             {
-                List<string> strings = new List<string>();
-                if (StagedAdded + StagedModified + StagedDeleted != 0)
-                {
-                    strings.Add(string.Join(" ", new string[] { "+" + StagedAdded, "~" + StagedModified, "-" + StagedDeleted }));
-                }
-                if (UnstagedAdded + UnstagedModified + UnstagedDeleted != 0)
-                {
-                    strings.Add(string.Join(" ", new string[] { "+" + UnstagedAdded, "~" + UnstagedModified, "-" + UnstagedDeleted, "!" }));
-                }
-                if (strings.Count == 0)
+                if (!AnyChanges)
                 {
                     return string.Empty;
                 }
-
-                if (strings.Count == 2)
+                List<string> strings = new List<string>();
+                if (Staged != 0)
                 {
-                    strings.Insert(1, "|");
+                    List<string> subStrings = new List<string>();
+                    subStrings.Add("+" + StagedAdded);
+                    subStrings.Add("~" + StagedModified);
+                    subStrings.Add("-" + StagedDeleted);
+                    if (StagedCritical > 0)
+                    {
+                        subStrings.Add("#" + StagedCritical);
+                    }
+                    strings.Add(string.Join(" ", subStrings));
                 }
+                if (Unstaged != 0)
+                {
+                    List<string> subStrings = new List<string>();
+                    subStrings.Add("+" + UnstagedAdded);
+                    subStrings.Add("~" + UnstagedModified);
+                    subStrings.Add("-" + UnstagedDeleted);
+                    if (UnstagedCritical > 0)
+                    {
+                        subStrings.Add("#" + UnstagedCritical);
+                    }
+                    subStrings.Add("!");
+                    strings.Add(string.Join(" ", subStrings));
+                }
+                Debug.Assert(strings.Count > 0);
 
-                strings.Insert(0, "[");
-                strings.Add("]");
-                return string.Join(" ", strings.ToArray());
+                return "[ " + string.Join(" | ", strings.ToArray()) + " ]";
             }
         }
 
@@ -241,45 +261,101 @@ namespace Utilities
         {
             get { return m_branch; }
         }
+        public int Staged
+        {
+            get { return GetFiles(true).Length; }
+        }
         public int StagedAdded
         {
-            get { return m_stagedAdded.Count; }
+            get { return GetFiles(FileState.Added, true).Length; }
         }
         public int StagedModified
         {
-            get { return m_stagedModified.Count; }
+            get { return GetFiles(FileState.Modified, true).Length; }
         }
         public int StagedDeleted
         {
-            get { return m_stagedDeleted.Count; }
+            get { return GetFiles(FileState.Deleted, true).Length; }
+        }
+        public int StagedCritical
+        {
+            get { return GetFiles(FileState.Critical, true).Length; }
+        }
+        public int Unstaged
+        {
+            get { return GetFiles(false).Length; }
         }
         public int UnstagedAdded
         {
-            get { return m_unstagedAdded.Count; }
+            get { return GetFiles(FileState.Added, false).Length; }
         }
         public int UnstagedModified
         {
-            get { return m_unstagedModified.Count; }
+            get { return GetFiles(FileState.Modified, false).Length; }
         }
         public int UnstagedDeleted
         {
-            get { return m_unstagedDeleted.Count; }
+            get { return GetFiles(FileState.Deleted, false).Length; }
+        }
+        public int UnstagedCritical
+        {
+            get { return GetFiles(FileState.Critical, false).Length; }
         }
 
         public bool AnyChanges
         {
             get
             {
-                return StagedAdded + StagedModified + StagedDeleted + UnstagedAdded + UnstagedModified + UnstagedDeleted > 0;
+                return m_files.Count > 0;
             }
         }
 
         private string m_branch = null;
-        private List<string> m_stagedAdded = new List<string>();
-        private List<string> m_stagedModified = new List<string>();
-        private List<string> m_stagedDeleted = new List<string>();
-        private List<string> m_unstagedAdded = new List<string>();
-        private List<string> m_unstagedModified = new List<string>();
-        private List<string> m_unstagedDeleted = new List<string>();
+
+        public enum FileState
+        {
+            Added,
+            Modified,
+            Deleted,
+            Critical
+        }
+
+        public struct FileInfo
+        {
+            public FileInfo(string filePath, FileState fileState, bool staged)
+            {
+                FilePath = filePath;
+                FileState = fileState;
+                Staged = staged;
+            }
+            public string FilePath;
+            public FileState FileState;
+            public bool Staged;
+        }
+        private List<FileInfo> m_files = new List<FileInfo>();
+        private FileInfo[] GetFiles(bool staged)
+        {
+            List<FileInfo> results = new List<FileInfo>();
+            foreach (FileInfo info in m_files)
+            {
+                if (info.Staged == staged)
+                {
+                    results.Add(info);
+                }
+            }
+            return results.ToArray();
+        }
+        private FileInfo[] GetFiles(FileState fileState, bool staged)
+        {
+            List<FileInfo> results = new List<FileInfo>();
+            foreach(FileInfo info in m_files)
+            {
+                if (info.FileState == fileState && info.Staged == staged)
+                {
+                    results.Add(info);
+                }
+            }
+            return results.ToArray();
+        }
     }
 }

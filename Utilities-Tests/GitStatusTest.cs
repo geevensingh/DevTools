@@ -170,8 +170,8 @@ M  zune/client/xaml/music/UI/Services/NowPlayingViewManager.cpp
             GitStatus status = GitStatus.ParseLines(lines);
             Assert.AreEqual(@"improve-status-parsing", status.Branch);
             Assert.AreEqual("5 ahead", status.RemoteChanges);
-            Assert.AreEqual(@"[ +0 ~3 -0 | +0 ~1 -0 ! ]", status.AllLocalChanges);
-            Assert.AreEqual(@"[ +0 ~3 -0 | +0 ~1 -0 ! ]", status.MimimalLocalChanges);
+            Assert.AreEqual(@"[ +0 ~2 -0 #1 | +0 ~0 -0 #1 ! ]", status.AllLocalChanges);
+            Assert.AreEqual(@"[ +0 ~2 -0 #1 | +0 ~0 -0 #1 ! ]", status.MimimalLocalChanges);
         }
 
         [TestMethod]
@@ -192,6 +192,43 @@ R  WECTools/FilterWriter/FilterWriter.sln -> tools/FilterWriter/FilterWriter.sln
             Assert.AreEqual("5 ahead", status.RemoteChanges);
             Assert.AreEqual(@"[ +0 ~1 -0 | +6 ~1 -0 ! ]", status.AllLocalChanges);
             Assert.AreEqual(@"[ +0 ~1 -0 | +6 ~1 -0 ! ]", status.MimimalLocalChanges);
+        }
+
+        [TestMethod]
+        public void TestCriticals()
+        {
+            string[] lines = @"## feature/personalize-playlist...origin/feature/personalize-playlist
+UU zune/client/xaml/music/UI/Controls/NowPlayingHeaderControl.xaml.cpp
+UU zune/client/xaml/music/UI/Controls/NowPlayingHeaderControl.xaml.h
+A  zune/client/xaml/music/Visualization/Visualizations/CameraAngle.h
+A  zune/client/xaml/music/Visualization/Visualizations/CameraManagerBase.cpp
+A  zune/client/xaml/music/Visualization/Visualizations/CameraManagerBase.hA  zune/client/xaml/music/Visualization/Visualizations/RibbonsVisualization/RibbonsCameraManager.cpp
+A  zune/client/xaml/music/Visualization/Visualizations/RibbonsVisualization/RibbonsCameraManager.h
+M  zune/client/xaml/music/Visualization/Visualizations/RibbonsVisualization/RibbonsComponent.cpp
+M  zune/client/xaml/music/Visualization/Visualizations/RibbonsVisualization/RibbonsComponent.h
+C  zune/client/xaml/music/Visualization/Visualizations/RibbonsVisualization/RibbonsComponent.cpp -> zune/client/xaml/music/Visualization/Visualizations/RibbonsVisualization/RibbonsMeshComponent.cpp
+C  zune/client/xaml/music/Visualization/Visualizations/RibbonsVisualization/RibbonsComponent.h -> zune/client/xaml/music/Visualization/Visualizations/RibbonsVisualization/RibbonsMeshComponent.h
+M  zune/client/xaml/music/Visualization/Visualizations/RibbonsVisualization/RibbonsShaderExtension.cpp
+M  zune/client/xaml/music/Visualization/Visualizations/RibbonsVisualization/RibbonsShaderExtension.h
+D  zune/client/xaml/music/Visualization/Visualizations/RibbonsVisualization/RibbonsVisualization.cpp
+M  zune/client/xaml/music/Visualization/Visualizations/RibbonsVisualization/RibbonsVisualization.hA  zune/client/xaml/shared/Core/Controls/WhatsNewV2Tier2ItemControl.xaml.h
+M  zune/client/xaml/shared/Core/Framework/CommandIds.hM  zune/client/xaml/strings/af-ZA/resw/MusicStrings/resources.resw
+M  zune/client/xaml/strings/af-ZA/resw/VideoStrings/resources.resw
+M  zune/client/xaml/strings/am-ET/resw/CommonStrings/resources.resw
+UU zune/client/xaml/strings/am-ET/resw/MusicStrings/resources.reswM  zune/client/xaml/strings/km-KH/resw/VideoStrings/resources.resw
+M  zune/client/xaml/strings/kn-IN/resw/CommonStrings/resources.resw
+M  zune/client/xaml/strings/kn-IN/resw/MusicStrings/resources.reswUU zune/client/xaml/strings/sv-SE/resw/CommonStrings/resources.resw
+UU zune/client/xaml/strings/sv-SE/resw/MusicStrings/resources.resw
+M  zune/client/xaml/strings/sv-SE/resw/VideoStrings/resources.resw
+UU zune/client/xaml/strings/sv-SE/xml/Android.Xbox.Music.Loc.xmlM  zune/client/xaml/video/ViewModel/PageModels/VideoNowPlayingPageViewModel.h
+M  zune/client/xaml/video/ViewModel/PageModels/VideoSettingsPageViewModel.cpp
+
+".Split(new string[] { "\r\n" }, StringSplitOptions.None);
+            GitStatus status = GitStatus.ParseLines(lines);
+            Assert.AreEqual(@"feature/personalize-playlist", status.Branch);
+            Assert.AreEqual(GitStatus.UpToDateString, status.RemoteChanges);
+            Assert.AreEqual(@"[ +4 ~14 -1 #5 | +0 ~0 -0 #5 ! ]", status.AllLocalChanges);
+            Assert.AreEqual(@"[ +4 ~14 -1 #5 | +0 ~0 -0 #5 ! ]", status.MimimalLocalChanges);
         }
     }
 }
