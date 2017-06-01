@@ -182,17 +182,8 @@ namespace Utilities
         {
             Logger.LogLine("Merging from " + sourceBranch + " to " + GetCurrentBranchName());
             ProcessHelper proc = new ProcessHelper("git.exe", "merge --strategy recursive --strategy-option patience " + sourceBranch);
-            bool abort = false;
             string[] lines = proc.Go();
-            foreach (string line in lines)
-            {
-                if (line.Contains("Automatic merge failed"))
-                {
-                    abort = true;
-                }
-            }
-
-            if (abort)
+            if (StringHelper.AnyLineContains(lines, "Automatic merge failed"))
             {
                 Logger.LogLine("Unable to automatically merge " + GetCurrentBranchName(), Logger.LevelValue.Warning);
 

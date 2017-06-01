@@ -31,5 +31,29 @@ namespace Utilities
             }
             return fullString;
         }
+
+        public static bool AnyLineContains(string[] lines, string str)
+        {
+            foreach (string line in lines)
+            {
+                if (line.Contains(str))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public static bool AnyLineIs(string[] lines, string str)
+        {
+            foreach (string line in lines)
+            {
+                if (line == str)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 }

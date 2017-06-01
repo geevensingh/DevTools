@@ -43,5 +43,20 @@ namespace Utilities_Tests
             Assert.AreEqual("bar", StringHelper.TrimStart("foobar", "Foo", StringComparison.CurrentCultureIgnoreCase));
             Assert.AreEqual("BAR", StringHelper.TrimStart("FOOBAR", "Foo", StringComparison.CurrentCultureIgnoreCase));
         }
+
+        [TestMethod]
+        public void TestAnyLine()
+        {
+            string[] lines = { "abcdefg", "hijklmn", "foobar", "baz" };
+            Assert.IsTrue(StringHelper.AnyLineContains(lines, "a"));
+            Assert.IsTrue(StringHelper.AnyLineContains(lines, "b"));
+            Assert.IsFalse(StringHelper.AnyLineContains(lines, "w"));
+            Assert.IsFalse(StringHelper.AnyLineContains(lines, "x"));
+
+            Assert.IsTrue(StringHelper.AnyLineIs(lines, "baz"));
+            Assert.IsTrue(StringHelper.AnyLineIs(lines, "foobar"));
+            Assert.IsFalse(StringHelper.AnyLineIs(lines, "Baz"));
+            Assert.IsFalse(StringHelper.AnyLineIs(lines, "abcd"));
+        }
     }
 }
