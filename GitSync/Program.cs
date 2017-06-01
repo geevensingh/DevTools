@@ -16,6 +16,7 @@ namespace GitSync
             bool forceDelete = false;
 #if DEBUG
             Logger.Level = Logger.LevelValue.Verbose;
+            Logger.AnnounceStartStopActions = true;
 #endif
             for (int ii = 0; ii < args.Length; ii++)
             {
@@ -76,7 +77,11 @@ namespace GitSync
                 Logger.LogLine("Started in " + originalBranch);
                 if (originalStatus.AnyChanges)
                 {
-                    GitOperations.Stash();
+                    if (!GitOperations.Stash())
+                    {
+                        Logger.LogLine("Unable to stash the current work.  Cannot continue.", Logger.LevelValue.Error);
+                        return -1;
+                    }
                 }
 
                 GitOperations.SwitchBranch("master");

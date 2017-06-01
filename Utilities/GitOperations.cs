@@ -208,12 +208,14 @@ namespace Utilities
             (new ProcessHelper("git.exe", "pull")).Go();
         }
 
-        public static void Stash()
+        public static bool Stash()
         {
             DateTime now = DateTime.Now;
             Logger.LogLine("Stashing current work");
             string stashMessage = "Automated stash at " + now.ToLongTimeString() + " on " + now.ToShortDateString();
-            (new ProcessHelper("git.exe", "stash save -u \"" + stashMessage + "\"")).Go();
+            ProcessHelper proc = new ProcessHelper("git.exe", "stash save -u \"" + stashMessage + "\"");
+            proc.Go();
+            return proc.StandardError.Length == 0;
         }
 
         public static void StashPop()

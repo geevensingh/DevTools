@@ -129,11 +129,18 @@ html { white-space: nowrap; font-family: Verdana; background-color: #e0e0e0; }
             }
         }
 
-        public static void Stop(string description, LevelValue level = LevelValue.Verbose)
+        public static void Stop(string description, LevelValue level = LevelValue.Verbose, string[] output = null)
         {
             Debug.Assert(_pending.Contains(description));
             if (AnnounceStartStopActions)
             {
+                if (output != null)
+                {
+                    foreach(string line in output)
+                    {
+                        LogLine(GeneratePrefix() + "       " + line, level);
+                    }
+                }
                 LogLine(GeneratePrefix() + "Stop   " + description, level);
             }
             _pending.Remove(description);

@@ -18,8 +18,22 @@ namespace Utilities
         private string _fileName = "";
         private string _arguments = "";
         private string _workingDirectory = "";
-        private List<string> _standardOutput = new List<string>();
-        private List<string> _standardError = new List<string>();
+        private struct OutputInfo
+        {
+            public OutputInfo(string line, LineType type)
+            {
+                Line = line;
+                Type = type;
+            }
+            public string Line;
+            public enum LineType
+            {
+                Output,
+                Error
+            };
+            public LineType Type;
+        }
+        private List<OutputInfo> _output = new List<OutputInfo>();
         private bool _processOver = false;
 
         public string WorkingDirectory
@@ -62,38 +76,72 @@ namespace Utilities
             _exitCode = process.ExitCode;
             _processOver = true;
 
-            if (_standardOutput.Count > 0 && string.IsNullOrEmpty(_standardOutput[_standardOutput.Count - 1]))
-            {
-                _standardOutput.RemoveAt(_standardOutput.Count - 1);
-            }
-            if (_standardError.Count > 0 && string.IsNullOrEmpty(_standardError[_standardError.Count - 1]))
-            {
-                _standardError.RemoveAt(_standardError.Count - 1);
-            }
-
-            Logger.Stop(logEventName);
-            return _standardOutput.ToArray();
+            Logger.Stop(logEventName, output: GetAllOutput(true));
+            return GetAllOutput(false);
         }
 
         private void Process_ErrorDataReceived(object sender, DataReceivedEventArgs e)
         {
             Debug.Assert(!_processOver);
-            _standardError.Add(e.Data);
+            if (e.Data != null)
+            {
+                _output.Add(new OutputInfo(e.Data, OutputInfo.LineType.Error));
+            }
         }
 
         private void Process_OutputDataReceived(object sender, DataReceivedEventArgs e)
         {
             Debug.Assert(!_processOver);
-            _standardOutput.Add(e.Data);
+            if (e.Data != null)
+            {
+                _output.Add(new OutputInfo(e.Data, OutputInfo.LineType.Output));
+            }
         }
 
         public string[] StandardError
         {
-            get { return _standardError.ToArray(); }
+            get { return FilterOutput(OutputInfo.LineType.Error); }
         }
         public string[] StandardOutput
         {
-            get { return _standardOutput.ToArray(); }
+            get { return FilterOutput(OutputInfo.LineType.Output); }
+        }
+        private string[] GetAllOutput(bool withPrefix)
+        {
+            List<string> result = new List<string>();
+            foreach (OutputInfo info in _output)
+            {
+                string line = info.Line;
+                if (withPrefix)
+                {
+                    switch (info.Type)
+                    {
+                        case OutputInfo.LineType.Output:
+                            line = "  " + line;
+                            break;
+                        case OutputInfo.LineType.Error:
+                            line = "! " + line;
+                            break;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                }
+                result.Add(line);
+            }
+            return result.ToArray();
+        }
+
+        private string[] FilterOutput(OutputInfo.LineType filter)
+        {
+            List<string> result = new List<string>();
+            foreach (OutputInfo info in _output)
+            {
+                if (info.Type == filter)
+                {
+                    result.Add(info.Line);
+                }
+            }
+            return result.ToArray();
         }
 
         public int ExitCode { get => _exitCode; }
