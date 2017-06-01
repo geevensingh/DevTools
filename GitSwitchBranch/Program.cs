@@ -147,7 +147,7 @@ namespace GitSwitchBranch
                 return;
             }
 
-            GitOperations.CreateBranch(StringHelper.TrimStart(basedOn, "origin/"), basedOn);
+            CreateBranch(StringHelper.TrimStart(basedOn, "origin/"), basedOn);
         }
 
         private static void MakeNewBranch()
@@ -188,7 +188,15 @@ namespace GitSwitchBranch
             }
             if (prompt == "y")
             {
-                GitOperations.CreateBranch(branchName, basedOn);
+                CreateBranch(branchName, basedOn);
+            }
+        }
+
+        private static void CreateBranch(string branchName, string basedOn)
+        {
+            if (!GitOperations.CreateBranch(branchName, basedOn))
+            {
+                Logger.LogLine("Unable to create your branch", Logger.LevelValue.Error);
             }
         }
     }
