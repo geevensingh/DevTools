@@ -49,7 +49,7 @@ namespace GitSwitchBranch
 
             if ((input == "-") || (input == "--"))
             {
-                GitOperations.SwitchBranch("-");
+                SwitchBranch("-");
                 Logger.LogLine("Branch is now : " + GitOperations.GetCurrentBranchName());
                 return;
             }
@@ -67,8 +67,17 @@ namespace GitSwitchBranch
                 return;
             }
 
-            GitOperations.SwitchBranch(branches[index - 1]);
-            return;
+            SwitchBranch(branches[index - 1]);
+        }
+
+        private static void SwitchBranch(string newBranch)
+        {
+            ProcessHelper proc = null;
+            if (!GitOperations.SwitchBranch(newBranch, out proc))
+            {
+                Logger.LogLine("Unable to switch branches", Logger.LevelValue.Error);
+                Logger.LogLine(proc.AllOutput, Logger.LevelValue.Warning);
+            }
         }
 
         private static void FollowExistingRemoteBranch()

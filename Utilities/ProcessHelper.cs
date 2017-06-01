@@ -106,6 +106,11 @@ namespace Utilities
         {
             get { return FilterOutput(OutputInfo.LineType.Output); }
         }
+        public string[] AllOutput
+        {
+            get { return GetAllOutput(false); }
+        }
+
         private string[] GetAllOutput(bool withPrefix)
         {
             List<string> result = new List<string>();

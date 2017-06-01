@@ -24,11 +24,18 @@ namespace Utilities
             return GitStatus.Get();
         }
 
-        public static void SwitchBranch(string newBranch)
+        public static bool SwitchBranch(string newBranch)
         {
-            Debug.Assert(!GetStatus().AnyChanges);
+            ProcessHelper proc = null;
+            return SwitchBranch(newBranch, out proc);
+        }
+
+        public static bool SwitchBranch(string newBranch, out ProcessHelper proc)
+        {
             Logger.LogLine("Switching to " + newBranch);
-            (new ProcessHelper("git.exe", "checkout " + newBranch)).Go();
+            proc = new ProcessHelper("git.exe", "checkout " + newBranch);
+            proc.Go();
+            return proc.ExitCode == 0;
         }
 
         public static string[] GetLocalBranches()
