@@ -34,11 +34,14 @@ namespace Utilities
 
         public static bool AnyLineContains(string[] lines, string str)
         {
-            foreach (string line in lines)
+            if (lines != null)
             {
-                if (line.Contains(str))
+                foreach (string line in lines)
                 {
-                    return true;
+                    if (line.Contains(str))
+                    {
+                        return true;
+                    }
                 }
             }
             return false;
@@ -46,11 +49,14 @@ namespace Utilities
 
         public static bool AnyLineIs(string[] lines, string str)
         {
-            foreach (string line in lines)
+            if (lines != null)
             {
-                if (line == str)
+                foreach (string line in lines)
                 {
-                    return true;
+                    if (line == str)
+                    {
+                        return true;
+                    }
                 }
             }
             return false;
