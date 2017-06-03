@@ -22,16 +22,26 @@ namespace Utilities
         {
             public OutputInfo(string line, LineType type)
             {
-                Line = line;
-                Type = type;
+                Debug.Assert(line != null);
+                _line = line;
+                _type = type;
             }
-            public string Line;
+            public string Line
+            {
+                get { return _line; }
+            }
             public enum LineType
             {
                 Output,
                 Error
             };
-            public LineType Type;
+            public LineType Type
+            {
+                get { return _type; }
+            }
+
+            private string _line;
+            private LineType _type;
         }
         private List<OutputInfo> _output = new List<OutputInfo>();
         private bool _processOver = false;
@@ -75,6 +85,14 @@ namespace Utilities
             process.WaitForExit();
             _exitCode = process.ExitCode;
             _processOver = true;
+
+            for (int ii = 0; ii < _output.Count; ii++)
+            {
+                if (_output[ii].Line == null)
+                {
+                    _output.RemoveAt(ii--);
+                }
+            }
 
             Logger.Stop(logEventName, output: GetAllOutput(true));
             return GetAllOutput(false);
