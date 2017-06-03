@@ -131,19 +131,26 @@ namespace Utilities
             return releaseBranches.ToArray();
         }
 
-        public static bool CreateBranch(string branchName, string basedOn)
+        public static bool CreateBranch(string branchName, string basedOn, out ProcessHelper proc)
         {
-            return CreateBranch(branchName, basedOn, branchName);
+            return CreateBranch(branchName, basedOn, branchName, out proc);
         }
 
-        public static bool CreateBranch(string branchName, string basedOn, string remoteBranchName)
+        public static bool CreateBranch(string branchName, string basedOn)
         {
-            ProcessHelper proc = new ProcessHelper("git.exe", "checkout -b " + branchName + " " + basedOn);
+            ProcessHelper proc = null;
+            return CreateBranch(branchName, basedOn, branchName, out proc);
+        }
+
+        public static bool CreateBranch(string branchName, string basedOn, string remoteBranchName, out ProcessHelper proc)
+        {
+            proc = new ProcessHelper("git.exe", "checkout -b " + branchName + " " + basedOn);
             proc.Go();
             if (proc.ExitCode != 0)
             {
                 return false;
             }
+
             proc = new ProcessHelper("git.exe", "push -u origin " + remoteBranchName);
             proc.Go();
             return proc.ExitCode == 0;

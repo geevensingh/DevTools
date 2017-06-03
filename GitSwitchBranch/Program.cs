@@ -194,9 +194,11 @@ namespace GitSwitchBranch
 
         private static void CreateBranch(string branchName, string basedOn)
         {
-            if (!GitOperations.CreateBranch(branchName, basedOn))
+            ProcessHelper proc = null;
+            if (!GitOperations.CreateBranch(branchName, basedOn, out proc))
             {
                 Logger.LogLine("Unable to create your branch", Logger.LevelValue.Error);
+                Logger.LogLine(proc.AllOutput, Logger.LevelValue.Warning);
             }
         }
     }
