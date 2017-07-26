@@ -25,7 +25,7 @@ namespace ScrubStrings
             {
                 Console.WriteLine("Please specify a directory.");
             }
-                List<string> stringIds = new List<string>();
+            List<string> stringIds = new List<string>();
             foreach (string filePath in Directory.GetFiles(rootDirectory, "*.resw", SearchOption.AllDirectories))
             {
                 // Ignore the error strings.
