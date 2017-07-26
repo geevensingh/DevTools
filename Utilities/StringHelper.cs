@@ -32,6 +32,21 @@ namespace Utilities
             return fullString;
         }
 
+        public static string TrimEnd(string fullString, string suffix)
+        {
+            return TrimEnd(fullString, suffix, StringComparison.CurrentCulture);
+        }
+
+        public static string TrimEnd(string fullString, string suffix, StringComparison comparisonType)
+        {
+            int index = fullString.IndexOf(suffix, comparisonType);
+            if (index != -1)
+            {
+                return fullString.Substring(0, index);
+            }
+            return fullString;
+        }
+
         public static bool AnyLineContains(string[] lines, string str)
         {
             if (lines != null)
