@@ -98,8 +98,8 @@ namespace GitSync
                     string releaseForkPoint = GitOperations.BranchContains(branch, releaseForkPoints);
                     if (!string.IsNullOrEmpty(releaseForkPoint))
                     {
-                        Logger.LogLine("Ignoring branch " + branch + " because it comes from a release branch", Logger.LevelValue.Warning);
-                        Logger.LogLine("\tBranch contains " + releaseForkPoint, Logger.LevelValue.Normal);
+                        Logger.LogLine("Ignoring release branch: " + branch);
+                        Logger.LogLine("\tBranch contains " + releaseForkPoint, Logger.LevelValue.Verbose);
                         continue;
                     }
 
