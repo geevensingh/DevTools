@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26430.6
+VisualStudioVersion = 15.0.26430.15
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Have", "Have\Have.csproj", "{C811030A-E4CC-4C7B-BADE-94537AE1833F}"
 EndProject
@@ -22,6 +22,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitSwitchBranch", "GitSwitchBranch\GitSwitchBranch.csproj", "{A267496A-C3D7-44D3-87CC-14A913CFF2B5}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitStaleBranches", "GitStaleBranches\GitStaleBranches.csproj", "{78C1AFF3-57EB-4818-A15C-D14674013688}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SearchAndReplace", "SearchAndReplace\SearchAndReplace.csproj", "{0BA5B7DC-750B-4E19-93AE-C94736E41823}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -191,6 +193,22 @@ Global
 		{78C1AFF3-57EB-4818-A15C-D14674013688}.Release|x64.Build.0 = Release|Any CPU
 		{78C1AFF3-57EB-4818-A15C-D14674013688}.Release|x86.ActiveCfg = Release|Any CPU
 		{78C1AFF3-57EB-4818-A15C-D14674013688}.Release|x86.Build.0 = Release|Any CPU
+		{0BA5B7DC-750B-4E19-93AE-C94736E41823}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0BA5B7DC-750B-4E19-93AE-C94736E41823}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0BA5B7DC-750B-4E19-93AE-C94736E41823}.Debug|ARM.ActiveCfg = Debug|Any CPU
+		{0BA5B7DC-750B-4E19-93AE-C94736E41823}.Debug|ARM.Build.0 = Debug|Any CPU
+		{0BA5B7DC-750B-4E19-93AE-C94736E41823}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{0BA5B7DC-750B-4E19-93AE-C94736E41823}.Debug|x64.Build.0 = Debug|Any CPU
+		{0BA5B7DC-750B-4E19-93AE-C94736E41823}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{0BA5B7DC-750B-4E19-93AE-C94736E41823}.Debug|x86.Build.0 = Debug|Any CPU
+		{0BA5B7DC-750B-4E19-93AE-C94736E41823}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0BA5B7DC-750B-4E19-93AE-C94736E41823}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0BA5B7DC-750B-4E19-93AE-C94736E41823}.Release|ARM.ActiveCfg = Release|Any CPU
+		{0BA5B7DC-750B-4E19-93AE-C94736E41823}.Release|ARM.Build.0 = Release|Any CPU
+		{0BA5B7DC-750B-4E19-93AE-C94736E41823}.Release|x64.ActiveCfg = Release|Any CPU
+		{0BA5B7DC-750B-4E19-93AE-C94736E41823}.Release|x64.Build.0 = Release|Any CPU
+		{0BA5B7DC-750B-4E19-93AE-C94736E41823}.Release|x86.ActiveCfg = Release|Any CPU
+		{0BA5B7DC-750B-4E19-93AE-C94736E41823}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
