@@ -222,9 +222,14 @@ namespace Utilities
             DateTime now = DateTime.Now;
             Logger.LogLine("Stashing current work");
             string stashMessage = "Automated stash at " + now.ToLongTimeString() + " on " + now.ToShortDateString();
-            ProcessHelper proc = new ProcessHelper("git.exe", "stash save -u \"" + stashMessage + "\"");
+            ProcessHelper proc = new ProcessHelper("git.exe", "stash save --include-untracked \"" + stashMessage + "\"");
             proc.Go();
-            return proc.StandardError.Length == 0;
+            bool hasError = proc.StandardError.Length != 0;
+            if (hasError)
+            {
+                Logger.LogLine(proc.AllOutput, Logger.LevelValue.Warning);
+            }
+            return !hasError;
         }
 
         public static void StashPop()
