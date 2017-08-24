@@ -153,6 +153,13 @@ namespace Utilities
 
             proc = new ProcessHelper("git.exe", "push -u origin " + remoteBranchName);
             proc.Go();
+            if (proc.ExitCode != 0)
+            {
+                return false;
+            }
+
+            proc = new ProcessHelper("git.exe", string.Join(" ", new string[] { "config", "branch." + branchName + ".basedon", remoteBranchName }));
+            proc.Go();
             return proc.ExitCode == 0;
         }
 
