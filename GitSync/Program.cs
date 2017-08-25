@@ -12,7 +12,6 @@ namespace GitSync
     {
         static int Main(string[] args)
         {
-            bool forceSync = false;
             bool forceDelete = false;
 #if DEBUG
             Logger.Level = Logger.LevelValue.Verbose;
@@ -21,7 +20,7 @@ namespace GitSync
             for (int ii = 0; ii < args.Length; ii++)
             {
                 string arg = args[ii].ToLower();
-                switch(arg)
+                switch (arg)
                 {
                     case "/v":
                     case "/verbose":
@@ -38,16 +37,14 @@ namespace GitSync
                         Logger.AnnounceStartStopActions = true;
                         Logger.AddLogFile(args[++ii], Logger.LevelValue.Verbose);
                         break;
-                    case "/fs":
-                        forceSync = true;
-                        break;
                     case "/fd":
                         forceDelete = true;
                         break;
                     default:
                         Console.WriteLine("Unknown argument: " + arg);
                         PrintUsage();
-                        return -1;
+                        Logger.FlushLogs();
+                        return (int)Logger.WarningCount;
                 }
             }
 
@@ -57,75 +54,120 @@ namespace GitSync
                 Logger.LogLine("Verbose log path: " + verboseLogFile);
             }
 
+            string[] localBranches = GitOperations.GetLocalBranches();
+
             GitOperations.FetchAll();
 
-            string[] releaseBranches = GitOperations.GetReleaseBranchNames();
-            string[] releaseForkPoints = GitOperations.GetFirstChanges(releaseBranches);
-            bool uniqueReleaseBranches = (releaseBranches.Length == releaseForkPoints.Length);
-            if (!uniqueReleaseBranches)
+            List<string> missingBasedOn = new List<string>();
+            Dictionary<string, string> branchBasedOn = new Dictionary<string, string>();
+            foreach (string branch in localBranches)
             {
-                Logger.LogLine("At least one release branch is not unique.", Logger.LevelValue.Warning);
-            }
-            if (!uniqueReleaseBranches && !forceSync)
-            {
-                Logger.LogLine("Without knowing that a branch is unique, we can't update any branches.", Logger.LevelValue.Error);
-            }
-            else
-            {
-                GitStatus originalStatus = GitOperations.GetStatus();
-                String originalBranch = originalStatus.Branch;
-                Logger.LogLine("Started in " + originalBranch);
-                if (originalStatus.AnyChanges)
+                if (branch == "master")
                 {
-                    if (!GitOperations.Stash())
-                    {
-                        Logger.LogLine("Unable to stash the current work.  Cannot continue.", Logger.LevelValue.Error);
-                        return -1;
-                    }
+                    branchBasedOn.Add(branch, branch);
+                    continue;
                 }
-
-                GitOperations.SwitchBranch("master");
-                GitOperations.PullCurrentBranch();
-
-                string[] branches = GitOperations.GetLocalBranches();
-                foreach (string branch in branches)
+                string basedOn = GitOperations.GetBranchBase(branch);
+                if (string.IsNullOrEmpty(basedOn))
                 {
-                    if (branch == "master")
-                    {
-                        continue;
-                    }
+                    missingBasedOn.Add(branch);
+                }
+                else
+                {
+                    branchBasedOn.Add(branch, basedOn);
+                }
+            }
 
+            string[] releaseBranches = GitOperations.GetReleaseBranchNames();   
+            string[] releaseForkPoints = GitOperations.GetFirstChanges(releaseBranches);
+            bool allReleaseBranchesAreUnique = (releaseBranches.Length == releaseForkPoints.Length);
+            if (!allReleaseBranchesAreUnique && missingBasedOn.Count > 0)
+            {
+                for (int ii = 0; ii < missingBasedOn.Count; ii++)
+                {
+                    string branch = missingBasedOn[ii];
                     string releaseForkPoint = GitOperations.BranchContains(branch, releaseForkPoints);
                     if (!string.IsNullOrEmpty(releaseForkPoint))
                     {
-                        Logger.LogLine("Ignoring release branch: " + branch);
-                        Logger.LogLine("\tBranch contains " + releaseForkPoint, Logger.LevelValue.Verbose);
-                        continue;
-                    }
-
-                    GitOperations.SwitchBranch(branch);
-                    GitStatus status = GitOperations.GetStatus();
-                    if (status.RemoteChanges == "remote-gone")
-                    {
-                        Logger.LogLine("Remote branch is gone for " + branch, Logger.LevelValue.Warning);
-                        GitOperations.SwitchBranch("master");
-                        GitOperations.DeleteBranch(branch, force: forceDelete);
-                        if (branch == originalBranch)
-                        {
-                            originalBranch = "master";
-                        }
-                    }
-                    else
-                    {
-                        GitOperations.MergeFromBranch("master");
+                        missingBasedOn.RemoveAt(ii--);
                     }
                 }
+            }
+            else
+            {
+                // If we know the fork points of all release branches, then we don't need the based-on information.
+                missingBasedOn.Clear();
+            }
 
-                GitOperations.SwitchBranch(originalBranch);
-                if (originalStatus.AnyChanges)
+            GitStatus originalStatus = GitOperations.GetStatus();
+            String originalBranch = originalStatus.Branch;
+            Logger.LogLine("Started in " + originalBranch);
+            if (originalStatus.AnyChanges)
+            {
+                if (!GitOperations.Stash())
                 {
-                    GitOperations.StashPop();
+                    Logger.LogLine("Unable to stash the current work.  Cannot continue.", Logger.LevelValue.Error);
+                    Logger.FlushLogs();
+                    return (int)Logger.WarningCount;
                 }
+            }
+
+            GitOperations.SwitchBranch("master");
+            GitOperations.PullCurrentBranch();
+
+            foreach (string branch in localBranches)
+            {
+                if (branch == "master")
+                {
+                    continue;
+                }
+
+                if (missingBasedOn.Contains(branch))
+                {
+                    Logger.LogLine("Ignoring branch: " + branch, Logger.LevelValue.Warning);
+                    Logger.LogLine("\tUnknown branch source (based-on) and there is currently an unforked release branch.");
+                    Logger.LogLine("\tIf this is based on master, run the following command:");
+                    Logger.LogLine("\t\tgit config branch." + branch + ".basedon master");
+                    continue;
+                }
+
+                string releaseForkPoint = GitOperations.BranchContains(branch, releaseForkPoints);
+                if (!string.IsNullOrEmpty(releaseForkPoint))
+                {
+                    Logger.LogLine("Ignoring release branch: " + branch);
+                    Logger.LogLine("\tBranch contains " + releaseForkPoint, Logger.LevelValue.Verbose);
+                    continue;
+                }
+
+                if (branchBasedOn[branch].Contains("release"))
+                {
+                    Logger.LogLine("Ignoring release branch: " + branch);
+                    Logger.LogLine("\tBranch based on " + branchBasedOn[branch], Logger.LevelValue.Verbose);
+                    continue;
+                }
+
+                GitOperations.SwitchBranch(branch);
+                GitStatus status = GitOperations.GetStatus();
+                if (status.RemoteChanges == "remote-gone")
+                {
+                    Logger.LogLine("Remote branch is gone for " + branch, Logger.LevelValue.Warning);
+                    GitOperations.SwitchBranch("master");
+                    GitOperations.DeleteBranch(branch, force: forceDelete);
+                    if (branch == originalBranch)
+                    {
+                        originalBranch = "master";
+                    }
+                }
+                else
+                {
+                    GitOperations.MergeFromBranch("master");
+                }
+            }
+
+            GitOperations.SwitchBranch(originalBranch);
+            if (originalStatus.AnyChanges)
+            {
+                GitOperations.StashPop();
             }
 
             Logger.FlushLogs();

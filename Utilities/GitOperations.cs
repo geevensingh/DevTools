@@ -66,14 +66,14 @@ namespace Utilities
 
         public static string[] GetFirstChanges(string[] branches)
         {
-            Dictionary<string, string> commits= new Dictionary<string, string>();
-            foreach(string branch in branches)
+            Dictionary<string, string> commits = new Dictionary<string, string>();
+            foreach (string branch in branches)
             {
                 commits.Add(branch, (new ProcessHelper("git.exe", "merge-base origin/master " + branch)).Go()[0]);
                 Logger.LogLine(branch + " seems to have forked from master at " + commits[branch], Logger.LevelValue.Verbose);
             }
             List<string> firstChanges = new List<string>();
-            foreach(string branch in commits.Keys)
+            foreach (string branch in commits.Keys)
             {
                 string firstChange = GetNextCommitInBranch(commits[branch], branch);
                 if (string.IsNullOrEmpty(firstChange))
@@ -87,6 +87,18 @@ namespace Utilities
                 }
             }
             return firstChanges.ToArray();
+        }
+
+        public static string GetBranchBase(string branch)
+        {
+            ProcessHelper proc = new ProcessHelper("git.exe", "config branch." + branch + ".basedon");
+            proc.Go();
+            if (proc.ExitCode != 0)
+            {
+                return string.Empty;
+            }
+            Debug.Assert(proc.StandardOutput.Length > 0);
+            return proc.StandardOutput[0];
         }
 
         public static void FetchAll()
@@ -124,7 +136,7 @@ namespace Utilities
                 }
             }
             Logger.LogLine("Found the following release branches:", Logger.LevelValue.Verbose);
-            foreach(string branch in releaseBranches)
+            foreach (string branch in releaseBranches)
             {
                 Logger.LogLine("\t" + branch, Logger.LevelValue.Verbose);
             }
@@ -158,8 +170,11 @@ namespace Utilities
                 return false;
             }
 
-            proc = new ProcessHelper("git.exe", string.Join(" ", new string[] { "config", "branch." + branchName + ".basedon", remoteBranchName }));
-            proc.Go();
+            if (branchName != basedOn && basedOn != ("origin/" + branchName))
+            {
+                proc = new ProcessHelper("git.exe", string.Join(" ", new string[] { "config", "branch." + branchName + ".basedon", remoteBranchName }));
+                proc.Go();
+            }
             return proc.ExitCode == 0;
         }
 
