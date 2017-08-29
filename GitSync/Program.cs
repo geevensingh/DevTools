@@ -139,9 +139,9 @@ namespace GitSync
                     continue;
                 }
 
-                if (branchBasedOn[branch].Contains("release"))
+                if (branchBasedOn.ContainsKey(branch) && branchBasedOn[branch] != "master")
                 {
-                    Logger.LogLine("Ignoring release branch: " + branch);
+                    Logger.LogLine("Ignoring non-master-based branch: " + branch);
                     Logger.LogLine("\tBranch based on " + branchBasedOn[branch], Logger.LevelValue.Verbose);
                     continue;
                 }
