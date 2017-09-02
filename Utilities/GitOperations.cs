@@ -194,17 +194,19 @@ namespace Utilities
             return string.Empty;
         }
 
-        public static void DeleteBranch(string branchName, bool force = false)
+        public static bool DeleteBranch(string branchName, bool force = false)
         {
             Debug.Assert(GetStatus().Branch != branchName);
             Logger.LogLine((force ? "FORCE " : "") + "Deleting " + branchName, (force ? Logger.LevelValue.Warning : Logger.LevelValue.Normal));
             string deleteArgs = (force ? "-D" : "-d") + " " + branchName;
             ProcessHelper proc = new ProcessHelper("git.exe", "branch " + deleteArgs);
             proc.Go();
-            if (proc.ExitCode != 0)
+            bool success = (proc.ExitCode == 0);
+            if (!success)
             {
                 Logger.LogLine("Unable to delete " + branchName, Logger.LevelValue.Warning);
             }
+            return success;
         }
 
         public static void MergeFromBranch(string sourceBranch)
