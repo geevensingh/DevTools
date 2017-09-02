@@ -172,7 +172,7 @@ namespace Utilities
 
             if (branchName != basedOn && basedOn != ("origin/" + branchName))
             {
-                proc = new ProcessHelper("git.exe", string.Join(" ", new string[] { "config", "branch." + branchName + ".basedon", remoteBranchName }));
+                proc = new ProcessHelper("git.exe", string.Join(" ", new string[] { "config", "branch." + branchName + ".basedon", basedOn }));
                 proc.Go();
             }
             return proc.ExitCode == 0;
