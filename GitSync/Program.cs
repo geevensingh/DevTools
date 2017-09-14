@@ -17,6 +17,8 @@ namespace GitSync
             Logger.Level = Logger.LevelValue.Verbose;
             Logger.AnnounceStartStopActions = true;
 #endif
+            string masterBranch = "master";
+
             for (int ii = 0; ii < args.Length; ii++)
             {
                 string arg = args[ii].ToLower();
@@ -40,6 +42,9 @@ namespace GitSync
                     case "/fd":
                         forceDelete = true;
                         break;
+                    case "/master":
+                        masterBranch = args[++ii];
+                        break;
                     default:
                         Console.WriteLine("Unknown argument: " + arg);
                         PrintUsage();
@@ -55,6 +60,12 @@ namespace GitSync
             }
 
             string[] localBranches = GitOperations.GetLocalBranches();
+            if (!localBranches.Contains(masterBranch))
+            {
+                Logger.LogLine("Your repo must contain a local version of your master branch: " + masterBranch, Logger.LevelValue.Error);
+                Logger.FlushLogs();
+                return (int)Logger.WarningCount;
+            }
 
             GitOperations.FetchAll();
 
@@ -62,7 +73,7 @@ namespace GitSync
             Dictionary<string, string> branchBasedOn = new Dictionary<string, string>();
             foreach (string branch in localBranches)
             {
-                if (branch == "master")
+                if (branch == masterBranch)
                 {
                     branchBasedOn.Add(branch, branch);
                     continue;
@@ -78,8 +89,8 @@ namespace GitSync
                 }
             }
 
-            string[] releaseBranches = GitOperations.GetReleaseBranchNames();   
-            string[] releaseForkPoints = GitOperations.GetFirstChanges(releaseBranches);
+            string[] releaseBranches = GitOperations.GetReleaseBranchNames(new string[] { masterBranch });
+            string[] releaseForkPoints = GitOperations.GetFirstChanges(masterBranch, releaseBranches);
             bool allReleaseBranchesAreUnique = (releaseBranches.Length == releaseForkPoints.Length);
             if (!allReleaseBranchesAreUnique && missingBasedOn.Count > 0)
             {
@@ -112,12 +123,12 @@ namespace GitSync
                 }
             }
 
-            GitOperations.SwitchBranch("master");
+            GitOperations.SwitchBranch(masterBranch);
             GitOperations.PullCurrentBranch();
 
             foreach (string branch in localBranches)
             {
-                if (branch == "master")
+                if (branch == masterBranch)
                 {
                     continue;
                 }
@@ -126,8 +137,8 @@ namespace GitSync
                 {
                     Logger.LogLine("Ignoring branch: " + branch, Logger.LevelValue.Warning);
                     Logger.LogLine("\tUnknown branch source (based-on) and there is currently an unforked release branch.");
-                    Logger.LogLine("\tIf this is based on master, run the following command:");
-                    Logger.LogLine("\t\tgit config branch." + branch + ".basedon master");
+                    Logger.LogLine("\tIf this is based on " + masterBranch + ", run the following command:");
+                    Logger.LogLine("\t\tgit config branch." + branch + ".basedon " + masterBranch);
                     continue;
                 }
 
@@ -139,9 +150,9 @@ namespace GitSync
                     continue;
                 }
 
-                if (branchBasedOn.ContainsKey(branch) && branchBasedOn[branch] != "master")
+                if (branchBasedOn.ContainsKey(branch) && branchBasedOn[branch] != masterBranch)
                 {
-                    Logger.LogLine("Ignoring non-master-based branch: " + branch);
+                    Logger.LogLine("Ignoring non-master-based branch: " + branch, Logger.LevelValue.Warning);
                     Logger.LogLine("\tBranch based on " + branchBasedOn[branch], Logger.LevelValue.Verbose);
                     continue;
                 }
@@ -151,16 +162,15 @@ namespace GitSync
                 if (status.RemoteChanges == "remote-gone")
                 {
                     Logger.LogLine("Remote branch is gone for " + branch, Logger.LevelValue.Warning);
-                    GitOperations.SwitchBranch("master");
-                    GitOperations.DeleteBranch(branch, force: forceDelete);
-                    if (branch == originalBranch)
+                    GitOperations.SwitchBranch(masterBranch);
+                    if (GitOperations.DeleteBranch(branch, force: forceDelete) && (branch == originalBranch))
                     {
-                        originalBranch = "master";
+                        originalBranch = masterBranch;
                     }
                 }
                 else
                 {
-                    GitOperations.MergeFromBranch("master");
+                    GitOperations.MergeFromBranch(masterBranch);
                 }
             }
 

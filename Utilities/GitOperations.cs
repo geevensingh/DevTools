@@ -64,13 +64,13 @@ namespace Utilities
             return GetLocalBranches(String.Join(" ", new string[] { "--remote", args }));
         }
 
-        public static string[] GetFirstChanges(string[] branches)
+        public static string[] GetFirstChanges(string masterBranch, string[] branches)
         {
             Dictionary<string, string> commits = new Dictionary<string, string>();
             foreach (string branch in branches)
             {
-                commits.Add(branch, (new ProcessHelper("git.exe", "merge-base origin/master " + branch)).Go()[0]);
-                Logger.LogLine(branch + " seems to have forked from master at " + commits[branch], Logger.LevelValue.Verbose);
+                commits.Add(branch, (new ProcessHelper("git.exe", "merge-base origin/" + masterBranch + " " + branch)).Go()[0]);
+                Logger.LogLine(branch + " seems to have forked from " + masterBranch + " at " + commits[branch], Logger.LevelValue.Verbose);
             }
             List<string> firstChanges = new List<string>();
             foreach (string branch in commits.Keys)
@@ -124,13 +124,15 @@ namespace Utilities
             return nextCommit;
         }
 
-        public static string[] GetReleaseBranchNames()
+        public static string[] GetReleaseBranchNames(string[] ignoreBranches)
         {
             List<string> releaseBranches = new List<string>();
             ProcessHelper proc = new ProcessHelper("git.exe", "branch -r");
             foreach (string line in proc.Go())
             {
-                if (line.Trim().StartsWith("origin/release/"))
+                if (line.Trim().StartsWith("origin/release/") &&
+                    !ignoreBranches.Contains(line.Trim()) &&
+                    !ignoreBranches.Contains(StringHelper.TrimStart(line.Trim(), "origin/")))
                 {
                     releaseBranches.Add(line.Trim());
                 }
