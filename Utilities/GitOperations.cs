@@ -69,7 +69,9 @@ namespace Utilities
             Dictionary<string, string> commits = new Dictionary<string, string>();
             foreach (string branch in branches)
             {
-                commits.Add(branch, (new ProcessHelper("git.exe", "merge-base origin/" + masterBranch + " " + branch)).Go()[0]);
+                string forkPoint = (new ProcessHelper("git.exe", "merge-base origin/" + masterBranch + " " + branch)).Go()[0];
+                Debug.Assert(forkPoint.Length == 40);
+                commits.Add(branch, forkPoint);
                 Logger.LogLine(branch + " seems to have forked from " + masterBranch + " at " + commits[branch], Logger.LevelValue.Verbose);
             }
             List<string> firstChanges = new List<string>();
