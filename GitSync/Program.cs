@@ -133,30 +133,6 @@ namespace GitSync
                     continue;
                 }
 
-                if (missingBasedOn.Contains(branch))
-                {
-                    Logger.LogLine("Ignoring branch: " + branch, Logger.LevelValue.Warning);
-                    Logger.LogLine("\tUnknown branch source (based-on) and there is currently an unforked release branch.");
-                    Logger.LogLine("\tIf this is based on " + masterBranch + ", run the following command:");
-                    Logger.LogLine("\t\tgit config branch." + branch + ".basedon " + masterBranch);
-                    continue;
-                }
-
-                string releaseForkPoint = GitOperations.BranchContains(branch, releaseForkPoints);
-                if (!string.IsNullOrEmpty(releaseForkPoint))
-                {
-                    Logger.LogLine("Ignoring release branch: " + branch);
-                    Logger.LogLine("\tBranch contains " + releaseForkPoint, Logger.LevelValue.Verbose);
-                    continue;
-                }
-
-                if (branchBasedOn.ContainsKey(branch) && branchBasedOn[branch] != masterBranch)
-                {
-                    Logger.LogLine("Ignoring non-master-based branch: " + branch, Logger.LevelValue.Warning);
-                    Logger.LogLine("\tBranch based on " + branchBasedOn[branch], Logger.LevelValue.Verbose);
-                    continue;
-                }
-
                 GitOperations.SwitchBranch(branch);
                 GitStatus status = GitOperations.GetStatus();
                 if (status.RemoteChanges == "remote-gone")
@@ -170,8 +146,34 @@ namespace GitSync
                 }
                 else
                 {
+                    if (missingBasedOn.Contains(branch))
+                    {
+                        Logger.LogLine("Ignoring branch: " + branch, Logger.LevelValue.Warning);
+                        Logger.LogLine("\tUnknown branch source (based-on) and there is currently an unforked release branch.");
+                        Logger.LogLine("\tIf this is based on " + masterBranch + ", run the following command:");
+                        Logger.LogLine("\t\tgit config branch." + branch + ".basedon " + masterBranch);
+                        continue;
+                    }
+
+                    string releaseForkPoint = GitOperations.BranchContains(branch, releaseForkPoints);
+                    if (!string.IsNullOrEmpty(releaseForkPoint))
+                    {
+                        Logger.LogLine("Ignoring release branch: " + branch);
+                        Logger.LogLine("\tBranch contains " + releaseForkPoint, Logger.LevelValue.Verbose);
+                        continue;
+                    }
+
+                    if (branchBasedOn.ContainsKey(branch) && branchBasedOn[branch] != masterBranch)
+                    {
+                        Logger.LogLine("Ignoring non-master-based branch: " + branch, Logger.LevelValue.Warning);
+                        Logger.LogLine("\tBranch based on " + branchBasedOn[branch], Logger.LevelValue.Verbose);
+                        continue;
+                    }
+
                     GitOperations.MergeFromBranch(masterBranch);
                 }
+
+
             }
 
             GitOperations.SwitchBranch(originalBranch);
