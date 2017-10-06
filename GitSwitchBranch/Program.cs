@@ -126,13 +126,11 @@ namespace GitSwitchBranch
             {
                 basedOn = prompt;
             }
-
-            if (string.IsNullOrEmpty(basedOn) && remoteBranches.Contains("origin/" + prompt))
+            else if (remoteBranches.Contains("origin/" + prompt))
             {
                 basedOn = "origin/" + prompt;
             }
-
-            if (string.IsNullOrEmpty(basedOn))
+            else
             {
                 int index = -1;
                 if (int.TryParse(prompt, out index) && (index > 0) && (index <= matchingBranches.Count))
@@ -168,7 +166,11 @@ namespace GitSwitchBranch
             }
             string branchName = string.Join("/", string.Join("/", new string[] { prefix, shortName }).Split(new char[] { '/' }, StringSplitOptions.RemoveEmptyEntries));
 
-            string suggestedBasedOn = "master";
+            string suggestedBasedOn = GitOperations.GetBranchBase(GitOperations.GetCurrentBranchName());
+            if (string.IsNullOrEmpty(suggestedBasedOn))
+            {
+                suggestedBasedOn = "master";
+            }
             Logger.Log("Based on what branch? [" + suggestedBasedOn + "] : ");
             string basedOn = Console.ReadLine().Trim();
             if (string.IsNullOrEmpty(basedOn))
