@@ -176,7 +176,15 @@ namespace GitSync
 
             }
 
-            GitOperations.SwitchBranch(originalBranch);
+            ProcessHelper proc = null;
+            if (!GitOperations.SwitchBranch(originalBranch, out proc))
+            {
+                Logger.LogLine("Unable to switch branches", Logger.LevelValue.Error);
+                Logger.LogLine(proc.AllOutput, Logger.LevelValue.Warning);
+                Logger.FlushLogs();
+                return (int)Logger.WarningCount;
+            }
+
             if (originalStatus.AnyChanges)
             {
                 GitOperations.StashPop();
