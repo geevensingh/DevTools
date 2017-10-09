@@ -123,7 +123,14 @@ namespace GitSync
                 }
             }
 
-            GitOperations.SwitchBranch(masterBranch);
+            ProcessHelper failureProc = null;
+            if (!GitOperations.SwitchBranch(masterBranch, out failureProc))
+            {
+                Logger.LogLine("Unable to switch branches", Logger.LevelValue.Error);
+                Logger.LogLine(failureProc.AllOutput, Logger.LevelValue.Warning);
+                Logger.FlushLogs();
+                return (int)Logger.WarningCount;
+            }
             GitOperations.PullCurrentBranch();
 
             foreach (string branch in localBranches)
@@ -133,12 +140,24 @@ namespace GitSync
                     continue;
                 }
 
-                GitOperations.SwitchBranch(branch);
+                if (!GitOperations.SwitchBranch(branch, out failureProc))
+                {
+                    Logger.LogLine("Unable to switch branches", Logger.LevelValue.Warning);
+                    Logger.LogLine(failureProc.AllOutput, Logger.LevelValue.Normal);
+                    continue;
+                }
+
                 GitStatus status = GitOperations.GetStatus();
                 if (status.RemoteChanges == "remote-gone")
                 {
                     Logger.LogLine("Remote branch is gone for " + branch, Logger.LevelValue.Warning);
-                    GitOperations.SwitchBranch(masterBranch);
+                    if (!GitOperations.SwitchBranch(masterBranch, out failureProc))
+                    {
+                        Logger.LogLine("Unable to switch branches", Logger.LevelValue.Warning);
+                        Logger.LogLine(failureProc.AllOutput, Logger.LevelValue.Normal);
+                        continue;
+                    }
+
                     if (GitOperations.DeleteBranch(branch, force: forceDelete) && (branch == originalBranch))
                     {
                         originalBranch = masterBranch;
@@ -176,11 +195,10 @@ namespace GitSync
 
             }
 
-            ProcessHelper proc = null;
-            if (!GitOperations.SwitchBranch(originalBranch, out proc))
+            if (!GitOperations.SwitchBranch(originalBranch, out failureProc))
             {
                 Logger.LogLine("Unable to switch branches", Logger.LevelValue.Error);
-                Logger.LogLine(proc.AllOutput, Logger.LevelValue.Warning);
+                Logger.LogLine(failureProc.AllOutput, Logger.LevelValue.Warning);
                 Logger.FlushLogs();
                 return (int)Logger.WarningCount;
             }
