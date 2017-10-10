@@ -91,7 +91,7 @@ namespace ScrubStrings
         private static void FindString(string directoryPath, ref List<string> stringIds)
         {
             List<string> files = new List<string>();
-            foreach (string extension in new string[] { "cpp", "h", "xml" })
+            foreach (string extension in new string[] { "cpp", "h", "xml", "xaml", "json" })
             {
                 foreach (string filePath in Directory.GetFiles(directoryPath, "*." + extension, SearchOption.AllDirectories))
                 {
