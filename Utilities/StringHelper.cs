@@ -39,8 +39,8 @@ namespace Utilities
 
         public static string TrimEnd(string fullString, string suffix, StringComparison comparisonType)
         {
-            int index = fullString.IndexOf(suffix, comparisonType);
-            if (index != -1)
+            int index = fullString.LastIndexOf(suffix, comparisonType);
+            if (fullString.Length - suffix.Length == index)
             {
                 return fullString.Substring(0, index);
             }
