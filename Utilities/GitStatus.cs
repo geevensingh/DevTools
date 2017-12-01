@@ -39,25 +39,27 @@ namespace Utilities
                 return;
             }
 
-            string fileName = GetFileName(line);
-            switch (ch)
+            if (GetFileName(line, out string filePath))
             {
-                case 'A':
-                    m_files.Add(new FileInfo(fileName, FileState.Added, staged));
-                    break;
-                case 'D':
-                    m_files.Add(new FileInfo(fileName, FileState.Deleted, staged));
-                    break;
-                case 'R':   // Rename
-                case 'M':   // Modified
-                case 'C':   // Copied
-                    m_files.Add(new FileInfo(fileName, FileState.Modified, staged));
-                    break;
-                case 'U':   // Merge conflict
-                    m_files.Add(new FileInfo(fileName, FileState.Critical, staged));
-                    break;
-                default:
-                    throw new Exception("Unexpected status.  Line: " + line);
+                switch (ch)
+                {
+                    case 'A':
+                        m_files.Add(new GitFileInfo(filePath, FileState.Added, staged));
+                        break;
+                    case 'D':
+                        m_files.Add(new GitFileInfo(filePath, FileState.Deleted, staged));
+                        break;
+                    case 'R':   // Rename
+                    case 'M':   // Modified
+                    case 'C':   // Copied
+                        m_files.Add(new GitFileInfo(filePath, FileState.Modified, staged));
+                        break;
+                    case 'U':   // Merge conflict
+                        m_files.Add(new GitFileInfo(filePath, FileState.Critical, staged));
+                        break;
+                    default:
+                        throw new Exception("Unexpected status.  Line: " + line);
+                }
             }
         }
 
@@ -70,9 +72,9 @@ namespace Utilities
 
             Debug.Assert(line[2] == ' ');
             
-            if (line.StartsWith("?? "))
+            if (line.StartsWith("?? ") && GetFileName(line, out string filePath))
             {
-                m_files.Add(new FileInfo(GetFileName(line), FileState.Added, false));
+                m_files.Add(new GitFileInfo(filePath, FileState.Added, false));
                 return;
             }
 
@@ -246,10 +248,20 @@ namespace Utilities
             }
         }
 
-        private static string GetFileName(string line)
+        private static bool GetFileName(string line, out string filepath)
         {
-            // TODO: get the filename out of the line
-            return line;
+            int lastSlashIndex = line.LastIndexOf("/");
+            int lastSpaceIndex = line.LastIndexOf(" ");
+            if (lastSlashIndex == -1 || lastSpaceIndex == -1)
+            {
+                filepath = null;
+                return false;
+            }
+
+            string filename = line.Substring(lastSlashIndex + 1);
+            filepath = System.IO.Path.Combine(Environment.CurrentDirectory, line.Substring(lastSpaceIndex + 1).Replace('/', '\\'));
+            Debug.Assert(filename == System.IO.Path.GetFileName(filename));
+            return true;
         }
 
         private bool m_remoteGone = false;
@@ -311,32 +323,12 @@ namespace Utilities
         }
 
         private string m_branch = null;
+        private List<GitFileInfo> m_files = new List<GitFileInfo>();
 
-        public enum FileState
+        public GitFileInfo[] GetFiles(bool staged)
         {
-            Added,
-            Modified,
-            Deleted,
-            Critical
-        }
-
-        public struct FileInfo
-        {
-            public FileInfo(string filePath, FileState fileState, bool staged)
-            {
-                FilePath = filePath;
-                FileState = fileState;
-                Staged = staged;
-            }
-            public string FilePath;
-            public FileState FileState;
-            public bool Staged;
-        }
-        private List<FileInfo> m_files = new List<FileInfo>();
-        private FileInfo[] GetFiles(bool staged)
-        {
-            List<FileInfo> results = new List<FileInfo>();
-            foreach (FileInfo info in m_files)
+            List<GitFileInfo> results = new List<GitFileInfo>();
+            foreach (GitFileInfo info in m_files)
             {
                 if (info.Staged == staged)
                 {
@@ -345,10 +337,10 @@ namespace Utilities
             }
             return results.ToArray();
         }
-        private FileInfo[] GetFiles(FileState fileState, bool staged)
+        private GitFileInfo[] GetFiles(FileState fileState, bool staged)
         {
-            List<FileInfo> results = new List<FileInfo>();
-            foreach(FileInfo info in m_files)
+            List<GitFileInfo> results = new List<GitFileInfo>();
+            foreach (GitFileInfo info in m_files)
             {
                 if (info.FileState == fileState && info.Staged == staged)
                 {

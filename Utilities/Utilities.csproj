@@ -40,6 +40,7 @@
     <Compile Include="Change.cs" />
     <Compile Include="Client.cs" />
     <Compile Include="Depot.cs" />
+    <Compile Include="GitFileInfo.cs" />
     <Compile Include="GitOperations.cs" />
     <Compile Include="GitStatus.cs" />
     <Compile Include="IOHelper.cs" />
