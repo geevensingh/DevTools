@@ -5,169 +5,87 @@ using System.Xml;
 using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
+using Utilities;
 
 namespace Hack
 {
     class Program
     {
-        static void Main(string[] args)
+        static int Main(string[] args)
         {
-            List<string> xamlFiles = new List<string>(GetAllFiles(new string[] { "xaml" }));
-            xamlFiles.Add(Environment.ExpandEnvironmentVariables(@"%ProgramFiles(x86)%\Windows Kits\10\DesignTime\CommonConfiguration\Neutral\UAP\10.0.15063.0\Generic\generic.xaml"));
-            xamlFiles.Add(Environment.ExpandEnvironmentVariables(@"%ProgramFiles(x86)%\Windows Kits\10\DesignTime\CommonConfiguration\Neutral\UAP\10.0.15063.0\Generic\themeresources.xaml"));
-            xamlFiles.Add(@"C:\Users\geevens\Downloads\RevealBrush_rs3_themeresources.xaml");
-            xamlFiles.Add(@"C:\Users\geevens\Downloads\RevealBrush_rs2_themeresources.xaml");
-            xamlFiles.Add(@"C:\Users\geevens\Downloads\RevealBrush_rs1_themeresources.xaml");
-            xamlFiles.Add(@"C:\Users\geevens\Downloads\AcrylicBrush_rs2_themeresources.xaml");
-            xamlFiles.Add(@"C:\Users\geevens\Downloads\AcrylicBrush_rs1_themeresources.xaml");
-
-            List <Key> keys = new List<Key>();
-            keys.AddRange(Key.CreateKnownKeys());
-
-            List<ResourceUsage> usages = new List<ResourceUsage>();
-            foreach (string file in xamlFiles)
-            {
-                XmlReaderSettings readerSettings = new XmlReaderSettings();
-                readerSettings.Async = false;
-                readerSettings.CloseInput = true;
-                readerSettings.IgnoreComments = true;
-                XmlReader reader = XmlReader.Create(file, readerSettings);
-
-
-                while (reader.Read())
-                {
-                    switch (reader.NodeType)
-                    {
-                        case XmlNodeType.Element:
-                            Key key = Key.Create(reader, file);
-                            if (key != null)
-                            {
-                                keys.Add(key);
-                                break;
-                            }
-
-                            ResourceUsage[] nodeUsages = ResourceUsage.Create(reader, file);
-                            if (nodeUsages != null)
-                            {
-                                usages.AddRange(nodeUsages);
-                            }
-                            break;
-                        case XmlNodeType.EndElement:
-                            break;
-                    }
-                }
-                reader.Close();
-
-            }
-
 #if false
-            Debug.WriteLine(@"--------------------------------------------------------");
-            Debug.WriteLine(@"-    Keys                                              -");
-            Debug.WriteLine(@"--------------------------------------------------------");
-            foreach (Key key in keys)
+            string originalFilePath = @"S:\Repos\Sumner\zune\client\xaml\temp.txt";
+            List<string> lines = new List<string>(File.ReadAllLines(originalFilePath));
+            for (int ii = 0; ii < lines.Count; ii++)
             {
-                Debug.WriteLine(key.Name + " ( " + key.Type + " )");
-            }
-
-            foreach (string resourceType in new string[] { "StaticResource", "ThemeResource", "CustomResource" })
-            {
-                Debug.WriteLine(@"--------------------------------------------------------");
-                Debug.WriteLine(@"-    " + resourceType);
-                Debug.WriteLine(@"--------------------------------------------------------");
-                foreach (ResourceUsage usage in usages)
+                string line = lines[ii];
+                if (line == "\"")
                 {
-                    if (usage.ResourceType == resourceType)
-                    {
-                        Debug.WriteLine(usage.ResourceName + " ( " + usage.NodeName + " )");
-                    }
+                    lines.RemoveAt(ii--);
+                    continue;
                 }
+                line = line.TrimStart(new char[] { '\"' });
+                line = line.Replace("\"\"", "\"");
+                lines[ii] = line;
             }
+            lines.InsertRange(0, File.ReadAllLines(@"s:\prefix.txt"));
+            lines.AddRange(File.ReadAllLines(@"s:\suffix.txt"));
+            string newFile = originalFilePath.Replace(@".txt", @".xml");
+            File.WriteAllLines(newFile, lines.ToArray(), Encoding.UTF8);
+            File.Copy(newFile, originalFilePath.Replace(@"temp.txt", @"strings\en-US\resw\migrationStrings\resources.resw"), true /*overwrite*/);
 #endif
-
-            Debug.WriteLine(@"--------------------------------------------------------");
-            Debug.WriteLine(@"-    Invalid custom resource references                -");
-            Debug.WriteLine(@"--------------------------------------------------------");
-            List<string> stringIds = new List<string>(GetStringIds());
-            foreach (ResourceUsage usage in usages)
+            foreach (string filePath in GetAllFiles(@"S:\Repos\media.app\src\Generated\Idl\EntPlat.Idl", new string[] { "h"}))
             {
-                if (usage.ResourceType == "CustomResource")
+                ProcessHelper proc = new ProcessHelper("git.exe", @"diff --unified=0 " + filePath);
+                string[] lines = proc.Go();
+                if (proc.ExitCode != 0 || proc.StandardError.Length != 0)
                 {
-                    if (!stringIds.Contains(usage.ResourceName))
+                    Logger.LogLine("Unable to diff " + filePath);
+                    return -1;
+                }
+
+                bool foundChange = false;
+                for (int ii = 0; ii < lines.Length; ii++)
+                {
+                    if (lines[ii].StartsWith("@@") && ii + 2 < lines.Length)
                     {
-                        Debug.WriteLine(usage.ResourceName + " ( " + usage.NodeName + " )");
+                        if (lines[ii+1].StartsWith(@"-/* Compiler settings for") && lines[ii + 2].StartsWith(@"+/* Compiler settings for"))
+                        {
+                            continue;
+                        }
+                        foundChange = true;
                     }
                 }
-            }
-
-            Debug.WriteLine(@"--------------------------------------------------------");
-            Debug.WriteLine(@"-    Invalid static/theme resource references          -");
-            Debug.WriteLine(@"--------------------------------------------------------");
-            foreach (ResourceUsage usage in usages)
-            {
-                if (usage.ResourceType == "StaticResource" || usage.ResourceType == "ThemeResource")
+                if (!foundChange)
                 {
-                    if (FindKeyByName(usage.ResourceName, keys) == null)
-                    {
-                        Debug.WriteLine(usage.ResourceType + " : " + usage.ResourceName + " ( " + usage.NodeName + " - " + usage.File + " )");
-                    }
+                    RevertFile(filePath);
+                    RevertFile(StringHelper.TrimEnd(filePath, @".h") + @".winmd");
                 }
             }
+            return 0;
         }
 
-        static Key FindKeyByName(string name, List<Key> keys)
+        static bool RevertFile(string filePath)
         {
-            foreach (Key key in keys)
+            ProcessHelper proc = new ProcessHelper("git.exe", @"checkout -- " + filePath);
+            proc.Go();
+            if (proc.ExitCode != 0 || proc.StandardError.Length != 0)
             {
-                if (key.Name == name)
-                {
-                    return key;
-                }
+                Logger.LogLine("Unable to revert " + filePath, Logger.LevelValue.Warning);
+                return false;
             }
-            return null;
+            return true;
         }
 
-        static string[] GetAllFiles(string[] extensions)
+        static string[] GetAllFiles(string root, string[] extensions)
         {
+            Debug.Assert(Directory.Exists(root));
             List<string> allFiles = new List<string>();
             foreach (string ext in extensions)
             {
-                allFiles.AddRange(Directory.EnumerateFiles(@"S:\Repos\media.app\src\zune\client", @"*." + ext, SearchOption.AllDirectories));
+                allFiles.AddRange(Directory.EnumerateFiles(root, @"*." + ext, SearchOption.AllDirectories));
             }
             return allFiles.ToArray();
-        }
-
-        static string[] GetStringIds()
-        {
-            List<string> stringIds = new List<string>();
-            foreach (string filePath in GetAllFiles(new string[] { "resw" }))
-            {
-                // Ignore the error strings.
-                if (filePath.ToLower().Contains(@"\resw\errorstrings\resources.resw"))
-                {
-                    continue;
-                }
-
-                // Let's only search for strings in a single language - maybe English.
-                if (!filePath.ToLower().Contains(@"\en-us\"))
-                {
-                    continue;
-                }
-
-                XmlDocument doc = new XmlDocument();
-                doc.Load(filePath);
-
-                Debug.Assert(doc.SelectSingleNode(@"root/resheader[@name='resmimetype']/value").InnerText == "text/microsoft-resx");
-                Debug.Assert(doc.SelectSingleNode(@"root/resheader[@name='version']/value").InnerText == "2.0");
-                Debug.Assert(doc.SelectSingleNode(@"root/resheader[@name='reader']/value").InnerText == "System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089");
-                Debug.Assert(doc.SelectSingleNode(@"root/resheader[@name='writer']/value").InnerText == "System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089");
-
-                XmlNodeList dataNodes = doc.SelectNodes(@"root/data");
-                foreach (XmlNode dataNode in dataNodes)
-                {
-                    stringIds.Add(dataNode.Attributes["name"].Value);
-                }
-            }
-            return stringIds.ToArray();
         }
     }
 }
