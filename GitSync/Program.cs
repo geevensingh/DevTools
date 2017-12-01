@@ -83,7 +83,7 @@ namespace GitSync
             }
 
             List<string> missingBasedOn = new List<string>();
-            foreach(string branch in branchBasedOn.Keys)
+            foreach (string branch in branchBasedOn.Keys)
             {
                 if (string.IsNullOrEmpty(branchBasedOn[branch]))
                 {
@@ -157,6 +157,13 @@ namespace GitSync
                 Debug.Assert(!missingBasedOn.Contains(branch));
                 Logger.LogLine(string.Empty);
 
+                string parentBranch = branchBasedOn[branch];
+                if (!GitOperations.IsBranchBehindRemote(branch, parentBranch))
+                {
+                    Logger.LogLine(branch + " needs no merge or pull.  It is already up to date");
+                    continue;
+                }
+
                 if (!GitOperations.SwitchBranch(branch, out failureProc))
                 {
                     Logger.LogLine("Unable to switch branches", Logger.LevelValue.Warning);
@@ -185,7 +192,6 @@ namespace GitSync
 
                 GitOperations.PullCurrentBranch();
 
-                string parentBranch = branchBasedOn[branch];
                 if (!string.IsNullOrEmpty(parentBranch))
                 {
                     if (!localBranches.Contains(parentBranch))
