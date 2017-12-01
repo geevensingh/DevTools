@@ -59,7 +59,9 @@ namespace GitSync
                 Logger.LogLine("Verbose log path: " + verboseLogFile);
             }
 
-            string[] localBranches = GitOperations.GetLocalBranches();
+            Logger.LogLine(@"Examining local branches...");
+
+            List<string> localBranches = new List<string>(GitOperations.GetLocalBranches());
             if (!localBranches.Contains(masterBranch))
             {
                 Logger.LogLine("Your repo must contain a local version of your master branch: " + masterBranch, Logger.LevelValue.Error);
@@ -69,50 +71,67 @@ namespace GitSync
 
             GitOperations.FetchAll();
 
-            List<string> missingBasedOn = new List<string>();
             Dictionary<string, string> branchBasedOn = new Dictionary<string, string>();
             foreach (string branch in localBranches)
             {
                 if (branch == masterBranch)
                 {
-                    branchBasedOn.Add(branch, branch);
                     continue;
                 }
                 string basedOn = GitOperations.GetBranchBase(branch);
-                if (string.IsNullOrEmpty(basedOn))
+                branchBasedOn.Add(branch, basedOn);
+            }
+
+            List<string> missingBasedOn = new List<string>();
+            foreach(string branch in branchBasedOn.Keys)
+            {
+                if (string.IsNullOrEmpty(branchBasedOn[branch]))
                 {
+                    Logger.LogLine(@"missing based on: " + branch, Logger.LevelValue.Verbose);
                     missingBasedOn.Add(branch);
-                }
-                else
-                {
-                    branchBasedOn.Add(branch, basedOn);
                 }
             }
 
-            string[] releaseBranches = GitOperations.GetReleaseBranchNames(new string[] { masterBranch });
-            string[] releaseForkPoints = GitOperations.GetFirstChanges(masterBranch, releaseBranches);
-            bool allReleaseBranchesAreUnique = (releaseBranches.Length == releaseForkPoints.Length);
-            if (!allReleaseBranchesAreUnique && missingBasedOn.Count > 0)
+            for (int ii = 0; ii < missingBasedOn.Count; ii++)
             {
+                string branch = missingBasedOn[ii];
+                if (GitOperations.IsReleaseBranchName(branch))
+                {
+                    missingBasedOn.RemoveAt(ii--);
+                    Logger.LogLine(@"not worried about release branch: " + branch, Logger.LevelValue.Verbose);
+                }
+            }
+
+            if (missingBasedOn.Count > 0)
+            {
+                string[] releaseBranches = GitOperations.GetReleaseBranchNames();
+                Dictionary<string, string> releaseForkPoints = GitOperations.GetUniqueCommits(masterBranch, releaseBranches);
                 for (int ii = 0; ii < missingBasedOn.Count; ii++)
                 {
                     string branch = missingBasedOn[ii];
-                    string releaseForkPoint = GitOperations.BranchContains(branch, releaseForkPoints);
-                    if (!string.IsNullOrEmpty(releaseForkPoint))
+                    string basedOnBranch = GitOperations.BranchContains(branch, releaseForkPoints);
+                    if (string.IsNullOrEmpty(basedOnBranch))
                     {
-                        missingBasedOn.RemoveAt(ii--);
+                        Logger.LogLine("Ignoring " + branch, Logger.LevelValue.Warning);
+                        Logger.LogLine("Unable to determine the parent branch.  If this is based on " + masterBranch + ", run the following command:");
+                        Logger.LogLine("\tgit config branch." + branch + ".basedon " + masterBranch);
+                        branchBasedOn.Remove(branch);
+                    }
+                    else
+                    {
+                        Logger.LogLine(branch + @" seems to be based on " + basedOnBranch);
+                        Logger.LogLine(@"If so, run the following command for faster runs in the future:");
+                        Logger.LogLine("\tgit config branch." + branch + ".basedon " + basedOnBranch);
+                        Debug.Assert(string.IsNullOrEmpty(branchBasedOn[branch]));
+                        branchBasedOn[branch] = basedOnBranch;
+                        missingBasedOn.Remove(branch);
                     }
                 }
-            }
-            else
-            {
-                // If we know the fork points of all release branches, then we don't need the based-on information.
-                missingBasedOn.Clear();
             }
 
             GitStatus originalStatus = GitOperations.GetStatus();
             String originalBranch = originalStatus.Branch;
-            Logger.LogLine("Started in " + originalBranch);
+            Logger.LogLine("\r\nStarted in " + originalBranch);
             if (originalStatus.AnyChanges)
             {
                 if (!GitOperations.Stash())
@@ -133,36 +152,10 @@ namespace GitSync
             }
             GitOperations.PullCurrentBranch();
 
-            foreach (string branch in localBranches)
+            foreach (string branch in branchBasedOn.Keys)
             {
-                if (branch == masterBranch)
-                {
-                    continue;
-                }
-
-                if (missingBasedOn.Contains(branch))
-                {
-                    Logger.LogLine("Ignoring branch: " + branch, Logger.LevelValue.Warning);
-                    Logger.LogLine("\tUnknown branch source (based-on) and there is currently an unforked release branch.");
-                    Logger.LogLine("\tIf this is based on " + masterBranch + ", run the following command:");
-                    Logger.LogLine("\t\tgit config branch." + branch + ".basedon " + masterBranch);
-                    continue;
-                }
-
-                string releaseForkPoint = GitOperations.BranchContains(branch, releaseForkPoints);
-                if (!string.IsNullOrEmpty(releaseForkPoint))
-                {
-                    Logger.LogLine("Ignoring release branch: " + branch);
-                    Logger.LogLine("\tBranch contains " + releaseForkPoint, Logger.LevelValue.Verbose);
-                    continue;
-                }
-
-                if (branchBasedOn.ContainsKey(branch) && branchBasedOn[branch] != masterBranch)
-                {
-                    Logger.LogLine("Ignoring non-master-based branch: " + branch, Logger.LevelValue.Warning);
-                    Logger.LogLine("\tBranch based on " + branchBasedOn[branch], Logger.LevelValue.Verbose);
-                    continue;
-                }
+                Debug.Assert(!missingBasedOn.Contains(branch));
+                Logger.LogLine(string.Empty);
 
                 if (!GitOperations.SwitchBranch(branch, out failureProc))
                 {
@@ -186,14 +179,24 @@ namespace GitSync
                     {
                         originalBranch = masterBranch;
                     }
+
+                    continue;
                 }
-                else
+
+                GitOperations.PullCurrentBranch();
+
+                string parentBranch = branchBasedOn[branch];
+                if (!string.IsNullOrEmpty(parentBranch))
                 {
-                    GitOperations.MergeFromBranch(masterBranch);
+                    if (!localBranches.Contains(parentBranch))
+                    {
+                        parentBranch = @"origin/" + parentBranch;
+                    }
+
+                    GitOperations.MergeFromBranch(parentBranch);
                 }
-
-
             }
+            Logger.LogLine(string.Empty);
 
             if (!GitOperations.SwitchBranch(originalBranch, out failureProc))
             {

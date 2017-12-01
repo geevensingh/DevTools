@@ -64,31 +64,32 @@ namespace Utilities
             return GetLocalBranches(String.Join(" ", new string[] { "--remote", args }));
         }
 
-        public static string[] GetFirstChanges(string masterBranch, string[] branches)
+        public static Dictionary<string, string> GetUniqueCommits(string masterBranch, string[] branches)
         {
-            Dictionary<string, string> commits = new Dictionary<string, string>();
+            Dictionary<string, string> forkpoints = new Dictionary<string, string>();
             foreach (string branch in branches)
             {
                 string forkPoint = (new ProcessHelper("git.exe", "merge-base origin/" + masterBranch + " " + branch)).Go()[0];
                 Debug.Assert(forkPoint.Length == 40);
-                commits.Add(branch, forkPoint);
-                Logger.LogLine(branch + " seems to have forked from " + masterBranch + " at " + commits[branch], Logger.LevelValue.Verbose);
+                string trimmedBranch = StringHelper.TrimStart(branch, @"origin/");
+                forkpoints[trimmedBranch] = forkPoint;
+                Logger.LogLine(trimmedBranch + " seems to have forked from " + masterBranch + " at " + forkpoints[trimmedBranch], Logger.LevelValue.Verbose);
             }
-            List<string> firstChanges = new List<string>();
-            foreach (string branch in commits.Keys)
+            Dictionary<string, string> uniqueCommits = new Dictionary<string, string>();
+            foreach (string branch in forkpoints.Keys)
             {
-                string firstChange = GetNextCommitInBranch(commits[branch], branch);
+                string firstChange = GetNextCommitInBranch(forkpoints[branch], @"origin/" + branch);
                 if (string.IsNullOrEmpty(firstChange))
                 {
                     Logger.LogLine("Unable to find any commits in " + branch, Logger.LevelValue.Warning);
                 }
                 else
                 {
-                    firstChanges.Add(firstChange);
+                    uniqueCommits[branch] = firstChange;
                     Logger.LogLine("The first commit in " + branch + " seems to be " + firstChange, Logger.LevelValue.Verbose);
                 }
             }
-            return firstChanges.ToArray();
+            return uniqueCommits;
         }
 
         public static string GetBranchBase(string branch)
@@ -126,23 +127,27 @@ namespace Utilities
             return nextCommit;
         }
 
-        public static string[] GetReleaseBranchNames(string[] ignoreBranches)
+        public static bool IsReleaseBranchName(string branchName)
+        {
+            branchName = StringHelper.TrimStart(branchName.Trim(), "origin/");
+            return branchName.StartsWith("release/");
+        }
+
+        public static string[] GetReleaseBranchNames()
         {
             List<string> releaseBranches = new List<string>();
             ProcessHelper proc = new ProcessHelper("git.exe", "branch -r");
-            foreach (string line in proc.Go())
+            foreach (string line in proc.Go(Logger.LevelValue.SuperChatty))
             {
-                if (line.Trim().StartsWith("origin/release/") &&
-                    !ignoreBranches.Contains(line.Trim()) &&
-                    !ignoreBranches.Contains(StringHelper.TrimStart(line.Trim(), "origin/")))
+                if (IsReleaseBranchName(line))
                 {
                     releaseBranches.Add(line.Trim());
                 }
             }
-            Logger.LogLine("Found the following release branches:", Logger.LevelValue.Verbose);
+            Logger.LogLine("Found the following release branches:", Logger.LevelValue.SuperChatty);
             foreach (string branch in releaseBranches)
             {
-                Logger.LogLine("\t" + branch, Logger.LevelValue.Verbose);
+                Logger.LogLine("\t" + branch, Logger.LevelValue.SuperChatty);
             }
             return releaseBranches.ToArray();
         }
@@ -182,16 +187,17 @@ namespace Utilities
             return proc.ExitCode == 0;
         }
 
-        public static string BranchContains(string branchName, string[] refs)
+        public static string BranchContains(string branchName, Dictionary<string, string> uniqueCommits)
         {
-            foreach (string refHash in refs)
+            foreach(string otherBranch in uniqueCommits.Keys)
             {
+                string refHash = uniqueCommits[otherBranch];
                 ProcessHelper proc = new ProcessHelper("git.exe", "branch --contains " + refHash);
                 foreach (string line in proc.Go())
                 {
                     if (line.Substring(2).Trim() == branchName)
                     {
-                        return refHash;
+                        return otherBranch;
                     }
                 }
             }
