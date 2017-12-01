@@ -244,6 +244,26 @@ namespace Utilities
             }
         }
 
+        public static bool IsBranchBehindRemote(string branchName, string remoteBranchName)
+        {
+            if (string.IsNullOrEmpty(remoteBranchName ))
+            {
+                remoteBranchName = "origin/" + branchName;
+            }
+
+            // git log --pretty=format:%H origin/master --not master
+            ProcessHelper proc = new ProcessHelper("git.exe", "log --pretty=format:%H " + remoteBranchName + " --not " + branchName);
+            string nextCommit = string.Empty;
+            foreach (string line in proc.Go())
+            {
+                if (!string.IsNullOrEmpty(line.Trim()))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         public static void PullCurrentBranch()
         {
             Debug.Assert(!GetStatus().AnyChanges);
