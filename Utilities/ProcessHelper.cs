@@ -22,7 +22,7 @@ namespace Utilities
         {
             public OutputInfo(string line, LineType type)
             {
-                Debug.Assert(line != null);
+                Debug.Assert(!string.IsNullOrEmpty(line));
                 _line = line;
                 _type = type;
             }
@@ -59,6 +59,11 @@ namespace Utilities
 
         public string[] Go()
         {
+            return Go(Logger.LevelValue.SuperChatty);
+        }
+
+        public string[] Go(Logger.LevelValue logLevel)
+        {
             Process process = new Process();
             process.StartInfo.FileName = _fileName;
             process.StartInfo.Arguments = _arguments;
@@ -71,7 +76,7 @@ namespace Utilities
             {
                 logEventName += " ( " + process.StartInfo.WorkingDirectory + " )";
             }
-            Logger.Start(logEventName);
+            Logger.Start(logEventName, logLevel);
 
             process.StartInfo.RedirectStandardError = true;
             process.StartInfo.RedirectStandardOutput = true;
@@ -89,33 +94,31 @@ namespace Utilities
             process.OutputDataReceived -= Process_OutputDataReceived;
             process.ErrorDataReceived -= Process_ErrorDataReceived;
 
-            for (int ii = 0; ii < _output.Count; ii++)
-            {
-                if (_output[ii].Line == null)
-                {
-                    _output.RemoveAt(ii--);
-                }
-            }
-
-            Logger.Stop(logEventName, output: GetAllOutput(true));
+            Logger.Stop(logEventName, output: GetAllOutput(true), level: logLevel);
             return GetAllOutput(false);
         }
-
+        private System.Threading.Mutex _outputMutex = new System.Threading.Mutex();
         private void Process_ErrorDataReceived(object sender, DataReceivedEventArgs e)
         {
             Debug.Assert(!_processOver);
-            if (e.Data != null)
+            if (!string.IsNullOrEmpty(e.Data))
             {
-                _output.Add(new OutputInfo(e.Data, OutputInfo.LineType.Error));
+                OutputInfo info = new OutputInfo(e.Data, OutputInfo.LineType.Error);
+                _outputMutex.WaitOne();
+                _output.Add(info);
+                _outputMutex.ReleaseMutex();
             }
         }
 
         private void Process_OutputDataReceived(object sender, DataReceivedEventArgs e)
         {
             Debug.Assert(!_processOver);
-            if (e.Data != null)
+            if (!string.IsNullOrEmpty(e.Data))
             {
-                _output.Add(new OutputInfo(e.Data, OutputInfo.LineType.Output));
+                OutputInfo info = new OutputInfo(e.Data, OutputInfo.LineType.Output);
+                _outputMutex.WaitOne();
+                _output.Add(info);
+                _outputMutex.ReleaseMutex();
             }
         }
 
@@ -135,6 +138,7 @@ namespace Utilities
         private string[] GetAllOutput(bool withPrefix)
         {
             List<string> result = new List<string>();
+            _outputMutex.WaitOne();
             foreach (OutputInfo info in _output)
             {
                 string line = info.Line;
@@ -154,12 +158,14 @@ namespace Utilities
                 }
                 result.Add(line);
             }
+            _outputMutex.ReleaseMutex();
             return result.ToArray();
         }
 
         private string[] FilterOutput(OutputInfo.LineType filter)
         {
             List<string> result = new List<string>();
+            _outputMutex.WaitOne();
             foreach (OutputInfo info in _output)
             {
                 if (info.Type == filter)
@@ -167,6 +173,7 @@ namespace Utilities
                     result.Add(info.Line);
                 }
             }
+            _outputMutex.ReleaseMutex();
             return result.ToArray();
         }
 
