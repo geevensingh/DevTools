@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26430.15
+VisualStudioVersion = 15.0.27004.2008
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Have", "Have\Have.csproj", "{C811030A-E4CC-4C7B-BADE-94537AE1833F}"
 EndProject
@@ -24,6 +24,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitStaleBranches", "GitStaleBranches\GitStaleBranches.csproj", "{78C1AFF3-57EB-4818-A15C-D14674013688}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SearchAndReplace", "SearchAndReplace\SearchAndReplace.csproj", "{0BA5B7DC-750B-4E19-93AE-C94736E41823}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cleanup", "Cleanup\Cleanup.csproj", "{CF89E952-5632-4738-9BB9-0088458BBCBE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -209,8 +211,27 @@ Global
 		{0BA5B7DC-750B-4E19-93AE-C94736E41823}.Release|x64.Build.0 = Release|Any CPU
 		{0BA5B7DC-750B-4E19-93AE-C94736E41823}.Release|x86.ActiveCfg = Release|Any CPU
 		{0BA5B7DC-750B-4E19-93AE-C94736E41823}.Release|x86.Build.0 = Release|Any CPU
+		{CF89E952-5632-4738-9BB9-0088458BBCBE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CF89E952-5632-4738-9BB9-0088458BBCBE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CF89E952-5632-4738-9BB9-0088458BBCBE}.Debug|ARM.ActiveCfg = Debug|Any CPU
+		{CF89E952-5632-4738-9BB9-0088458BBCBE}.Debug|ARM.Build.0 = Debug|Any CPU
+		{CF89E952-5632-4738-9BB9-0088458BBCBE}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{CF89E952-5632-4738-9BB9-0088458BBCBE}.Debug|x64.Build.0 = Debug|Any CPU
+		{CF89E952-5632-4738-9BB9-0088458BBCBE}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{CF89E952-5632-4738-9BB9-0088458BBCBE}.Debug|x86.Build.0 = Debug|Any CPU
+		{CF89E952-5632-4738-9BB9-0088458BBCBE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CF89E952-5632-4738-9BB9-0088458BBCBE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CF89E952-5632-4738-9BB9-0088458BBCBE}.Release|ARM.ActiveCfg = Release|Any CPU
+		{CF89E952-5632-4738-9BB9-0088458BBCBE}.Release|ARM.Build.0 = Release|Any CPU
+		{CF89E952-5632-4738-9BB9-0088458BBCBE}.Release|x64.ActiveCfg = Release|Any CPU
+		{CF89E952-5632-4738-9BB9-0088458BBCBE}.Release|x64.Build.0 = Release|Any CPU
+		{CF89E952-5632-4738-9BB9-0088458BBCBE}.Release|x86.ActiveCfg = Release|Any CPU
+		{CF89E952-5632-4738-9BB9-0088458BBCBE}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {107AC4FE-615A-4A2C-8061-758E04391DF2}
 	EndGlobalSection
 EndGlobal
