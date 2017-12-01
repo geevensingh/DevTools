@@ -9,6 +9,7 @@ namespace Utilities
     {
         public enum LevelValue
         {
+            SuperChatty,
             Verbose,
             Normal,
             Warning,
@@ -18,7 +19,7 @@ namespace Utilities
 
         private static LevelValue _defaultLevel = LevelValue.Normal;
 
-        static LevelValue[] _allLevels = new LevelValue[] { LevelValue.Verbose, LevelValue.Normal, LevelValue.Warning, LevelValue.Error, LevelValue.Silent };
+        static LevelValue[] _allLevels = new LevelValue[] { LevelValue.SuperChatty, LevelValue.Verbose, LevelValue.Normal, LevelValue.Warning, LevelValue.Error, LevelValue.Silent };
 
         static Dictionary<LevelValue, string> _logFiles = new Dictionary<LevelValue, string>();
         static Dictionary<LevelValue, string> _htmlFiles = new Dictionary<LevelValue, string>();
