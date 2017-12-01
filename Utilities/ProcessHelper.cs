@@ -86,6 +86,9 @@ namespace Utilities
             _exitCode = process.ExitCode;
             _processOver = true;
 
+            process.OutputDataReceived -= Process_OutputDataReceived;
+            process.ErrorDataReceived -= Process_ErrorDataReceived;
+
             for (int ii = 0; ii < _output.Count; ii++)
             {
                 if (_output[ii].Line == null)
