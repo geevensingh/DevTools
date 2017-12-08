@@ -250,12 +250,18 @@ namespace Utilities
 
         private static bool GetFileName(string line, out string filepath)
         {
-            int lastSlashIndex = line.LastIndexOf("/");
             int lastSpaceIndex = line.LastIndexOf(" ");
-            if (lastSlashIndex == -1 || lastSpaceIndex == -1)
+            if (lastSpaceIndex == -1)
             {
                 filepath = null;
                 return false;
+            }
+
+            line = line.Replace("\"", "");
+            int lastSlashIndex = line.LastIndexOf("/");
+            if (lastSlashIndex == -1)
+            {
+                lastSlashIndex = lastSpaceIndex;
             }
 
             string filename = line.Substring(lastSlashIndex + 1);
