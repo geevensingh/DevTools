@@ -164,6 +164,7 @@ html { white-space: nowrap; font-family: Verdana; background-color: #e0e0e0; }
                 case LevelValue.Silent:
                 case LevelValue.Normal:
                     return ConsoleColor.White;
+                case LevelValue.SuperChatty:
                 case LevelValue.Verbose:
                     return ConsoleColor.Gray;
                 case LevelValue.Warning:

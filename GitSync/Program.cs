@@ -14,11 +14,9 @@ namespace GitSync
         {
             bool forceDelete = false;
 #if DEBUG
-            Logger.Level = Logger.LevelValue.Verbose;
+            Logger.Level = Logger.LevelValue.SuperChatty;
             Logger.AnnounceStartStopActions = true;
 #endif
-            string masterBranch = "master";
-
             for (int ii = 0; ii < args.Length; ii++)
             {
                 string arg = args[ii].ToLower();
@@ -42,9 +40,6 @@ namespace GitSync
                     case "/fd":
                         forceDelete = true;
                         break;
-                    case "/master":
-                        masterBranch = args[++ii];
-                        break;
                     default:
                         Console.WriteLine("Unknown argument: " + arg);
                         PrintUsage();
@@ -59,17 +54,30 @@ namespace GitSync
                 Logger.LogLine("Verbose log path: " + verboseLogFile);
             }
 
+            Logger.Log("Fetching... ");
+            GitOperations.FetchAll();
+            Logger.LogLine("done");
+
             Logger.LogLine(@"Examining local branches...");
 
             List<string> localBranches = new List<string>(GitOperations.GetLocalBranches());
-            if (!localBranches.Contains(masterBranch))
+            string masterBranch = "master";
+            bool hasLocalMaster = localBranches.Contains(masterBranch);
+            if (!hasLocalMaster)
             {
-                Logger.LogLine("Your repo must contain a local version of your master branch: " + masterBranch, Logger.LevelValue.Error);
-                Logger.FlushLogs();
-                return (int)Logger.WarningCount;
+                masterBranch = "origin/master";
             }
 
-            GitOperations.FetchAll();
+            List<string> localBranchesWithoutRemote = new List<string>();
+            List<string> remoteBranches = new List<string>(GitOperations.GetRemoteBranches());
+            foreach(string branch in localBranches)
+            {
+                if (!remoteBranches.Contains(branch) && !remoteBranches.Contains("origin/" + branch))
+                {
+                    Logger.LogLine("Remote branch is gone for " + branch, Logger.LevelValue.Warning);
+                    localBranchesWithoutRemote.Add(branch);
+                }
+            }
 
             Dictionary<string, string> branchBasedOn = new Dictionary<string, string>();
             foreach (string branch in localBranches)
@@ -143,38 +151,41 @@ namespace GitSync
             }
 
             ProcessHelper failureProc = null;
-            if (!GitOperations.SwitchBranch(masterBranch, out failureProc))
+            foreach (string branch in localBranchesWithoutRemote)
             {
-                Logger.LogLine("Unable to switch branches", Logger.LevelValue.Error);
-                Logger.LogLine(failureProc.AllOutput, Logger.LevelValue.Warning);
-                Logger.FlushLogs();
-                return (int)Logger.WarningCount;
+                if (GitOperations.GetCurrentBranchName() == branch)
+                {
+                    if (!GitOperations.SwitchBranch(masterBranch, out failureProc))
+                    {
+                        Logger.LogLine("Unable to switch branches", Logger.LevelValue.Warning);
+                        Logger.LogLine(failureProc.AllOutput, Logger.LevelValue.Normal);
+                        continue;
+                    }
+                }
+
+                if (GitOperations.DeleteBranch(branch, force: forceDelete) && (branch == originalBranch))
+                {
+                    originalBranch = masterBranch;
+                }
+
+                if (branchBasedOn.ContainsKey(branch))
+                {
+                    branchBasedOn.Remove(branch);
+                }
             }
-            GitOperations.PullCurrentBranch();
+
+            if (hasLocalMaster)
+            {
+                PullBranch("master");
+            }
 
             foreach (string branch in branchBasedOn.Keys)
             {
                 Debug.Assert(!missingBasedOn.Contains(branch));
                 Logger.LogLine(string.Empty);
 
-                string parentBranch = branchBasedOn[branch];
-                if (!GitOperations.IsBranchBehindRemote(branch, parentBranch))
+                if (localBranchesWithoutRemote.Contains(branch))
                 {
-                    Logger.LogLine(branch + " needs no merge or pull.  It is already up to date");
-                    continue;
-                }
-
-                if (!GitOperations.SwitchBranch(branch, out failureProc))
-                {
-                    Logger.LogLine("Unable to switch branches", Logger.LevelValue.Warning);
-                    Logger.LogLine(failureProc.AllOutput, Logger.LevelValue.Normal);
-                    continue;
-                }
-
-                GitStatus status = GitOperations.GetStatus();
-                if (status.RemoteChanges == "remote-gone")
-                {
-                    Logger.LogLine("Remote branch is gone for " + branch, Logger.LevelValue.Warning);
                     if (!GitOperations.SwitchBranch(masterBranch, out failureProc))
                     {
                         Logger.LogLine("Unable to switch branches", Logger.LevelValue.Warning);
@@ -190,17 +201,14 @@ namespace GitSync
                     continue;
                 }
 
-                GitOperations.PullCurrentBranch();
+                PullBranch(branch);
 
-                if (!string.IsNullOrEmpty(parentBranch))
+                string parentBranch = branchBasedOn[branch];
+                if (!string.IsNullOrEmpty(parentBranch) && !localBranches.Contains(parentBranch))
                 {
-                    if (!localBranches.Contains(parentBranch))
-                    {
-                        parentBranch = @"origin/" + parentBranch;
-                    }
-
-                    GitOperations.MergeFromBranch(parentBranch);
+                    parentBranch = "origin/" + parentBranch;
                 }
+                MergeBranch(branch, parentBranch);
             }
             Logger.LogLine(string.Empty);
 
@@ -219,6 +227,52 @@ namespace GitSync
 
             Logger.FlushLogs();
             return (int)Logger.WarningCount;
+        }
+
+        private static void PullBranch(string localBranch)
+        {
+            if (BranchCheck(localBranch, "origin/" + localBranch))
+            {
+                GitOperations.PullCurrentBranch();
+            }
+        }
+
+        private static void MergeBranch(string localBranch, string mergeSource)
+        {
+            if (!GitOperations.IsBranchBehind(localBranch, mergeSource))
+            {
+                Logger.LogLine(localBranch + " is up to date with " + mergeSource);
+                return;
+            }
+
+            ProcessHelper failureProc = null;
+            if (!GitOperations.SwitchBranch(localBranch, out failureProc))
+            {
+                Logger.LogLine("Unable to switch branches", Logger.LevelValue.Warning);
+                Logger.LogLine(failureProc.AllOutput, Logger.LevelValue.Normal);
+                return;
+            }
+
+            GitOperations.MergeFromBranch(mergeSource);
+        }
+
+        private static bool BranchCheck(string localBranch, string remoteBranch)
+        {
+            if (!GitOperations.IsBranchBehind(localBranch, "origin/" + localBranch))
+            {
+                Logger.LogLine(localBranch + " is up to date with origin/" + localBranch);
+                return false;
+            }
+
+            ProcessHelper failureProc = null;
+            if (!GitOperations.SwitchBranch(localBranch, out failureProc))
+            {
+                Logger.LogLine("Unable to switch branches", Logger.LevelValue.Warning);
+                Logger.LogLine(failureProc.AllOutput, Logger.LevelValue.Normal);
+                return false;
+            }
+
+            return true;
         }
 
         private static void PrintUsage()

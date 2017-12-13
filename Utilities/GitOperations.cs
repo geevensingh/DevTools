@@ -244,7 +244,7 @@ namespace Utilities
             }
         }
 
-        public static bool IsBranchBehindRemote(string branchName, string remoteBranchName)
+        public static bool IsBranchBehind(string branchName, string remoteBranchName)
         {
             if (string.IsNullOrEmpty(remoteBranchName ))
             {
@@ -256,6 +256,7 @@ namespace Utilities
             string nextCommit = string.Empty;
             foreach (string line in proc.Go())
             {
+                Debug.Assert(!line.StartsWith("fatal"));
                 if (!string.IsNullOrEmpty(line.Trim()))
                 {
                     return true;
