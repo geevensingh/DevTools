@@ -72,7 +72,7 @@ namespace GitSync
             List<string> remoteBranches = new List<string>(GitOperations.GetRemoteBranches());
             foreach(string branch in localBranches)
             {
-                if (!remoteBranches.Contains(branch) && !remoteBranches.Contains("origin/" + branch))
+                if (!remoteBranches.Contains(branch) && !remoteBranches.Contains("origin/" + branch) && !branch.Contains("HEAD"))
                 {
                     Logger.LogLine("Remote branch is gone for " + branch, Logger.LevelValue.Warning);
                     localBranchesWithoutRemote.Add(branch);

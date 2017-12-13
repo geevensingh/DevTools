@@ -66,10 +66,14 @@ namespace Utilities
 
         public static Dictionary<string, string> GetUniqueCommits(string masterBranch, string[] branches)
         {
+            if (!masterBranch.StartsWith("origin/"))
+            {
+                masterBranch = "origin/" + masterBranch;
+            }
             Dictionary<string, string> forkpoints = new Dictionary<string, string>();
             foreach (string branch in branches)
             {
-                string forkPoint = (new ProcessHelper("git.exe", "merge-base origin/" + masterBranch + " " + branch)).Go()[0];
+                string forkPoint = (new ProcessHelper("git.exe", "merge-base " + masterBranch + " " + branch)).Go()[0];
                 Debug.Assert(forkPoint.Length == 40);
                 string trimmedBranch = StringHelper.TrimStart(branch, @"origin/");
                 forkpoints[trimmedBranch] = forkPoint;
