@@ -14,7 +14,7 @@ namespace GitSync
         {
             bool forceDelete = false;
 #if DEBUG
-            Logger.Level = Logger.LevelValue.SuperChatty;
+            Logger.Level = Logger.LevelValue.Verbose;
             Logger.AnnounceStartStopActions = true;
 #endif
             for (int ii = 0; ii < args.Length; ii++)
