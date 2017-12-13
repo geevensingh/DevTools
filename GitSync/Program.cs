@@ -184,23 +184,6 @@ namespace GitSync
                 Debug.Assert(!missingBasedOn.Contains(branch));
                 Logger.LogLine(string.Empty);
 
-                if (localBranchesWithoutRemote.Contains(branch))
-                {
-                    if (!GitOperations.SwitchBranch(masterBranch, out failureProc))
-                    {
-                        Logger.LogLine("Unable to switch branches", Logger.LevelValue.Warning);
-                        Logger.LogLine(failureProc.AllOutput, Logger.LevelValue.Normal);
-                        continue;
-                    }
-
-                    if (GitOperations.DeleteBranch(branch, force: forceDelete) && (branch == originalBranch))
-                    {
-                        originalBranch = masterBranch;
-                    }
-
-                    continue;
-                }
-
                 PullBranch(branch);
 
                 string parentBranch = branchBasedOn[branch];
