@@ -298,5 +298,38 @@ namespace Utilities
             (new ProcessHelper("git.exe", "stash pop")).Go();
         }
 
+        public static void GetCommitStats(string commitId, out int fileCount, out int insertCount, out int deleteCount)
+        {
+            fileCount = 0;
+            insertCount = 0;
+            deleteCount = 0;
+
+            // git show fe324ede049abc34592d73fbe53f6aeb4c146a24 --pretty="" --numstat -w
+            ProcessHelper proc = new ProcessHelper("git.exe", "show " + commitId + " --pretty=\"\" --numstat -w --word-diff=porcelain");
+            foreach (string line in proc.Go())
+            {
+                string[] splits = line.Split(new char[] { '\t' });
+                Debug.Assert(splits.Length == 3);
+                if (StringHelper.EndsWithAny(splits[2], new string[] { "resx", "resw" }))
+                {
+                    continue;
+                }
+
+                if (splits[2].StartsWith("data/") || splits[2].StartsWith("tools/") || splits[2].StartsWith("Generated/"))
+                {
+                    continue;
+                }
+
+                if (splits[0] == "-")
+                {
+                    Debug.Assert(splits[1] == "-");
+                    continue;
+                }
+
+                fileCount++;
+                insertCount += int.Parse(splits[0]);
+                deleteCount += int.Parse(splits[1]);
+            }
+        }
     }
 }
