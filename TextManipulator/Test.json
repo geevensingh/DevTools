@@ -1,0 +1,1104 @@
+﻿{
+  "CreatedVersion": {
+    "Major": 4,
+    "Minor": 5,
+    "Build": -1,
+    "Revision": -1,
+    "MajorRevision": -1,
+    "MinorRevision": -1
+  },
+  "events": [
+    {
+      "request": {
+        "capture_contexts": [
+          {
+            "line_items": [
+              {
+                "billing_record_id": "6e91e558-516c-4fae-8061-64bbdea3edee",
+                "line_item_ids": [
+                  {
+                    "id": "8c45dadb-76b8-4970-9ada-f70329005a0f",
+                    "low": 0,
+                    "high": 0
+                  }
+                ]
+              }
+            ],
+            "capture_instructions": {
+              "payment_instrument_id": {
+                "account_id": "89495651-6d3c-4c51-a572-5c41b4bd41aa",
+                "id": "k2MYQwAAAAACAACA"
+              },
+              "instruction_type": "single_payment_instrument"
+            },
+            "is_recurring": true
+          }
+        ],
+        "external_reference": {
+          "id": "ec7c6c39-3d17-42a8-a384-d6a938573b46",
+          "url": "/89495651-6d3c-4c51-a572-5c41b4bd41aa/captures/ec7c6c39-3d17-42a8-a384-d6a938573b46"
+        },
+        "expiration": 42
+      },
+      "tracking_id": "38b6d6aa-182b-49c0-ad3c-c7ec0fa2a8e5",
+      "self_url": "/89495651-6d3c-4c51-a572-5c41b4bd41aa/capture-schedules/4513fd9380e803af48517c195f591614",
+      "message_id": "fe267aa9-f172-48bc-87ec-3567ef468ab7",
+      "trace_id": "a249d0bf-7822-442c-aacc-3812abccecf2",
+      "id": "ddc2677d-e67a-416f-b95f-063fed4c7cb8",
+      "event_type": "created",
+      "version_added": 1,
+      "timestamp": "2017-12-03T01:20:02.8139567Z"
+    },
+    {
+      "tracking_id": "38b6d6aa-182b-49c0-ad3c-c7ec0fa2a8e5",
+      "operation_type": "schedule_initialization",
+      "id": "6a072523-a167-49b2-be01-f8496381e09d",
+      "event_type": "operation_started",
+      "version_added": 1,
+      "timestamp": "2017-12-03T01:20:02.8139567Z"
+    },
+    {
+      "payment_instrument_info": [
+        {
+          "accountId": "89495651-6d3c-4c51-a572-5c41b4bd41aa",
+          "id": "k2MYQwAAAAACAACA",
+          "status": "deactivated",
+          "paymentMethod": {
+            "paymentMethodFamily": "credit_card",
+            "paymentMethodType": "visa",
+            "properties": {
+              "taxable": false,
+              "providerRemittable": false,
+              "offlineRecurring": true,
+              "riskyPaymentMethod": false
+            }
+          },
+          "details": {
+            "cardType": "debit"
+          }
+        }
+      ],
+      "updated_first_capture_attempt_date": "2017-12-03T01:20:02.8139567Z",
+      "id": "0f4f701d-1d14-44a2-a6e2-689414c9d7b6",
+      "event_type": "payment_instrument_info",
+      "version_added": 2,
+      "timestamp": "2017-12-03T01:21:02.9323111Z"
+    },
+    {
+      "operation_started_event_id": "6a072523-a167-49b2-be01-f8496381e09d",
+      "id": "059d4a58-57a6-4cf5-a71f-97f1ac140b91",
+      "event_type": "operation_ended",
+      "version_added": 2,
+      "timestamp": "2017-12-03T01:21:02.9323111Z"
+    },
+    {
+      "evaluation_time": "2017-12-03T01:20:02.8139567Z",
+      "message_id": "638ec66f-daed-4575-95a8-d274a14d81ed",
+      "id": "8c79efd4-2fcc-4476-8cca-b9a7b72572d8",
+      "event_type": "capture_evaluation_scheduled",
+      "version_added": 2,
+      "timestamp": "2017-12-03T01:21:02.9323111Z"
+    },
+    {
+      "tracking_id": "8c79efd4-2fcc-4476-8cca-b9a7b72572d8",
+      "operation_type": "capture_attempt",
+      "id": "08673a9f-1d89-47a5-8470-d797615105fb",
+      "event_type": "operation_started",
+      "version_added": 3,
+      "timestamp": "2017-12-03T01:22:02.9927915Z"
+    },
+    {
+      "session_id": "104d5a2b-6b65-4156-8248-836a7bcc4a9e",
+      "id": "9af19b87-bf01-4260-add7-8881016f075d",
+      "event_type": "session_id_changed",
+      "version_added": 3,
+      "timestamp": "2017-12-03T01:22:02.9927915Z"
+    },
+    {
+      "capture_context": {
+        "line_items": [
+          {
+            "billing_record_id": "6e91e558-516c-4fae-8061-64bbdea3edee",
+            "line_item_ids": [
+              {
+                "id": "8c45dadb-76b8-4970-9ada-f70329005a0f",
+                "low": 0,
+                "high": 0
+              }
+            ]
+          }
+        ],
+        "capture_instructions": {
+          "payment_instrument_id": {
+            "account_id": "89495651-6d3c-4c51-a572-5c41b4bd41aa",
+            "id": "k2MYQwAAAAACAACA"
+          },
+          "instruction_type": "single_payment_instrument"
+        },
+        "is_recurring": true
+      },
+      "session_id": "104d5a2b-6b65-4156-8248-836a7bcc4a9e",
+      "id": "84fe6ebb-bc12-4eb5-89fb-7a0453bb677a",
+      "event_type": "capture_attempting",
+      "version_added": 3,
+      "timestamp": "2017-12-03T01:22:02.9927915Z"
+    },
+    {
+      "id": "fbfa4789-353b-413a-9369-6b3a0b6ca018",
+      "event_type": "dependent_service_call_failure",
+      "version_added": 4,
+      "timestamp": "2017-12-03T01:22:04.1022041Z"
+    },
+    {
+      "operation_started_event_id": "08673a9f-1d89-47a5-8470-d797615105fb",
+      "id": "b4cbdab1-a49b-4a21-aaf6-522b54762a19",
+      "event_type": "operation_ended",
+      "version_added": 4,
+      "timestamp": "2017-12-03T01:22:04.1022041Z"
+    },
+    {
+      "template_id": "11e6c4bec1002bdf24c7b2acdc9fa7d1",
+      "template_version": 3,
+      "is_new_format": true,
+      "id": "3286eac6-353c-4d49-9fd9-1c9f4563810c",
+      "event_type": "template_assigned",
+      "version_added": 4,
+      "timestamp": "2017-12-03T01:22:04.1022041Z"
+    },
+    {
+      "action_type": null,
+      "actions": [
+        {
+          "action_type": "Suspend",
+          "duration": "2.00:00:00",
+          "action_param": null,
+          "wait_until": null
+        }
+      ],
+      "duration": "2.00:00:00",
+      "id": "23326b47-558f-4f12-8ac0-627572cb3c99",
+      "event_type": "template_evaluated",
+      "version_added": 4,
+      "timestamp": "2017-12-03T01:22:04.1022041Z"
+    },
+    {
+      "days_overdue": 0,
+      "days_since_start": 0,
+      "reason": "previous_non_retryable_decline",
+      "related_scheduling_id": "8c79efd4-2fcc-4476-8cca-b9a7b72572d8",
+      "related_event_ids": [
+        "ddc2677d-e67a-416f-b95f-063fed4c7cb8"
+      ],
+      "id": "190ae212-026f-435e-a777-2eb1efc9f54d",
+      "event_type": "capture_evaluated",
+      "version_added": 4,
+      "timestamp": "2017-12-03T01:22:04.1022041Z"
+    },
+    {
+      "evaluation_time": "2017-12-05T01:22:02.9927915Z",
+      "message_id": "38ef5dc7-5803-4804-9287-6b7bdc646883",
+      "id": "35e1f878-5bfd-46d9-ab8f-0ba8be430619",
+      "event_type": "capture_evaluation_scheduled",
+      "version_added": 5,
+      "timestamp": "2017-12-03T01:22:05.9460329Z"
+    },
+    {
+      "id": "b050805d-a64f-46ff-adc7-76337d7e0ea9",
+      "event_type": "reinitialized",
+      "version_added": 6,
+      "timestamp": "2017-12-05T01:22:03.0145233Z"
+    },
+    {
+      "tracking_id": "35e1f878-5bfd-46d9-ab8f-0ba8be430619",
+      "operation_type": "capture_attempt",
+      "id": "ddbffd23-8f96-48de-a0d4-0bc2e4f096ae",
+      "event_type": "operation_started",
+      "version_added": 6,
+      "timestamp": "2017-12-05T01:22:03.0145233Z"
+    },
+    {
+      "session_id": "21c4549d-0b55-4e28-a6a3-4bb7b868410c",
+      "id": "a20eef16-c24e-4855-a6f3-b894dc10521c",
+      "event_type": "session_id_changed",
+      "version_added": 6,
+      "timestamp": "2017-12-05T01:22:03.0145233Z"
+    },
+    {
+      "capture_context": {
+        "line_items": [
+          {
+            "billing_record_id": "6e91e558-516c-4fae-8061-64bbdea3edee",
+            "line_item_ids": [
+              {
+                "id": "8c45dadb-76b8-4970-9ada-f70329005a0f",
+                "low": 0,
+                "high": 0
+              }
+            ]
+          }
+        ],
+        "capture_instructions": {
+          "payment_instrument_id": {
+            "account_id": "89495651-6d3c-4c51-a572-5c41b4bd41aa",
+            "id": "k2MYQwAAAAACAACA"
+          },
+          "instruction_type": "single_payment_instrument"
+        },
+        "is_recurring": true
+      },
+      "session_id": "21c4549d-0b55-4e28-a6a3-4bb7b868410c",
+      "id": "3b455090-7b13-4b65-8a89-048ba8429a30",
+      "event_type": "capture_attempting",
+      "version_added": 6,
+      "timestamp": "2017-12-05T01:22:03.0145233Z"
+    },
+    {
+      "id": "74b85775-fece-4b11-88fe-19768794a10e",
+      "event_type": "dependent_service_call_failure",
+      "version_added": 7,
+      "timestamp": "2017-12-05T01:22:04.1239381Z"
+    },
+    {
+      "operation_started_event_id": "ddbffd23-8f96-48de-a0d4-0bc2e4f096ae",
+      "id": "ed931d60-a22d-496e-880f-ffc4d800fc36",
+      "event_type": "operation_ended",
+      "version_added": 7,
+      "timestamp": "2017-12-05T01:22:04.1239381Z"
+    },
+    {
+      "action_type": null,
+      "actions": [
+        {
+          "action_type": "Suspend",
+          "duration": "4.00:00:00",
+          "action_param": null,
+          "wait_until": null
+        }
+      ],
+      "duration": "4.00:00:00",
+      "id": "435712e3-39b1-49f8-8edd-fb6137bb1344",
+      "event_type": "template_evaluated",
+      "version_added": 7,
+      "timestamp": "2017-12-05T01:22:04.1239381Z"
+    },
+    {
+      "days_overdue": 2,
+      "days_since_start": 2,
+      "reason": "previous_non_retryable_decline",
+      "related_scheduling_id": "35e1f878-5bfd-46d9-ab8f-0ba8be430619",
+      "related_event_ids": [
+        "ddc2677d-e67a-416f-b95f-063fed4c7cb8"
+      ],
+      "id": "469dcd00-e2f8-4cf7-8c76-08f3ee6b3779",
+      "event_type": "capture_evaluated",
+      "version_added": 7,
+      "timestamp": "2017-12-05T01:22:04.1239381Z"
+    },
+    {
+      "evaluation_time": "2017-12-09T01:22:03.0145233Z",
+      "message_id": "b1ac6d36-19cf-4cbe-8ef3-82217c94ea64",
+      "id": "eaf76d38-06d0-402b-9b8a-bbe669917cd9",
+      "event_type": "capture_evaluation_scheduled",
+      "version_added": 8,
+      "timestamp": "2017-12-05T01:22:06.0302677Z"
+    },
+    {
+      "id": "33bac64e-b9ef-42ed-88b0-ba95622e293d",
+      "event_type": "reinitialized",
+      "version_added": 9,
+      "timestamp": "2017-12-09T01:22:03.1921877Z"
+    },
+    {
+      "tracking_id": "eaf76d38-06d0-402b-9b8a-bbe669917cd9",
+      "operation_type": "capture_attempt",
+      "id": "fcae8fa3-8ac1-4db4-93db-4705afc3e482",
+      "event_type": "operation_started",
+      "version_added": 9,
+      "timestamp": "2017-12-09T01:22:03.1921877Z"
+    },
+    {
+      "session_id": "38c78d84-d347-4574-b468-6bf0bfcbc8f9",
+      "id": "da82be9a-0722-4d5a-a406-6c2a7a21e049",
+      "event_type": "session_id_changed",
+      "version_added": 9,
+      "timestamp": "2017-12-09T01:22:03.1921877Z"
+    },
+    {
+      "capture_context": {
+        "line_items": [
+          {
+            "billing_record_id": "6e91e558-516c-4fae-8061-64bbdea3edee",
+            "line_item_ids": [
+              {
+                "id": "8c45dadb-76b8-4970-9ada-f70329005a0f",
+                "low": 0,
+                "high": 0
+              }
+            ]
+          }
+        ],
+        "capture_instructions": {
+          "payment_instrument_id": {
+            "account_id": "89495651-6d3c-4c51-a572-5c41b4bd41aa",
+            "id": "k2MYQwAAAAACAACA"
+          },
+          "instruction_type": "single_payment_instrument"
+        },
+        "is_recurring": true
+      },
+      "session_id": "38c78d84-d347-4574-b468-6bf0bfcbc8f9",
+      "id": "85e4890a-0272-4af4-a6a7-80756fa49245",
+      "event_type": "capture_attempting",
+      "version_added": 9,
+      "timestamp": "2017-12-09T01:22:03.1921877Z"
+    },
+    {
+      "id": "ff89af89-a796-4e7b-b3b0-962da9e27f98",
+      "event_type": "dependent_service_call_failure",
+      "version_added": 10,
+      "timestamp": "2017-12-09T01:22:04.7705372Z"
+    },
+    {
+      "operation_started_event_id": "fcae8fa3-8ac1-4db4-93db-4705afc3e482",
+      "id": "cc95fb22-efaf-4500-8ebb-5f288b21617c",
+      "event_type": "operation_ended",
+      "version_added": 10,
+      "timestamp": "2017-12-09T01:22:04.7705372Z"
+    },
+    {
+      "action_type": null,
+      "actions": [
+        {
+          "action_type": "Suspend",
+          "duration": "4.00:00:00",
+          "action_param": null,
+          "wait_until": null
+        }
+      ],
+      "duration": "4.00:00:00",
+      "id": "4588016e-b267-41c6-b5a8-35b1f6e07da8",
+      "event_type": "template_evaluated",
+      "version_added": 10,
+      "timestamp": "2017-12-09T01:22:04.7705372Z"
+    },
+    {
+      "days_overdue": 6,
+      "days_since_start": 6,
+      "reason": "previous_non_retryable_decline",
+      "related_scheduling_id": "eaf76d38-06d0-402b-9b8a-bbe669917cd9",
+      "related_event_ids": [
+        "ddc2677d-e67a-416f-b95f-063fed4c7cb8"
+      ],
+      "id": "a1f3e39e-272b-4812-8905-05177c243437",
+      "event_type": "capture_evaluated",
+      "version_added": 10,
+      "timestamp": "2017-12-09T01:22:04.7705372Z"
+    },
+    {
+      "evaluation_time": "2017-12-13T01:22:03.1921877Z",
+      "message_id": "b93003a5-772a-4d47-845e-b9c44b2efe1a",
+      "id": "c0506b25-901b-4a9c-9eec-a79380d1c38d",
+      "event_type": "capture_evaluation_scheduled",
+      "version_added": 11,
+      "timestamp": "2017-12-09T01:22:06.6614119Z"
+    },
+    {
+      "id": "ceb5c631-d976-4c6f-aeb4-985326074b2e",
+      "event_type": "reinitialized",
+      "version_added": 12,
+      "timestamp": "2017-12-13T01:22:03.3272113Z"
+    },
+    {
+      "tracking_id": "c0506b25-901b-4a9c-9eec-a79380d1c38d",
+      "operation_type": "capture_attempt",
+      "id": "08055ddc-994c-471e-b4f5-b9ff899004ab",
+      "event_type": "operation_started",
+      "version_added": 12,
+      "timestamp": "2017-12-13T01:22:03.3272113Z"
+    },
+    {
+      "session_id": "37881d31-0635-41fd-86ef-47179608dbc4",
+      "id": "d2f4c0f4-b168-4465-b612-a413ae2b708b",
+      "event_type": "session_id_changed",
+      "version_added": 12,
+      "timestamp": "2017-12-13T01:22:03.3272113Z"
+    },
+    {
+      "capture_context": {
+        "line_items": [
+          {
+            "billing_record_id": "6e91e558-516c-4fae-8061-64bbdea3edee",
+            "line_item_ids": [
+              {
+                "id": "8c45dadb-76b8-4970-9ada-f70329005a0f",
+                "low": 0,
+                "high": 0
+              }
+            ]
+          }
+        ],
+        "capture_instructions": {
+          "payment_instrument_id": {
+            "account_id": "89495651-6d3c-4c51-a572-5c41b4bd41aa",
+            "id": "k2MYQwAAAAACAACA"
+          },
+          "instruction_type": "single_payment_instrument"
+        },
+        "is_recurring": true
+      },
+      "session_id": "37881d31-0635-41fd-86ef-47179608dbc4",
+      "id": "3462c277-b2d2-4e9b-a1f7-66ee31d19c64",
+      "event_type": "capture_attempting",
+      "version_added": 12,
+      "timestamp": "2017-12-13T01:22:03.3272113Z"
+    },
+    {
+      "id": "794725c1-6df3-444a-9ac3-53a9ae9b5400",
+      "event_type": "dependent_service_call_failure",
+      "version_added": 13,
+      "timestamp": "2017-12-13T01:22:04.6553959Z"
+    },
+    {
+      "operation_started_event_id": "08055ddc-994c-471e-b4f5-b9ff899004ab",
+      "id": "ac381b05-d4a0-4460-b7ae-ec8e36381bad",
+      "event_type": "operation_ended",
+      "version_added": 13,
+      "timestamp": "2017-12-13T01:22:04.6553959Z"
+    },
+    {
+      "action_type": null,
+      "actions": [
+        {
+          "action_type": "Suspend",
+          "duration": "4.00:00:00",
+          "action_param": null,
+          "wait_until": null
+        }
+      ],
+      "duration": "4.00:00:00",
+      "id": "7c42b4bc-3ec5-44d1-8f47-9607e2725d1c",
+      "event_type": "template_evaluated",
+      "version_added": 13,
+      "timestamp": "2017-12-13T01:22:04.6553959Z"
+    },
+    {
+      "days_overdue": 10,
+      "days_since_start": 10,
+      "reason": "previous_non_retryable_decline",
+      "related_scheduling_id": "c0506b25-901b-4a9c-9eec-a79380d1c38d",
+      "related_event_ids": [
+        "ddc2677d-e67a-416f-b95f-063fed4c7cb8"
+      ],
+      "id": "3c0a78cf-45a9-470b-bc7d-0bd82d229209",
+      "event_type": "capture_evaluated",
+      "version_added": 13,
+      "timestamp": "2017-12-13T01:22:04.6553959Z"
+    },
+    {
+      "evaluation_time": "2017-12-17T01:22:03.3272113Z",
+      "message_id": "eb30ae7d-dbbe-4e64-9639-bbb752d3b768",
+      "id": "8ff64d6c-b21a-4e11-8e40-0e1c5e1e0f4a",
+      "event_type": "capture_evaluation_scheduled",
+      "version_added": 14,
+      "timestamp": "2017-12-13T01:22:06.3742266Z"
+    },
+    {
+      "id": "523fc842-a724-49ae-a084-5a5ae67c0058",
+      "event_type": "reinitialized",
+      "version_added": 15,
+      "timestamp": "2017-12-17T01:22:03.4155044Z"
+    },
+    {
+      "tracking_id": "8ff64d6c-b21a-4e11-8e40-0e1c5e1e0f4a",
+      "operation_type": "capture_attempt",
+      "id": "97add074-f3a6-475d-8a7c-ca36adc4a103",
+      "event_type": "operation_started",
+      "version_added": 15,
+      "timestamp": "2017-12-17T01:22:03.4155044Z"
+    },
+    {
+      "session_id": "17845771-c980-4837-bcd5-fd23882b5760",
+      "id": "4b4ca957-729a-46c6-9dd6-9ec457b7a871",
+      "event_type": "session_id_changed",
+      "version_added": 15,
+      "timestamp": "2017-12-17T01:22:03.4155044Z"
+    },
+    {
+      "capture_context": {
+        "line_items": [
+          {
+            "billing_record_id": "6e91e558-516c-4fae-8061-64bbdea3edee",
+            "line_item_ids": [
+              {
+                "id": "8c45dadb-76b8-4970-9ada-f70329005a0f",
+                "low": 0,
+                "high": 0
+              }
+            ]
+          }
+        ],
+        "capture_instructions": {
+          "payment_instrument_id": {
+            "account_id": "89495651-6d3c-4c51-a572-5c41b4bd41aa",
+            "id": "k2MYQwAAAAACAACA"
+          },
+          "instruction_type": "single_payment_instrument"
+        },
+        "is_recurring": true
+      },
+      "session_id": "17845771-c980-4837-bcd5-fd23882b5760",
+      "id": "bf90025c-5dac-4d76-adfd-0f674684db97",
+      "event_type": "capture_attempting",
+      "version_added": 15,
+      "timestamp": "2017-12-17T01:22:03.4155044Z"
+    },
+    {
+      "id": "2eb0e77f-70b7-43f5-a473-a52df5a6e3a7",
+      "event_type": "dependent_service_call_failure",
+      "version_added": 16,
+      "timestamp": "2017-12-17T01:22:04.6030549Z"
+    },
+    {
+      "operation_started_event_id": "97add074-f3a6-475d-8a7c-ca36adc4a103",
+      "id": "b20a1691-ba92-4505-98df-02310ce9e0aa",
+      "event_type": "operation_ended",
+      "version_added": 16,
+      "timestamp": "2017-12-17T01:22:04.6030549Z"
+    },
+    {
+      "action_type": null,
+      "actions": [
+        {
+          "action_type": "Suspend",
+          "duration": "4.00:00:00",
+          "action_param": null,
+          "wait_until": null
+        }
+      ],
+      "duration": "4.00:00:00",
+      "id": "e8f739b7-01b7-46a6-9b75-83cfe2aa0b70",
+      "event_type": "template_evaluated",
+      "version_added": 16,
+      "timestamp": "2017-12-17T01:22:04.6030549Z"
+    },
+    {
+      "days_overdue": 14,
+      "days_since_start": 14,
+      "reason": "previous_non_retryable_decline",
+      "related_scheduling_id": "8ff64d6c-b21a-4e11-8e40-0e1c5e1e0f4a",
+      "related_event_ids": [
+        "ddc2677d-e67a-416f-b95f-063fed4c7cb8"
+      ],
+      "id": "3de53f99-02af-4585-acfe-6c3feba1d2da",
+      "event_type": "capture_evaluated",
+      "version_added": 16,
+      "timestamp": "2017-12-17T01:22:04.6030549Z"
+    },
+    {
+      "evaluation_time": "2017-12-21T01:22:03.4155044Z",
+      "message_id": "718c38d5-f2ca-4390-b0e0-ab2289f932eb",
+      "id": "5075b0ec-f812-493b-855b-d9c719176a40",
+      "event_type": "capture_evaluation_scheduled",
+      "version_added": 17,
+      "timestamp": "2017-12-17T01:22:06.3999877Z"
+    },
+    {
+      "id": "04e72b93-213c-4cb2-b7a8-0d922be4a29e",
+      "event_type": "reinitialized",
+      "version_added": 18,
+      "timestamp": "2017-12-21T01:22:03.481157Z"
+    },
+    {
+      "tracking_id": "5075b0ec-f812-493b-855b-d9c719176a40",
+      "operation_type": "capture_attempt",
+      "id": "61255512-6427-4021-b5a1-77bed20a14a7",
+      "event_type": "operation_started",
+      "version_added": 18,
+      "timestamp": "2017-12-21T01:22:03.481157Z"
+    },
+    {
+      "session_id": "38fe4f2c-f35e-41f6-8dc1-be869f1a9c34",
+      "id": "c348a8cd-169f-4db1-ae7d-8c48ea54a930",
+      "event_type": "session_id_changed",
+      "version_added": 18,
+      "timestamp": "2017-12-21T01:22:03.481157Z"
+    },
+    {
+      "capture_context": {
+        "line_items": [
+          {
+            "billing_record_id": "6e91e558-516c-4fae-8061-64bbdea3edee",
+            "line_item_ids": [
+              {
+                "id": "8c45dadb-76b8-4970-9ada-f70329005a0f",
+                "low": 0,
+                "high": 0
+              }
+            ]
+          }
+        ],
+        "capture_instructions": {
+          "payment_instrument_id": {
+            "account_id": "89495651-6d3c-4c51-a572-5c41b4bd41aa",
+            "id": "k2MYQwAAAAACAACA"
+          },
+          "instruction_type": "single_payment_instrument"
+        },
+        "is_recurring": true
+      },
+      "session_id": "38fe4f2c-f35e-41f6-8dc1-be869f1a9c34",
+      "id": "26de19fe-266b-439e-a408-24edfaa0d244",
+      "event_type": "capture_attempting",
+      "version_added": 18,
+      "timestamp": "2017-12-21T01:22:03.481157Z"
+    },
+    {
+      "id": "10ebe260-acc7-4960-b171-5cfc63bd7c40",
+      "event_type": "dependent_service_call_failure",
+      "version_added": 19,
+      "timestamp": "2017-12-21T01:22:04.9499301Z"
+    },
+    {
+      "operation_started_event_id": "61255512-6427-4021-b5a1-77bed20a14a7",
+      "id": "7325852c-645b-4368-a16d-ff585005be8d",
+      "event_type": "operation_ended",
+      "version_added": 19,
+      "timestamp": "2017-12-21T01:22:04.9499301Z"
+    },
+    {
+      "action_type": null,
+      "actions": [
+        {
+          "action_type": "Suspend",
+          "duration": "4.00:00:00",
+          "action_param": null,
+          "wait_until": null
+        }
+      ],
+      "duration": "4.00:00:00",
+      "id": "2dc010e6-691e-4b3b-8c21-909ec8d63cda",
+      "event_type": "template_evaluated",
+      "version_added": 19,
+      "timestamp": "2017-12-21T01:22:04.9499301Z"
+    },
+    {
+      "days_overdue": 18,
+      "days_since_start": 18,
+      "reason": "previous_non_retryable_decline",
+      "related_scheduling_id": "5075b0ec-f812-493b-855b-d9c719176a40",
+      "related_event_ids": [
+        "ddc2677d-e67a-416f-b95f-063fed4c7cb8"
+      ],
+      "id": "be9df47e-f1b0-427b-a064-3d90fbea63a1",
+      "event_type": "capture_evaluated",
+      "version_added": 19,
+      "timestamp": "2017-12-21T01:22:04.9499301Z"
+    },
+    {
+      "evaluation_time": "2017-12-25T01:22:03.481157Z",
+      "message_id": "cd72a44b-84f2-4cc9-b78f-93704967fb7c",
+      "id": "84844964-5b02-4efc-afde-67e9668c2314",
+      "event_type": "capture_evaluation_scheduled",
+      "version_added": 20,
+      "timestamp": "2017-12-21T01:22:06.3874602Z"
+    },
+    {
+      "id": "9b28e80a-c3d0-49a2-b1ff-adede716c638",
+      "event_type": "reinitialized",
+      "version_added": 21,
+      "timestamp": "2017-12-25T01:22:03.6013299Z"
+    },
+    {
+      "tracking_id": "84844964-5b02-4efc-afde-67e9668c2314",
+      "operation_type": "capture_attempt",
+      "id": "e8d06b63-16a1-4fa5-86af-c49bbb1f7c16",
+      "event_type": "operation_started",
+      "version_added": 21,
+      "timestamp": "2017-12-25T01:22:03.6013299Z"
+    },
+    {
+      "session_id": "0d7b9144-3261-4de5-b5a0-8326d0390bd9",
+      "id": "0c8a9a3c-4283-4200-9c96-e182d75a565c",
+      "event_type": "session_id_changed",
+      "version_added": 21,
+      "timestamp": "2017-12-25T01:22:03.6013299Z"
+    },
+    {
+      "capture_context": {
+        "line_items": [
+          {
+            "billing_record_id": "6e91e558-516c-4fae-8061-64bbdea3edee",
+            "line_item_ids": [
+              {
+                "id": "8c45dadb-76b8-4970-9ada-f70329005a0f",
+                "low": 0,
+                "high": 0
+              }
+            ]
+          }
+        ],
+        "capture_instructions": {
+          "payment_instrument_id": {
+            "account_id": "89495651-6d3c-4c51-a572-5c41b4bd41aa",
+            "id": "k2MYQwAAAAACAACA"
+          },
+          "instruction_type": "single_payment_instrument"
+        },
+        "is_recurring": true
+      },
+      "session_id": "0d7b9144-3261-4de5-b5a0-8326d0390bd9",
+      "id": "fa1bcd04-f528-4fcc-9275-717a9a10abc1",
+      "event_type": "capture_attempting",
+      "version_added": 21,
+      "timestamp": "2017-12-25T01:22:03.6013299Z"
+    },
+    {
+      "id": "0061cffd-e391-4531-a3cc-7749a6ef9994",
+      "event_type": "dependent_service_call_failure",
+      "version_added": 22,
+      "timestamp": "2017-12-25T01:22:05.3045373Z"
+    },
+    {
+      "operation_started_event_id": "e8d06b63-16a1-4fa5-86af-c49bbb1f7c16",
+      "id": "c03d5b8d-b28b-41bb-9bbd-e48a17bd051e",
+      "event_type": "operation_ended",
+      "version_added": 22,
+      "timestamp": "2017-12-25T01:22:05.3045373Z"
+    },
+    {
+      "action_type": null,
+      "actions": [
+        {
+          "action_type": "Suspend",
+          "duration": "6.00:00:00",
+          "action_param": null,
+          "wait_until": null
+        }
+      ],
+      "duration": "6.00:00:00",
+      "id": "0896593d-dd1c-4ea1-8bf4-a452445ce754",
+      "event_type": "template_evaluated",
+      "version_added": 22,
+      "timestamp": "2017-12-25T01:22:05.3045373Z"
+    },
+    {
+      "days_overdue": 22,
+      "days_since_start": 22,
+      "reason": "previous_non_retryable_decline",
+      "related_scheduling_id": "84844964-5b02-4efc-afde-67e9668c2314",
+      "related_event_ids": [
+        "ddc2677d-e67a-416f-b95f-063fed4c7cb8"
+      ],
+      "id": "1b1a4571-dc54-4d68-ba52-0ee04053095b",
+      "event_type": "capture_evaluated",
+      "version_added": 22,
+      "timestamp": "2017-12-25T01:22:05.3045373Z"
+    },
+    {
+      "evaluation_time": "2017-12-31T01:22:03.6013299Z",
+      "message_id": "164abf58-8f47-4141-990d-f0fd1276a667",
+      "id": "d5aaf28b-8029-4ed2-affe-e183d7d20e69",
+      "event_type": "capture_evaluation_scheduled",
+      "version_added": 23,
+      "timestamp": "2017-12-25T01:22:07.7421531Z"
+    },
+    {
+      "id": "52704748-8092-4faf-9c18-5307e216a8eb",
+      "event_type": "reinitialized",
+      "version_added": 24,
+      "timestamp": "2017-12-31T01:22:03.8045313Z"
+    },
+    {
+      "tracking_id": "d5aaf28b-8029-4ed2-affe-e183d7d20e69",
+      "operation_type": "capture_attempt",
+      "id": "b42e92d7-33e5-4e9b-a79c-c99d082ecb57",
+      "event_type": "operation_started",
+      "version_added": 24,
+      "timestamp": "2017-12-31T01:22:03.8045313Z"
+    },
+    {
+      "session_id": "4aa17a23-96e3-4ea5-9a52-fb8819076893",
+      "id": "abbbbfc8-647e-4ecc-b171-b22439cf309e",
+      "event_type": "session_id_changed",
+      "version_added": 24,
+      "timestamp": "2017-12-31T01:22:03.8045313Z"
+    },
+    {
+      "capture_context": {
+        "line_items": [
+          {
+            "billing_record_id": "6e91e558-516c-4fae-8061-64bbdea3edee",
+            "line_item_ids": [
+              {
+                "id": "8c45dadb-76b8-4970-9ada-f70329005a0f",
+                "low": 0,
+                "high": 0
+              }
+            ]
+          }
+        ],
+        "capture_instructions": {
+          "payment_instrument_id": {
+            "account_id": "89495651-6d3c-4c51-a572-5c41b4bd41aa",
+            "id": "k2MYQwAAAAACAACA"
+          },
+          "instruction_type": "single_payment_instrument"
+        },
+        "is_recurring": true
+      },
+      "session_id": "4aa17a23-96e3-4ea5-9a52-fb8819076893",
+      "id": "3fa3e46d-3652-4663-8d4a-658652aa07ce",
+      "event_type": "capture_attempting",
+      "version_added": 24,
+      "timestamp": "2017-12-31T01:22:03.8045313Z"
+    },
+    {
+      "id": "e93a2f65-d7b7-4ba7-89f6-4a0d2943ef67",
+      "event_type": "dependent_service_call_failure",
+      "version_added": 25,
+      "timestamp": "2017-12-31T01:22:04.9920796Z"
+    },
+    {
+      "operation_started_event_id": "b42e92d7-33e5-4e9b-a79c-c99d082ecb57",
+      "id": "bf45f3ee-a3d4-4007-a415-a1293f680112",
+      "event_type": "operation_ended",
+      "version_added": 25,
+      "timestamp": "2017-12-31T01:22:04.9920796Z"
+    },
+    {
+      "action_type": null,
+      "actions": [
+        {
+          "action_type": "Suspend",
+          "duration": "7.00:00:00",
+          "action_param": null,
+          "wait_until": null
+        }
+      ],
+      "duration": "7.00:00:00",
+      "id": "52322987-1679-4ee0-b6d7-8c022584b299",
+      "event_type": "template_evaluated",
+      "version_added": 25,
+      "timestamp": "2017-12-31T01:22:04.9920796Z"
+    },
+    {
+      "days_overdue": 28,
+      "days_since_start": 28,
+      "reason": "previous_non_retryable_decline",
+      "related_scheduling_id": "d5aaf28b-8029-4ed2-affe-e183d7d20e69",
+      "related_event_ids": [
+        "ddc2677d-e67a-416f-b95f-063fed4c7cb8"
+      ],
+      "id": "d35cbaf1-c8df-4236-b327-41398f8e3e6b",
+      "event_type": "capture_evaluated",
+      "version_added": 25,
+      "timestamp": "2017-12-31T01:22:04.9920796Z"
+    },
+    {
+      "evaluation_time": "2018-01-07T01:22:03.7889048Z",
+      "message_id": "aa66db9f-93b1-4c6c-a22e-396b7e2e41a0",
+      "id": "041903a4-1d6b-4a13-a097-ab9af82ca51b",
+      "event_type": "capture_evaluation_scheduled",
+      "version_added": 26,
+      "timestamp": "2017-12-31T01:22:06.8202607Z"
+    },
+    {
+      "id": "7af30cf1-d5e2-4ce4-867a-7e22f0035caf",
+      "event_type": "reinitialized",
+      "version_added": 27,
+      "timestamp": "2018-01-07T01:22:03.9799732Z"
+    },
+    {
+      "tracking_id": "041903a4-1d6b-4a13-a097-ab9af82ca51b",
+      "operation_type": "capture_attempt",
+      "id": "6ca52ad2-4a5f-44e3-908d-d10f27a06271",
+      "event_type": "operation_started",
+      "version_added": 27,
+      "timestamp": "2018-01-07T01:22:03.9799732Z"
+    },
+    {
+      "session_id": "27b5803a-fa6b-4b5a-a044-5c2e7e9059c9",
+      "id": "4d5d8934-2be7-4620-b693-bb27177a7156",
+      "event_type": "session_id_changed",
+      "version_added": 27,
+      "timestamp": "2018-01-07T01:22:03.9799732Z"
+    },
+    {
+      "capture_context": {
+        "line_items": [
+          {
+            "billing_record_id": "6e91e558-516c-4fae-8061-64bbdea3edee",
+            "line_item_ids": [
+              {
+                "id": "8c45dadb-76b8-4970-9ada-f70329005a0f",
+                "low": 0,
+                "high": 0
+              }
+            ]
+          }
+        ],
+        "capture_instructions": {
+          "payment_instrument_id": {
+            "account_id": "89495651-6d3c-4c51-a572-5c41b4bd41aa",
+            "id": "k2MYQwAAAAACAACA"
+          },
+          "instruction_type": "single_payment_instrument"
+        },
+        "is_recurring": true
+      },
+      "session_id": "27b5803a-fa6b-4b5a-a044-5c2e7e9059c9",
+      "id": "c8e2eea7-205d-448d-90df-c9dc6576d99e",
+      "event_type": "capture_attempting",
+      "version_added": 27,
+      "timestamp": "2018-01-07T01:22:03.9799732Z"
+    },
+    {
+      "id": "4a22741d-5f9b-4968-989f-46cc2c9b3fc3",
+      "event_type": "dependent_service_call_failure",
+      "version_added": 28,
+      "timestamp": "2018-01-07T01:22:05.089364Z"
+    },
+    {
+      "operation_started_event_id": "6ca52ad2-4a5f-44e3-908d-d10f27a06271",
+      "id": "c3cd2662-9b52-4bcb-b1a4-fb8e18ab2d4b",
+      "event_type": "operation_ended",
+      "version_added": 28,
+      "timestamp": "2018-01-07T01:22:05.089364Z"
+    },
+    {
+      "action_type": null,
+      "actions": [
+        {
+          "action_type": "Suspend",
+          "duration": "7.00:00:00",
+          "action_param": null,
+          "wait_until": null
+        }
+      ],
+      "duration": "7.00:00:00",
+      "id": "bd2ae4c5-2348-4895-a20e-60ac4a4b20f0",
+      "event_type": "template_evaluated",
+      "version_added": 28,
+      "timestamp": "2018-01-07T01:22:05.089364Z"
+    },
+    {
+      "days_overdue": 35,
+      "days_since_start": 35,
+      "reason": "previous_non_retryable_decline",
+      "related_scheduling_id": "041903a4-1d6b-4a13-a097-ab9af82ca51b",
+      "related_event_ids": [
+        "ddc2677d-e67a-416f-b95f-063fed4c7cb8"
+      ],
+      "id": "a1d9fd39-5c76-4549-9b32-30bc8992b20f",
+      "event_type": "capture_evaluated",
+      "version_added": 28,
+      "timestamp": "2018-01-07T01:22:05.089364Z"
+    },
+    {
+      "evaluation_time": "2018-01-14T01:22:03.9799732Z",
+      "message_id": "1c4e0726-80bc-45d3-aaa7-57b0171b4441",
+      "id": "f4028e0a-2a45-43e1-ba9b-b71a64360a20",
+      "event_type": "capture_evaluation_scheduled",
+      "version_added": 29,
+      "timestamp": "2018-01-07T01:22:06.417575Z"
+    },
+    {
+      "id": "3b06ec86-f1ec-4fd8-a0e7-31f19b23b175",
+      "event_type": "reinitialized",
+      "version_added": 30,
+      "timestamp": "2018-01-14T01:22:04.11217Z"
+    },
+    {
+      "tracking_id": "f4028e0a-2a45-43e1-ba9b-b71a64360a20",
+      "operation_type": "capture_attempt",
+      "id": "0fbe20d3-8e5e-4360-ae51-5ccc3fcf9bd5",
+      "event_type": "operation_started",
+      "version_added": 30,
+      "timestamp": "2018-01-14T01:22:04.11217Z"
+    },
+    {
+      "session_id": "9aaf88e6-c3b5-4bda-a2ea-4bd87f954e95",
+      "id": "6a16676e-0424-427d-9243-e15dc3a7d4a3",
+      "event_type": "session_id_changed",
+      "version_added": 30,
+      "timestamp": "2018-01-14T01:22:04.11217Z"
+    },
+    {
+      "capture_context": {
+        "line_items": [
+          {
+            "billing_record_id": "6e91e558-516c-4fae-8061-64bbdea3edee",
+            "line_item_ids": [
+              {
+                "id": "8c45dadb-76b8-4970-9ada-f70329005a0f",
+                "low": 0,
+                "high": 0
+              }
+            ]
+          }
+        ],
+        "capture_instructions": {
+          "payment_instrument_id": {
+            "account_id": "89495651-6d3c-4c51-a572-5c41b4bd41aa",
+            "id": "k2MYQwAAAAACAACA"
+          },
+          "instruction_type": "single_payment_instrument"
+        },
+        "is_recurring": true
+      },
+      "session_id": "9aaf88e6-c3b5-4bda-a2ea-4bd87f954e95",
+      "id": "480e9774-0404-410a-b14c-b827497dbe0f",
+      "event_type": "capture_attempting",
+      "version_added": 30,
+      "timestamp": "2018-01-14T01:22:04.11217Z"
+    },
+    {
+      "id": "7c3cf3db-39b2-4a73-bb09-39876109942b",
+      "event_type": "dependent_service_call_failure",
+      "version_added": 31,
+      "timestamp": "2018-01-14T01:22:05.8622638Z"
+    },
+    {
+      "operation_started_event_id": "0fbe20d3-8e5e-4360-ae51-5ccc3fcf9bd5",
+      "id": "4386bb47-b424-48a9-b16d-5b9cb2b7c404",
+      "event_type": "operation_ended",
+      "version_added": 31,
+      "timestamp": "2018-01-14T01:22:05.8622638Z"
+    },
+    {
+      "action_type": null,
+      "actions": [
+        {
+          "action_type": "Fail",
+          "duration": "00:00:00",
+          "action_param": null,
+          "wait_until": null
+        }
+      ],
+      "duration": "00:00:00",
+      "id": "5294057c-353d-4392-b000-21c13ed41582",
+      "event_type": "template_evaluated",
+      "version_added": 31,
+      "timestamp": "2018-01-14T01:22:05.8622638Z"
+    },
+    {
+      "days_overdue": 42,
+      "days_since_start": 42,
+      "reason": "previous_non_retryable_decline",
+      "is_last_evaluation": true,
+      "related_scheduling_id": "f4028e0a-2a45-43e1-ba9b-b71a64360a20",
+      "related_event_ids": [
+        "ddc2677d-e67a-416f-b95f-063fed4c7cb8"
+      ],
+      "id": "07f81745-1e59-428a-b462-320069a9152d",
+      "event_type": "capture_evaluated",
+      "version_added": 31,
+      "timestamp": "2018-01-14T01:22:05.8622638Z"
+    }
+  ],
+  "account_id": "89495651-6d3c-4c51-a572-5c41b4bd41aa",
+  "schedule_id": "4513fd9380e803af48517c195f591614",
+  "created_api_version": "4.5",
+  "last_saved_api_version": "4.5",
+  "IsMutedOrSuspended": false
+}

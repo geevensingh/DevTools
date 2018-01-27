@@ -88,5 +88,16 @@ namespace Utilities
             }
             return false;
         }
+
+        public static string GeneratePrefix(int depth, string substr = "\t")
+        {
+            StringBuilder sb = new StringBuilder();
+            for (int ii = 0; ii < depth; ii++)
+            {
+                sb.Append(substr);
+            }
+            return sb.ToString();
+        }
+
     }
 }
