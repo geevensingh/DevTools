@@ -76,5 +76,17 @@ namespace Utilities
             }
             return false;
         }
+
+        public static bool EndsWithAny(string text, string[] suffixes)
+        {
+            foreach(string suffix in suffixes)
+            {
+                if (text.EndsWith(suffix))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 }
