@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -22,7 +23,6 @@ namespace TextManipulator
     /// </summary>
     public partial class MainWindow : Window
     {
-        private static System.Threading.Timer _timer;
         public MainWindow()
         {
             InitializeComponent();
@@ -30,7 +30,7 @@ namespace TextManipulator
             dispatcherTimer.Tick += new EventHandler((object o, EventArgs ea) =>
             {
                 dispatcherTimer.Stop();
-                this.Raw_TextBox.Text = System.IO.File.ReadAllText(@"S:\Repos\DevTools\TextManipulator\Test.json");
+                this.Raw_TextBox.Text = System.IO.File.ReadAllText(@"S:\Repos\DevTools\TextManipulator\LargeTest.json");
             });
             dispatcherTimer.Interval = new TimeSpan(0, 0, 1);
             dispatcherTimer.Start();
@@ -45,8 +45,64 @@ namespace TextManipulator
             //Stringify(0, jsonObj, ref sb);
             //this.Pretty_TextBox.Text = Prettyify(sb.ToString());
             this.Pretty_TextBox.Text = Prettyify(ser.Serialize(jsonObj));
-            Treeify(this.Tree.Items, jsonObj);
+            //Treeify(this.Tree.Items, jsonObj);
+            var nodeList = new List<TreeViewData>();
+            Flatten(ref nodeList, jsonObj, null);
+            this.Tree.ItemsSource = new ObservableCollection<TreeViewData>(nodeList);
+
         }
+
+        private void Flatten(ref List<TreeViewData> items, Dictionary<string, object> dictionary, TreeViewData parent)
+        {
+            foreach (string key in dictionary.Keys)
+            {
+                object jsonObject = dictionary[key];
+
+                TreeViewData data = new TreeViewData(key, jsonObject, parent);
+                if (parent == null)
+                {
+                    items.Add(data);
+                }
+
+                if (jsonObject != null)
+                {
+                    Type valueType = jsonObject.GetType();
+                    if (valueType == typeof(Dictionary<string, object>))
+                    {
+                        Flatten(ref items, jsonObject as Dictionary<string, object>, data);
+                    }
+                    else if (valueType == typeof(System.Collections.ArrayList))
+                    {
+                        Flatten(ref items, jsonObject as System.Collections.ArrayList, data);
+                    }
+                }
+            }
+        }
+
+        private void Flatten(ref List<TreeViewData> items, System.Collections.ArrayList arrayList, TreeViewData parent)
+        {
+            for (int ii = 0; ii < arrayList.Count; ii++)
+            {
+                object jsonObject = arrayList[ii];
+
+                TreeViewData data = new TreeViewData("[" + ii + "]", jsonObject, parent);
+                if (parent == null)
+                {
+                    items.Add(data);
+                }
+
+                Type valueType = jsonObject.GetType();
+                if (valueType == typeof(Dictionary<string, object>))
+                {
+                    Flatten(ref items, jsonObject as Dictionary<string, object>, data);
+                }
+                else if (valueType == typeof(System.Collections.ArrayList))
+                {
+                    Flatten(ref items, jsonObject as System.Collections.ArrayList, data);
+                }
+            }
+        }
+
 
         private void Treeify(ItemCollection items, Dictionary<string, object> dictionary)
         {
@@ -188,6 +244,36 @@ namespace TextManipulator
                 }
             }
             return sb.ToString(); ;
+        }
+
+        private void ContextExpandAll_Click(object sender, RoutedEventArgs e)
+        {
+            Debug.Assert(sender as FrameworkElement == sender);
+            FrameworkElement element = (sender as FrameworkElement);
+            Debug.Assert(element.DataContext.GetType() == typeof(TreeViewData));
+            this.Tree.ExpandSubtree(element.DataContext as TreeViewData);
+        }
+
+        private void ContextCollapseAll_Click(object sender, RoutedEventArgs e)
+        {
+            Debug.Assert(sender as FrameworkElement == sender);
+            FrameworkElement element = (sender as FrameworkElement);
+            Debug.Assert(element.DataContext.GetType() == typeof(TreeViewData));
+            this.Tree.CollapseSubtree(element.DataContext as TreeViewData);
+        }
+
+        private void ExpandAllButton_Click(object sender, RoutedEventArgs e)
+        {
+            this.Tree.ExpandAll();
+        }
+        private void CollapseAllButton_Click(object sender, RoutedEventArgs e)
+        {
+            this.Tree.CollapseAll();
+        }
+
+        private void CopyValue_Click(object sender, RoutedEventArgs e)
+        {
+            Clipboard.SetText(((sender as FrameworkElement).DataContext as TreeViewData).Value);
         }
     }
 }
