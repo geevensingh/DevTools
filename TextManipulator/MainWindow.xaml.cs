@@ -30,10 +30,16 @@ namespace TextManipulator
             dispatcherTimer.Tick += new EventHandler((object o, EventArgs ea) =>
             {
                 dispatcherTimer.Stop();
-                this.Raw_TextBox.Text = System.IO.File.ReadAllText(@"S:\Repos\DevTools\TextManipulator\LargeTest.json");
+                this.Raw_TextBox.Text = System.IO.File.ReadAllText(@"S:\Repos\DevTools\TextManipulator\Recursive.json");
             });
             dispatcherTimer.Interval = new TimeSpan(0, 0, 1);
             dispatcherTimer.Start();
+        }
+
+        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            this.Width = Math.Min(this.Width, 1000);
+            this.Height = Math.Min(this.Height, 750);
         }
 
         private void Raw_TextBox_TextChanged(object sender, TextChangedEventArgs e)

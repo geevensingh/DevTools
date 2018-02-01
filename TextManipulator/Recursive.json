@@ -1,0 +1,30 @@
+﻿{
+  "Timestamp": "\/Date(1516474617189-0800)\/",
+  "ProviderID": "c0e696f2-f370-4189-996a-79398f89275d",
+  "ProviderName": "Microsoft-Commerce-Billing-Subs",
+  "ActivityID": "92a453c8-2eab-4afc-be40-24c35cc722c6",
+  "ID": 2903,
+  "EventName": "DunningJournalServiceGeneratedSummary",
+  "Level": 4,
+  "Keywords": 256,
+  "ThreadID": 24456,
+  "ProcessID": 30528,
+  "Parameters": [
+    {
+      "Key": "accountId",
+      "Value": "9fc5dac1-f4f9-42ec-985d-b2c9936be68e"
+    },
+    {
+      "Key": "scheduleId",
+      "Value": "f705e89130ef8b7a2ac62f0d19340319"
+    },
+    {
+      "Key": "version",
+      "Value": 5
+    },
+    {
+      "Key": "summary",
+      "Value": "{\"self_url\":\"/9fc5dac1-f4f9-42ec-985d-b2c9936be68e/capture-schedules/f705e89130ef8b7a2ac62f0d19340319\",\"id\":\"f705e89130ef8b7a2ac62f0d19340319\",\"account_id\":\"9fc5dac1-f4f9-42ec-985d-b2c9936be68e\",\"external_reference\":{\"id\":\"d7fbcea3-dd30-4c60-971c-79bb84835774\",\"url\":\"/9fc5dac1-f4f9-42ec-985d-b2c9936be68e/captures/d7fbcea3-dd30-4c60-971c-79bb84835774\"},\"version\":5,\"created_timestamp\":\"2018-01-20T18:54:09.5464038Z\",\"updated_timestamp\":\"2018-01-20T18:56:14.6187579Z\",\"start_date\":\"2018-01-20T18:54:09.5464038Z\",\"first_capture_attempt_date\":\"2018-01-20T18:54:09.5464038Z\",\"due_date\":\"2018-01-20T18:54:09.5464038Z\",\"capture_contexts\":[{\"authorization_id\":\"08b78c4a-f342-4826-80f6-e4b80c6d653b\",\"line_items\":[{\"billing_record_id\":\"8d8d1e34-0222-48e8-9b24-44e615d4b2e9\",\"line_item_ids\":[{\"id\":\"LineItemId_fe04ea59-e944-4b3c-aa4f-e880e9cb45dd\",\"low\":0,\"high\":0}]}],\"capture_instructions\":{\"payment_instrument_id\":{\"account_id\":\"9fc5dac1-f4f9-42ec-985d-b2c9936be68e\",\"id\":\"aKTwbgAAAAABAACA\"},\"instruction_type\":\"single_payment_instrument\"}}],\"expiration\":3,\"days_overdue\":0,\"days_since_start\":0,\"events\":[{\"capture_contexts\":[{\"authorization_id\":\"08b78c4a-f342-4826-80f6-e4b80c6d653b\",\"line_items\":[{\"billing_record_id\":\"8d8d1e34-0222-48e8-9b24-44e615d4b2e9\",\"line_item_ids\":[{\"id\":\"LineItemId_fe04ea59-e944-4b3c-aa4f-e880e9cb45dd\",\"low\":0,\"high\":0}]}],\"capture_instructions\":{\"payment_instrument_id\":{\"account_id\":\"9fc5dac1-f4f9-42ec-985d-b2c9936be68e\",\"id\":\"aKTwbgAAAAABAACA\"},\"instruction_type\":\"single_payment_instrument\"}}],\"id\":\"b3b794a9-78f1-4f7a-b4a0-e955150a7436\",\"event_type\":\"created\",\"timestamp\":\"2018-01-20T18:54:09.5464038Z\",\"version_added\":1},{\"evaluation_time\":\"2018-01-20T18:54:09.5464038Z\",\"id\":\"bd9cd37c-fabb-4964-9227-61e25d0ac5de\",\"event_type\":\"capture_evaluation_scheduled\",\"timestamp\":\"2018-01-20T18:55:10.0960895Z\",\"version_added\":2},{\"capture_context\":{\"authorization_id\":\"08b78c4a-f342-4826-80f6-e4b80c6d653b\",\"line_items\":[{\"billing_record_id\":\"8d8d1e34-0222-48e8-9b24-44e615d4b2e9\",\"line_item_ids\":[{\"id\":\"LineItemId_fe04ea59-e944-4b3c-aa4f-e880e9cb45dd\",\"low\":0,\"high\":0}]}],\"capture_instructions\":{\"payment_instrument_id\":{\"account_id\":\"9fc5dac1-f4f9-42ec-985d-b2c9936be68e\",\"id\":\"aKTwbgAAAAABAACA\"},\"instruction_type\":\"single_payment_instrument\"}},\"capture_reference\":{\"id\":\"d1384f90-14d8-40a4-ab28-0232ac04f448\",\"url\":\"https://billingservice.cp.microsoft.com/9fc5dac1-f4f9-42ec-985d-b2c9936be68e/captures/d1384f90-14d8-40a4-ab28-0232ac04f448\"},\"result\":\"failed\",\"error\":{\"code\":\"ProcessorDeclined\",\"message\":\"The payment processor has declined the transaction. Please contact your payment provider for help\",\"parameters\":{}},\"id\":\"2246b019-23c5-423d-a402-dff6064ca0c7\",\"event_type\":\"capture_attempted\",\"timestamp\":\"2018-01-20T18:56:12.0562055Z\",\"version_added\":4},{\"days_overdue\":0,\"days_since_start\":0,\"reason\":\"retryable_charge_decline\",\"related_event_ids\":[\"2246b019-23c5-423d-a402-dff6064ca0c7\"],\"id\":\"f4b73baa-6e2f-421a-a6bb-93d931fb8a6f\",\"event_type\":\"capture_evaluated\",\"timestamp\":\"2018-01-20T18:56:13.0406072Z\",\"version_added\":4},{\"evaluation_time\":\"2018-01-21T18:56:10.2593159Z\",\"id\":\"07d84894-0c56-440a-9bba-6bbeec527070\",\"event_type\":\"capture_evaluation_scheduled\",\"timestamp\":\"2018-01-20T18:56:14.6187579Z\",\"version_added\":5}],\"state\":\"active\",\"test_header\":{\"contact\":\"CRSProcessor\",\"retention\":\"2018-01-29T18:54:06.74Z\",\"scenarios\":\"settledecline,risk-token-validation-valid,realcsv,frs-testfeed-sirius-B2C-70,switch-to-Billing20161130\"}}"
+    }
+  ]
+}

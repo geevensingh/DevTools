@@ -20,7 +20,18 @@ namespace TextManipulator
         private bool? _expectChildren = null;
 
         public string KeyName { get => _key; }
-        public string Value { get => _value.ToString(); }
+        public string Value
+        {
+            get
+            {
+                if (this.ValueType == "object")
+                {
+                    System.Web.Script.Serialization.JavaScriptSerializer ser = new System.Web.Script.Serialization.JavaScriptSerializer();
+                    return ser.Serialize(_value);
+                }
+                return _value.ToString();
+            }
+        }
         public string OneLineValue { get => _oneLineValue; }
         public IList<TreeViewData> Children { get => _children; }
         public bool Expanded { get => _expanded; set => _expanded = value; }
@@ -105,6 +116,16 @@ namespace TextManipulator
                                 if (TimeSpan.TryParse(str, out timeSpanValue))
                                 {
                                     _value = timeSpanValue;
+                                }
+                                else
+                                {
+                                    System.Web.Script.Serialization.JavaScriptSerializer ser = new System.Web.Script.Serialization.JavaScriptSerializer();
+                                    try
+                                    {
+                                        Dictionary<string, object> jsonObj = ser.Deserialize<Dictionary<string, object>>(str);
+                                        _value = jsonObj;
+                                    }
+                                    catch { }
                                 }
                             }
                         }
