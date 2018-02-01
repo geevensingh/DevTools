@@ -301,9 +301,11 @@ namespace TextManipulator
 
         private void Tree_CommandBinding_Copy(object sender, ExecutedRoutedEventArgs e)
         {
-            Debug.Assert(this.Tree.IsFocused);
-            Debug.Assert(this.Tree.SelectedItem != null);
-            Clipboard.SetText((this.Tree.SelectedItem as TreeViewData).Value);
+            TreeViewData selectedData = this.Tree.SelectedItem as TreeViewData;
+            if (selectedData != null)
+            {
+                Clipboard.SetText(selectedData.Value);
+            }
         }
 
         private void ReloadButton_Click(object sender, RoutedEventArgs e)
