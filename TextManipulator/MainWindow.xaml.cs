@@ -15,6 +15,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace TextManipulator
 {
@@ -25,6 +26,7 @@ namespace TextManipulator
     {
         private static string _configPath = @"S:\Repos\DevTools\TextManipulator\Config.json";
         private Config _config = new Config(_configPath);
+        private CancellationTokenSource _refreshCancellationTokenSource = new CancellationTokenSource();
         public MainWindow()
         {
             InitializeComponent();
@@ -54,28 +56,54 @@ namespace TextManipulator
         private void Raw_TextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             Debug.Assert(sender.Equals(this.Raw_TextBox));
-            this.Reload();
+            this.ReloadAsync();
         }
 
-        private void Reload()
+        private async void ReloadAsync()
         {
-            System.Web.Script.Serialization.JavaScriptSerializer ser = new System.Web.Script.Serialization.JavaScriptSerializer();
-            try
+            _refreshCancellationTokenSource.Cancel();
+            _refreshCancellationTokenSource = new CancellationTokenSource();
+            string text = this.Raw_TextBox.Text;
+            CancellationToken token = _refreshCancellationTokenSource.Token;
+            List<TreeViewData> nodeList = await Task.Run<List<TreeViewData>>(() =>
             {
-                Dictionary<string, object> jsonObj = ser.Deserialize<Dictionary<string, object>>(this.Raw_TextBox.Text);
-                //StringBuilder sb = new StringBuilder();
-                //Stringify(0, jsonObj, ref sb);
-                //this.Pretty_TextBox.Text = Prettyify(sb.ToString());
-                //this.Pretty_TextBox.Text = Prettyify(ser.Serialize(jsonObj));
-                //Treeify(this.Tree.Items, jsonObj);
-                var nodeList = new List<TreeViewData>();
-                Flatten(ref nodeList, jsonObj, null);
+                System.Web.Script.Serialization.JavaScriptSerializer ser = new System.Web.Script.Serialization.JavaScriptSerializer();
+                if (token.IsCancellationRequested)
+                {
+                    return null;
+                }
+                try
+                {
+                    Dictionary<string, object> jsonObj = ser.Deserialize<Dictionary<string, object>>(text);
+                    if (token.IsCancellationRequested)
+                    {
+                        return null;
+                    }
+
+                    //StringBuilder sb = new StringBuilder();
+                    //Stringify(0, jsonObj, ref sb);
+                    //this.Pretty_TextBox.Text = Prettyify(sb.ToString());
+                    //this.Pretty_TextBox.Text = Prettyify(ser.Serialize(jsonObj));
+                    //Treeify(this.Tree.Items, jsonObj);
+
+                    var backgroundList = new List<TreeViewData>();
+                    Flatten(ref backgroundList, jsonObj, null);
+                    if (token.IsCancellationRequested)
+                    {
+                        return null;
+                    }
+                    return backgroundList;
+                }
+                catch { }
+                return null;
+            }, token);
+            if (nodeList != null)
+            {
                 this.Tree.ItemsSource = new ObservableCollection<TreeViewData>(nodeList);
             }
-            catch { }
         }
 
-        private void Flatten(ref List<TreeViewData> items, Dictionary<string, object> dictionary, TreeViewData parent)
+        private static void Flatten(ref List<TreeViewData> items, Dictionary<string, object> dictionary, TreeViewData parent)
         {
             foreach (string key in dictionary.Keys)
             {
@@ -102,7 +130,7 @@ namespace TextManipulator
             }
         }
 
-        private void Flatten(ref List<TreeViewData> items, System.Collections.ArrayList arrayList, TreeViewData parent)
+        private static void Flatten(ref List<TreeViewData> items, System.Collections.ArrayList arrayList, TreeViewData parent)
         {
             for (int ii = 0; ii < arrayList.Count; ii++)
             {
@@ -311,7 +339,7 @@ namespace TextManipulator
         private void ReloadButton_Click(object sender, RoutedEventArgs e)
         {
             _config = Config.Reload(_configPath);
-            this.Reload();
+            this.ReloadAsync();
         }
     }
 }
