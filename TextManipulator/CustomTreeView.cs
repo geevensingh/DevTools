@@ -66,12 +66,14 @@ namespace TextManipulator
 
         private void CollapseSubtree(ItemContainerGenerator parentContainerGenerator, TreeViewData data)
         {
-            Debug.Assert(parentContainerGenerator.ContainerFromItem(data) != null);
             TreeViewItem tvi = (parentContainerGenerator.ContainerFromItem(data) as TreeViewItem);
-            tvi.IsExpanded = false;
-            foreach (TreeViewData child in data.Children)
+            if (tvi != null)
             {
-                this.CollapseSubtree(tvi.ItemContainerGenerator, child);
+                tvi.IsExpanded = false;
+                foreach (TreeViewData child in data.Children)
+                {
+                    this.CollapseSubtree(tvi.ItemContainerGenerator, child);
+                }
             }
         }
     }
