@@ -44,7 +44,7 @@ namespace TextManipulator
             //StringBuilder sb = new StringBuilder();
             //Stringify(0, jsonObj, ref sb);
             //this.Pretty_TextBox.Text = Prettyify(sb.ToString());
-            this.Pretty_TextBox.Text = Prettyify(ser.Serialize(jsonObj));
+            //this.Pretty_TextBox.Text = Prettyify(ser.Serialize(jsonObj));
             //Treeify(this.Tree.Items, jsonObj);
             var nodeList = new List<TreeViewData>();
             Flatten(ref nodeList, jsonObj, null);

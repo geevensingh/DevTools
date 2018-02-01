@@ -56,6 +56,7 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="CustomTreeView.cs" />
+    <Compile Include="StretchingTreeViewItem.cs" />
     <Compile Include="TreeViewData.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>

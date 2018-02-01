@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows;
+using System.Diagnostics;
 
 namespace TextManipulator
 {
@@ -16,6 +17,7 @@ namespace TextManipulator
         private string _oneLineValue = string.Empty;
         private List<TreeViewData> _children = new List<TreeViewData>();
         private bool _expanded = false;
+        private bool? _expectChildren = null;
 
         public string KeyName { get => _key; }
         public string Value { get => _value.ToString(); }
@@ -66,6 +68,7 @@ namespace TextManipulator
             }
 
             SetValue(value);
+            Debug.Assert(_expectChildren.HasValue);
         }
 
         private void SetValue(object value)
@@ -109,27 +112,20 @@ namespace TextManipulator
                 }
             }
             SetOneLineValue();
+            Debug.Assert(_expectChildren.HasValue);
         }
 
         private void SetOneLineValue()
         {
-            _oneLineValue = "null";
+            _oneLineValue = this.ValueType;
             if (_value != null)
             {
-                Type valueType = _value.GetType();
-                if (valueType == typeof(System.Collections.ArrayList))
-                {
-                    _oneLineValue = "array[" + (_value as System.Collections.ArrayList).Count + "]";
-                }
-                else if (valueType == typeof(Dictionary<string, object>))
-                {
-                    _oneLineValue = "object";
-                }
-                else
+                if (!_expectChildren.Value)
                 {
                     _oneLineValue = _value.ToString();
                 }
 
+                Type valueType = _value.GetType();
                 if (valueType == typeof(DateTime))
                 {
                     _oneLineValue += " (" + Utilities.TimeSpanStringify.PrettyApprox(DateTime.Now - (DateTime)_value) + ")";
@@ -161,7 +157,26 @@ namespace TextManipulator
         {
             get
             {
-                return _value.GetType().ToString();
+                if (_value == null)
+                {
+                    _expectChildren = false;
+                    return "null";
+                }
+
+                _expectChildren = true;
+                Type valueType = _value.GetType();
+                if (valueType == typeof(System.Collections.ArrayList))
+                {
+                    return "array[" + (_value as System.Collections.ArrayList).Count + "]";
+                }
+
+                if (valueType == typeof(Dictionary<string, object>))
+                {
+                    return "object";
+                }
+
+                _expectChildren = false;
+                return valueType.ToString();
             }
         }
 
@@ -175,6 +190,7 @@ namespace TextManipulator
 
         public void AddChild(TreeViewData child)
         {
+            Debug.Assert(_expectChildren.Value);
             _children.Add(child);
         }
     }

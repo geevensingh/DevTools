@@ -58,7 +58,8 @@
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="auto" />
+                <ColumnDefinition Width="auto" />
                 <ColumnDefinition Width="5*" />
             </Grid.ColumnDefinitions>
             <TextBox
@@ -71,9 +72,15 @@
                 HorizontalScrollBarVisibility="Auto"
                 TextChanged="Raw_TextBox_TextChanged"
                 VerticalScrollBarVisibility="Auto" />
+            <GridSplitter
+                Grid.Column="1"
+                Width="5"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Stretch"
+                Background="Blue" />
             <TextBox
                 x:Name="Pretty_TextBox"
-                Grid.Column="1"
+                Grid.Column="2"
                 AcceptsReturn="True"
                 AcceptsTab="False"
                 AutoWordSelection="True"
@@ -84,7 +91,7 @@
                 Visibility="Collapsed" />
             <local:CustomTreeView
                 x:Name="Tree"
-                Grid.Column="2"
+                Grid.Column="3"
                 HorizontalAlignment="Stretch"
                 HorizontalContentAlignment="Stretch"
                 ItemTemplate="{StaticResource myTaskTemplate}">

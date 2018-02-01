@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Windows;
 using System.Windows.Controls;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,6 +11,15 @@ namespace TextManipulator
 {
     public class CustomTreeView : TreeView
     {
+        protected override DependencyObject GetContainerForItemOverride()
+        {
+            return new StretchingTreeViewItem();
+        }
+        protected override bool IsItemItsOwnContainerOverride(object item)
+        {
+            return item is StretchingTreeViewItem;
+        }
+
         private ItemContainerGenerator GetParentItemContainerGenerator(TreeViewData data)
         {
             var parentList = data.ParentList;
