@@ -60,15 +60,19 @@ namespace TextManipulator
         private void Reload()
         {
             System.Web.Script.Serialization.JavaScriptSerializer ser = new System.Web.Script.Serialization.JavaScriptSerializer();
-            Dictionary<string, object> jsonObj = ser.Deserialize<Dictionary<string, object>>(this.Raw_TextBox.Text);
-            //StringBuilder sb = new StringBuilder();
-            //Stringify(0, jsonObj, ref sb);
-            //this.Pretty_TextBox.Text = Prettyify(sb.ToString());
-            //this.Pretty_TextBox.Text = Prettyify(ser.Serialize(jsonObj));
-            //Treeify(this.Tree.Items, jsonObj);
-            var nodeList = new List<TreeViewData>();
-            Flatten(ref nodeList, jsonObj, null);
-            this.Tree.ItemsSource = new ObservableCollection<TreeViewData>(nodeList);
+            try
+            {
+                Dictionary<string, object> jsonObj = ser.Deserialize<Dictionary<string, object>>(this.Raw_TextBox.Text);
+                //StringBuilder sb = new StringBuilder();
+                //Stringify(0, jsonObj, ref sb);
+                //this.Pretty_TextBox.Text = Prettyify(sb.ToString());
+                //this.Pretty_TextBox.Text = Prettyify(ser.Serialize(jsonObj));
+                //Treeify(this.Tree.Items, jsonObj);
+                var nodeList = new List<TreeViewData>();
+                Flatten(ref nodeList, jsonObj, null);
+                this.Tree.ItemsSource = new ObservableCollection<TreeViewData>(nodeList);
+            }
+            catch { }
         }
 
         private void Flatten(ref List<TreeViewData> items, Dictionary<string, object> dictionary, TreeViewData parent)
