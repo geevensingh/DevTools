@@ -1,0 +1,33 @@
+﻿{
+  "treeViewForeground": "darkgray",
+  "treeViewHighlightBrushKey": "Yellow",
+  "treeViewHighlightTextBrushKey": "Black",
+  "treeViewInactiveSelectionHighlightBrushKey": "LightYellow",
+  "treeViewInactiveSelectionHighlightTextBrushKey": "Black",
+  "treeViewFontSize":  12,
+  "treeViewHighlights": [
+    {
+      "keyName": "account_id",
+      "color": "green"
+    },
+    {
+      "keyName": "events",
+      "color": "green"
+    },
+    {
+      "keyName": "event_type",
+      "color": "blue",
+      "fontSize":  16
+    },
+    {
+      "keyName": "state",
+      "color": "red",
+      "fontSize": 16
+    },
+    {
+      "keyName": "result",
+      "color": "darkred",
+      "fontSize": 16
+    }
+  ]
+}

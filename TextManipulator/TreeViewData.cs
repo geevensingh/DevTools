@@ -162,15 +162,7 @@ namespace TextManipulator
         {
             get
             {
-                switch (_key)
-                {
-                    case "events":
-                        return Brushes.Green;
-                    case "event_type":
-                        return Brushes.Blue;
-                    default:
-                        return Brushes.Black;
-                }
+                return Config.This.GetHightlightColor(_key);
             }
         }
 
@@ -198,6 +190,14 @@ namespace TextManipulator
 
                 _expectChildren = false;
                 return valueType.ToString();
+            }
+        }
+
+        public double FontSize
+        {
+            get
+            {
+                return Config.This.GetHighlightFontSize(_key);
             }
         }
 

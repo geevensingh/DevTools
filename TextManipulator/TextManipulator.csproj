@@ -55,6 +55,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Config.cs" />
     <Compile Include="CustomTreeView.cs" />
     <Compile Include="StretchingTreeViewItem.cs" />
     <Compile Include="TreeViewData.cs" />
@@ -89,6 +90,7 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <None Include="Config.json" />
     <None Include="Recursive.json" />
     <None Include="Test.json" />
     <None Include="Properties\Settings.settings">

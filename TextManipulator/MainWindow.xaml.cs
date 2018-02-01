@@ -23,6 +23,7 @@ namespace TextManipulator
     /// </summary>
     public partial class MainWindow : Window
     {
+        private Config _config = new Config(@"S:\Repos\DevTools\TextManipulator\Config.json");
         public MainWindow()
         {
             InitializeComponent();
@@ -30,16 +31,23 @@ namespace TextManipulator
             dispatcherTimer.Tick += new EventHandler((object o, EventArgs ea) =>
             {
                 dispatcherTimer.Stop();
-                this.Raw_TextBox.Text = System.IO.File.ReadAllText(@"S:\Repos\DevTools\TextManipulator\Recursive.json");
+                this.Raw_TextBox.Text = System.IO.File.ReadAllText(@"S:\Repos\DevTools\TextManipulator\Test.json");
             });
             dispatcherTimer.Interval = new TimeSpan(0, 0, 1);
             dispatcherTimer.Start();
+
         }
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             this.Width = Math.Min(this.Width, 1000);
             this.Height = Math.Min(this.Height, 750);
+
+            this.Tree.Foreground = _config.GetBrush(ConfigValue.treeViewForeground);
+            this.Tree.Resources[SystemColors.HighlightBrushKey] = _config.GetBrush(ConfigValue.treeViewHighlightBrushKey);
+            this.Tree.Resources[SystemColors.HighlightTextBrushKey] = _config.GetBrush(ConfigValue.treeViewHighlightTextBrushKey);
+            this.Tree.Resources[SystemColors.InactiveSelectionHighlightBrushKey] = _config.GetBrush(ConfigValue.treeViewInactiveSelectionHighlightBrushKey);
+            this.Tree.Resources[SystemColors.InactiveSelectionHighlightTextBrushKey] = _config.GetBrush(ConfigValue.treeViewInactiveSelectionHighlightTextBrushKey);
         }
 
         private void Raw_TextBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -280,6 +288,13 @@ namespace TextManipulator
         private void CopyValue_Click(object sender, RoutedEventArgs e)
         {
             Clipboard.SetText(((sender as FrameworkElement).DataContext as TreeViewData).Value);
+        }
+
+        private void Tree_CommandBinding_Copy(object sender, ExecutedRoutedEventArgs e)
+        {
+            Debug.Assert(this.Tree.IsFocused);
+            Debug.Assert(this.Tree.SelectedItem != null);
+            Clipboard.SetText((this.Tree.SelectedItem as TreeViewData).Value);
         }
     }
 }

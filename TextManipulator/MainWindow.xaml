@@ -28,6 +28,7 @@
                 <TextBlock
                     x:Name="KeyBlock"
                     Grid.Column="0"
+                    FontSize="{Binding Path=FontSize}"
                     FontWeight="Bold"
                     Foreground="{Binding Path=TextColor}"
                     Padding="0,0,5,0"
@@ -35,11 +36,13 @@
                 <TextBlock
                     x:Name="OneLineValueBlock"
                     Grid.Column="1"
+                    FontSize="{Binding Path=FontSize}"
                     Foreground="{Binding Path=TextColor}"
                     Text="{Binding Path=OneLineValue}" />
                 <TextBlock
                     x:Name="ValueTypeBlock"
                     Grid.Column="3"
+                    FontSize="{Binding Path=FontSize}"
                     Foreground="{Binding Path=TextColor}"
                     Text="{Binding Path=ValueType}" />
             </Grid>
@@ -96,12 +99,12 @@
                 HorizontalAlignment="Stretch"
                 HorizontalContentAlignment="Stretch"
                 ItemTemplate="{StaticResource myTaskTemplate}">
-                <TreeView.Resources>
-                    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="Yellow" />
-                    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="Black" />
-                    <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="LightYellow" />
-                    <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="Black" />
-                </TreeView.Resources>
+                <local:CustomTreeView.CommandBindings>
+                    <CommandBinding Command="Copy" Executed="Tree_CommandBinding_Copy" />
+                </local:CustomTreeView.CommandBindings>
+                <local:CustomTreeView.InputBindings>
+                    <KeyBinding Key="C" Command="Copy" Modifiers="Control" />
+                </local:CustomTreeView.InputBindings>
             </local:CustomTreeView>
         </Grid>
     </Grid>
