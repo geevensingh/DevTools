@@ -62,6 +62,12 @@ namespace TextManipulator
             }
         }
 
+        public static Config Reload(string filePath)
+        {
+            _this = null;
+            return new Config(filePath);
+        }
+
         public Brush GetBrush(ConfigValue configValue)
         {
             if (!_brushes.ContainsKey(configValue))

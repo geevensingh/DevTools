@@ -23,7 +23,8 @@ namespace TextManipulator
     /// </summary>
     public partial class MainWindow : Window
     {
-        private Config _config = new Config(@"S:\Repos\DevTools\TextManipulator\Config.json");
+        private static string _configPath = @"S:\Repos\DevTools\TextManipulator\Config.json";
+        private Config _config = new Config(_configPath);
         public MainWindow()
         {
             InitializeComponent();
@@ -53,6 +54,11 @@ namespace TextManipulator
         private void Raw_TextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             Debug.Assert(sender.Equals(this.Raw_TextBox));
+            this.Reload();
+        }
+
+        private void Reload()
+        {
             System.Web.Script.Serialization.JavaScriptSerializer ser = new System.Web.Script.Serialization.JavaScriptSerializer();
             Dictionary<string, object> jsonObj = ser.Deserialize<Dictionary<string, object>>(this.Raw_TextBox.Text);
             //StringBuilder sb = new StringBuilder();
@@ -63,7 +69,6 @@ namespace TextManipulator
             var nodeList = new List<TreeViewData>();
             Flatten(ref nodeList, jsonObj, null);
             this.Tree.ItemsSource = new ObservableCollection<TreeViewData>(nodeList);
-
         }
 
         private void Flatten(ref List<TreeViewData> items, Dictionary<string, object> dictionary, TreeViewData parent)
@@ -120,7 +125,7 @@ namespace TextManipulator
 
         private void Treeify(ItemCollection items, Dictionary<string, object> dictionary)
         {
-            foreach(string key in dictionary.Keys)
+            foreach (string key in dictionary.Keys)
             {
                 TreeViewItem treeViewItem = new TreeViewItem();
                 treeViewItem.Header = key;
@@ -144,7 +149,7 @@ namespace TextManipulator
 
         private void Treeify(ItemCollection items, System.Collections.ArrayList arrayList)
         {
-            for(int ii = 0; ii < arrayList.Count; ii++)
+            for (int ii = 0; ii < arrayList.Count; ii++)
             {
                 TreeViewItem treeViewItem = new TreeViewItem();
                 treeViewItem.Header = (ii + 1).ToString() + " / " + arrayList.Count.ToString();
@@ -232,7 +237,7 @@ namespace TextManipulator
             string[] lines = json.Split(new string[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
             int depth = 0;
             StringBuilder sb = new StringBuilder();
-            for(int ii = 0; ii < lines.Length; ii++)
+            for (int ii = 0; ii < lines.Length; ii++)
             {
                 string line = lines[ii];
                 if (line.Contains("}"))
@@ -295,6 +300,12 @@ namespace TextManipulator
             Debug.Assert(this.Tree.IsFocused);
             Debug.Assert(this.Tree.SelectedItem != null);
             Clipboard.SetText((this.Tree.SelectedItem as TreeViewData).Value);
+        }
+
+        private void ReloadButton_Click(object sender, RoutedEventArgs e)
+        {
+            _config = Config.Reload(_configPath);
+            this.Reload();
         }
     }
 }

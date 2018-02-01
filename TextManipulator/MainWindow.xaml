@@ -58,6 +58,9 @@
                 <Button x:Name="ExpandAllButton" Click="ExpandAllButton_Click">Expand all</Button>
                 <Button x:Name="CollapseAllButton" Click="CollapseAllButton_Click">Collapse all</Button>
             </ToolBar>
+            <ToolBar Band="1" BandIndex="2">
+                <Button x:Name="ReloadButton" Click="ReloadButton_Click">Reload</Button>
+            </ToolBar>
         </ToolBarTray>
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
