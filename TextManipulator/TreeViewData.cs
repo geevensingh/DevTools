@@ -11,149 +11,79 @@ namespace TextManipulator
 {
     public class TreeViewData
     {
-        private TreeViewData _parent;
-        private string _key = string.Empty;
-        private object _value = "Value";    // string.Empty;
+        private JsonObject _jsonObject;
+        //private TreeViewData _parent;
         private string _oneLineValue = string.Empty;
         private List<TreeViewData> _children = new List<TreeViewData>();
-        private bool _expanded = false;
-        private bool? _expectChildren = null;
 
-        public string KeyName { get => _key; }
+        public string KeyName { get => _jsonObject.Key; }
         public string Value
         {
             get
             {
-                if (this.ValueType == "object")
+                if (_jsonObject.Value.GetType() == typeof(Guid))
                 {
-                    System.Web.Script.Serialization.JavaScriptSerializer ser = new System.Web.Script.Serialization.JavaScriptSerializer();
-                    return ser.Serialize(_value);
+                    return _jsonObject.RawValue.ToString();
                 }
-                return _value.ToString();
+                return _jsonObject.ValueString;
             }
         }
         public string OneLineValue { get => _oneLineValue; }
         public IList<TreeViewData> Children { get => _children; }
-        public bool Expanded { get => _expanded; set => _expanded = value; }
-        public string ParentPath
-        {
-            get
-            {
-                string parentPath = string.Empty;
-                if (this._parent != null)
-                {
-                    parentPath = this._parent.ParentPath;
-                    if (!string.IsNullOrEmpty(parentPath))
-                    {
-                        parentPath += " : ";
-                    }
-                    parentPath += this._parent.KeyName;
-                }
+        public TreeViewData Parent { get => (_jsonObject.Parent == null) ? null : _jsonObject.Parent.ViewObject; }
 
-                return parentPath;
-            }
-        }
         public IList<TreeViewData> ParentList
         {
             get
             {
                 List<TreeViewData> parentList = new List<TreeViewData>();
-                if (this._parent != null)
+                if (this.Parent != null)
                 {
-                    parentList.AddRange(this._parent.ParentList);
-                    parentList.Add(this._parent);
+                    parentList.AddRange(this.Parent.ParentList);
+                    parentList.Add(this.Parent);
                 }
                 return parentList;
             }
         }
 
-        public TreeViewData Parent { get => _parent; }
+        //public TreeViewData Parent { get => _parent; }
 
-        public TreeViewData(string key, object value, TreeViewData parent)
+        public TreeViewData(JsonObject jsonObject, IList<TreeViewData> children)
         {
-            _key = key;
-            _parent = parent;
-            if (_parent != null)
+            _jsonObject = jsonObject;
+            _jsonObject.ViewObject = this;
+            foreach(JsonObject childData in _jsonObject.Children)
             {
-                _parent.AddChild(this);
+                _children.Add(childData.ViewObject);
             }
 
-            SetValue(value);
-            Debug.Assert(_expectChildren.HasValue);
+            SetValue();
         }
 
-        private void SetValue(object value)
+        private void SetValue()
         {
-            _value = value;
-            if (value != null)
-            {
-                Type valueType = value.GetType();
-                if (valueType == typeof(string))
-                {
-                    string str = value as string;
-                    Guid guidValue;
-                    if (Guid.TryParse(str, out guidValue))
-                    {
-                        _value = guidValue;
-                    }
-                    else
-                    {
-                        double doubleValue;
-                        if (double.TryParse(str, out doubleValue))
-                        {
-                            _value = doubleValue;
-                        }
-                        else
-                        {
-                            DateTime dateTimeValue;
-                            if (DateTime.TryParse(str, out dateTimeValue))
-                            {
-                                _value = dateTimeValue;
-                            }
-                            else
-                            {
-                                TimeSpan timeSpanValue;
-                                if (TimeSpan.TryParse(str, out timeSpanValue))
-                                {
-                                    _value = timeSpanValue;
-                                }
-                                else
-                                {
-                                    System.Web.Script.Serialization.JavaScriptSerializer ser = new System.Web.Script.Serialization.JavaScriptSerializer();
-                                    try
-                                    {
-                                        Dictionary<string, object> jsonObj = ser.Deserialize<Dictionary<string, object>>(str);
-                                        _value = jsonObj;
-                                    }
-                                    catch { }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
             SetOneLineValue();
-            Debug.Assert(_expectChildren.HasValue);
         }
 
         private void SetOneLineValue()
         {
             _oneLineValue = this.ValueType;
-            if (_value != null)
+            object value = _jsonObject.Value;
+            if (value != null)
             {
-                if (!_expectChildren.Value)
+                if (_jsonObject.Children.Count == 0)
                 {
-                    _oneLineValue = _value.ToString();
+                    _oneLineValue = _jsonObject.ValueString;
                 }
 
-                Type valueType = _value.GetType();
+                Type valueType = value.GetType();
                 if (valueType == typeof(DateTime))
                 {
-                    _oneLineValue += " (" + Utilities.TimeSpanStringify.PrettyApprox(DateTime.Now - (DateTime)_value) + ")";
+                    _oneLineValue += " (" + Utilities.TimeSpanStringify.PrettyApprox(DateTime.Now - (DateTime)value) + ")";
                 }
                 else if (valueType == typeof(TimeSpan))
                 {
-                    _oneLineValue += " (" + Utilities.TimeSpanStringify.PrettyExact((TimeSpan)_value) + ")";
+                    _oneLineValue += " (" + Utilities.TimeSpanStringify.PrettyExact((TimeSpan)value) + ")";
                 }
             }
         }
@@ -162,7 +92,7 @@ namespace TextManipulator
         {
             get
             {
-                return Config.This.GetHightlightColor(_key);
+                return Config.This.GetHightlightColor(_jsonObject.Key);
             }
         }
 
@@ -170,26 +100,21 @@ namespace TextManipulator
         {
             get
             {
-                if (_value == null)
+                object value = _jsonObject.Value;
+                if (value == null)
                 {
-                    _expectChildren = false;
                     return "null";
                 }
 
-                _expectChildren = true;
-                Type valueType = _value.GetType();
-                if (valueType == typeof(System.Collections.ArrayList))
+                switch (_jsonObject.Type)
                 {
-                    return "array[" + (_value as System.Collections.ArrayList).Count + "]";
+                    case JsonObject.DataType.Array:
+                        return "array[" + (value as System.Collections.ArrayList).Count + "]";
+                    case JsonObject.DataType.Json:
+                        return "json-object";
+                    default:
+                        return Utilities.StringHelper.TrimStart(value.GetType().ToString(), "System.");
                 }
-
-                if (valueType == typeof(Dictionary<string, object>))
-                {
-                    return "object";
-                }
-
-                _expectChildren = false;
-                return valueType.ToString();
             }
         }
 
@@ -197,7 +122,7 @@ namespace TextManipulator
         {
             get
             {
-                return Config.This.GetHighlightFontSize(_key);
+                return Config.This.GetHighlightFontSize(_jsonObject.Key);
             }
         }
 
@@ -205,14 +130,8 @@ namespace TextManipulator
         {
             get
             {
-                return (_value.GetType() == typeof(Guid)) ? Visibility.Visible : Visibility.Collapsed;
+                return (_jsonObject.Type == JsonObject.DataType.Guid) ? Visibility.Visible : Visibility.Collapsed;
             }
-        }
-
-        public void AddChild(TreeViewData child)
-        {
-            Debug.Assert(_expectChildren.Value);
-            _children.Add(child);
         }
     }
 }
