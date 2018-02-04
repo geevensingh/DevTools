@@ -9,7 +9,7 @@ using System.Diagnostics;
 
 namespace TextManipulator
 {
-    public class CustomTreeView : TreeView
+    internal class CustomTreeView : TreeView
     {
         protected override DependencyObject GetContainerForItemOverride()
         {

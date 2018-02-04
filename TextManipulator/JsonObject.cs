@@ -7,7 +7,7 @@ using System.Diagnostics;
 
 namespace TextManipulator
 {
-    public class JsonObject
+    internal class JsonObject
     {
         public enum DataType
         {
@@ -30,6 +30,7 @@ namespace TextManipulator
         public object Value { get => _typedValue; }
         internal JsonObject Parent { get => _parent; }
         internal IList<JsonObject> Children { get => _children; }
+        internal bool HasChildren { get => _children.Count > 0; }
         public DataType Type { get => _dataType; }
 
         public JsonObject(string key, object value, JsonObject parent)

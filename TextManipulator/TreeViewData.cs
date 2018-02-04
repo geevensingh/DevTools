@@ -9,7 +9,7 @@ using System.Diagnostics;
 
 namespace TextManipulator
 {
-    public class TreeViewData
+    internal class TreeViewData
     {
         private JsonObject _jsonObject;
         //private TreeViewData _parent;
@@ -48,7 +48,7 @@ namespace TextManipulator
 
         //public TreeViewData Parent { get => _parent; }
 
-        public TreeViewData(JsonObject jsonObject, IList<TreeViewData> children)
+        internal TreeViewData(JsonObject jsonObject, IList<TreeViewData> children)
         {
             _jsonObject = jsonObject;
             _jsonObject.ViewObject = this;
@@ -71,7 +71,7 @@ namespace TextManipulator
             object value = _jsonObject.Value;
             if (value != null)
             {
-                if (_jsonObject.Children.Count == 0)
+                if (!_jsonObject.HasChildren)
                 {
                     _oneLineValue = _jsonObject.ValueString;
                 }
