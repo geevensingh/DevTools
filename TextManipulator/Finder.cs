@@ -35,34 +35,37 @@ namespace TextManipulator
 
         private void OnFindOptionsChanged()
         {
-            Highlight(_findWindow.textBox.Text, _rootObject);
+            Highlight(_rootObject);
         }
 
         private void OnFindTextChanged(string oldText, string newText)
         {
-            if (!string.IsNullOrEmpty(newText))
-            {
-                Highlight(newText, _rootObject);
-            }
+            Highlight(_rootObject);
         }
 
-        private void Highlight(string substring, JsonObject obj)
+        private void Highlight(JsonObject obj)
         {
+            string substring = _findWindow.Text;
             bool found = false;
-            if (this._findWindow.ShouldSearchKeys && this.CompareStrings(obj.Key, substring))
+            if (!string.IsNullOrEmpty(substring))
             {
-                found = true;
-            }
-            else if (!obj.HasChildren && this._findWindow.ShouldSearchValues && this.CompareStrings(obj.ValueString, substring))
-            {
-                found = true;
+                bool shouldSearchValue = obj.HasChildren ? this._findWindow.ShouldSearchParentValues : this._findWindow.ShouldSearchValues;
+                if (this._findWindow.ShouldSearchKeys && this.CompareStrings(obj.Key, substring))
+                {
+                    found = true;
+                }
+                else if (obj.HasChildren ? this._findWindow.ShouldSearchParentValues : this._findWindow.ShouldSearchValues)
+                {
+                    found = this.CompareStrings(obj.ValueString, substring);
+                }
             }
             obj.IsFindMatch = found;
+
             if (obj.HasChildren)
             {
                 foreach (JsonObject child in obj.Children)
                 {
-                    this.Highlight(substring, child);
+                    this.Highlight(child);
                 }
             }
         }

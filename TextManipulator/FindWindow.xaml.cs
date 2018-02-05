@@ -25,6 +25,7 @@ namespace TextManipulator
         public string Text { get => _text; }
         public bool ShouldSearchKeys { get => this.searchKeysCheckbox.IsChecked.Value; }
         public bool ShouldSearchValues { get => this.searchValuesCheckbox.IsChecked.Value; }
+        public bool ShouldSearchParentValues { get => this.searchParentValuesCheckbox.IsChecked.Value; }
         public bool ShouldIgnoreCase { get => this.ignoreCaseCheckbox.IsChecked.Value; }
 
         public FindWindow(Window owner)
@@ -35,6 +36,10 @@ namespace TextManipulator
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
+            this.ignoreCaseCheckbox.IsChecked = Properties.Settings.Default.FindIgnoreCase;
+            this.searchKeysCheckbox.IsChecked = Properties.Settings.Default.FindSearchKeys;
+            this.searchValuesCheckbox.IsChecked = Properties.Settings.Default.FindSearchValues;
+            this.searchParentValuesCheckbox.IsChecked = Properties.Settings.Default.FindSearchParentValues;
             this.textBox.Focus();
         }
 

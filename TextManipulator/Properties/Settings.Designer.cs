@@ -34,5 +34,53 @@ namespace TextManipulator.Properties {
                 this["MainWindowPlacement"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool FindIgnoreCase {
+            get {
+                return ((bool)(this["FindIgnoreCase"]));
+            }
+            set {
+                this["FindIgnoreCase"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool FindSearchKeys {
+            get {
+                return ((bool)(this["FindSearchKeys"]));
+            }
+            set {
+                this["FindSearchKeys"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool FindSearchValues {
+            get {
+                return ((bool)(this["FindSearchValues"]));
+            }
+            set {
+                this["FindSearchValues"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool FindSearchParentValues {
+            get {
+                return ((bool)(this["FindSearchParentValues"]));
+            }
+            set {
+                this["FindSearchParentValues"] = value;
+            }
+        }
     }
 }
