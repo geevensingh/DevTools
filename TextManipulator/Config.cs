@@ -45,7 +45,7 @@ namespace TextManipulator
             }
 
             ArrayList highlightsList = (ArrayList)_rawValues["treeViewHighlights"];
-            foreach(Dictionary<string, object> highlightObj in highlightsList)
+            foreach (Dictionary<string, object> highlightObj in highlightsList)
             {
                 string key = highlightObj["keyName"] as string;
                 Debug.Assert(!string.IsNullOrEmpty(key));

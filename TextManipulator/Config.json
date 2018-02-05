@@ -19,7 +19,7 @@
     {
       "keyName": "event_type",
       "color": "blue",
-      "fontSize":  16
+      "fontSize": 16
     },
     {
       "keyName": "state",

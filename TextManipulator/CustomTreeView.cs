@@ -43,7 +43,7 @@ namespace TextManipulator
 
         public void ExpandAll()
         {
-            foreach(TreeViewData data in this.Items)
+            foreach (TreeViewData data in this.Items)
             {
                 Debug.Assert(data.Parent == null);
                 this.ExpandSubtree(this.ItemContainerGenerator, data);
