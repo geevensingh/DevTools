@@ -7,6 +7,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Web.Script.Serialization;
+using System.Diagnostics;
 
 namespace TextManipulator
 {
@@ -26,32 +28,38 @@ namespace TextManipulator
                 {
                     return null;
                 }
-                try
+                Dictionary<string, object> jsonObj = TryDeserialize(jsonString);
+                if (token.IsCancellationRequested || jsonObj == null)
                 {
-                    Dictionary<string, object> jsonObj = ser.Deserialize<Dictionary<string, object>>(jsonString);
-                    if (token.IsCancellationRequested)
-                    {
-                        return null;
-                    }
-
-                    //StringBuilder sb = new StringBuilder();
-                    //Stringify(0, jsonObj, ref sb);
-                    //this.Pretty_TextBox.Text = Prettyify(sb.ToString());
-                    //this.Pretty_TextBox.Text = Prettyify(ser.Serialize(jsonObj));
-                    //Treeify(this.Tree.Items, jsonObj);
-
-                    var jsonObjects = new List<JsonObject>();
-                    JsonObjectFactory.Flatten(ref jsonObjects, jsonObj, null);
-                    if (token.IsCancellationRequested)
-                    {
-                        return null;
-                    }
-                    return jsonObjects;
+                    return null;
                 }
-                catch { }
-                return null;
+
+                //StringBuilder sb = new StringBuilder();
+                //Stringify(0, jsonObj, ref sb);
+                //this.Pretty_TextBox.Text = Prettyify(sb.ToString());
+                //this.Pretty_TextBox.Text = Prettyify(ser.Serialize(jsonObj));
+                //Treeify(this.Tree.Items, jsonObj);
+
+                var jsonObjects = new List<JsonObject>();
+                Flatten(ref jsonObjects, jsonObj, null);
+                return jsonObjects;
             }, token);
         }
+        private Dictionary<string, object> TryDeserialize(string jsonString)
+        {
+            try
+            {
+                return new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(jsonString);
+            }
+            catch (ArgumentException) { }
+            try
+            {
+                return new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(CSEscape.Unescape(jsonString));
+            }
+            catch (ArgumentException) { }
+            return null;
+        }
+
         public static void Flatten(ref List<JsonObject> items, Dictionary<string, object> dictionary, JsonObject parent)
         {
             foreach (string key in dictionary.Keys)

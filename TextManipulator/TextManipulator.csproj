@@ -58,6 +58,7 @@
     <Compile Include="CommandFactory.cs" />
     <Compile Include="Config.cs" />
     <Compile Include="CustomTreeView.cs" />
+    <Compile Include="Escape.cs" />
     <Compile Include="Finder.cs" />
     <Compile Include="FindWindow.xaml.cs">
       <DependentUpon>FindWindow.xaml</DependentUpon>
