@@ -12,9 +12,15 @@ using System.Diagnostics;
 
 namespace TextManipulator
 {
-    class JsonObjectFactory
+    class JsonObjectFactory : IDisposable
     {
         private CancellationTokenSource _refreshCancellationTokenSource = new CancellationTokenSource();
+
+        public void Dispose()
+        {
+            _refreshCancellationTokenSource.Cancel();
+            _refreshCancellationTokenSource.Dispose();
+        }
 
         public async Task<IList<JsonObject>> Parse(string jsonString)
         {
@@ -45,7 +51,7 @@ namespace TextManipulator
                 return jsonObjects;
             }, token);
         }
-        private Dictionary<string, object> TryDeserialize(string jsonString)
+        public static Dictionary<string, object> TryDeserialize(string jsonString)
         {
             try
             {
@@ -253,7 +259,5 @@ namespace TextManipulator
             }
             return sb.ToString(); ;
         }
-
-
     }
 }

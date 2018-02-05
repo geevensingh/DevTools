@@ -158,16 +158,15 @@ namespace TextManipulator
                 Uri uri = new Uri(str);
                 return uri;
             }
-            catch { }
+            catch (UriFormatException) { }
 
-            System.Web.Script.Serialization.JavaScriptSerializer ser = new System.Web.Script.Serialization.JavaScriptSerializer();
-            try
+
+            Dictionary<string, object> jsonObj = JsonObjectFactory.TryDeserialize(str);
+            if (jsonObj != null)
             {
-                Dictionary<string, object> jsonObj = ser.Deserialize<Dictionary<string, object>>(str);
                 dataType = DataType.Json;
                 return jsonObj;
             }
-            catch { }
 
             return str;
         }

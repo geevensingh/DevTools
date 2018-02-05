@@ -61,11 +61,14 @@ namespace TextManipulator
         private static Encoding encoding = new UTF8Encoding();
         private static XmlSerializer serializer = new XmlSerializer(typeof(WINDOWPLACEMENT));
 
-        [DllImport("user32.dll")]
-        private static extern bool SetWindowPlacement(IntPtr hWnd, [In] ref WINDOWPLACEMENT lpwndpl);
+        private static class NativeMethods
+        {
+            [DllImport("user32.dll")]
+            public static extern bool SetWindowPlacement(IntPtr hWnd, [In] ref WINDOWPLACEMENT lpwndpl);
 
-        [DllImport("user32.dll")]
-        private static extern bool GetWindowPlacement(IntPtr hWnd, out WINDOWPLACEMENT lpwndpl);
+            [DllImport("user32.dll")]
+            public  static extern bool GetWindowPlacement(IntPtr hWnd, out WINDOWPLACEMENT lpwndpl);
+        }
 
         private const int SW_SHOWNORMAL = 1;
         private const int SW_SHOWMINIMIZED = 2;
@@ -90,7 +93,7 @@ namespace TextManipulator
                 placement.length = Marshal.SizeOf(typeof(WINDOWPLACEMENT));
                 placement.flags = 0;
                 placement.showCmd = (placement.showCmd == SW_SHOWMINIMIZED ? SW_SHOWNORMAL : placement.showCmd);
-                SetWindowPlacement(new WindowInteropHelper(window).Handle, ref placement);
+                NativeMethods.SetWindowPlacement(new WindowInteropHelper(window).Handle, ref placement);
             }
             catch (InvalidOperationException)
             {
@@ -101,15 +104,22 @@ namespace TextManipulator
         public static string GetPlacement(Window window)
         {
             WINDOWPLACEMENT placement = new WINDOWPLACEMENT();
-            GetWindowPlacement(new WindowInteropHelper(window).Handle, out placement);
+            NativeMethods.GetWindowPlacement(new WindowInteropHelper(window).Handle, out placement);
 
-            using (MemoryStream memoryStream = new MemoryStream())
+            MemoryStream memoryStream = null;
+            try
             {
-                using (XmlTextWriter xmlTextWriter = new XmlTextWriter(memoryStream, Encoding.UTF8))
+                memoryStream = new MemoryStream();
+                XmlTextWriter xmlTextWriter = new XmlTextWriter(memoryStream, Encoding.UTF8);
+                serializer.Serialize(xmlTextWriter, placement);
+                byte[] xmlBytes = memoryStream.ToArray();
+                return encoding.GetString(xmlBytes);
+            }
+            finally
+            {
+                if (memoryStream != null)
                 {
-                    serializer.Serialize(xmlTextWriter, placement);
-                    byte[] xmlBytes = memoryStream.ToArray();
-                    return encoding.GetString(xmlBytes);
+                    memoryStream.Dispose();
                 }
             }
         }
