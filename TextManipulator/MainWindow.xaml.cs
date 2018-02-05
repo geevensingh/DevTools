@@ -101,6 +101,10 @@ namespace TextManipulator
         {
             Clipboard.SetText(((sender as FrameworkElement).DataContext as TreeViewData).Value);
         }
+        private void CopyEscapedValue_Click(object sender, RoutedEventArgs e)
+        {
+            Clipboard.SetText(CSEscape.Escape(((sender as FrameworkElement).DataContext as TreeViewData).Value));
+        }
 
         private void Tree_CommandBinding_Copy(object sender, ExecutedRoutedEventArgs e)
         {

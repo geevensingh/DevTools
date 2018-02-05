@@ -40,6 +40,10 @@
                             x:Name="CopyValue"
                             Click="CopyValue_Click"
                             Header="Copy Value" />
+                        <MenuItem
+                            x:Name="CopyEscapedValue"
+                            Click="CopyEscapedValue_Click"
+                            Header="Copy Escaped Value" />
                     </ContextMenu>
                 </Grid.ContextMenu>
                 <TextBlock
