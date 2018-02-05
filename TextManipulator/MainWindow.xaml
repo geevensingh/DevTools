@@ -124,16 +124,25 @@
                 IsReadOnly="True"
                 VerticalScrollBarVisibility="Auto"
                 Visibility="Collapsed" />
-            <local:CustomTreeView
-                x:Name="Tree"
+            <StackPanel
                 Grid.Column="3"
                 HorizontalAlignment="Stretch"
-                HorizontalContentAlignment="Stretch"
-                ItemTemplate="{StaticResource myTaskTemplate}">
-                <local:CustomTreeView.CommandBindings>
-                    <CommandBinding Command="Copy" Executed="Tree_CommandBinding_Copy" />
-                </local:CustomTreeView.CommandBindings>
-            </local:CustomTreeView>
+                Orientation="Vertical">
+                <TextBlock
+                    x:Name="Banner"
+                    Margin="5"
+                    Background="Pink"
+                    Visibility="Collapsed" />
+                <local:CustomTreeView
+                    x:Name="Tree"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Stretch"
+                    ItemTemplate="{StaticResource myTaskTemplate}">
+                    <local:CustomTreeView.CommandBindings>
+                        <CommandBinding Command="Copy" Executed="Tree_CommandBinding_Copy" />
+                    </local:CustomTreeView.CommandBindings>
+                </local:CustomTreeView>
+            </StackPanel>
         </Grid>
     </Grid>
 </Window>

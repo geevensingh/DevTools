@@ -55,6 +55,19 @@ namespace TextManipulator
             this.Tree.Resources[SystemColors.InactiveSelectionHighlightTextBrushKey] = _config.GetBrush(ConfigValue.treeViewInactiveSelectionHighlightTextBrushKey);
         }
 
+        private void SetErrorMessage(string message)
+        {
+            if (string.IsNullOrEmpty(message))
+            {
+                this.Banner.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                this.Banner.Text = message;
+                this.Banner.Visibility = Visibility.Visible;
+            }
+        }
+
         private void Raw_TextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             Debug.Assert(sender.Equals(this.Raw_TextBox));
@@ -66,8 +79,13 @@ namespace TextManipulator
             JsonObjectFactory factory = new JsonObjectFactory();
             IList<JsonObject> jsonObjects = await factory.Parse(this.Raw_TextBox.Text);
             _finder.SetObjects(jsonObjects);
-            if (jsonObjects != null)
+            if (jsonObjects == null)
             {
+                this.SetErrorMessage("Unable to parse given string");
+            }
+            else
+            {
+                this.SetErrorMessage(string.Empty);
                 this.Tree.ItemsSource = TreeViewDataFactory.CreateCollection(jsonObjects);
             }
         }
