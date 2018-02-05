@@ -79,6 +79,7 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="auto" />
+            <RowDefinition Height="auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
         <ToolBarTray Background="White">
@@ -90,7 +91,13 @@
                 <Button x:Name="ReloadButton" Click="ReloadButton_Click">Reload</Button>
             </ToolBar>
         </ToolBarTray>
-        <Grid Grid.Row="1">
+        <TextBlock
+            x:Name="Banner"
+            Grid.Row="1"
+            Margin="5"
+            Background="Pink"
+            Visibility="Collapsed" />
+        <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="auto" />
@@ -124,25 +131,16 @@
                 IsReadOnly="True"
                 VerticalScrollBarVisibility="Auto"
                 Visibility="Collapsed" />
-            <StackPanel
+            <local:CustomTreeView
+                x:Name="Tree"
                 Grid.Column="3"
                 HorizontalAlignment="Stretch"
-                Orientation="Vertical">
-                <TextBlock
-                    x:Name="Banner"
-                    Margin="5"
-                    Background="Pink"
-                    Visibility="Collapsed" />
-                <local:CustomTreeView
-                    x:Name="Tree"
-                    HorizontalAlignment="Stretch"
-                    HorizontalContentAlignment="Stretch"
-                    ItemTemplate="{StaticResource myTaskTemplate}">
-                    <local:CustomTreeView.CommandBindings>
-                        <CommandBinding Command="Copy" Executed="Tree_CommandBinding_Copy" />
-                    </local:CustomTreeView.CommandBindings>
-                </local:CustomTreeView>
-            </StackPanel>
+                HorizontalContentAlignment="Stretch"
+                ItemTemplate="{StaticResource myTaskTemplate}">
+                <local:CustomTreeView.CommandBindings>
+                    <CommandBinding Command="Copy" Executed="Tree_CommandBinding_Copy" />
+                </local:CustomTreeView.CommandBindings>
+            </local:CustomTreeView>
         </Grid>
     </Grid>
 </Window>
