@@ -44,9 +44,7 @@ namespace TextManipulator
                 ii = jj + 2;
             }
 
-            string output = retval.ToString();
-            Debug.Assert(Escape(output) == input);
-            return output;
+            return retval.ToString();
 
             //return Regex.Replace(input, @"\\[rnbf't]", m =>
             //{
@@ -106,7 +104,7 @@ namespace TextManipulator
             }
 
             string output = retval.ToString();
-            //Debug.Assert(Unescape(output) == input);
+            Debug.Assert(Unescape(output) == input);
             return output;
 
             //string output = input;
