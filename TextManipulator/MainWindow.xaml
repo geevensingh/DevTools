@@ -9,8 +9,11 @@
     Loaded="MainWindow_Loaded"
     mc:Ignorable="d">
     <Window.Resources>
-        <HierarchicalDataTemplate x:Key="myTaskTemplate" DataType="local:TreeViewData" ItemsSource="{Binding Path=Children}">
-            <Grid HorizontalAlignment="Stretch">
+        <HierarchicalDataTemplate
+            x:Key="myTaskTemplate"
+            DataType="local:TreeViewData"
+            ItemsSource="{Binding Path=Children}">
+            <Grid HorizontalAlignment="Stretch" Background="{Binding Path=BackgroundColor}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="auto" />
                     <ColumnDefinition Width="auto" />
@@ -19,19 +22,31 @@
                 </Grid.ColumnDefinitions>
                 <Grid.ContextMenu>
                     <ContextMenu>
-                        <MenuItem x:Name="ContextExpandAll" Click="ContextExpandAll_Click" Header="Expand all" />
-                        <MenuItem x:Name="ContextCollapseAll" Click="ContextCollapseAll_Click" Header="Collapse all" />
-                        <MenuItem x:Name="Something" Header="Something" Visibility="{Binding Path=ShowSomething}" />
-                        <MenuItem x:Name="CopyValue" Click="CopyValue_Click" Header="Copy Value" />
+                        <MenuItem
+                            x:Name="ContextExpandAll"
+                            Click="ContextExpandAll_Click"
+                            Header="Expand all" />
+                        <MenuItem
+                            x:Name="ContextCollapseAll"
+                            Click="ContextCollapseAll_Click"
+                            Header="Collapse all" />
+                        <MenuItem
+                            x:Name="Something"
+                            Header="Something"
+                            Visibility="{Binding Path=ShowSomething}" />
+                        <MenuItem
+                            x:Name="CopyValue"
+                            Click="CopyValue_Click"
+                            Header="Copy Value" />
                     </ContextMenu>
                 </Grid.ContextMenu>
                 <TextBlock
                     x:Name="KeyBlock"
                     Grid.Column="0"
+                    Padding="0,0,5,0"
                     FontSize="{Binding Path=FontSize}"
                     FontWeight="Bold"
                     Foreground="{Binding Path=TextColor}"
-                    Padding="0,0,5,0"
                     Text="{Binding Path=KeyName}" />
                 <TextBlock
                     x:Name="OneLineValueBlock"
@@ -48,6 +63,13 @@
             </Grid>
         </HierarchicalDataTemplate>
     </Window.Resources>
+    <Window.CommandBindings>
+        <CommandBinding Command="ApplicationCommands.Find" Executed="Tree_CommandBinding_Find" />
+        <CommandBinding
+            CanExecute="Tree_CommandBinding_CanHideFind"
+            Command="local:CommandFactory.HideFind"
+            Executed="Tree_CommandBinding_HideFind" />
+    </Window.CommandBindings>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="auto" />
@@ -105,10 +127,12 @@
                 <local:CustomTreeView.CommandBindings>
                     <CommandBinding Command="Copy" Executed="Tree_CommandBinding_Copy" />
                 </local:CustomTreeView.CommandBindings>
-                <local:CustomTreeView.InputBindings>
-                    <KeyBinding Key="C" Command="Copy" Modifiers="Control" />
-                </local:CustomTreeView.InputBindings>
             </local:CustomTreeView>
+            <local:FindWindow
+                x:Name="findWindow"
+                IsOpen="False"
+                Placement="Right"
+                PlacementTarget="{Binding ElementName=Tree}" />
         </Grid>
     </Grid>
 </Window>

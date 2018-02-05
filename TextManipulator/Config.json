@@ -4,7 +4,9 @@
   "treeViewHighlightTextBrushKey": "Black",
   "treeViewInactiveSelectionHighlightBrushKey": "LightYellow",
   "treeViewInactiveSelectionHighlightTextBrushKey": "Black",
-  "treeViewFontSize":  12,
+  "treeViewFontSize": 12,
+  "treeViewSearchResultForeground": "blue",
+  "treeViewSearchResultBackground": "lightgreen",
   "treeViewHighlights": [
     {
       "keyName": "account_id",

@@ -19,7 +19,8 @@ namespace TextManipulator
         treeViewInactiveSelectionHighlightBrushKey,
         treeViewInactiveSelectionHighlightTextBrushKey,
         treeViewHighlights,
-        
+        treeViewSearchResultForeground,
+        treeViewSearchResultBackground
     }
     class Config
     {

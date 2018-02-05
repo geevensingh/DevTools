@@ -7,7 +7,7 @@ using System.Diagnostics;
 
 namespace TextManipulator
 {
-    internal class JsonObject
+    internal class JsonObject : NotifyPropertyChanged
     {
         public enum DataType
         {
@@ -24,14 +24,17 @@ namespace TextManipulator
         private object _value;
         private object _typedValue;
         private DataType _dataType = DataType.Other;
+        private bool _isFindMatch = false;
 
         public string Key { get => _key; }
         public object RawValue { get => _value; }
         public object Value { get => _typedValue; }
         internal JsonObject Parent { get => _parent; }
-        internal IList<JsonObject> Children { get => _children; }
-        internal bool HasChildren { get => _children.Count > 0; }
+        internal virtual IList<JsonObject> Children { get => _children; }
+        internal bool HasChildren { get => this.Children.Count > 0; }
         public DataType Type { get => _dataType; }
+        public bool IsFindMatch { get => _isFindMatch; set => this.SetValue(ref _isFindMatch, value, "IsFindMatch"); }
+
 
         public JsonObject(string key, object value, JsonObject parent)
         {
@@ -82,7 +85,7 @@ namespace TextManipulator
         {
             get
             {
-                if (_children.Count > 0)
+                if (this.Children.Count > 0)
                 {
                     System.Web.Script.Serialization.JavaScriptSerializer ser = new System.Web.Script.Serialization.JavaScriptSerializer();
                     return ser.Serialize(_value);

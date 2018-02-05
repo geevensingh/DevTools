@@ -9,7 +9,7 @@ using System.Diagnostics;
 
 namespace TextManipulator
 {
-    internal class TreeViewData
+    internal class TreeViewData : NotifyPropertyChanged
     {
         private JsonObject _jsonObject;
         //private TreeViewData _parent;
@@ -58,6 +58,17 @@ namespace TextManipulator
             }
 
             SetValue();
+
+            _jsonObject.PropertyChanged += OnDataModelPropertyChanged;
+        }
+
+        private void OnDataModelPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == "IsFindMatch")
+            {
+                this.FirePropertyChanged("TextColor");
+                this.FirePropertyChanged("BackgroundColor");
+            }
         }
 
         private void SetValue()
@@ -92,7 +103,23 @@ namespace TextManipulator
         {
             get
             {
+                if (_jsonObject.IsFindMatch)
+                {
+                    return Config.This.GetBrush(ConfigValue.treeViewSearchResultForeground);
+                }
                 return Config.This.GetHightlightColor(_jsonObject.Key);
+            }
+        }
+
+        public Brush BackgroundColor
+        {
+            get
+            {
+                if (_jsonObject.IsFindMatch)
+                {
+                    return Config.This.GetBrush(ConfigValue.treeViewSearchResultBackground);
+                }
+                return Brushes.Transparent;
             }
         }
 

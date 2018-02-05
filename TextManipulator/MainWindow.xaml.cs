@@ -26,7 +26,7 @@ namespace TextManipulator
     {
         private static string _configPath = @"C:\Repos\DevTools\TextManipulator\Config.json";
         private Config _config = new Config(_configPath);
-        private CancellationTokenSource _refreshCancellationTokenSource = new CancellationTokenSource();
+        private Finder _finder;
         public MainWindow()
         {
             InitializeComponent();
@@ -39,6 +39,7 @@ namespace TextManipulator
             dispatcherTimer.Interval = new TimeSpan(0, 0, 1);
             dispatcherTimer.Start();
 
+            _finder = new Finder(this.findWindow);
         }
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
@@ -63,6 +64,7 @@ namespace TextManipulator
         {
             JsonObjectFactory factory = new JsonObjectFactory();
             IList<JsonObject> jsonObjects = await factory.Parse(this.Raw_TextBox.Text);
+            _finder.SetObjects(jsonObjects);
             if (jsonObjects != null)
             {
                 this.Tree.ItemsSource = TreeViewDataFactory.CreateCollection(jsonObjects);
@@ -112,6 +114,22 @@ namespace TextManipulator
         {
             _config = Config.Reload(_configPath);
             this.ReloadAsync();
+        }
+
+        private void Tree_CommandBinding_Find(object sender, ExecutedRoutedEventArgs e)
+        {
+            this.findWindow.IsOpen = true;
+            this.findWindow.Focus();
+        }
+
+        private void Tree_CommandBinding_HideFind(object sender, ExecutedRoutedEventArgs e)
+        {
+            this.findWindow.IsOpen = false;
+        }
+
+        private void Tree_CommandBinding_CanHideFind(object sender, CanExecuteRoutedEventArgs e)
+        {
+            e.CanExecute = this.findWindow.IsOpen;
         }
     }
 }
