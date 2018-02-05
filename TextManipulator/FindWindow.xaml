@@ -1,14 +1,26 @@
-﻿<Popup
+﻿<Window
     x:Class="TextManipulator.FindWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:TextManipulator"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Title="Find Window"
     MinWidth="200"
     MinHeight="50"
-    Opened="OnOpened"
+    Loaded="OnLoaded"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    SizeToContent="WidthAndHeight"
+    WindowStartupLocation="CenterOwner"
+    WindowStyle="ToolWindow"
     mc:Ignorable="d">
+    <Window.CommandBindings>
+        <CommandBinding
+            CanExecute="Tree_CommandBinding_CanHideFind"
+            Command="local:CommandFactory.HideFind"
+            Executed="Tree_CommandBinding_HideFind" />
+    </Window.CommandBindings>
     <Border
         Background="White"
         BorderBrush="AliceBlue"
@@ -65,4 +77,4 @@
             </StackPanel>
         </Grid>
     </Border>
-</Popup>
+</Window>

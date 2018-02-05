@@ -27,6 +27,7 @@ namespace TextManipulator
         private static string _configPath = @"C:\Repos\DevTools\TextManipulator\Config.json";
         private Config _config = new Config(_configPath);
         private Finder _finder;
+        FindWindow _findWindow = null;
         public MainWindow()
         {
             InitializeComponent();
@@ -38,12 +39,13 @@ namespace TextManipulator
             });
             dispatcherTimer.Interval = new TimeSpan(0, 0, 1);
             dispatcherTimer.Start();
-
-            _finder = new Finder(this.findWindow);
         }
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
+            _findWindow = new FindWindow(this);
+            _finder = new Finder(_findWindow);
+
             this.Width = Math.Min(this.Width, 1000);
             this.Height = Math.Min(this.Height, 750);
 
@@ -118,18 +120,17 @@ namespace TextManipulator
 
         private void Tree_CommandBinding_Find(object sender, ExecutedRoutedEventArgs e)
         {
-            this.findWindow.IsOpen = true;
-            this.findWindow.Focus();
+            _findWindow.Show();
         }
 
         private void Tree_CommandBinding_HideFind(object sender, ExecutedRoutedEventArgs e)
         {
-            this.findWindow.IsOpen = false;
+            CommandFactory.HideFind_Execute(_findWindow);
         }
 
         private void Tree_CommandBinding_CanHideFind(object sender, CanExecuteRoutedEventArgs e)
         {
-            e.CanExecute = this.findWindow.IsOpen;
+            CommandFactory.HideFind_CanExecute(_findWindow, ref e);
         }
     }
 }

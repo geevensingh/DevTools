@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using System.Diagnostics;
 
 namespace TextManipulator
 {
@@ -17,5 +18,16 @@ namespace TextManipulator
             {
                 new KeyGesture(Key.Escape)
             });
+
+        internal static void HideFind_Execute(FindWindow findWindow)
+        {
+            Debug.Assert(findWindow != null && findWindow.IsVisible);
+            findWindow.Hide();
+        }
+
+        internal static void HideFind_CanExecute(FindWindow findWindow, ref CanExecuteRoutedEventArgs e)
+        {
+            e.CanExecute = findWindow != null && findWindow.IsVisible;
+        }
     }
 }

@@ -128,11 +128,6 @@
                     <CommandBinding Command="Copy" Executed="Tree_CommandBinding_Copy" />
                 </local:CustomTreeView.CommandBindings>
             </local:CustomTreeView>
-            <local:FindWindow
-                x:Name="findWindow"
-                IsOpen="False"
-                Placement="Right"
-                PlacementTarget="{Binding ElementName=Tree}" />
         </Grid>
     </Grid>
 </Window>

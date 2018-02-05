@@ -18,7 +18,7 @@ namespace TextManipulator
     /// <summary>
     /// Interaction logic for FindWindow.xaml
     /// </summary>
-    public partial class FindWindow : System.Windows.Controls.Primitives.Popup
+    public partial class FindWindow : Window
     {
         private string _text = string.Empty;
         
@@ -27,12 +27,13 @@ namespace TextManipulator
         public bool ShouldSearchValues { get => this.searchValuesCheckbox.IsChecked.Value; }
         public bool ShouldIgnoreCase { get => this.ignoreCaseCheckbox.IsChecked.Value; }
 
-        public FindWindow()
+        public FindWindow(Window owner)
         {
             InitializeComponent();
+            this.Owner = owner;
         }
 
-        private void OnOpened(object sender, EventArgs e)
+        private void OnLoaded(object sender, RoutedEventArgs e)
         {
             this.textBox.Focus();
         }
@@ -60,5 +61,16 @@ namespace TextManipulator
                 this.FindOptionsChanged();
             }
         }
+
+        private void Tree_CommandBinding_HideFind(object sender, ExecutedRoutedEventArgs e)
+        {
+            CommandFactory.HideFind_Execute(this);
+        }
+
+        private void Tree_CommandBinding_CanHideFind(object sender, CanExecuteRoutedEventArgs e)
+        {
+            CommandFactory.HideFind_CanExecute(this, ref e);
+        }
+
     }
 }
