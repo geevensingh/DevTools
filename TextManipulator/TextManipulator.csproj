@@ -68,6 +68,7 @@
     <Compile Include="StretchingTreeViewItem.cs" />
     <Compile Include="TreeViewData.cs" />
     <Compile Include="TreeViewDataFactory.cs" />
+    <Compile Include="WindowPlacementSerializer.cs" />
     <Page Include="FindWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>

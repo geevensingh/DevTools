@@ -6,7 +6,9 @@
     xmlns:local="clr-namespace:TextManipulator"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     Title="MainWindow"
-    Loaded="MainWindow_Loaded"
+    Loaded="OnLoaded"
+    Width="1000"
+    Height="750"
     mc:Ignorable="d">
     <Window.Resources>
         <HierarchicalDataTemplate

@@ -1,21 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using System.Diagnostics;
-using System.Text.RegularExpressions;
-using System.Threading;
 
 namespace TextManipulator
 {
@@ -41,13 +30,23 @@ namespace TextManipulator
             dispatcherTimer.Start();
         }
 
-        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+            WindowPlacementSerializer.SetPlacement(this, Properties.Settings.Default.MainWindowPlacement);
+        }
+
+        protected override void OnClosing(CancelEventArgs e)
+        {
+            Properties.Settings.Default.MainWindowPlacement = WindowPlacementSerializer.GetPlacement(this);
+            Properties.Settings.Default.Save();
+            base.OnClosing(e);
+        }
+
+        private void OnLoaded(object sender, RoutedEventArgs e)
         {
             _findWindow = new FindWindow(this);
             _finder = new Finder(_findWindow);
-
-            this.Width = Math.Min(this.Width, 1000);
-            this.Height = Math.Min(this.Height, 750);
 
             this.Tree.Foreground = _config.GetBrush(ConfigValue.treeViewForeground);
             this.Tree.Resources[SystemColors.HighlightBrushKey] = _config.GetBrush(ConfigValue.treeViewHighlightBrushKey);
