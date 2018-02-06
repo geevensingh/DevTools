@@ -90,6 +90,12 @@ namespace TextManipulator
                     System.Web.Script.Serialization.JavaScriptSerializer ser = new System.Web.Script.Serialization.JavaScriptSerializer();
                     return ser.Serialize(_value);
                 }
+
+                if (_value == null)
+                {
+                    return "null";
+                }
+
                 return _value.ToString();
             }
         }
@@ -102,6 +108,12 @@ namespace TextManipulator
 
         static private object GetTypedValue(object value, out DataType dataType)
         {
+            dataType = DataType.Other;
+            if (value == null)
+            {
+                return null;
+            }
+
             Type valueType = value.GetType();
             if (valueType == typeof(System.Collections.ArrayList))
             {
@@ -113,12 +125,6 @@ namespace TextManipulator
             {
                 dataType = DataType.Json;
                 return value;
-            }
-
-            dataType = DataType.Other;
-            if (value == null)
-            {
-                return null;
             }
 
             // If this isn't a string, then we can't make a better type
