@@ -19,15 +19,16 @@ namespace TextManipulator
                 new KeyGesture(Key.Escape)
             });
 
-        internal static void HideFind_Execute(FindWindow findWindow)
+        internal static void HideFind_Execute()
         {
-            Debug.Assert(findWindow != null && findWindow.IsVisible);
-            findWindow.Hide();
+            Finder finder = Finder.Get();
+            Debug.Assert(finder != null && finder.CanHideWindow);
+            finder.HideWindow();
         }
 
-        internal static void HideFind_CanExecute(FindWindow findWindow, ref CanExecuteRoutedEventArgs e)
+        internal static void HideFind_CanExecute(ref CanExecuteRoutedEventArgs e)
         {
-            e.CanExecute = findWindow != null && findWindow.IsVisible;
+            e.CanExecute = Finder.Get().CanHideWindow;
         }
     }
 }

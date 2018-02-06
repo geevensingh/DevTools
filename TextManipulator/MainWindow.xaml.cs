@@ -13,10 +13,8 @@ namespace TextManipulator
     /// </summary>
     public partial class MainWindow : Window
     {
-        private static string _configPath = @"C:\Repos\DevTools\TextManipulator\Config.json";
+        private static string _configPath = @"S:\Repos\DevTools\TextManipulator\Config.json";
         private Config _config = new Config(_configPath);
-        private Finder _finder;
-        FindWindow _findWindow = null;
         public MainWindow()
         {
             InitializeComponent();
@@ -24,7 +22,7 @@ namespace TextManipulator
             dispatcherTimer.Tick += new EventHandler((object o, EventArgs ea) =>
             {
                 dispatcherTimer.Stop();
-                this.Raw_TextBox.Text = System.IO.File.ReadAllText(@"C:\Repos\DevTools\TextManipulator\Test.json");
+                this.Raw_TextBox.Text = System.IO.File.ReadAllText(@"S:\Repos\DevTools\TextManipulator\Test.json");
             });
             dispatcherTimer.Interval = new TimeSpan(0, 0, 1);
             dispatcherTimer.Start();
@@ -45,9 +43,7 @@ namespace TextManipulator
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
-            _findWindow = new FindWindow(this);
-            _finder = new Finder(_findWindow);
-
+            Finder.Create(this);
             this.Tree.Foreground = _config.GetBrush(ConfigValue.treeViewForeground);
             this.Tree.Resources[SystemColors.HighlightBrushKey] = _config.GetBrush(ConfigValue.treeViewHighlightBrushKey);
             this.Tree.Resources[SystemColors.HighlightTextBrushKey] = _config.GetBrush(ConfigValue.treeViewHighlightTextBrushKey);
@@ -78,7 +74,7 @@ namespace TextManipulator
         {
             JsonObjectFactory factory = new JsonObjectFactory();
             IList<JsonObject> jsonObjects = await factory.Parse(this.Raw_TextBox.Text);
-            _finder.SetObjects(jsonObjects);
+            Finder.Get().SetObjects(jsonObjects);
             if (jsonObjects == null)
             {
                 this.SetErrorMessage("Unable to parse given string");
@@ -141,17 +137,17 @@ namespace TextManipulator
 
         private void Tree_CommandBinding_Find(object sender, ExecutedRoutedEventArgs e)
         {
-            _findWindow.Show();
+            Finder.Get().ShowWindow();
         }
 
         private void Tree_CommandBinding_HideFind(object sender, ExecutedRoutedEventArgs e)
         {
-            CommandFactory.HideFind_Execute(_findWindow);
+            CommandFactory.HideFind_Execute();
         }
 
         private void Tree_CommandBinding_CanHideFind(object sender, CanExecuteRoutedEventArgs e)
         {
-            CommandFactory.HideFind_CanExecute(_findWindow, ref e);
+            CommandFactory.HideFind_CanExecute(ref e);
         }
     }
 }

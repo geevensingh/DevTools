@@ -20,6 +20,9 @@ namespace TextManipulator
     /// </summary>
     public partial class FindWindow : Window
     {
+        private Finder _finder;
+        private bool _allowEvents = false;
+
         private string _text = string.Empty;
         
         public string Text { get => _text; }
@@ -28,26 +31,29 @@ namespace TextManipulator
         public bool ShouldSearchParentValues { get => this.searchParentValuesCheckbox.IsChecked.Value; }
         public bool ShouldIgnoreCase { get => this.ignoreCaseCheckbox.IsChecked.Value; }
 
-        public FindWindow(Window owner)
+        internal FindWindow(Window owner, Finder finder)
         {
             InitializeComponent();
             this.Owner = owner;
+            _finder = finder;
         }
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
-            this.ignoreCaseCheckbox.IsChecked = Properties.Settings.Default.FindIgnoreCase;
-            this.searchKeysCheckbox.IsChecked = Properties.Settings.Default.FindSearchKeys;
-            this.searchValuesCheckbox.IsChecked = Properties.Settings.Default.FindSearchValues;
-            this.searchParentValuesCheckbox.IsChecked = Properties.Settings.Default.FindSearchParentValues;
+            this.textBox.Text = _finder.Text;
+            this.ignoreCaseCheckbox.IsChecked = _finder.ShouldIgnoreCase;
+            this.searchKeysCheckbox.IsChecked = _finder.ShouldSearchKeys;
+            this.searchValuesCheckbox.IsChecked = _finder.ShouldSearchValues;
+            this.searchParentValuesCheckbox.IsChecked = _finder.ShouldSearchParentValues;
             this.textBox.Focus();
+            _allowEvents = true;
         }
 
         private void OnTextBoxTextChanged(object sender, TextChangedEventArgs e)
         {
             string oldText = _text;
             _text = this.textBox.Text;
-            if (this.FindTextChanged != null)
+            if (_allowEvents && this.FindTextChanged != null)
             {
                 this.FindTextChanged(oldText, _text);
             }
@@ -61,7 +67,7 @@ namespace TextManipulator
 
         private void OnChecked(object sender, RoutedEventArgs e)
         {
-            if (this.FindOptionsChanged != null)
+            if (_allowEvents && this.FindOptionsChanged != null)
             {
                 this.FindOptionsChanged();
             }
@@ -69,12 +75,12 @@ namespace TextManipulator
 
         private void Tree_CommandBinding_HideFind(object sender, ExecutedRoutedEventArgs e)
         {
-            CommandFactory.HideFind_Execute(this);
+            CommandFactory.HideFind_Execute();
         }
 
         private void Tree_CommandBinding_CanHideFind(object sender, CanExecuteRoutedEventArgs e)
         {
-            CommandFactory.HideFind_CanExecute(this, ref e);
+            CommandFactory.HideFind_CanExecute(ref e);
         }
 
     }
