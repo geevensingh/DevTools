@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Diagnostics;
 
-namespace TextManipulator
+namespace JsonViewer
 {
     enum ConfigValue
     {
@@ -24,7 +24,7 @@ namespace TextManipulator
     }
     class Config
     {
-        private static readonly string _configPath = @"S:\Repos\DevTools\TextManipulator\Config.json";
+        private static readonly string _configPath = @"S:\Repos\DevTools\JsonViewer\Config.json";
         private static Config _this = null;
         internal static Config This { get { if (_this == null) { _this = new Config(); } return _this; } }
 

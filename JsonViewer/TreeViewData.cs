@@ -7,7 +7,7 @@ using System.Windows.Media;
 using System.Windows;
 using System.Diagnostics;
 
-namespace TextManipulator
+namespace JsonViewer
 {
     internal class TreeViewData : NotifyPropertyChanged
     {

@@ -27,7 +27,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SearchAndReplace", "SearchA
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cleanup", "Cleanup\Cleanup.csproj", "{CF89E952-5632-4738-9BB9-0088458BBCBE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TextManipulator", "TextManipulator\TextManipulator.csproj", "{86637E48-D0AF-46A1-B611-2089FCABAC87}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsonViewer", "JsonViewer\JsonViewer.csproj", "{86637E48-D0AF-46A1-B611-2089FCABAC87}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

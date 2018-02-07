@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 
-namespace TextManipulator
+namespace JsonViewer
 {
     class TreeViewDataFactory
     {

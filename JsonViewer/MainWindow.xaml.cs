@@ -6,7 +6,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 
-namespace TextManipulator
+namespace JsonViewer
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
@@ -25,7 +25,7 @@ namespace TextManipulator
             dispatcherTimer.Tick += new EventHandler((object o, EventArgs ea) =>
             {
                 dispatcherTimer.Stop();
-                this.Raw_TextBox.Text = System.IO.File.ReadAllText(@"S:\Repos\DevTools\TextManipulator\Test.json");
+                this.Raw_TextBox.Text = System.IO.File.ReadAllText(@"S:\Repos\DevTools\JsonViewer\Test.json");
             });
             dispatcherTimer.Interval = new TimeSpan(0, 0, 1);
             dispatcherTimer.Start();

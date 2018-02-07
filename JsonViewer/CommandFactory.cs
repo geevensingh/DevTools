@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Diagnostics;
 
-namespace TextManipulator
+namespace JsonViewer
 {
     internal static class CommandFactory
     {

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 using System.Diagnostics;
 
-namespace TextManipulator
+namespace JsonViewer
 {
     static class CSEscape
     {

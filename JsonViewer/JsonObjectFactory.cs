@@ -10,7 +10,7 @@ using System.Threading;
 using System.Web.Script.Serialization;
 using System.Diagnostics;
 
-namespace TextManipulator
+namespace JsonViewer
 {
     class JsonObjectFactory : IDisposable
     {

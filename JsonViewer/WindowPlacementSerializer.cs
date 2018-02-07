@@ -7,7 +7,7 @@ using System.Xml.Serialization;
 using System.Windows;
 using System.Windows.Interop;
 
-namespace TextManipulator
+namespace JsonViewer
 {
     public static class WindowPlacementSerializer
     {

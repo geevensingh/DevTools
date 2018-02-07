@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.ComponentModel;
 
-namespace TextManipulator
+namespace JsonViewer
 {
     class NotifyPropertyChanged : INotifyPropertyChanged
     {
