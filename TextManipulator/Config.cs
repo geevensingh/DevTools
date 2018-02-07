@@ -24,20 +24,22 @@ namespace TextManipulator
     }
     class Config
     {
+        private static readonly string _configPath = @"S:\Repos\DevTools\TextManipulator\Config.json";
         private static Config _this = null;
-        internal static Config This { get => _this; }
+        internal static Config This { get { if (_this == null) { _this = new Config(); } return _this; } }
 
         Dictionary<string, object> _rawValues = null;
         Dictionary<string, SolidColorBrush> _highlightColor = new Dictionary<string, SolidColorBrush>();
         Dictionary<string, double> _highlightFontSize = new Dictionary<string, double>();
         Dictionary<ConfigValue, Color> _colors = new Dictionary<ConfigValue, Color>();
         Dictionary<ConfigValue, Brush> _brushes = new Dictionary<ConfigValue, Brush>();
-        public Config(string filePath)
+        private Config()
         {
             Debug.Assert(_this == null);
             _this = this;
+
             JavaScriptSerializer ser = new JavaScriptSerializer();
-            _rawValues = ser.Deserialize<Dictionary<string, object>>(File.ReadAllText(filePath));
+            _rawValues = ser.Deserialize<Dictionary<string, object>>(File.ReadAllText(_configPath));
 
             if (_rawValues.ContainsKey("treeViewFontSize"))
             {
@@ -63,10 +65,10 @@ namespace TextManipulator
             }
         }
 
-        public static Config Reload(string filePath)
+        public static Config Reload()
         {
             _this = null;
-            return new Config(filePath);
+            return new Config();
         }
 
         public Brush GetBrush(ConfigValue configValue)

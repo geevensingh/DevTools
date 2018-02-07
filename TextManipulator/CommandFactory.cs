@@ -10,6 +10,24 @@ namespace TextManipulator
 {
     internal static class CommandFactory
     {
+        public static readonly RoutedUICommand NewWindow = new RoutedUICommand(
+            text: "New Window",
+            name: "NewWindow",
+            ownerType: typeof(CommandFactory),
+            inputGestures: new InputGestureCollection()
+            {
+                new KeyGesture(Key.N, ModifierKeys.Control)
+            });
+
+        public static readonly RoutedUICommand Reload = new RoutedUICommand(
+            text: "Reload",
+            name: "Reload",
+            ownerType: typeof(CommandFactory),
+            inputGestures: new InputGestureCollection()
+            {
+                        new KeyGesture(Key.F5)
+            });
+
         public static readonly RoutedUICommand HideFind = new RoutedUICommand(
             text: "HideFindWindow",
             name: "HideFindWindow",
@@ -19,16 +37,9 @@ namespace TextManipulator
                 new KeyGesture(Key.Escape)
             });
 
-        internal static void HideFind_Execute()
+        internal static void HideFind_Execute(Finder finder)
         {
-            Finder finder = Finder.Get();
-            Debug.Assert(finder != null && finder.CanHideWindow);
             finder.HideWindow();
-        }
-
-        internal static void HideFind_CanExecute(ref CanExecuteRoutedEventArgs e)
-        {
-            e.CanExecute = Finder.Get().CanHideWindow;
         }
     }
 }

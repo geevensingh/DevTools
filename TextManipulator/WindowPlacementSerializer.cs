@@ -73,13 +73,19 @@ namespace TextManipulator
         private const int SW_SHOWNORMAL = 1;
         private const int SW_SHOWMINIMIZED = 2;
 
-        public static void SetPlacement(Window window, string placementXml)
+        public static void SetPlacement(Window window, string placementXml, Point? offset = null)
         {
             if (string.IsNullOrEmpty(placementXml))
             {
                 return;
             }
-            
+
+            Point realOffset = new Point(0, 0);
+            if (offset.HasValue)
+            {
+                realOffset = offset.Value;
+            }
+
             WINDOWPLACEMENT placement;
             byte[] xmlBytes = encoding.GetBytes(placementXml);
 
@@ -93,6 +99,10 @@ namespace TextManipulator
                 placement.length = Marshal.SizeOf(typeof(WINDOWPLACEMENT));
                 placement.flags = 0;
                 placement.showCmd = (placement.showCmd == SW_SHOWMINIMIZED ? SW_SHOWNORMAL : placement.showCmd);
+                placement.normalPosition.Left += (int)Math.Floor(realOffset.X);
+                placement.normalPosition.Right += (int)Math.Floor(realOffset.X);
+                placement.normalPosition.Top += (int)Math.Floor(realOffset.Y);
+                placement.normalPosition.Bottom += (int)Math.Floor(realOffset.Y);
                 NativeMethods.SetWindowPlacement(new WindowInteropHelper(window).Handle, ref placement);
             }
             catch (InvalidOperationException)

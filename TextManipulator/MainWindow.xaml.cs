@@ -13,8 +13,11 @@ namespace TextManipulator
     /// </summary>
     public partial class MainWindow : Window
     {
-        private static string _configPath = @"S:\Repos\DevTools\TextManipulator\Config.json";
-        private Config _config = new Config(_configPath);
+        Finder _finder;
+        Point? _initialOffset = null;
+
+        public Point InitialOffset { set => _initialOffset = value; }
+
         public MainWindow()
         {
             InitializeComponent();
@@ -31,24 +34,34 @@ namespace TextManipulator
         protected override void OnSourceInitialized(EventArgs e)
         {
             base.OnSourceInitialized(e);
-            WindowPlacementSerializer.SetPlacement(this, Properties.Settings.Default.MainWindowPlacement);
+            WindowPlacementSerializer.SetPlacement(this, Properties.Settings.Default.MainWindowPlacement, _initialOffset);
+            if (_initialOffset.HasValue)
+            {
+                this.SaveWindowPosition();
+            }
+        }
+
+        private void SaveWindowPosition()
+        {
+            Properties.Settings.Default.MainWindowPlacement = WindowPlacementSerializer.GetPlacement(this);
+            Properties.Settings.Default.Save();
         }
 
         protected override void OnClosing(CancelEventArgs e)
         {
-            Properties.Settings.Default.MainWindowPlacement = WindowPlacementSerializer.GetPlacement(this);
-            Properties.Settings.Default.Save();
+            this.SaveWindowPosition();
             base.OnClosing(e);
         }
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
-            Finder.Create(this);
-            this.Tree.Foreground = _config.GetBrush(ConfigValue.treeViewForeground);
-            this.Tree.Resources[SystemColors.HighlightBrushKey] = _config.GetBrush(ConfigValue.treeViewHighlightBrushKey);
-            this.Tree.Resources[SystemColors.HighlightTextBrushKey] = _config.GetBrush(ConfigValue.treeViewHighlightTextBrushKey);
-            this.Tree.Resources[SystemColors.InactiveSelectionHighlightBrushKey] = _config.GetBrush(ConfigValue.treeViewInactiveSelectionHighlightBrushKey);
-            this.Tree.Resources[SystemColors.InactiveSelectionHighlightTextBrushKey] = _config.GetBrush(ConfigValue.treeViewInactiveSelectionHighlightTextBrushKey);
+            _finder = new Finder(this);
+            Config config = Config.This;
+            this.Tree.Foreground = config.GetBrush(ConfigValue.treeViewForeground);
+            this.Tree.Resources[SystemColors.HighlightBrushKey] = config.GetBrush(ConfigValue.treeViewHighlightBrushKey);
+            this.Tree.Resources[SystemColors.HighlightTextBrushKey] = config.GetBrush(ConfigValue.treeViewHighlightTextBrushKey);
+            this.Tree.Resources[SystemColors.InactiveSelectionHighlightBrushKey] = config.GetBrush(ConfigValue.treeViewInactiveSelectionHighlightBrushKey);
+            this.Tree.Resources[SystemColors.InactiveSelectionHighlightTextBrushKey] = config.GetBrush(ConfigValue.treeViewInactiveSelectionHighlightTextBrushKey);
         }
 
         private void SetErrorMessage(string message)
@@ -74,7 +87,7 @@ namespace TextManipulator
         {
             JsonObjectFactory factory = new JsonObjectFactory();
             IList<JsonObject> jsonObjects = await factory.Parse(this.Raw_TextBox.Text);
-            Finder.Get().SetObjects(jsonObjects);
+            _finder.SetObjects(jsonObjects);
             if (jsonObjects == null)
             {
                 this.SetErrorMessage("Unable to parse given string");
@@ -129,25 +142,27 @@ namespace TextManipulator
             }
         }
 
-        private void ReloadButton_Click(object sender, RoutedEventArgs e)
-        {
-            _config = Config.Reload(_configPath);
-            this.ReloadAsync();
-        }
-
         private void Tree_CommandBinding_Find(object sender, ExecutedRoutedEventArgs e)
         {
-            Finder.Get().ShowWindow();
+            _finder.ShowWindow();
         }
 
         private void Tree_CommandBinding_HideFind(object sender, ExecutedRoutedEventArgs e)
         {
-            CommandFactory.HideFind_Execute();
+            CommandFactory.HideFind_Execute(_finder);
         }
 
-        private void Tree_CommandBinding_CanHideFind(object sender, CanExecuteRoutedEventArgs e)
+        private void Reload_CommandBinding_Executed(object sender, ExecutedRoutedEventArgs e)
         {
-            CommandFactory.HideFind_CanExecute(ref e);
+            Config.Reload();
+            this.ReloadAsync();
+        }
+
+        private void NewWindow_CommandBinding_Executed(object sender, ExecutedRoutedEventArgs e)
+        {
+            MainWindow newWindow = new MainWindow();
+            newWindow.InitialOffset = new Point(20, 20);
+            newWindow.Show();
         }
     }
 }

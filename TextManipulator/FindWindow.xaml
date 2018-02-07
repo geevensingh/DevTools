@@ -16,15 +16,9 @@
     WindowStyle="ToolWindow"
     mc:Ignorable="d">
     <Window.CommandBindings>
-        <CommandBinding
-            CanExecute="Tree_CommandBinding_CanHideFind"
-            Command="local:CommandFactory.HideFind"
-            Executed="Tree_CommandBinding_HideFind" />
+        <CommandBinding Command="local:CommandFactory.HideFind" Executed="Tree_CommandBinding_HideFind" />
     </Window.CommandBindings>
-    <Border
-        Background="White"
-        BorderBrush="AliceBlue"
-        BorderThickness="2">
+    <Border Background="White" BorderBrush="AliceBlue" BorderThickness="2">
         <Grid Margin="5" Background="White">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="auto" />
@@ -34,10 +28,7 @@
                 <RowDefinition Height="auto" />
                 <RowDefinition Height="auto" />
             </Grid.RowDefinitions>
-            <TextBlock
-                Grid.Row="0"
-                Grid.Column="0"
-                Margin="5">
+            <TextBlock Grid.Row="0" Grid.Column="0" Margin="5">
                 Find:
             </TextBlock>
             <TextBox
@@ -46,10 +37,7 @@
                 Grid.Column="1"
                 Margin="5"
                 TextChanged="OnTextBoxTextChanged" />
-            <StackPanel
-                Grid.Row="1"
-                Grid.Column="0"
-                Grid.ColumnSpan="2">
+            <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2">
                 <CheckBox
                     x:Name="ignoreCaseCheckbox"
                     Margin="5"

@@ -75,13 +75,7 @@ namespace TextManipulator
 
         private void Tree_CommandBinding_HideFind(object sender, ExecutedRoutedEventArgs e)
         {
-            CommandFactory.HideFind_Execute();
+            CommandFactory.HideFind_Execute(_finder);
         }
-
-        private void Tree_CommandBinding_CanHideFind(object sender, CanExecuteRoutedEventArgs e)
-        {
-            CommandFactory.HideFind_CanExecute(ref e);
-        }
-
     }
 }

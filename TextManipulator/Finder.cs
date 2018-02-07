@@ -28,34 +28,9 @@ namespace TextManipulator
         private bool _shouldIgnoreCase = Properties.Settings.Default.FindIgnoreCase;
         private FindWindow _findWindow = null;
 
-        private Finder(Window parentWindow)
+        public Finder(Window parentWindow)
         {
             _parentWindow = parentWindow;
-        }
-
-        private static Finder This;
-        public static Finder Create(Window parentWindow)
-        {
-            if (This != null)
-            {
-                if (This._parentWindow == parentWindow)
-                {
-                    return This;
-                }
-                throw new InvalidOperationException();
-            }
-
-            This = new Finder(parentWindow);
-            return This;
-        }
-
-        public static Finder Get()
-        {
-            if (This != null)
-            {
-                return This;
-            }
-            throw new InvalidOperationException();
         }
 
         public void ShowWindow()
@@ -78,7 +53,6 @@ namespace TextManipulator
             }
         }
 
-        public bool CanHideWindow { get => _findWindow != null; }
         public bool ShouldSearchKeys { get => _shouldSearchKeys; }
         public bool ShouldSearchValues { get => _shouldSearchValues; }
         public bool ShouldSearchParentValues { get => _shouldSearchParentValues; }
