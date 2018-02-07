@@ -31,6 +31,34 @@ namespace JsonViewer
             return generator;
         }
 
+        private TreeViewItem GetItem(TreeViewData data)
+        {
+            return GetParentItemContainerGenerator(data).ContainerFromItem(data) as TreeViewItem;
+        }
+
+        public void ExpandChildren(TreeViewData data)
+        {
+            TreeViewItem item = GetItem(data);
+            item.IsExpanded = true;
+            item.ItemContainerGenerator.GenerateBatches().Dispose();
+            Debug.Assert(item.ItemContainerGenerator.Status == System.Windows.Controls.Primitives.GeneratorStatus.ContainersGenerated);
+            foreach (TreeViewData child in data.Children)
+            {
+                if (child.HasChildren)
+                {
+                    this.Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        TreeViewItem asyncChildItem = (TreeViewItem)item.ItemContainerGenerator.ContainerFromItem(child);
+                        Debug.Assert(asyncChildItem != null);
+                        if (asyncChildItem != null)
+                        {
+                            asyncChildItem.IsExpanded = true;
+                        }
+                    }), System.Windows.Threading.DispatcherPriority.Background);
+                }
+            }
+        }
+
         public void ExpandSubtree(TreeViewData data)
         {
             this.ExpandSubtree(GetParentItemContainerGenerator(data), data);

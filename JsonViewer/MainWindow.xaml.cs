@@ -99,6 +99,14 @@ namespace JsonViewer
             }
         }
 
+        private void ContextExpandChildren_Click(object sender, RoutedEventArgs e)
+        {
+            Debug.Assert(sender as FrameworkElement == sender);
+            FrameworkElement element = (sender as FrameworkElement);
+            Debug.Assert(element.DataContext.GetType() == typeof(TreeViewData));
+            this.Tree.ExpandChildren(element.DataContext as TreeViewData);
+        }
+
         private void ContextExpandAll_Click(object sender, RoutedEventArgs e)
         {
             Debug.Assert(sender as FrameworkElement == sender);
@@ -124,11 +132,11 @@ namespace JsonViewer
             this.Tree.CollapseAll();
         }
 
-        private void CopyValue_Click(object sender, RoutedEventArgs e)
+        private void ContextCopyValue_Click(object sender, RoutedEventArgs e)
         {
             Clipboard.SetText(((sender as FrameworkElement).DataContext as TreeViewData).Value);
         }
-        private void CopyEscapedValue_Click(object sender, RoutedEventArgs e)
+        private void ContextCopyEscapedValue_Click(object sender, RoutedEventArgs e)
         {
             Clipboard.SetText(CSEscape.Escape(((sender as FrameworkElement).DataContext as TreeViewData).Value));
         }

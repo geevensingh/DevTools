@@ -31,6 +31,7 @@ namespace JsonViewer
         public string OneLineValue { get => _oneLineValue; }
         public IList<TreeViewData> Children { get => _children; }
         public TreeViewData Parent { get => (_jsonObject.Parent == null) ? null : _jsonObject.Parent.ViewObject; }
+        public bool HasChildren { get => _jsonObject.HasChildren; }
 
         public IList<TreeViewData> ParentList
         {
