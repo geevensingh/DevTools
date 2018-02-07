@@ -79,7 +79,7 @@ namespace JsonViewer
 
         private void SetOneLineValue()
         {
-            _oneLineValue = this.ValueType;
+            _oneLineValue = this.GetValueTypeString(includeChildCount: false);
             object value = _jsonObject.Value;
             if (value != null)
             {
@@ -128,22 +128,43 @@ namespace JsonViewer
         {
             get
             {
-                object value = _jsonObject.Value;
-                if (value == null)
-                {
-                    return "null";
-                }
+                return this.GetValueTypeString(includeChildCount: true);
+            }
+        }
 
-                switch (_jsonObject.Type)
+        private string GetValueTypeString(bool includeChildCount)
+        {
+            object value = _jsonObject.Value;
+            if (value == null)
+            {
+                return "null";
+            }
+
+            string type;
+            switch (_jsonObject.Type)
+            {
+                case JsonObject.DataType.Array:
+                    type = "array[" + (value as System.Collections.ArrayList).Count + "]";
+                    break;
+                case JsonObject.DataType.Json:
+                    type = "json-object[" + (value as Dictionary<string, object>).Keys.Count + "]";
+                    break;
+                default:
+                    type = Utilities.StringHelper.TrimStart(value.GetType().ToString(), "System.");
+                    break;
+            }
+            Debug.Assert(!string.IsNullOrEmpty(type));
+
+            if (includeChildCount && this.HasChildren)
+            {
+                int childCount = _jsonObject.Children.Count;
+                int totalChildCount = _jsonObject.TotalChildCount;
+                if (childCount != totalChildCount)
                 {
-                    case JsonObject.DataType.Array:
-                        return "array[" + (value as System.Collections.ArrayList).Count + "]";
-                    case JsonObject.DataType.Json:
-                        return "json-object";
-                    default:
-                        return Utilities.StringHelper.TrimStart(value.GetType().ToString(), "System.");
+                    type += " (tree: " + totalChildCount + ")";
                 }
             }
+            return type;
         }
 
         public double FontSize
@@ -159,6 +180,23 @@ namespace JsonViewer
             get
             {
                 return (_jsonObject.Type == JsonObject.DataType.Guid) ? Visibility.Visible : Visibility.Collapsed;
+            }
+        }
+
+        public bool CanExpand { get => this.HasChildren; }
+        public bool CanCollapse { get => this.HasChildren; }
+        public bool CanExpandChildren
+        {
+            get
+            {
+                foreach(TreeViewData child in _children)
+                {
+                    if (child.CanExpand)
+                    {
+                        return true;
+                    }
+                }
+                return false;
             }
         }
     }

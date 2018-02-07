@@ -100,6 +100,19 @@ namespace JsonViewer
             }
         }
 
+        public int TotalChildCount
+        {
+            get
+            {
+                int result = _children.Count;
+                foreach (JsonObject child in _children)
+                {
+                    result += child.TotalChildCount;
+                }
+                return result;
+            }
+        }
+
         private void AddChild(JsonObject child)
         {
             Debug.Assert(!_children.Contains(child));
