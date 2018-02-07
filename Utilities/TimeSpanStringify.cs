@@ -23,25 +23,25 @@ namespace Utilities
             {
                 str = Math.Round(timeSpan.TotalDays, decimals) + " days";
             }
-            else if (timeSpan.TotalHours > 0)
+            else if (timeSpan.TotalHours > 1)
             {
                 str = Math.Round(timeSpan.TotalHours, decimals) + " hours";
             }
-            else if (timeSpan.TotalMinutes > 0)
+            else if (timeSpan.TotalMinutes > 1)
             {
                 str = Math.Round(timeSpan.TotalMinutes, decimals) + " minutes";
             }
-            else if (timeSpan.TotalSeconds > 0)
+            else if (timeSpan.TotalSeconds > 1)
             {
                 str = Math.Round(timeSpan.TotalSeconds, decimals) + " seconds";
             }
-            else if (timeSpan.TotalMilliseconds > 0)
+            else if (timeSpan.TotalMilliseconds > 1)
             {
                 str = Math.Round(timeSpan.TotalMilliseconds, decimals) + " milliseconds";
             }
             else
             {
-                Debug.Assert(false);
+                return "right now";
             }
 
             return str + suffix;
