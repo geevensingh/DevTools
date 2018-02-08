@@ -66,6 +66,7 @@
     <Compile Include="JsonObject.cs" />
     <Compile Include="JsonObjectFactory.cs" />
     <Compile Include="NotifyPropertyChanged.cs" />
+    <Compile Include="RootObject.cs" />
     <Compile Include="StretchingTreeViewItem.cs" />
     <Compile Include="TreeViewData.cs" />
     <Compile Include="TreeViewDataFactory.cs" />

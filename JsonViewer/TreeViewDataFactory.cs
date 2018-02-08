@@ -10,9 +10,9 @@ namespace JsonViewer
 {
     class TreeViewDataFactory
     {
-        public static ObservableCollection<TreeViewData> CreateCollection(IList<JsonObject> jsonObjects)
+        public static ObservableCollection<TreeViewData> CreateCollection(RootObject rootObject)
         {
-            return new ObservableCollection<TreeViewData>(CreateList(jsonObjects, null));
+            return new ObservableCollection<TreeViewData>(CreateList(rootObject.Children, null));
         }
         private static List<TreeViewData> CreateList(IList<JsonObject> jsonObjects, JsonObject parent)
         {

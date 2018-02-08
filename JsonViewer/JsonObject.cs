@@ -104,8 +104,8 @@ namespace JsonViewer
         {
             get
             {
-                int result = _children.Count;
-                foreach (JsonObject child in _children)
+                int result = this.Children.Count;
+                foreach (JsonObject child in this.Children)
                 {
                     result += child.TotalChildCount;
                 }
@@ -115,8 +115,8 @@ namespace JsonViewer
 
         private void AddChild(JsonObject child)
         {
-            Debug.Assert(!_children.Contains(child));
-            _children.Add(child);
+            Debug.Assert(!this.Children.Contains(child));
+            this.Children.Add(child);
         }
 
         static private object GetTypedValue(object value, out DataType dataType)

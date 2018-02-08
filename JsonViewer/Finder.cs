@@ -7,16 +7,6 @@ using System.Windows;
 
 namespace JsonViewer
 {
-    class RootObject : JsonObject
-    {
-        IList<JsonObject> _children;
-        public RootObject(IList<JsonObject> children) : base(string.Empty, string.Empty, null)
-        {
-            this._children = children;
-        }
-        internal override IList<JsonObject> Children { get => _children; }
-    }
-
     internal class Finder
     {
         private Window _parentWindow;
@@ -59,9 +49,9 @@ namespace JsonViewer
         public bool ShouldIgnoreCase { get => _shouldIgnoreCase; }
         public string Text { get => _text; }
 
-        public void SetObjects(IList<JsonObject> jsonObjects)
+        public void SetObjects(RootObject rootObject)
         {
-            _rootObject = new RootObject(jsonObjects);
+            _rootObject = rootObject;
         }
 
         private void OnFindOptionsChanged()

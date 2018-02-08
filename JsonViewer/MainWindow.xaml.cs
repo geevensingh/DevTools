@@ -5,6 +5,8 @@ using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Threading.Tasks;
+using Utilities;
 
 namespace JsonViewer
 {
@@ -77,26 +79,42 @@ namespace JsonViewer
             }
         }
 
-        private void Raw_TextBox_TextChanged(object sender, TextChangedEventArgs e)
+        private async void Raw_TextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             Debug.Assert(sender.Equals(this.Raw_TextBox));
-            this.ReloadAsync();
+            bool succeeded = await this.ReloadAsync();
+            if (!succeeded)
+            {
+                // Fix json copied from iScope scripts
+                string text = this.Raw_TextBox.Text.Trim();
+                if (text.StartsWith("\"") && text.EndsWith("\""))
+                {
+                    text = text.Trim(new char[] { '"' });
+                    text = text.Replace("\"\"", "\"");
+                    this.Raw_TextBox.Text = text;
+                }
+            }
         }
 
-        private async void ReloadAsync()
+        private async Task<bool> ReloadAsync()
         {
             JsonObjectFactory factory = new JsonObjectFactory();
-            IList<JsonObject> jsonObjects = await factory.Parse(this.Raw_TextBox.Text);
-            _finder.SetObjects(jsonObjects);
-            if (jsonObjects == null)
+            RootObject rootObject = await factory.Parse(this.Raw_TextBox.Text);
+            _finder.SetObjects(rootObject);
+            if (rootObject == null)
             {
                 this.SetErrorMessage("Unable to parse given string");
+                return false;
             }
-            else
+
+            this.SetErrorMessage(string.Empty);
+            this.Tree.ItemsSource = TreeViewDataFactory.CreateCollection(rootObject);
+
+            if (rootObject.TotalChildCount <= 50)
             {
-                this.SetErrorMessage(string.Empty);
-                this.Tree.ItemsSource = TreeViewDataFactory.CreateCollection(jsonObjects);
+                this.Tree.ExpandAll();
             }
+            return true;
         }
 
         private void ContextExpandChildren_Click(object sender, RoutedEventArgs e)
@@ -163,7 +181,7 @@ namespace JsonViewer
         private void Reload_CommandBinding_Executed(object sender, ExecutedRoutedEventArgs e)
         {
             Config.Reload();
-            this.ReloadAsync();
+            this.ReloadAsync().Forget();
         }
 
         private void NewWindow_CommandBinding_Executed(object sender, ExecutedRoutedEventArgs e)
