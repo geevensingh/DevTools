@@ -19,54 +19,52 @@
         <CommandBinding Command="local:CommandFactory.HideFind" Executed="Tree_CommandBinding_HideFind" />
     </Window.CommandBindings>
     <Border Background="White" BorderBrush="AliceBlue" BorderThickness="2">
-        <Grid Margin="5" Background="White">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="auto" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="auto" />
-                <RowDefinition Height="auto" />
-            </Grid.RowDefinitions>
-            <TextBlock Grid.Row="0" Grid.Column="0" Margin="5">
-                Find:
-            </TextBlock>
-            <TextBox
-                x:Name="textBox"
-                Grid.Row="0"
-                Grid.Column="1"
-                Margin="5"
-                TextChanged="OnTextBoxTextChanged" />
-            <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2">
-                <CheckBox
-                    x:Name="ignoreCaseCheckbox"
+        <StackPanel Orientation="Vertical">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Margin="5">Find:</TextBlock>
+                <TextBox
+                    x:Name="textBox"
+                    MinWidth="200"
+                    MaxWidth="600"
                     Margin="5"
-                    Checked="OnChecked"
-                    Unchecked="OnChecked">
-                    Ignore case
-                </CheckBox>
-                <CheckBox
-                    x:Name="searchKeysCheckbox"
-                    Margin="5"
-                    Checked="OnChecked"
-                    Unchecked="OnChecked">
-                    Search keys
-                </CheckBox>
-                <CheckBox
-                    x:Name="searchValuesCheckbox"
-                    Margin="5"
-                    Checked="OnChecked"
-                    Unchecked="OnChecked">
-                    Search values
-                </CheckBox>
-                <CheckBox
-                    x:Name="searchParentValuesCheckbox"
-                    Margin="5"
-                    Checked="OnChecked"
-                    Unchecked="OnChecked">
-                    Search parent values
-                </CheckBox>
+                    Text="{Binding Path=Text, Mode=OneWay}"
+                    TextChanged="OnTextBoxTextChanged" />
             </StackPanel>
-        </Grid>
+
+            <StackPanel Orientation="Horizontal" Visibility="{Binding Path=HitCountVisible}">
+                <TextBlock Margin="5">Matching elements:</TextBlock>
+                <TextBlock Margin="5" Text="{Binding Path=HitCount}" />
+            </StackPanel>
+
+            <CheckBox
+                x:Name="ignoreCaseCheckbox"
+                Margin="5"
+                Checked="OnChecked"
+                Unchecked="OnChecked">
+                Ignore case
+            </CheckBox>
+            <CheckBox
+                x:Name="searchKeysCheckbox"
+                Margin="5"
+                Checked="OnChecked"
+                Unchecked="OnChecked">
+                Search keys
+            </CheckBox>
+            <CheckBox
+                x:Name="searchValuesCheckbox"
+                Margin="5"
+                Checked="OnChecked"
+                Unchecked="OnChecked">
+                Search values
+            </CheckBox>
+            <CheckBox
+                x:Name="searchParentValuesCheckbox"
+                Margin="5"
+                Checked="OnChecked"
+                Unchecked="OnChecked">
+                Search parent values
+            </CheckBox>
+
+        </StackPanel>
     </Border>
 </Window>

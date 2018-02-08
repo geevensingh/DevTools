@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -18,29 +19,34 @@ namespace JsonViewer
     /// <summary>
     /// Interaction logic for FindWindow.xaml
     /// </summary>
-    public partial class FindWindow : Window
+    public partial class FindWindow : Window, INotifyPropertyChanged
     {
         private Finder _finder;
         private bool _allowEvents = false;
 
         private string _text = string.Empty;
+        private int _hitCount = 0;
         
         public string Text { get => _text; }
         public bool ShouldSearchKeys { get => this.searchKeysCheckbox.IsChecked.Value; }
         public bool ShouldSearchValues { get => this.searchValuesCheckbox.IsChecked.Value; }
         public bool ShouldSearchParentValues { get => this.searchParentValuesCheckbox.IsChecked.Value; }
         public bool ShouldIgnoreCase { get => this.ignoreCaseCheckbox.IsChecked.Value; }
+        public int HitCount { get => _hitCount; }
+        public Visibility HitCountVisible { get => (_hitCount > 0) ? Visibility.Visible : Visibility.Collapsed; }
 
         internal FindWindow(Window owner, Finder finder)
         {
             InitializeComponent();
             this.Owner = owner;
             _finder = finder;
+            _text = _finder.Text;
+            _hitCount = _finder.HitCount;
+            this.DataContext = this;
         }
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
-            this.textBox.Text = _finder.Text;
             this.ignoreCaseCheckbox.IsChecked = _finder.ShouldIgnoreCase;
             this.searchKeysCheckbox.IsChecked = _finder.ShouldSearchKeys;
             this.searchValuesCheckbox.IsChecked = _finder.ShouldSearchValues;
@@ -64,12 +70,23 @@ namespace JsonViewer
 
         public delegate void FindOptionsChangedEventHandler();
         public event FindOptionsChangedEventHandler FindOptionsChanged;
+        public event PropertyChangedEventHandler PropertyChanged;
 
         private void OnChecked(object sender, RoutedEventArgs e)
         {
             if (_allowEvents && this.FindOptionsChanged != null)
             {
                 this.FindOptionsChanged();
+            }
+        }
+
+        internal void SetHitCount(int hitCount)
+        {
+            _hitCount = hitCount;
+            if (this.PropertyChanged != null)
+            {
+                this.PropertyChanged(this, new PropertyChangedEventArgs("HitCount"));
+                this.PropertyChanged(this, new PropertyChangedEventArgs("HitCountVisible"));
             }
         }
 

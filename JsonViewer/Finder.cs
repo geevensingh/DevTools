@@ -17,6 +17,7 @@ namespace JsonViewer
         private bool _shouldSearchParentValues = Properties.Settings.Default.FindSearchParentValues;
         private bool _shouldIgnoreCase = Properties.Settings.Default.FindIgnoreCase;
         private FindWindow _findWindow = null;
+        private int _hitCount = 0;
 
         public Finder(Window parentWindow)
         {
@@ -48,6 +49,7 @@ namespace JsonViewer
         public bool ShouldSearchParentValues { get => _shouldSearchParentValues; }
         public bool ShouldIgnoreCase { get => _shouldIgnoreCase; }
         public string Text { get => _text; }
+        public int HitCount { get => _hitCount; }
 
         public void SetObjects(RootObject rootObject)
         {
@@ -71,10 +73,13 @@ namespace JsonViewer
 
         private void Update()
         {
-            Highlight(_rootObject);
+            int count = 0;
+            Highlight(_rootObject, ref count);
+            _hitCount = count;
+            _findWindow.SetHitCount(count);
         }
 
-        private void Highlight(JsonObject obj)
+        private void Highlight(JsonObject obj, ref int count)
         {
             bool found = false;
             if (!string.IsNullOrEmpty(_text))
@@ -89,13 +94,18 @@ namespace JsonViewer
                     found = this.CompareStrings(obj.ValueString, _text);
                 }
             }
+
+            if (found)
+            {
+                count++;
+            }
             obj.IsFindMatch = found;
 
             if (obj.HasChildren)
             {
                 foreach (JsonObject child in obj.Children)
                 {
-                    this.Highlight(child);
+                    this.Highlight(child, ref count);
                 }
             }
         }
