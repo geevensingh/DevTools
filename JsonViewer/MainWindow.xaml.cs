@@ -23,6 +23,7 @@ namespace JsonViewer
         public MainWindow()
         {
             InitializeComponent();
+#if DEBUG
             var dispatcherTimer = new System.Windows.Threading.DispatcherTimer();
             dispatcherTimer.Tick += new EventHandler((object o, EventArgs ea) =>
             {
@@ -31,6 +32,7 @@ namespace JsonViewer
             });
             dispatcherTimer.Interval = new TimeSpan(0, 0, 1);
             dispatcherTimer.Start();
+#endif
         }
 
         protected override void OnSourceInitialized(EventArgs e)
