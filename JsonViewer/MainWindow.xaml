@@ -39,6 +39,16 @@
                         <MenuItem x:Name="Something" Header="Something" Visibility="{Binding Path=ShowSomething}" />
                         <MenuItem x:Name="ContextCopyValue" Click="ContextCopyValue_Click" Header="Copy Value" />
                         <MenuItem x:Name="ContextCopyEscapedValue" Click="ContextCopyEscapedValue_Click" Header="Copy Escaped Value" />
+                        <MenuItem
+                            x:Name="ContextTreatAsJson"
+                            Click="ContextTreatAsJson_Click"
+                            Header="Treat as Json"
+                            Visibility="{Binding Path=ShowTreatAsJson}" />
+                        <MenuItem
+                            x:Name="ContextTreatAsText"
+                            Click="ContextTreatAsText_Click"
+                            Header="Treat as text"
+                            Visibility="{Binding Path=ShowTreatAsText}" />
                     </ContextMenu>
                 </Grid.ContextMenu>
                 <TextBlock

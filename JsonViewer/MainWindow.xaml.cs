@@ -192,5 +192,15 @@ namespace JsonViewer
             newWindow.InitialOffset = new Point(20, 20);
             newWindow.Show();
         }
+
+        private void ContextTreatAsJson_Click(object sender, RoutedEventArgs e)
+        {
+            ((sender as FrameworkElement).DataContext as TreeViewData).TreatAsJson();
+        }
+
+        private void ContextTreatAsText_Click(object sender, RoutedEventArgs e)
+        {
+            ((sender as FrameworkElement).DataContext as TreeViewData).TreatAsText();
+        }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -14,7 +15,7 @@ namespace JsonViewer
         private JsonObject _jsonObject;
         //private TreeViewData _parent;
         private string _oneLineValue = string.Empty;
-        private List<TreeViewData> _children = new List<TreeViewData>();
+        private ObservableCollection<TreeViewData> _children = new ObservableCollection<TreeViewData>();
 
         public string KeyName { get => _jsonObject.Key; }
         public string Value
@@ -29,7 +30,7 @@ namespace JsonViewer
             }
         }
         public string OneLineValue { get => _oneLineValue; }
-        public IList<TreeViewData> Children { get => _children; }
+        public ObservableCollection<TreeViewData> Children { get => _children; }
         public TreeViewData Parent { get => (_jsonObject.Parent == null) ? null : _jsonObject.Parent.ViewObject; }
         public bool HasChildren { get => _jsonObject.HasChildren; }
 
@@ -53,7 +54,7 @@ namespace JsonViewer
         {
             _jsonObject = jsonObject;
             _jsonObject.ViewObject = this;
-            foreach(JsonObject childData in _jsonObject.Children)
+            foreach (JsonObject childData in _jsonObject.Children)
             {
                 _children.Add(childData.ViewObject);
             }
@@ -65,10 +66,15 @@ namespace JsonViewer
 
         private void OnDataModelPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == "IsFindMatch")
+            switch (e.PropertyName)
             {
-                this.FirePropertyChanged("TextColor");
-                this.FirePropertyChanged("BackgroundColor");
+                case "IsFindMatch":
+                    this.FirePropertyChanged("TextColor");
+                    this.FirePropertyChanged("BackgroundColor");
+                    break;
+                default:
+                    Debug.Assert(false, "Unknown property change");
+                    break;
             }
         }
 
@@ -149,6 +155,9 @@ namespace JsonViewer
                 case JsonObject.DataType.Json:
                     type = "json-object[" + (value as Dictionary<string, object>).Keys.Count + "]";
                     break;
+                case JsonObject.DataType.ParsableString:
+                    type = "parse-able-string";
+                    break;
                 default:
                     type = Utilities.StringHelper.TrimStart(value.GetType().ToString(), "System.");
                     break;
@@ -165,6 +174,20 @@ namespace JsonViewer
                 }
             }
             return type;
+        }
+
+        internal void RemoveChildren()
+        {
+            _children.Clear();
+        }
+
+        internal void ReplaceChild(TreeViewData oldChild, TreeViewData newChild)
+        {
+            Debug.Assert(_children.Contains(oldChild));
+            int index = _children.IndexOf(oldChild);
+            Debug.Assert(index >= 0 && index < _children.Count);
+            _children.RemoveAt(index);
+            _children.Insert(index, newChild);
         }
 
         public double FontSize
@@ -199,5 +222,10 @@ namespace JsonViewer
                 return false;
             }
         }
+
+        public Visibility ShowTreatAsJson { get => _jsonObject.CanTreatAsJson ? Visibility.Visible : Visibility.Collapsed; }
+        public bool TreatAsJson() { return _jsonObject.TreatAsJson(); }
+        public Visibility ShowTreatAsText { get => _jsonObject.CanTreatAsText ? Visibility.Visible : Visibility.Collapsed; }
+        public bool TreatAsText() { return _jsonObject.TreatAsText(); }
     }
 }

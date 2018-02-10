@@ -14,7 +14,8 @@ namespace JsonViewer
             Json,
             Array,
             Guid,
-            Other
+            Other,
+            ParsableString
         }
 
         private JsonObject _parent = null;
@@ -22,6 +23,7 @@ namespace JsonViewer
         private TreeViewData _viewObject = null;
         private string _key;
         private object _value;
+        private string _originalString;
         private object _typedValue;
         private DataType _dataType = DataType.Other;
         private bool _isFindMatch = false;
@@ -40,6 +42,7 @@ namespace JsonViewer
         {
             _key = key;
             _value = value;
+            _originalString = value as string;
             _parent = parent;
             if (_parent != null)
             {
@@ -119,6 +122,60 @@ namespace JsonViewer
             this.Children.Add(child);
         }
 
+        public bool CanTreatAsJson { get => (_dataType == DataType.ParsableString); }
+        public bool TreatAsJson()
+        {
+            if (!this.CanTreatAsJson)
+            {
+                return false;
+            }
+
+            Dictionary<string, object> dict = JsonObjectFactory.TryDeserialize(_value as string);
+            Debug.Assert(dict != null);
+            _value = dict;
+            _dataType = DataType.Json;
+            JsonObjectFactory.Flatten(ref _children, dict, this);
+
+            TreeViewData oldView = _viewObject;
+            TreeViewData viewParent = _viewObject.Parent;
+            _viewObject.RemoveChildren();
+            _viewObject = null;
+            viewParent.ReplaceChild(oldView, TreeViewDataFactory.CreateNode(this));
+            Debug.Assert(_viewObject != null);
+
+            return true;
+        }
+
+        public bool CanTreatAsText { get => (_dataType == DataType.Json); }
+        public bool TreatAsText()
+        {
+            if (!this.CanTreatAsText)
+            {
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(_originalString))
+            {
+                System.Web.Script.Serialization.JavaScriptSerializer ser = new System.Web.Script.Serialization.JavaScriptSerializer();
+                _value = ser.Serialize(_value);
+            }
+            else
+            {
+                _value = _originalString;
+            }
+            _dataType = DataType.ParsableString;
+            _children.Clear();
+
+            TreeViewData oldView = _viewObject;
+            TreeViewData viewParent = _viewObject.Parent;
+            _viewObject.RemoveChildren();
+            _viewObject = null;
+            viewParent.ReplaceChild(oldView, TreeViewDataFactory.CreateNode(this));
+            
+            return true;
+        }
+
+
         static private object GetTypedValue(object value, out DataType dataType)
         {
             dataType = DataType.Other;
@@ -183,7 +240,7 @@ namespace JsonViewer
             Dictionary<string, object> jsonObj = JsonObjectFactory.TryDeserialize(str);
             if (jsonObj != null)
             {
-                dataType = DataType.Json;
+                dataType = DataType.ParsableString;
                 return jsonObj;
             }
 

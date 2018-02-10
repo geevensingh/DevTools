@@ -52,6 +52,17 @@ namespace JsonViewer
         }
         public static Dictionary<string, object> TryDeserialize(string jsonString)
         {
+            jsonString = jsonString.Trim();
+            int startIndex = jsonString.IndexOf("{");
+            int endIndex = jsonString.LastIndexOf("}");
+            if (startIndex < 0 || endIndex < 0 || endIndex < startIndex)
+            {
+                return null;
+            }
+
+            jsonString = jsonString.Substring(startIndex, endIndex - startIndex + 1);
+            Debug.Assert(jsonString.StartsWith("{"));
+            Debug.Assert(jsonString.EndsWith("}"));
             try
             {
                 return new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(jsonString);

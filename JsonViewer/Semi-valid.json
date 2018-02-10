@@ -1,0 +1,22 @@
+﻿{
+  "Timestamp": "/Date(1510050044592-0800)/",
+  "ProviderID": "69c7d690-9587-469c-83c4-c4df03d32d85",
+  "ProviderName": "Microsoft-Commerce-Billing-Common",
+  "ActivityID": "402be699-be84-4518-aee7-d8a1ef69cf56",
+  "ID": 602,
+  "EventName": "DependentServiceRequestDetails",
+  "Level": 4,
+  "Keywords": 16,
+  "ThreadID": 11112,
+  "ProcessID": 57668,
+  "Parameters": [
+    {
+      "Key": "requestDetails",
+      "Value": "POST https://billingservice.cp.microsoft.com//145b50cd-56f4-4e7b-a094-d8f0bff9add1/captures\r\napi-version: 2017-03-30\r\nx-ms-tracking-id: 1bfc234b-301d-440d-b228-aac69b7464bc_CreateCapture\r\nx-ms-correlation-id: 8ef52b72-e3cb-4ac0-b9ee-63a37c1615ec\r\nx-ms-suppress-auto-rollback: true\r\nMS-CV: exhfrJTUfUmLhR7V.0\r\nContent-Type: application/json\r\n\r\n{\"line_items\":[{\"billing_record_id\":\"e533777b-f8a8-4121-83a0-c7396082200a\",\"line_item_ids\":[{\"id\":\"88af2996-e07b-46f2-91f1-69e520b38536\",\"low\":0,\"high\":0}]}],\"override_capture_instructions\":{\"payment_instrument_id\":{\"account_id\":\"145b50cd-56f4-4e7b-a094-d8f0bff9add1\",\"id\":\"clg6awAAAAAOAACA\"},\"instruction_type\":\"single_payment_instrument\"},\"ip_address\":\"127.0.0.1\",\"session_id\":\"cd1a6922-5ca5-437a-bfa6-5c4ba9a61ddc\",\"retry_transaction\":true,\"is_recurring\":false}"
+    },
+    {
+      "Key": "operationName",
+      "Value": "DependentServiceRequestDetails_Billing_CreateCapture"
+    }
+  ]
+}

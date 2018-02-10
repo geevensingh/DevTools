@@ -24,7 +24,7 @@ namespace JsonViewer
             return result;
         }
 
-        private static TreeViewData CreateNode(JsonObject jsonObject)
+        public static TreeViewData CreateNode(JsonObject jsonObject)
         {
             var children = new List<TreeViewData>();
             foreach (JsonObject child in jsonObject.Children)

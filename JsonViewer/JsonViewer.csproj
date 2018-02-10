@@ -108,6 +108,7 @@
     </EmbeddedResource>
     <None Include="Config.json" />
     <None Include="Recursive.json" />
+    <None Include="Semi-valid.json" />
     <None Include="Test.json" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
