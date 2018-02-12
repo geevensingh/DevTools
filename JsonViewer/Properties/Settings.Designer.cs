@@ -82,5 +82,29 @@ namespace JsonViewer.Properties {
                 this["FindSearchParentValues"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("S:\\Repos\\DevTools\\JsonViewer\\Config.json")]
+        public string ConfigPath {
+            get {
+                return ((string)(this["ConfigPath"]));
+            }
+            set {
+                this["ConfigPath"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute(@"{ ""treeViewForeground"": ""darkgray"", ""treeViewHighlightBrushKey"": ""Yellow"", ""treeViewHighlightTextBrushKey"": ""Black"", ""treeViewInactiveSelectionHighlightBrushKey"": ""LightYellow"", ""treeViewInactiveSelectionHighlightTextBrushKey"": ""Black"", ""treeViewFontSize"": 12, ""treeViewSearchResultForeground"": ""blue"", ""treeViewSearchResultBackground"": ""lightgreen"", ""treeViewHighlights"": [ ] } ")]
+        public string ConfigJson {
+            get {
+                return ((string)(this["ConfigJson"]));
+            }
+            set {
+                this["ConfigJson"] = value;
+            }
+        }
     }
 }

@@ -24,7 +24,6 @@ namespace JsonViewer
     }
     class Config
     {
-        private static readonly string _configPath = @"S:\Repos\DevTools\JsonViewer\Config.json";
         private static Config _this = null;
         internal static Config This { get { if (_this == null) { _this = new Config(); } return _this; } }
 
@@ -39,7 +38,16 @@ namespace JsonViewer
             _this = this;
 
             JavaScriptSerializer ser = new JavaScriptSerializer();
-            _rawValues = ser.Deserialize<Dictionary<string, object>>(File.ReadAllText(_configPath));
+            try
+            {
+                _rawValues = ser.Deserialize<Dictionary<string, object>>(File.ReadAllText(Properties.Settings.Default.ConfigPath));
+            }
+            catch { }
+
+            if (_rawValues == null)
+            {
+                _rawValues = ser.Deserialize<Dictionary<string, object>>(Properties.Settings.Default.ConfigJson);
+            }
 
             if (_rawValues.ContainsKey("treeViewFontSize"))
             {
