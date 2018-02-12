@@ -28,7 +28,10 @@ namespace JsonViewer
             dispatcherTimer.Tick += new EventHandler((object o, EventArgs ea) =>
             {
                 dispatcherTimer.Stop();
-                this.Raw_TextBox.Text = System.IO.File.ReadAllText(@"S:\Repos\DevTools\JsonViewer\Test.json");
+                if (string.IsNullOrEmpty(this.Raw_TextBox.Text))
+                {
+                    this.Raw_TextBox.Text = System.IO.File.ReadAllText(@"S:\Repos\DevTools\JsonViewer\Test.json");
+                }
             });
             dispatcherTimer.Interval = new TimeSpan(0, 0, 1);
             dispatcherTimer.Start();
@@ -59,6 +62,15 @@ namespace JsonViewer
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
+            if (Clipboard.ContainsText())
+            {
+                string jsonString = Clipboard.GetText();
+                if (JsonObjectFactory.TryDeserialize(jsonString) != null)
+                {
+                    this.Raw_TextBox.Text = jsonString;
+                }
+            }
+
             _finder = new Finder(this);
             Config config = Config.This;
             this.Tree.Foreground = config.GetBrush(ConfigValue.treeViewForeground);
