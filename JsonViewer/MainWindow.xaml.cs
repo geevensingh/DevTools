@@ -1,11 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Threading.Tasks;
+using Microsoft.Win32;
 using Utilities;
 
 namespace JsonViewer
@@ -201,6 +201,24 @@ namespace JsonViewer
         private void ContextTreatAsText_Click(object sender, RoutedEventArgs e)
         {
             ((sender as FrameworkElement).DataContext as TreeViewData).TreatAsText();
+        }
+
+        private void PickConfig_CommandBinding_Executed(object sender, ExecutedRoutedEventArgs e)
+        {
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+            openFileDialog.Filter = "Json files (*.json)|*.json|All files (*.*)|*.*";
+            bool? ofdResult = openFileDialog.ShowDialog(this);
+            if (ofdResult.HasValue && ofdResult.Value)
+            {
+                if (Config.SetPath(openFileDialog.FileName))
+                {
+                    this.ReloadAsync().Forget();
+                }
+                else
+                {
+                    MessageBox.Show(this, "Unable to load config: " + openFileDialog.FileName, "Error!", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
         }
     }
 }

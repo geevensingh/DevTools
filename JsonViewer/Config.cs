@@ -140,5 +140,35 @@ namespace JsonViewer
             Debug.Fail("invalid double: " + obj.ToString());
             return double.MinValue;
         }
+
+        internal static bool SetPath(string fileName)
+        {
+            if (!File.Exists(fileName))
+            {
+                return false;
+            }
+
+            JavaScriptSerializer ser = new JavaScriptSerializer();
+            try
+            {
+                ser.Deserialize<Dictionary<string, object>>(File.ReadAllText(fileName));
+            }
+            catch { return false; }
+
+            string oldConfigPath = Properties.Settings.Default.ConfigPath;
+            try
+            {
+                Properties.Settings.Default.ConfigPath = fileName;
+                Reload();
+            }
+            catch
+            {
+                Properties.Settings.Default.ConfigPath = oldConfigPath;
+                return false;
+            }
+
+            Properties.Settings.Default.Save();
+            return true;
+        }
     }
 }

@@ -25,7 +25,16 @@ namespace JsonViewer
             ownerType: typeof(CommandFactory),
             inputGestures: new InputGestureCollection()
             {
-                        new KeyGesture(Key.F5)
+                new KeyGesture(Key.F5)
+            });
+
+        public static readonly RoutedUICommand PickConfig = new RoutedUICommand(
+            text: "PickConfig",
+            name: "PickConfig",
+            ownerType: typeof(CommandFactory),
+            inputGestures: new InputGestureCollection()
+            {
+                new KeyGesture(Key.L, ModifierKeys.Control)
             });
 
         public static readonly RoutedUICommand HideFind = new RoutedUICommand(

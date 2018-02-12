@@ -77,6 +77,7 @@
     <Window.CommandBindings>
         <CommandBinding Command="ApplicationCommands.Find" Executed="Tree_CommandBinding_Find" />
         <CommandBinding Command="local:CommandFactory.HideFind" Executed="Tree_CommandBinding_HideFind" />
+        <CommandBinding Command="local:CommandFactory.PickConfig" Executed="PickConfig_CommandBinding_Executed" />
         <CommandBinding Command="local:CommandFactory.Reload" Executed="Reload_CommandBinding_Executed" />
         <CommandBinding Command="local:CommandFactory.NewWindow" Executed="NewWindow_CommandBinding_Executed" />
     </Window.CommandBindings>
@@ -92,6 +93,7 @@
                 <Button x:Name="CollapseAllButton" Click="CollapseAllButton_Click">Collapse all</Button>
             </ToolBar>
             <ToolBar Band="1" BandIndex="2">
+                <Button x:Name="PickConfigButton" Command="local:CommandFactory.PickConfig">Pick Config File</Button>
                 <Button x:Name="ReloadButton" Command="local:CommandFactory.Reload">Reload</Button>
             </ToolBar>
             <ToolBar Band="1" BandIndex="3">
