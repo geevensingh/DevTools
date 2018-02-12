@@ -217,20 +217,43 @@ namespace JsonViewer
 
         private void PickConfig_CommandBinding_Executed(object sender, ExecutedRoutedEventArgs e)
         {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Filter = "Json files (*.json)|*.json|All files (*.*)|*.*";
-            bool? ofdResult = openFileDialog.ShowDialog(this);
-            if (ofdResult.HasValue && ofdResult.Value)
+            string filePath = this.PickJsonFile();
+            if (!string.IsNullOrEmpty(filePath))
             {
-                if (Config.SetPath(openFileDialog.FileName))
+                if (Config.SetPath(filePath))
                 {
                     this.ReloadAsync().Forget();
                 }
                 else
                 {
-                    MessageBox.Show(this, "Unable to load config: " + openFileDialog.FileName, "Error!", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(this, "Unable to load config: " + filePath, "Error!", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
+        }
+
+        private void OpenJsonFile_CommandBinding_Executed(object sender, ExecutedRoutedEventArgs e)
+        {
+            string filePath = this.PickJsonFile();
+            if (!string.IsNullOrEmpty(filePath))
+            {
+                try
+                {
+                    this.Raw_TextBox.Text = System.IO.File.ReadAllText(filePath);
+                }
+                catch { }
+            }
+        }
+
+        private string PickJsonFile()
+        {
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+            openFileDialog.Filter = "Json files (*.json)|*.json|All files (*.*)|*.*";
+            bool? ofdResult = openFileDialog.ShowDialog(this);
+            if (ofdResult.HasValue && ofdResult.Value)
+            {
+                return openFileDialog.FileName;
+            }
+            return null;
         }
     }
 }

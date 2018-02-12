@@ -80,76 +80,87 @@
         <CommandBinding Command="local:CommandFactory.PickConfig" Executed="PickConfig_CommandBinding_Executed" />
         <CommandBinding Command="local:CommandFactory.Reload" Executed="Reload_CommandBinding_Executed" />
         <CommandBinding Command="local:CommandFactory.NewWindow" Executed="NewWindow_CommandBinding_Executed" />
+        <CommandBinding Command="local:CommandFactory.OpenJsonFile" Executed="OpenJsonFile_CommandBinding_Executed" />
     </Window.CommandBindings>
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="auto" />
-            <RowDefinition Height="auto" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
-        <ToolBarTray Background="White">
-            <ToolBar Band="1" BandIndex="1">
-                <Button x:Name="ExpandAllButton" Click="ExpandAllButton_Click">Expand all</Button>
-                <Button x:Name="CollapseAllButton" Click="CollapseAllButton_Click">Collapse all</Button>
-            </ToolBar>
-            <ToolBar Band="1" BandIndex="2">
-                <Button x:Name="PickConfigButton" Command="local:CommandFactory.PickConfig">Pick Config File</Button>
-                <Button x:Name="ReloadButton" Command="local:CommandFactory.Reload">Reload</Button>
-            </ToolBar>
-            <ToolBar Band="1" BandIndex="3">
-                <Button x:Name="NewWindowButton" Command="local:CommandFactory.NewWindow">New Window</Button>
-            </ToolBar>
-        </ToolBarTray>
-        <TextBlock
-            x:Name="Banner"
-            Grid.Row="1"
-            Margin="5"
-            Background="Pink"
-            Visibility="Collapsed" />
-        <Grid Grid.Row="2">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="auto" />
-                <ColumnDefinition Width="auto" />
-                <ColumnDefinition Width="5*" />
-            </Grid.ColumnDefinitions>
-            <TextBox
-                x:Name="Raw_TextBox"
-                Grid.Column="0"
-                Grid.ColumnSpan="2"
-                AcceptsReturn="True"
-                AcceptsTab="False"
-                AutoWordSelection="True"
-                HorizontalScrollBarVisibility="Auto"
-                TextChanged="Raw_TextBox_TextChanged"
-                VerticalScrollBarVisibility="Auto" />
-            <GridSplitter
-                Grid.Column="1"
-                Width="5"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Stretch"
-                Background="Blue" />
-            <TextBox
-                x:Name="Pretty_TextBox"
-                Grid.Column="2"
-                AcceptsReturn="True"
-                AcceptsTab="False"
-                AutoWordSelection="True"
-                HorizontalScrollBarVisibility="Auto"
-                IsInactiveSelectionHighlightEnabled="True"
-                IsReadOnly="True"
-                VerticalScrollBarVisibility="Auto"
+    <DockPanel>
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="_File">
+                <MenuItem Command="local:CommandFactory.OpenJsonFile" Header="_Open Json file..." />
+                <Separator />
+                <MenuItem Command="local:CommandFactory.PickConfig" Header="Load _Config file..." />
+                <MenuItem Command="local:CommandFactory.Reload" Header="_Reload current config" />
+            </MenuItem>
+        </Menu>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="auto" />
+                <RowDefinition Height="auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <ToolBarTray Background="White">
+                <ToolBar Band="1" BandIndex="1">
+                    <Button x:Name="ExpandAllButton" Click="ExpandAllButton_Click">Expand all</Button>
+                    <Button x:Name="CollapseAllButton" Click="CollapseAllButton_Click">Collapse all</Button>
+                </ToolBar>
+                <ToolBar Band="1" BandIndex="2">
+                    <Button x:Name="PickConfigButton" Command="local:CommandFactory.PickConfig">Pick Config File</Button>
+                    <Button x:Name="ReloadButton" Command="local:CommandFactory.Reload">Reload</Button>
+                </ToolBar>
+                <ToolBar Band="1" BandIndex="3">
+                    <Button x:Name="NewWindowButton" Command="local:CommandFactory.NewWindow">New Window</Button>
+                </ToolBar>
+            </ToolBarTray>
+            <TextBlock
+                x:Name="Banner"
+                Grid.Row="1"
+                Margin="5"
+                Background="Pink"
                 Visibility="Collapsed" />
-            <local:CustomTreeView
-                x:Name="Tree"
-                Grid.Column="3"
-                HorizontalAlignment="Stretch"
-                HorizontalContentAlignment="Stretch"
-                ItemTemplate="{StaticResource myTaskTemplate}">
-                <local:CustomTreeView.CommandBindings>
-                    <CommandBinding Command="Copy" Executed="Tree_CommandBinding_Copy" />
-                </local:CustomTreeView.CommandBindings>
-            </local:CustomTreeView>
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="auto" />
+                    <ColumnDefinition Width="auto" />
+                    <ColumnDefinition Width="5*" />
+                </Grid.ColumnDefinitions>
+                <TextBox
+                    x:Name="Raw_TextBox"
+                    Grid.Column="0"
+                    Grid.ColumnSpan="2"
+                    AcceptsReturn="True"
+                    AcceptsTab="False"
+                    AutoWordSelection="True"
+                    HorizontalScrollBarVisibility="Auto"
+                    TextChanged="Raw_TextBox_TextChanged"
+                    VerticalScrollBarVisibility="Auto" />
+                <GridSplitter
+                    Grid.Column="1"
+                    Width="5"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Stretch"
+                    Background="Blue" />
+                <TextBox
+                    x:Name="Pretty_TextBox"
+                    Grid.Column="2"
+                    AcceptsReturn="True"
+                    AcceptsTab="False"
+                    AutoWordSelection="True"
+                    HorizontalScrollBarVisibility="Auto"
+                    IsInactiveSelectionHighlightEnabled="True"
+                    IsReadOnly="True"
+                    VerticalScrollBarVisibility="Auto"
+                    Visibility="Collapsed" />
+                <local:CustomTreeView
+                    x:Name="Tree"
+                    Grid.Column="3"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Stretch"
+                    ItemTemplate="{StaticResource myTaskTemplate}">
+                    <local:CustomTreeView.CommandBindings>
+                        <CommandBinding Command="Copy" Executed="Tree_CommandBinding_Copy" />
+                    </local:CustomTreeView.CommandBindings>
+                </local:CustomTreeView>
+            </Grid>
         </Grid>
-    </Grid>
+    </DockPanel>
 </Window>

@@ -46,6 +46,15 @@ namespace JsonViewer
                 new KeyGesture(Key.Escape)
             });
 
+        public static readonly RoutedUICommand OpenJsonFile = new RoutedUICommand(
+            text: "OpenJsonFile",
+            name: "OpenJsonFile",
+            ownerType: typeof(CommandFactory),
+            inputGestures: new InputGestureCollection()
+            {
+                new KeyGesture(Key.O, ModifierKeys.Control)
+            });
+
         internal static void HideFind_Execute(Finder finder)
         {
             finder.HideWindow();
