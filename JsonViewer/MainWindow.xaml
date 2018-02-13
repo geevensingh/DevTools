@@ -81,6 +81,7 @@
         <CommandBinding Command="local:CommandFactory.Reload" Executed="Reload_CommandBinding_Executed" />
         <CommandBinding Command="local:CommandFactory.NewWindow" Executed="NewWindow_CommandBinding_Executed" />
         <CommandBinding Command="local:CommandFactory.OpenJsonFile" Executed="OpenJsonFile_CommandBinding_Executed" />
+        <CommandBinding Command="local:CommandFactory.HighlightParents" Executed="HighlightParents_CommandBinding_Executed" />
     </Window.CommandBindings>
     <DockPanel>
         <!--<Menu DockPanel.Dock="Top">
@@ -114,6 +115,9 @@
                     <Button x:Name="ReloadButton" Command="local:CommandFactory.Reload">Reload</Button>
                 </ToolBar>
                 <ToolBar Band="1" BandIndex="3">
+                    <CheckBox x:Name="HighlightParentsButton" Command="local:CommandFactory.HighlightParents" IsChecked="True">Highlight Selected Item Parents</CheckBox>
+                </ToolBar>
+                <ToolBar Band="1" BandIndex="4">
                     <Button x:Name="NewWindowButton" Command="local:CommandFactory.NewWindow">New Window</Button>
                 </ToolBar>
             </ToolBarTray>

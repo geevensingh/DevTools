@@ -78,6 +78,7 @@ namespace JsonViewer
             this.Tree.Resources[SystemColors.HighlightTextBrushKey] = config.GetBrush(ConfigValue.treeViewHighlightTextBrushKey);
             this.Tree.Resources[SystemColors.InactiveSelectionHighlightBrushKey] = config.GetBrush(ConfigValue.treeViewInactiveSelectionHighlightBrushKey);
             this.Tree.Resources[SystemColors.InactiveSelectionHighlightTextBrushKey] = config.GetBrush(ConfigValue.treeViewInactiveSelectionHighlightTextBrushKey);
+            this.HighlightParentsButton.IsChecked = Properties.Settings.Default.HighlightSelectedParents;
         }
 
         private void SetErrorMessage(string message)
@@ -254,6 +255,15 @@ namespace JsonViewer
                 return openFileDialog.FileName;
             }
             return null;
+        }
+
+        private void HighlightParents_CommandBinding_Executed(object sender, ExecutedRoutedEventArgs e)
+        {
+            Properties.Settings.Default.HighlightSelectedParents = !Properties.Settings.Default.HighlightSelectedParents;
+            Properties.Settings.Default.Save();
+            this.HighlightParentsButton.IsChecked = Properties.Settings.Default.HighlightSelectedParents;
+            TreeViewData selected = (this.Tree.SelectedValue as TreeViewData);
+            selected.IsSelected = selected.IsSelected;
         }
     }
 }

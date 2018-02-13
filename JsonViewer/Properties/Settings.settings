@@ -23,5 +23,8 @@
     <Setting Name="ConfigJson" Type="System.String" Scope="User">
       <Value Profile="(Default)">{ "treeViewForeground": "darkgray", "treeViewHighlightBrushKey": "Yellow", "treeViewHighlightTextBrushKey": "Black", "treeViewInactiveSelectionHighlightBrushKey": "LightYellow", "treeViewInactiveSelectionHighlightTextBrushKey": "Black", "treeViewFontSize": 12, "treeViewSearchResultForeground": "blue", "treeViewSearchResultBackground": "lightgreen", "treeViewHighlights": [ ] } </Value>
     </Setting>
+    <Setting Name="HighlightSelectedParents" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

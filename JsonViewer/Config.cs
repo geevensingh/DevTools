@@ -18,9 +18,9 @@ namespace JsonViewer
         treeViewHighlightTextBrushKey,
         treeViewInactiveSelectionHighlightBrushKey,
         treeViewInactiveSelectionHighlightTextBrushKey,
-        treeViewHighlights,
         treeViewSearchResultForeground,
-        treeViewSearchResultBackground
+        treeViewSearchResultBackground,
+        treeViewSelectedItemParent
     }
     class Config
     {
@@ -90,12 +90,40 @@ namespace JsonViewer
 
         public Color GetColor(ConfigValue configValue)
         {
-            if (!_colors.ContainsKey(configValue))
+            try
             {
-                string key = configValue.ToString();
-                _colors[configValue] = (Color)ColorConverter.ConvertFromString(_rawValues[key] as string);
+                if (!_colors.ContainsKey(configValue))
+                {
+                    string key = configValue.ToString();
+                    _colors[configValue] = (Color)ColorConverter.ConvertFromString(_rawValues[key] as string);
+                }
+                return _colors[configValue];
             }
-            return _colors[configValue];
+            catch
+            {
+                switch (configValue)
+                {
+                    case ConfigValue.treeViewForeground:
+                        return Colors.DarkGray;
+                    case ConfigValue.treeViewHighlightBrushKey:
+                        return Colors.Yellow;
+                    case ConfigValue.treeViewHighlightTextBrushKey:
+                        return Colors.Black;
+                    case ConfigValue.treeViewInactiveSelectionHighlightBrushKey:
+                        return Colors.LightYellow;
+                    case ConfigValue.treeViewInactiveSelectionHighlightTextBrushKey:
+                        return Colors.Black;
+                    case ConfigValue.treeViewSearchResultForeground:
+                        return Colors.Blue;
+                    case ConfigValue.treeViewSearchResultBackground:
+                        return Colors.LightGreen;
+                    case ConfigValue.treeViewSelectedItemParent:
+                        return Color.FromArgb(0x80, Colors.Aquamarine.R, Colors.Aquamarine.G, Colors.Aquamarine.B);
+                    default:
+                        Debug.Assert(false);
+                        return Colors.Transparent;
+                }
+            }
         }
 
         public Brush GetHightlightColor(string key)

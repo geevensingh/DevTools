@@ -20,6 +20,22 @@ namespace JsonViewer
             return item is StretchingTreeViewItem;
         }
 
+        private TreeViewData _selected = null;
+        protected override void OnSelectedItemChanged(RoutedPropertyChangedEventArgs<object> e)
+        {
+            base.OnSelectedItemChanged(e);
+            if (_selected != null)
+            {
+                _selected.IsSelected = false;
+            }
+
+            _selected = this.SelectedValue as TreeViewData;
+            if (_selected != null)
+            {
+                _selected.IsSelected = true;
+            }
+        }
+
         private ItemContainerGenerator GetParentItemContainerGenerator(TreeViewData data)
         {
             var parentList = data.ParentList;

@@ -16,6 +16,9 @@ namespace JsonViewer
         //private TreeViewData _parent;
         private string _oneLineValue = string.Empty;
         private ObservableCollection<TreeViewData> _children = new ObservableCollection<TreeViewData>();
+        bool _isSelected = false;
+        bool _isChildSelected = false;
+
 
         public string KeyName { get => _jsonObject.Key; }
         public string Value
@@ -123,6 +126,10 @@ namespace JsonViewer
                 {
                     return Config.This.GetBrush(ConfigValue.treeViewSearchResultBackground);
                 }
+                if (_isChildSelected && Properties.Settings.Default.HighlightSelectedParents)
+                {
+                    return Config.This.GetBrush(ConfigValue.treeViewSelectedItemParent);
+                }
                 return Brushes.Transparent;
             }
         }
@@ -200,7 +207,7 @@ namespace JsonViewer
         {
             get
             {
-                foreach(TreeViewData child in _children)
+                foreach (TreeViewData child in _children)
                 {
                     if (child.CanExpand)
                     {
@@ -210,6 +217,40 @@ namespace JsonViewer
                 return false;
             }
         }
+
+        internal bool IsChildSelected
+        {
+            get
+            {
+                return _isChildSelected;
+            }
+            set
+            {
+                _isChildSelected = value;
+                this.FirePropertyChanged("BackgroundColor");
+                if (this.Parent != null)
+                {
+                    this.Parent.IsChildSelected = _isChildSelected;
+                }
+            }
+        }
+
+        internal bool IsSelected
+        {
+            get
+            {
+                return _isSelected;
+            }
+            set
+            {
+                _isSelected = value;
+                if (this.Parent != null)
+                {
+                    this.Parent.IsChildSelected = _isSelected;
+                }
+            }
+        }
+
 
         public Visibility ShowTreatAsJson { get => _jsonObject.CanTreatAsJson ? Visibility.Visible : Visibility.Collapsed; }
         public bool TreatAsJson() { return _jsonObject.TreatAsJson(); }

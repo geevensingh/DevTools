@@ -55,6 +55,15 @@ namespace JsonViewer
                 new KeyGesture(Key.O, ModifierKeys.Control)
             });
 
+        public static readonly RoutedUICommand HighlightParents = new RoutedUICommand(
+            text: "HighlightParents",
+            name: "HighlightParents",
+            ownerType: typeof(CommandFactory),
+            inputGestures: new InputGestureCollection()
+            {
+                new KeyGesture(Key.H, ModifierKeys.Control)
+            });
+
         internal static void HideFind_Execute(Finder finder)
         {
             finder.HideWindow();
