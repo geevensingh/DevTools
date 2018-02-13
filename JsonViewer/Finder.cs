@@ -84,12 +84,12 @@ namespace JsonViewer
             bool found = false;
             if (!string.IsNullOrEmpty(_text))
             {
-                bool shouldSearchValue = obj.HasChildren ? this._shouldSearchParentValues : this._shouldSearchValues;
-                if (this._shouldSearchKeys && this.CompareStrings(obj.Key, _text))
+                bool shouldSearchValue = obj.HasChildren ? _shouldSearchParentValues : _shouldSearchValues;
+                if (_shouldSearchKeys && this.CompareStrings(obj.Key, _text))
                 {
                     found = true;
                 }
-                else if (obj.HasChildren ? this._shouldSearchParentValues : this._shouldSearchValues)
+                else if (obj.HasChildren ? _shouldSearchParentValues : _shouldSearchValues)
                 {
                     found = this.CompareStrings(obj.ValueString, _text);
                 }
@@ -112,7 +112,7 @@ namespace JsonViewer
 
         private bool CompareStrings(string text, string substring)
         {
-            if (this._shouldIgnoreCase)
+            if (_shouldIgnoreCase)
             {
                 return text.ToLower().Contains(substring.ToLower());
             }
