@@ -83,14 +83,17 @@
         <CommandBinding Command="local:CommandFactory.OpenJsonFile" Executed="OpenJsonFile_CommandBinding_Executed" />
     </Window.CommandBindings>
     <DockPanel>
-        <Menu DockPanel.Dock="Top">
+        <!--<Menu DockPanel.Dock="Top">
             <MenuItem Header="_File">
                 <MenuItem Command="local:CommandFactory.OpenJsonFile" Header="_Open Json file..." />
                 <Separator />
                 <MenuItem Command="local:CommandFactory.PickConfig" Header="Load _Config file..." />
                 <MenuItem Command="local:CommandFactory.Reload" Header="_Reload current config" />
             </MenuItem>
-        </Menu>
+            <MenuItem Header="_Window">
+                <MenuItem Command="local:CommandFactory.NewWindow" Header="_New Window" />
+            </MenuItem>
+        </Menu>-->
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="auto" />
@@ -100,10 +103,14 @@
             <ToolBarTray Background="White">
                 <ToolBar Band="1" BandIndex="1">
                     <Button x:Name="ExpandAllButton" Click="ExpandAllButton_Click">Expand all</Button>
+                    <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
                     <Button x:Name="CollapseAllButton" Click="CollapseAllButton_Click">Collapse all</Button>
                 </ToolBar>
                 <ToolBar Band="1" BandIndex="2">
+                    <Button x:Name="OpenJsonFileButton" Command="local:CommandFactory.OpenJsonFile">Open Json File</Button>
+                    <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
                     <Button x:Name="PickConfigButton" Command="local:CommandFactory.PickConfig">Pick Config File</Button>
+                    <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
                     <Button x:Name="ReloadButton" Command="local:CommandFactory.Reload">Reload</Button>
                 </ToolBar>
                 <ToolBar Band="1" BandIndex="3">
