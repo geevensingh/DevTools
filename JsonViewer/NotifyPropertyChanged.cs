@@ -10,13 +10,15 @@ namespace JsonViewer
     class NotifyPropertyChanged : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler PropertyChanged;
-        protected void SetValue<T>(ref T member, T newValue, string propertyName)
+        protected bool SetValue<T>(ref T member, T newValue, string propertyName)
         {
             if (!member.Equals(newValue))
             {
                 member = newValue;
                 this.FirePropertyChanged(propertyName);
+                return true;
             }
+            return false;
         }
         protected void FirePropertyChanged(string propertyName)
         {
