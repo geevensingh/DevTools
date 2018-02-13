@@ -27,7 +27,7 @@ namespace JsonViewer
             _refreshCancellationTokenSource.Cancel();
             _refreshCancellationTokenSource = new CancellationTokenSource();
             CancellationToken token = _refreshCancellationTokenSource.Token;
-            IList<JsonObject> list = await Task.Run<List<JsonObject>>(() =>
+            return await Task.Run<RootObject>(() =>
             {
                 System.Web.Script.Serialization.JavaScriptSerializer ser = new System.Web.Script.Serialization.JavaScriptSerializer();
                 if (token.IsCancellationRequested)
@@ -40,15 +40,11 @@ namespace JsonViewer
                     return null;
                 }
 
+                RootObject root = new RootObject();
                 var jsonObjects = new List<JsonObject>();
-                Flatten(ref jsonObjects, jsonObj, null);
-                return jsonObjects;
+                Flatten(ref jsonObjects, jsonObj, root);
+                return root;
             }, token);
-            if (list == null)
-            {
-                return null;
-            }
-            return new RootObject(list);
         }
         public static Dictionary<string, object> TryDeserialize(string jsonString)
         {

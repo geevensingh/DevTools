@@ -122,7 +122,7 @@ namespace JsonViewer
             }
 
             this.SetErrorMessage(string.Empty);
-            this.Tree.ItemsSource = TreeViewDataFactory.CreateCollection(rootObject);
+            this.Tree.ItemsSource = rootObject.ViewChildren;
 
             if (rootObject.TotalChildCount <= 50)
             {

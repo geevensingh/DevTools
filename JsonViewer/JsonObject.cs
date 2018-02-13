@@ -38,18 +38,18 @@ namespace JsonViewer
         public bool IsFindMatch { get => _isFindMatch; set => this.SetValue(ref _isFindMatch, value, "IsFindMatch"); }
 
 
-        public JsonObject(string key, object value, JsonObject parent)
+        protected JsonObject(string key, object value)
         {
             _key = key;
             _value = value;
             _originalString = value as string;
-            _parent = parent;
-            if (_parent != null)
-            {
-                _parent.AddChild(this);
-            }
-
             _typedValue = GetTypedValue(_value, out _dataType);
+        }
+
+        public JsonObject(string key, object value, JsonObject parent) : this(key, value)
+        {
+            _parent = parent;
+            _parent.AddChild(this);
         }
 
         internal TreeViewData ViewObject
@@ -65,19 +65,27 @@ namespace JsonViewer
             }
         }
 
+        internal TreeViewData ResetView()
+        {
+            _viewObject = null;
+            TreeViewDataFactory.CreateNode(this);
+            Debug.Assert(_viewObject != null);
+            return _viewObject;
+        }
+
         public string ParentPath
         {
             get
             {
                 string parentPath = string.Empty;
-                if (this._parent != null)
+                if (_parent != null)
                 {
-                    parentPath = this._parent.ParentPath;
+                    parentPath = _parent.ParentPath;
                     if (!string.IsNullOrEmpty(parentPath))
                     {
                         parentPath += " : ";
                     }
-                    parentPath += this._parent._key;
+                    parentPath += _parent._key;
                 }
 
                 return parentPath;
@@ -116,7 +124,7 @@ namespace JsonViewer
             }
         }
 
-        private void AddChild(JsonObject child)
+        protected virtual void AddChild(JsonObject child)
         {
             Debug.Assert(!this.Children.Contains(child));
             this.Children.Add(child);
@@ -136,14 +144,18 @@ namespace JsonViewer
             _dataType = DataType.Json;
             JsonObjectFactory.Flatten(ref _children, dict, this);
 
-            TreeViewData oldView = _viewObject;
-            TreeViewData viewParent = _viewObject.Parent;
-            _viewObject.RemoveChildren();
-            _viewObject = null;
-            viewParent.ReplaceChild(oldView, TreeViewDataFactory.CreateNode(this));
-            Debug.Assert(_viewObject != null);
+            _parent.RebuildViewObjects(this);
 
             return true;
+        }
+
+        protected virtual void RebuildViewObjects(JsonObject child)
+        {
+            Debug.Assert(_children.Contains(child));
+            int index = _children.IndexOf(child);
+            Debug.Assert(_children[index].ViewObject == _viewObject.Children[index]);
+            _viewObject.Children.RemoveAt(index);
+            _viewObject.Children.Insert(index, child.ResetView());
         }
 
         public bool CanTreatAsText { get => (_dataType == DataType.Json); }
@@ -166,12 +178,8 @@ namespace JsonViewer
             _dataType = DataType.ParsableString;
             _children.Clear();
 
-            TreeViewData oldView = _viewObject;
-            TreeViewData viewParent = _viewObject.Parent;
-            _viewObject.RemoveChildren();
-            _viewObject = null;
-            viewParent.ReplaceChild(oldView, TreeViewDataFactory.CreateNode(this));
-            
+            _parent.RebuildViewObjects(this);
+
             return true;
         }
 

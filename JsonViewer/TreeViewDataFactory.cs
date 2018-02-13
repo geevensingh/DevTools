@@ -12,14 +12,15 @@ namespace JsonViewer
     {
         public static ObservableCollection<TreeViewData> CreateCollection(RootObject rootObject)
         {
-            return new ObservableCollection<TreeViewData>(CreateList(rootObject.Children, null));
+
+            return new ObservableCollection<TreeViewData>(CreateList(rootObject));
         }
-        private static List<TreeViewData> CreateList(IList<JsonObject> jsonObjects, JsonObject parent)
+        private static List<TreeViewData> CreateList(JsonObject jsonObject)
         {
             var result = new List<TreeViewData>();
-            foreach (JsonObject jsonObject in jsonObjects)
+            foreach (JsonObject jsonChildren in jsonObject.Children)
             {
-                result.Add(CreateNode(jsonObject));
+                result.Add(CreateNode(jsonChildren));
             }
             return result;
         }

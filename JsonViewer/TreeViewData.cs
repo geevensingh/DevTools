@@ -54,10 +54,7 @@ namespace JsonViewer
         {
             _jsonObject = jsonObject;
             _jsonObject.ViewObject = this;
-            foreach (JsonObject childData in _jsonObject.Children)
-            {
-                _children.Add(childData.ViewObject);
-            }
+            _children = new ObservableCollection<TreeViewData>(children);
 
             SetValue();
 
@@ -179,15 +176,6 @@ namespace JsonViewer
         internal void RemoveChildren()
         {
             _children.Clear();
-        }
-
-        internal void ReplaceChild(TreeViewData oldChild, TreeViewData newChild)
-        {
-            Debug.Assert(_children.Contains(oldChild));
-            int index = _children.IndexOf(oldChild);
-            Debug.Assert(index >= 0 && index < _children.Count);
-            _children.RemoveAt(index);
-            _children.Insert(index, newChild);
         }
 
         public double FontSize
