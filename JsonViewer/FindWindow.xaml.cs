@@ -52,7 +52,9 @@
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
+            this.textBox.Text = _finder.Text;
             this.textBox.Focus();
+            this.textBox.Select(0, _finder.Text.Length);
         }
 
         private void Tree_CommandBinding_HideFind(object sender, ExecutedRoutedEventArgs e)
