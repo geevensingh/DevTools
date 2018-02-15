@@ -120,6 +120,9 @@
                 <ToolBar Band="1" BandIndex="4">
                     <Button x:Name="NewWindowButton" Command="local:CommandFactory.NewWindow">New Window</Button>
                 </ToolBar>
+                <ToolBar Band="1" BandIndex="5">
+                    <TextBox x:Name="FindTextBox" MinWidth="200" TextChanged="FindTextBox_TextChanged" />
+                </ToolBar>
             </ToolBarTray>
             <TextBlock
                 x:Name="Banner"

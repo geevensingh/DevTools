@@ -20,6 +20,9 @@
 
         public MainWindow()
         {
+            _finder = new Finder(this);
+            _finder.PropertyChanged += OnFinderPropertyChanged;
+
             InitializeComponent();
 #if DEBUG
             var dispatcherTimer = new System.Windows.Threading.DispatcherTimer();
@@ -71,7 +74,8 @@
                 }
             }
 
-            _finder = new Finder(this);
+            FindTextBox.Text = _finder.Text;
+
             Config config = Config.This;
             this.Tree.Foreground = config.GetBrush(ConfigValue.TreeViewForeground);
             this.Tree.Resources[SystemColors.HighlightBrushKey] = config.GetBrush(ConfigValue.TreeViewHighlightBrushKey);
@@ -79,6 +83,15 @@
             this.Tree.Resources[SystemColors.InactiveSelectionHighlightBrushKey] = config.GetBrush(ConfigValue.TreeViewInactiveSelectionHighlightBrushKey);
             this.Tree.Resources[SystemColors.InactiveSelectionHighlightTextBrushKey] = config.GetBrush(ConfigValue.TreeViewInactiveSelectionHighlightTextBrushKey);
             this.HighlightParentsButton.IsChecked = Properties.Settings.Default.HighlightSelectedParents;
+        }
+
+        private void OnFinderPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            Debug.Assert(sender == _finder);
+            if (e.PropertyName == "Text")
+            {
+                this.FindTextBox.Text = _finder.Text;
+            }
         }
 
         private void SetErrorMessage(string message)
@@ -274,6 +287,11 @@
             this.HighlightParentsButton.IsChecked = Properties.Settings.Default.HighlightSelectedParents;
             TreeViewData selected = Tree.SelectedValue as TreeViewData;
             selected.IsSelected = selected.IsSelected;
+        }
+
+        private void FindTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            _finder.Text = FindTextBox.Text;
         }
     }
 }

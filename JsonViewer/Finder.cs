@@ -2,11 +2,11 @@
 {
     using System.Windows;
 
-    internal class Finder
+    public class Finder : NotifyPropertyChanged
     {
         private Window _parentWindow;
         private RootObject _rootObject = null;
-        private string _text = string.Empty;
+        private string _text = "asjkhdakjsdh";
         private bool _shouldSearchKeys = Properties.Settings.Default.FindSearchKeys;
         private bool _shouldSearchValues = Properties.Settings.Default.FindSearchValues;
         private bool _shouldSearchParentValues = Properties.Settings.Default.FindSearchParentValues;
@@ -19,15 +19,65 @@
             _parentWindow = parentWindow;
         }
 
-        public bool ShouldSearchKeys { get => _shouldSearchKeys; }
+        public bool ShouldSearchKeys
+        {
+            get => _shouldSearchKeys;
+            set
+            {
+                if (this.SetValue(ref _shouldSearchKeys, value, "ShouldSearchKeys"))
+                {
+                    Update();
+                }
+            }
+        }
 
-        public bool ShouldSearchValues { get => _shouldSearchValues; }
+        public bool ShouldSearchValues
+        {
+            get => _shouldSearchValues;
+            set
+            {
+                if (this.SetValue(ref _shouldSearchValues, value, "ShouldSearchValues"))
+                {
+                    Update();
+                }
+            }
+        }
 
-        public bool ShouldSearchParentValues { get => _shouldSearchParentValues; }
+        public bool ShouldSearchParentValues
+        {
+            get => _shouldSearchParentValues;
+            set
+            {
+                if (this.SetValue(ref _shouldSearchParentValues, value, "ShouldSearchParentValues"))
+                {
+                    Update();
+                }
+            }
+        }
 
-        public bool ShouldIgnoreCase { get => _shouldIgnoreCase; }
+        public bool ShouldIgnoreCase
+        {
+            get => _shouldIgnoreCase;
+            set
+            {
+                if (this.SetValue(ref _shouldIgnoreCase, value, "ShouldIgnoreCase"))
+                {
+                    Update();
+                }
+            }
+        }
 
-        public string Text { get => _text; }
+        public string Text
+        {
+            get => _text;
+            set
+            {
+                if (this.SetValue(ref _text, value, "Text"))
+                {
+                    Update();
+                }
+            }
+        }
 
         public int HitCount { get => _hitCount; }
 
@@ -36,8 +86,6 @@
             this.HideWindow();
 
             _findWindow = new FindWindow(_parentWindow, this);
-            _findWindow.FindTextChanged += OnFindTextChanged;
-            _findWindow.FindOptionsChanged += OnFindOptionsChanged;
             _findWindow.Show();
         }
 
@@ -50,18 +98,9 @@
             }
         }
 
-        public void SetObjects(RootObject rootObject)
+        internal void SetObjects(RootObject rootObject)
         {
             _rootObject = rootObject;
-        }
-
-        private void OnFindOptionsChanged()
-        {
-            _shouldSearchKeys = _findWindow.ShouldSearchKeys;
-            _shouldSearchValues = _findWindow.ShouldSearchValues;
-            _shouldSearchParentValues = _findWindow.ShouldSearchParentValues;
-            _shouldIgnoreCase = _findWindow.ShouldIgnoreCase;
-            Update();
         }
 
         private void OnFindTextChanged(string oldText, string newText)
@@ -73,9 +112,12 @@
         private void Update()
         {
             int count = 0;
-            Highlight(_rootObject, ref count);
-            _hitCount = count;
-            _findWindow.SetHitCount(count);
+            if (_rootObject != null)
+            {
+                Highlight(_rootObject, ref count);
+            }
+
+            this.SetValue(ref _hitCount, count, "HitCount");
         }
 
         private void Highlight(JsonObject obj, ref int count)

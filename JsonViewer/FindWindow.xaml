@@ -27,43 +27,19 @@
                     MinWidth="200"
                     MaxWidth="600"
                     Margin="5"
-                    Text="{Binding Path=Text, Mode=OneWay}"
+                    Text="{Binding Path=ViewModel.Text, Mode=OneTime}"
                     TextChanged="OnTextBoxTextChanged" />
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Visibility="{Binding Path=HitCountVisible}">
                 <TextBlock Margin="5">Matching elements:</TextBlock>
-                <TextBlock Margin="5" Text="{Binding Path=HitCount}" />
+                <TextBlock Margin="5" Text="{Binding Path=ViewModel.HitCount}" />
             </StackPanel>
 
-            <CheckBox
-                x:Name="ignoreCaseCheckbox"
-                Margin="5"
-                Checked="OnChecked"
-                Unchecked="OnChecked">
-                Ignore case
-            </CheckBox>
-            <CheckBox
-                x:Name="searchKeysCheckbox"
-                Margin="5"
-                Checked="OnChecked"
-                Unchecked="OnChecked">
-                Search keys
-            </CheckBox>
-            <CheckBox
-                x:Name="searchValuesCheckbox"
-                Margin="5"
-                Checked="OnChecked"
-                Unchecked="OnChecked">
-                Search values
-            </CheckBox>
-            <CheckBox
-                x:Name="searchParentValuesCheckbox"
-                Margin="5"
-                Checked="OnChecked"
-                Unchecked="OnChecked">
-                Search parent values
-            </CheckBox>
+            <CheckBox x:Name="ignoreCaseCheckbox" Margin="5" IsChecked="{Binding Path=ViewModel.ShouldIgnoreCase, Mode=TwoWay}">Ignore case</CheckBox>
+            <CheckBox x:Name="searchKeysCheckbox" Margin="5" IsChecked="{Binding Path=ViewModel.ShouldSearchKeys, Mode=TwoWay}">Search keys</CheckBox>
+            <CheckBox x:Name="searchValuesCheckbox" Margin="5" IsChecked="{Binding Path=ViewModel.ShouldSearchValues, Mode=TwoWay}">Search values</CheckBox>
+            <CheckBox x:Name="searchParentValuesCheckbox" Margin="5" IsChecked="{Binding Path=ViewModel.ShouldSearchParentValues, Mode=TwoWay}">Search parent values</CheckBox>
 
         </StackPanel>
     </Border>
