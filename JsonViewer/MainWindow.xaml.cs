@@ -204,6 +204,8 @@
 
         private void NewWindow_CommandBinding_Executed(object sender, ExecutedRoutedEventArgs e)
         {
+            this.SaveWindowPosition();
+
             MainWindow newWindow = new MainWindow();
             newWindow.InitialOffset = new Point(20, 20);
             newWindow.Show();
