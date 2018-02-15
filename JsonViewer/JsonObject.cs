@@ -1,23 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Diagnostics;
-
-namespace JsonViewer
+﻿namespace JsonViewer
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Diagnostics;
+
     internal class JsonObject : NotifyPropertyChanged
     {
-        public enum DataType
-        {
-            Json,
-            Array,
-            Guid,
-            Other,
-            ParsableString
-        }
-
         private JsonObject _parent = null;
         private List<JsonObject> _children = new List<JsonObject>();
         private TreeViewData _viewObject = null;
@@ -28,15 +16,12 @@ namespace JsonViewer
         private DataType _dataType = DataType.Other;
         private bool _isFindMatch = false;
 
-        public string Key { get => _key; }
-        public object RawValue { get => _value; }
-        public object Value { get => _typedValue; }
-        internal JsonObject Parent { get => _parent; }
-        internal virtual IList<JsonObject> Children { get => _children; }
-        internal bool HasChildren { get => this.Children.Count > 0; }
-        public DataType Type { get => _dataType; }
-        public bool IsFindMatch { get => _isFindMatch; set => this.SetValue(ref _isFindMatch, value, "IsFindMatch"); }
-
+        public JsonObject(string key, object value, JsonObject parent)
+            : this(key, value)
+        {
+            _parent = parent;
+            _parent.AddChild(this);
+        }
 
         protected JsonObject(string key, object value)
         {
@@ -46,32 +31,34 @@ namespace JsonViewer
             _typedValue = GetTypedValue(_value, out _dataType);
         }
 
-        public JsonObject(string key, object value, JsonObject parent) : this(key, value)
+        public enum DataType
         {
-            _parent = parent;
-            _parent.AddChild(this);
+            Json,
+            Array,
+            Guid,
+            Other,
+            ParsableString
         }
 
-        internal TreeViewData ViewObject
-        {
-            get
-            {
-                return _viewObject;
-            }
-            set
-            {
-                Debug.Assert(_viewObject == null);
-                _viewObject = value;
-            }
-        }
+        public string Key { get => _key; }
 
-        internal TreeViewData ResetView()
-        {
-            _viewObject = null;
-            TreeViewDataFactory.CreateNode(this);
-            Debug.Assert(_viewObject != null);
-            return _viewObject;
-        }
+        public object RawValue { get => _value; }
+
+        public object Value { get => _typedValue; }
+
+        public JsonObject Parent { get => _parent; }
+
+        public virtual IList<JsonObject> Children { get => _children; }
+
+        public bool HasChildren { get => this.Children.Count > 0; }
+
+        public DataType Type { get => _dataType; }
+
+        public bool IsFindMatch { get => _isFindMatch; set => this.SetValue(ref _isFindMatch, value, "IsFindMatch"); }
+
+        public bool CanTreatAsJson { get => _dataType == DataType.ParsableString; }
+
+        public bool CanTreatAsText { get => _dataType == DataType.Json; }
 
         public string ParentPath
         {
@@ -85,6 +72,7 @@ namespace JsonViewer
                     {
                         parentPath += " : ";
                     }
+
                     parentPath += _parent._key;
                 }
 
@@ -120,17 +108,25 @@ namespace JsonViewer
                 {
                     result += child.TotalChildCount;
                 }
+
                 return result;
             }
         }
 
-        protected virtual void AddChild(JsonObject child)
+        internal TreeViewData ViewObject
         {
-            Debug.Assert(!this.Children.Contains(child));
-            this.Children.Add(child);
+            get
+            {
+                return _viewObject;
+            }
+
+            set
+            {
+                Debug.Assert(_viewObject == null);
+                _viewObject = value;
+            }
         }
 
-        public bool CanTreatAsJson { get => (_dataType == DataType.ParsableString); }
         public bool TreatAsJson()
         {
             if (!this.CanTreatAsJson)
@@ -149,16 +145,6 @@ namespace JsonViewer
             return true;
         }
 
-        protected virtual void RebuildViewObjects(JsonObject child)
-        {
-            Debug.Assert(_children.Contains(child));
-            int index = _children.IndexOf(child);
-            Debug.Assert(_children[index].ViewObject == _viewObject.Children[index]);
-            _viewObject.Children.RemoveAt(index);
-            _viewObject.Children.Insert(index, child.ResetView());
-        }
-
-        public bool CanTreatAsText { get => (_dataType == DataType.Json); }
         public bool TreatAsText()
         {
             if (!this.CanTreatAsText)
@@ -175,6 +161,7 @@ namespace JsonViewer
             {
                 _value = _originalString;
             }
+
             _dataType = DataType.ParsableString;
             _children.Clear();
 
@@ -183,8 +170,30 @@ namespace JsonViewer
             return true;
         }
 
+        internal TreeViewData ResetView()
+        {
+            _viewObject = null;
+            TreeViewDataFactory.CreateNode(this);
+            Debug.Assert(_viewObject != null);
+            return _viewObject;
+        }
 
-        static private object GetTypedValue(object value, out DataType dataType)
+        protected virtual void AddChild(JsonObject child)
+        {
+            Debug.Assert(!this.Children.Contains(child));
+            this.Children.Add(child);
+        }
+
+        protected virtual void RebuildViewObjects(JsonObject child)
+        {
+            Debug.Assert(_children.Contains(child));
+            int index = _children.IndexOf(child);
+            Debug.Assert(_children[index].ViewObject == _viewObject.Children[index]);
+            _viewObject.Children.RemoveAt(index);
+            _viewObject.Children.Insert(index, child.ResetView());
+        }
+
+        private static object GetTypedValue(object value, out DataType dataType)
         {
             dataType = DataType.Other;
             if (value == null)
@@ -242,8 +251,9 @@ namespace JsonViewer
                 Uri uri = new Uri(str);
                 return uri;
             }
-            catch (UriFormatException) { }
-
+            catch (UriFormatException)
+            {
+            }
 
             Dictionary<string, object> jsonObj = JsonObjectFactory.TryDeserialize(str);
             if (jsonObj != null)

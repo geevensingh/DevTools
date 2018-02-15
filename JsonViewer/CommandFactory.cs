@@ -1,68 +1,50 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Input;
-using System.Diagnostics;
-
-namespace JsonViewer
+﻿namespace JsonViewer
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Diagnostics;
+    using System.Linq;
+    using System.Text;
+    using System.Threading.Tasks;
+    using System.Windows.Input;
+
     internal static class CommandFactory
     {
         public static readonly RoutedUICommand NewWindow = new RoutedUICommand(
             text: "New Window",
             name: "NewWindow",
             ownerType: typeof(CommandFactory),
-            inputGestures: new InputGestureCollection()
-            {
-                new KeyGesture(Key.N, ModifierKeys.Control)
-            });
+            inputGestures: new InputGestureCollection() { new KeyGesture(Key.N, ModifierKeys.Control) });
 
         public static readonly RoutedUICommand Reload = new RoutedUICommand(
             text: "Reload",
             name: "Reload",
             ownerType: typeof(CommandFactory),
-            inputGestures: new InputGestureCollection()
-            {
-                new KeyGesture(Key.F5)
-            });
+            inputGestures: new InputGestureCollection() { new KeyGesture(Key.F5) });
 
         public static readonly RoutedUICommand PickConfig = new RoutedUICommand(
             text: "PickConfig",
             name: "PickConfig",
             ownerType: typeof(CommandFactory),
-            inputGestures: new InputGestureCollection()
-            {
-                new KeyGesture(Key.L, ModifierKeys.Control)
-            });
+            inputGestures: new InputGestureCollection() { new KeyGesture(Key.L, ModifierKeys.Control) });
 
         public static readonly RoutedUICommand HideFind = new RoutedUICommand(
             text: "HideFindWindow",
             name: "HideFindWindow",
             ownerType: typeof(CommandFactory),
-            inputGestures: new InputGestureCollection()
-            {
-                new KeyGesture(Key.Escape)
-            });
+            inputGestures: new InputGestureCollection() { new KeyGesture(Key.Escape) });
 
         public static readonly RoutedUICommand OpenJsonFile = new RoutedUICommand(
             text: "OpenJsonFile",
             name: "OpenJsonFile",
             ownerType: typeof(CommandFactory),
-            inputGestures: new InputGestureCollection()
-            {
-                new KeyGesture(Key.O, ModifierKeys.Control)
-            });
+            inputGestures: new InputGestureCollection() { new KeyGesture(Key.O, ModifierKeys.Control) });
 
         public static readonly RoutedUICommand HighlightParents = new RoutedUICommand(
             text: "HighlightParents",
             name: "HighlightParents",
             ownerType: typeof(CommandFactory),
-            inputGestures: new InputGestureCollection()
-            {
-                new KeyGesture(Key.H, ModifierKeys.Control)
-            });
+            inputGestures: new InputGestureCollection() { new KeyGesture(Key.H, ModifierKeys.Control) });
 
         internal static void HideFind_Execute(Finder finder)
         {

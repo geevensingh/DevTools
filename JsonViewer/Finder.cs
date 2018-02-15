@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
-
-namespace JsonViewer
+﻿namespace JsonViewer
 {
+    using System.Windows;
+
     internal class Finder
     {
         private Window _parentWindow;
@@ -24,6 +19,18 @@ namespace JsonViewer
             _parentWindow = parentWindow;
         }
 
+        public bool ShouldSearchKeys { get => _shouldSearchKeys; }
+
+        public bool ShouldSearchValues { get => _shouldSearchValues; }
+
+        public bool ShouldSearchParentValues { get => _shouldSearchParentValues; }
+
+        public bool ShouldIgnoreCase { get => _shouldIgnoreCase; }
+
+        public string Text { get => _text; }
+
+        public int HitCount { get => _hitCount; }
+
         public void ShowWindow()
         {
             this.HideWindow();
@@ -38,18 +45,10 @@ namespace JsonViewer
         {
             if (_findWindow != null)
             {
-                //_findWindow.FindTextChanged -= _textCa
                 _findWindow.Close();
                 _findWindow = null;
             }
         }
-
-        public bool ShouldSearchKeys { get => _shouldSearchKeys; }
-        public bool ShouldSearchValues { get => _shouldSearchValues; }
-        public bool ShouldSearchParentValues { get => _shouldSearchParentValues; }
-        public bool ShouldIgnoreCase { get => _shouldIgnoreCase; }
-        public string Text { get => _text; }
-        public int HitCount { get => _hitCount; }
 
         public void SetObjects(RootObject rootObject)
         {
@@ -99,6 +98,7 @@ namespace JsonViewer
             {
                 count++;
             }
+
             obj.IsFindMatch = found;
 
             if (obj.HasChildren)
@@ -116,6 +116,7 @@ namespace JsonViewer
             {
                 return text.ToLower().Contains(substring.ToLower());
             }
+
             return text.Contains(substring);
         }
     }

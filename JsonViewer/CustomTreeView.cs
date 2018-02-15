@@ -1,56 +1,13 @@
-﻿using System;
-using System.Windows;
-using System.Windows.Controls;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Diagnostics;
-
-namespace JsonViewer
+﻿namespace JsonViewer
 {
+    using System;
+    using System.Diagnostics;
+    using System.Windows;
+    using System.Windows.Controls;
+
     internal class CustomTreeView : TreeView
     {
-        protected override DependencyObject GetContainerForItemOverride()
-        {
-            return new StretchingTreeViewItem();
-        }
-        protected override bool IsItemItsOwnContainerOverride(object item)
-        {
-            return item is StretchingTreeViewItem;
-        }
-
         private TreeViewData _selected = null;
-        protected override void OnSelectedItemChanged(RoutedPropertyChangedEventArgs<object> e)
-        {
-            base.OnSelectedItemChanged(e);
-            if (_selected != null)
-            {
-                _selected.IsSelected = false;
-            }
-
-            _selected = this.SelectedValue as TreeViewData;
-            if (_selected != null)
-            {
-                _selected.IsSelected = true;
-            }
-        }
-
-        private ItemContainerGenerator GetParentItemContainerGenerator(TreeViewData data)
-        {
-            var parentList = data.ParentList;
-            var generator = this.ItemContainerGenerator;
-            for (int ii = 0; ii < parentList.Count; ii++)
-            {
-                generator = (generator.ContainerFromItem(parentList[ii]) as TreeViewItem).ItemContainerGenerator;
-            }
-            return generator;
-        }
-
-        private TreeViewItem GetItem(TreeViewData data)
-        {
-            return GetParentItemContainerGenerator(data).ContainerFromItem(data) as TreeViewItem;
-        }
 
         public void ExpandChildren(TreeViewData data)
         {
@@ -62,15 +19,16 @@ namespace JsonViewer
             {
                 if (child.HasChildren)
                 {
-                    this.Dispatcher.BeginInvoke(new Action(() =>
-                    {
-                        TreeViewItem asyncChildItem = (TreeViewItem)item.ItemContainerGenerator.ContainerFromItem(child);
-                        Debug.Assert(asyncChildItem != null);
-                        if (asyncChildItem != null)
+                    this.Dispatcher.BeginInvoke(
+                        new Action(() =>
                         {
-                            asyncChildItem.IsExpanded = true;
-                        }
-                    }), System.Windows.Threading.DispatcherPriority.Background);
+                            TreeViewItem asyncChildItem = (TreeViewItem)item.ItemContainerGenerator.ContainerFromItem(child);
+                            Debug.Assert(asyncChildItem != null);
+                            if (asyncChildItem != null)
+                            {
+                                asyncChildItem.IsExpanded = true;
+                            }
+                        }), System.Windows.Threading.DispatcherPriority.Background);
                 }
             }
         }
@@ -78,11 +36,6 @@ namespace JsonViewer
         public void ExpandSubtree(TreeViewData data)
         {
             this.ExpandSubtree(GetParentItemContainerGenerator(data), data);
-        }
-        private void ExpandSubtree(ItemContainerGenerator parentContainerGenerator, TreeViewData data)
-        {
-            Debug.Assert(parentContainerGenerator.ContainerFromItem(data) != null);
-            base.ExpandSubtree(parentContainerGenerator.ContainerFromItem(data) as TreeViewItem);
         }
 
         public void ExpandAll()
@@ -108,9 +61,57 @@ namespace JsonViewer
             }
         }
 
+        protected override DependencyObject GetContainerForItemOverride()
+        {
+            return new StretchingTreeViewItem();
+        }
+
+        protected override bool IsItemItsOwnContainerOverride(object item)
+        {
+            return item is StretchingTreeViewItem;
+        }
+
+        protected override void OnSelectedItemChanged(RoutedPropertyChangedEventArgs<object> e)
+        {
+            base.OnSelectedItemChanged(e);
+            if (_selected != null)
+            {
+                _selected.IsSelected = false;
+            }
+
+            _selected = this.SelectedValue as TreeViewData;
+            if (_selected != null)
+            {
+                _selected.IsSelected = true;
+            }
+        }
+
+        private ItemContainerGenerator GetParentItemContainerGenerator(TreeViewData data)
+        {
+            var parentList = data.ParentList;
+            var generator = this.ItemContainerGenerator;
+            for (int ii = 0; ii < parentList.Count; ii++)
+            {
+                generator = (generator.ContainerFromItem(parentList[ii]) as TreeViewItem).ItemContainerGenerator;
+            }
+
+            return generator;
+        }
+
+        private TreeViewItem GetItem(TreeViewData data)
+        {
+            return GetParentItemContainerGenerator(data).ContainerFromItem(data) as TreeViewItem;
+        }
+
+        private void ExpandSubtree(ItemContainerGenerator parentContainerGenerator, TreeViewData data)
+        {
+            Debug.Assert(parentContainerGenerator.ContainerFromItem(data) != null);
+            this.ExpandSubtree(parentContainerGenerator.ContainerFromItem(data) as TreeViewItem);
+        }
+
         private void CollapseSubtree(ItemContainerGenerator parentContainerGenerator, TreeViewData data)
         {
-            TreeViewItem tvi = (parentContainerGenerator.ContainerFromItem(data) as TreeViewItem);
+            TreeViewItem tvi = parentContainerGenerator.ContainerFromItem(data) as TreeViewItem;
             if (tvi != null)
             {
                 tvi.IsExpanded = false;

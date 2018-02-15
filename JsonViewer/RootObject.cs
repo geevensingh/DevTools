@@ -1,14 +1,14 @@
-﻿using System.Collections.Generic;
-using System.Diagnostics;
-using System.Collections.ObjectModel;
-
-namespace JsonViewer
+﻿namespace JsonViewer
 {
-    class RootObject : JsonObject
-    {
-        ObservableCollection<TreeViewData> _viewChildren = null;
+    using System.Collections.ObjectModel;
+    using System.Diagnostics;
 
-        public RootObject() : base(string.Empty, string.Empty)
+    internal class RootObject : JsonObject
+    {
+        private ObservableCollection<TreeViewData> _viewChildren = null;
+
+        public RootObject()
+            : base(string.Empty, string.Empty)
         {
         }
 
@@ -20,6 +20,7 @@ namespace JsonViewer
                 {
                     _viewChildren = TreeViewDataFactory.CreateCollection(this);
                 }
+
                 Debug.Assert(_viewChildren != null);
                 return _viewChildren;
             }

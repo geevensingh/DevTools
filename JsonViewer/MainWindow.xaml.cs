@@ -1,24 +1,22 @@
-﻿using System;
-using System.ComponentModel;
-using System.Diagnostics;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Input;
-using Microsoft.Win32;
-using Utilities;
-
-namespace JsonViewer
+﻿namespace JsonViewer
 {
+    using System;
+    using System.ComponentModel;
+    using System.Diagnostics;
+    using System.Threading.Tasks;
+    using System.Windows;
+    using System.Windows.Controls;
+    using System.Windows.Input;
+    using Microsoft.Win32;
+    using Utilities;
+
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
     public partial class MainWindow : Window
     {
-        Finder _finder;
-        Point? _initialOffset = null;
-
-        public Point InitialOffset { set => _initialOffset = value; }
+        private Finder _finder;
+        private Point? _initialOffset = null;
 
         public MainWindow()
         {
@@ -38,6 +36,8 @@ namespace JsonViewer
 #endif
         }
 
+        public Point InitialOffset { set => _initialOffset = value; }
+
         protected override void OnSourceInitialized(EventArgs e)
         {
             base.OnSourceInitialized(e);
@@ -48,16 +48,16 @@ namespace JsonViewer
             }
         }
 
-        private void SaveWindowPosition()
-        {
-            Properties.Settings.Default.MainWindowPlacement = WindowPlacementSerializer.GetPlacement(this);
-            Properties.Settings.Default.Save();
-        }
-
         protected override void OnClosing(CancelEventArgs e)
         {
             this.SaveWindowPosition();
             base.OnClosing(e);
+        }
+
+        private void SaveWindowPosition()
+        {
+            Properties.Settings.Default.MainWindowPlacement = WindowPlacementSerializer.GetPlacement(this);
+            Properties.Settings.Default.Save();
         }
 
         private void OnLoaded(object sender, RoutedEventArgs e)
@@ -73,11 +73,11 @@ namespace JsonViewer
 
             _finder = new Finder(this);
             Config config = Config.This;
-            this.Tree.Foreground = config.GetBrush(ConfigValue.treeViewForeground);
-            this.Tree.Resources[SystemColors.HighlightBrushKey] = config.GetBrush(ConfigValue.treeViewHighlightBrushKey);
-            this.Tree.Resources[SystemColors.HighlightTextBrushKey] = config.GetBrush(ConfigValue.treeViewHighlightTextBrushKey);
-            this.Tree.Resources[SystemColors.InactiveSelectionHighlightBrushKey] = config.GetBrush(ConfigValue.treeViewInactiveSelectionHighlightBrushKey);
-            this.Tree.Resources[SystemColors.InactiveSelectionHighlightTextBrushKey] = config.GetBrush(ConfigValue.treeViewInactiveSelectionHighlightTextBrushKey);
+            this.Tree.Foreground = config.GetBrush(ConfigValue.TreeViewForeground);
+            this.Tree.Resources[SystemColors.HighlightBrushKey] = config.GetBrush(ConfigValue.TreeViewHighlightBrushKey);
+            this.Tree.Resources[SystemColors.HighlightTextBrushKey] = config.GetBrush(ConfigValue.TreeViewHighlightTextBrushKey);
+            this.Tree.Resources[SystemColors.InactiveSelectionHighlightBrushKey] = config.GetBrush(ConfigValue.TreeViewInactiveSelectionHighlightBrushKey);
+            this.Tree.Resources[SystemColors.InactiveSelectionHighlightTextBrushKey] = config.GetBrush(ConfigValue.TreeViewInactiveSelectionHighlightTextBrushKey);
             this.HighlightParentsButton.IsChecked = Properties.Settings.Default.HighlightSelectedParents;
         }
 
@@ -129,13 +129,14 @@ namespace JsonViewer
             {
                 this.Tree.ExpandAll();
             }
+
             return true;
         }
 
         private void ContextExpandChildren_Click(object sender, RoutedEventArgs e)
         {
             Debug.Assert(sender as FrameworkElement == sender);
-            FrameworkElement element = (sender as FrameworkElement);
+            FrameworkElement element = sender as FrameworkElement;
             Debug.Assert(element.DataContext.GetType() == typeof(TreeViewData));
             this.Tree.ExpandChildren(element.DataContext as TreeViewData);
         }
@@ -143,7 +144,7 @@ namespace JsonViewer
         private void ContextExpandAll_Click(object sender, RoutedEventArgs e)
         {
             Debug.Assert(sender as FrameworkElement == sender);
-            FrameworkElement element = (sender as FrameworkElement);
+            FrameworkElement element = sender as FrameworkElement;
             Debug.Assert(element.DataContext.GetType() == typeof(TreeViewData));
             this.Tree.ExpandSubtree(element.DataContext as TreeViewData);
         }
@@ -151,7 +152,7 @@ namespace JsonViewer
         private void ContextCollapseAll_Click(object sender, RoutedEventArgs e)
         {
             Debug.Assert(sender as FrameworkElement == sender);
-            FrameworkElement element = (sender as FrameworkElement);
+            FrameworkElement element = sender as FrameworkElement;
             Debug.Assert(element.DataContext.GetType() == typeof(TreeViewData));
             this.Tree.CollapseSubtree(element.DataContext as TreeViewData);
         }
@@ -160,6 +161,7 @@ namespace JsonViewer
         {
             this.Tree.ExpandAll();
         }
+
         private void CollapseAllButton_Click(object sender, RoutedEventArgs e)
         {
             this.Tree.CollapseAll();
@@ -169,6 +171,7 @@ namespace JsonViewer
         {
             Clipboard.SetText(((sender as FrameworkElement).DataContext as TreeViewData).Value);
         }
+
         private void ContextCopyEscapedValue_Click(object sender, RoutedEventArgs e)
         {
             Clipboard.SetText(CSEscape.Escape(((sender as FrameworkElement).DataContext as TreeViewData).Value));
@@ -241,19 +244,24 @@ namespace JsonViewer
                 {
                     this.Raw_TextBox.Text = System.IO.File.ReadAllText(filePath);
                 }
-                catch { }
+                catch
+                {
+                }
             }
         }
 
         private string PickJsonFile()
         {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Filter = "Json files (*.json)|*.json|All files (*.*)|*.*";
+            OpenFileDialog openFileDialog = new OpenFileDialog
+            {
+                Filter = "Json files (*.json)|*.json|All files (*.*)|*.*"
+            };
             bool? ofdResult = openFileDialog.ShowDialog(this);
             if (ofdResult.HasValue && ofdResult.Value)
             {
                 return openFileDialog.FileName;
             }
+
             return null;
         }
 
@@ -262,7 +270,7 @@ namespace JsonViewer
             Properties.Settings.Default.HighlightSelectedParents = !Properties.Settings.Default.HighlightSelectedParents;
             Properties.Settings.Default.Save();
             this.HighlightParentsButton.IsChecked = Properties.Settings.Default.HighlightSelectedParents;
-            TreeViewData selected = (this.Tree.SelectedValue as TreeViewData);
+            TreeViewData selected = Tree.SelectedValue as TreeViewData;
             selected.IsSelected = selected.IsSelected;
         }
     }

@@ -1,16 +1,24 @@
-﻿using System;
-using System.IO;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Xml;
-using System.Xml.Serialization;
-using System.Windows;
-using System.Windows.Interop;
-
-namespace JsonViewer
+﻿namespace JsonViewer
 {
+#pragma warning disable SA1129 // Do not use default value type constructor
+#pragma warning disable SA1201 // Elements must appear in the correct order
+#pragma warning disable SA1307 // Accessible fields must begin with upper-case letter
+#pragma warning disable SA1310 // Field names must not contain underscore
+
+    using System;
+    using System.IO;
+    using System.Runtime.InteropServices;
+    using System.Text;
+    using System.Windows;
+    using System.Windows.Interop;
+    using System.Xml;
+    using System.Xml.Serialization;
+
     public static class WindowPlacementSerializer
     {
+        private const int SW_SHOWNORMAL = 1;
+        private const int SW_SHOWMINIMIZED = 2;
+
         // RECT structure required by WINDOWPLACEMENT structure
         [Serializable]
         [StructLayout(LayoutKind.Sequential)]
@@ -67,11 +75,8 @@ namespace JsonViewer
             public static extern bool SetWindowPlacement(IntPtr hWnd, [In] ref WINDOWPLACEMENT lpwndpl);
 
             [DllImport("user32.dll")]
-            public  static extern bool GetWindowPlacement(IntPtr hWnd, out WINDOWPLACEMENT lpwndpl);
+            public static extern bool GetWindowPlacement(IntPtr hWnd, out WINDOWPLACEMENT lpwndpl);
         }
-
-        private const int SW_SHOWNORMAL = 1;
-        private const int SW_SHOWMINIMIZED = 2;
 
         public static void SetPlacement(Window window, string placementXml, Point? offset = null)
         {
@@ -98,7 +103,7 @@ namespace JsonViewer
 
                 placement.length = Marshal.SizeOf(typeof(WINDOWPLACEMENT));
                 placement.flags = 0;
-                placement.showCmd = (placement.showCmd == SW_SHOWMINIMIZED ? SW_SHOWNORMAL : placement.showCmd);
+                placement.showCmd = placement.showCmd == SW_SHOWMINIMIZED ? SW_SHOWNORMAL : placement.showCmd;
                 placement.normalPosition.Left += (int)Math.Floor(realOffset.X);
                 placement.normalPosition.Right += (int)Math.Floor(realOffset.X);
                 placement.normalPosition.Top += (int)Math.Floor(realOffset.Y);
