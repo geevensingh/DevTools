@@ -24,6 +24,15 @@
             SetValue();
 
             _jsonObject.PropertyChanged += OnDataModelPropertyChanged;
+            Properties.Settings.Default.PropertyChanged += OnSettingsPropertyChanged;
+        }
+
+        private void OnSettingsPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == "HighlightSelectedParents" && _isChildSelected)
+            {
+                this.FirePropertyChanged("BackgroundColor");
+            }
         }
 
         public string KeyName { get => _jsonObject.Key; }
