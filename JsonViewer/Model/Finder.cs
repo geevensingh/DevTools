@@ -6,7 +6,7 @@
     {
         private Window _parentWindow;
         private RootObject _rootObject = null;
-        private string _text = string.Empty;
+        private string _text = Properties.Settings.Default.FindText;
         private bool _shouldSearchKeys = Properties.Settings.Default.FindSearchKeys;
         private bool _shouldSearchValues = Properties.Settings.Default.FindSearchValues;
         private bool _shouldSearchParentValues = Properties.Settings.Default.FindSearchParentValues;
@@ -26,6 +26,9 @@
             {
                 if (this.SetValue(ref _shouldSearchKeys, value, "ShouldSearchKeys"))
                 {
+                    Properties.Settings.Default.FindSearchKeys = _shouldSearchKeys;
+                    Properties.Settings.Default.Save();
+
                     Update();
                 }
             }
@@ -38,6 +41,9 @@
             {
                 if (this.SetValue(ref _shouldSearchValues, value, "ShouldSearchValues"))
                 {
+                    Properties.Settings.Default.FindSearchValues = _shouldSearchValues;
+                    Properties.Settings.Default.Save();
+
                     Update();
                 }
             }
@@ -50,6 +56,9 @@
             {
                 if (this.SetValue(ref _shouldSearchParentValues, value, "ShouldSearchParentValues"))
                 {
+                    Properties.Settings.Default.FindSearchParentValues = _shouldSearchParentValues;
+                    Properties.Settings.Default.Save();
+
                     Update();
                 }
             }
@@ -62,6 +71,9 @@
             {
                 if (this.SetValue(ref _shouldIgnoreCase, value, "ShouldIgnoreCase"))
                 {
+                    Properties.Settings.Default.FindIgnoreCase = _shouldIgnoreCase;
+                    Properties.Settings.Default.Save();
+
                     Update();
                 }
             }
@@ -74,6 +86,9 @@
             {
                 if (this.SetValue(ref _text, value, "Text"))
                 {
+                    Properties.Settings.Default.FindText = _text;
+                    Properties.Settings.Default.Save();
+
                     Update();
                 }
             }
@@ -101,11 +116,6 @@
         internal void SetObjects(RootObject rootObject)
         {
             _rootObject = rootObject;
-        }
-
-        private void OnFindTextChanged(string oldText, string newText)
-        {
-            _text = newText;
             Update();
         }
 

@@ -24,6 +24,7 @@
             _finder.PropertyChanged += OnFinderPropertyChanged;
 
             InitializeComponent();
+
 #if DEBUG
             var dispatcherTimer = new System.Windows.Threading.DispatcherTimer();
             dispatcherTimer.Tick += new EventHandler((object o, EventArgs ea) =>
@@ -31,7 +32,7 @@
                 dispatcherTimer.Stop();
                 if (string.IsNullOrEmpty(this.Raw_TextBox.Text))
                 {
-                    this.Raw_TextBox.Text = System.IO.File.ReadAllText(@"S:\Repos\DevTools\JsonViewer\Test.json");
+                    this.Raw_TextBox.Text = System.IO.File.ReadAllText(@"S:\Repos\DevTools\JsonViewer\Examples Json\Test.json");
                 }
             });
             dispatcherTimer.Interval = new TimeSpan(0, 0, 1);
@@ -65,14 +66,20 @@
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
-            if (Clipboard.ContainsText())
+            App app = (App)App.Current;
+            string initialText = app.InitialText;
+            app.InitialText = string.Empty;
+
+            if (string.IsNullOrEmpty(initialText) && Clipboard.ContainsText())
             {
                 string jsonString = Clipboard.GetText();
                 if (JsonObjectFactory.TryDeserialize(jsonString) != null)
                 {
-                    this.Raw_TextBox.Text = jsonString;
+                    initialText = jsonString;
                 }
             }
+
+            this.Raw_TextBox.Text = initialText;
 
             FindTextBox.Text = _finder.Text;
 

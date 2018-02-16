@@ -68,6 +68,11 @@
         {
             get
             {
+                if (this._isSelected)
+                {
+                    return Config.This.GetBrush(ConfigValue.TreeViewHighlightTextBrushKey);
+                }
+
                 if (_jsonObject.IsFindMatch)
                 {
                     return Config.This.GetBrush(ConfigValue.TreeViewSearchResultForeground);
@@ -81,6 +86,11 @@
         {
             get
             {
+                if (this._isSelected)
+                {
+                    return Config.This.GetBrush(ConfigValue.TreeViewHighlightBrushKey);
+                }
+
                 if (_jsonObject.IsFindMatch)
                 {
                     return Config.This.GetBrush(ConfigValue.TreeViewSearchResultBackground);
@@ -148,11 +158,12 @@
 
             set
             {
-                _isChildSelected = value;
-                this.FirePropertyChanged("BackgroundColor");
-                if (this.Parent != null)
+                if (this.SetValue(ref _isChildSelected, value, new string[] { "BackgroundColor", "TextColor" }))
                 {
-                    this.Parent.IsChildSelected = _isChildSelected;
+                    if (this.Parent != null)
+                    {
+                        this.Parent.IsChildSelected = _isChildSelected;
+                    }
                 }
             }
         }
@@ -166,10 +177,12 @@
 
             set
             {
-                _isSelected = value;
-                if (this.Parent != null)
+                if (this.SetValue(ref _isSelected, value, new string[] { "BackgroundColor", "TextColor" }))
                 {
-                    this.Parent.IsChildSelected = _isSelected;
+                    if (this.Parent != null)
+                    {
+                        this.Parent.IsChildSelected = _isSelected;
+                    }
                 }
             }
         }

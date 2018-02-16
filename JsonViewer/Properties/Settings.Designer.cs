@@ -118,5 +118,17 @@ namespace JsonViewer.Properties {
                 this["HighlightSelectedParents"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string FindText {
+            get {
+                return ((string)(this["FindText"]));
+            }
+            set {
+                this["FindText"] = value;
+            }
+        }
     }
 }

@@ -44,6 +44,11 @@
             return NotifyPropertyChanged.SetValue(ref member, newValue, propertyName, this, this.PropertyChanged);
         }
 
+        protected bool SetValue<T>(ref T member, T newValue, string[] propertyNames)
+        {
+            return NotifyPropertyChanged.SetValue(ref member, newValue, propertyNames, this, this.PropertyChanged);
+        }
+
         protected void FirePropertyChanged(string propertyName)
         {
             NotifyPropertyChanged.FirePropertyChanged(propertyName, this, this.PropertyChanged);
