@@ -14,6 +14,27 @@
     <WarningLevel>4</WarningLevel>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <CodeAnalysisRuleSet>JsonViewer.ruleset</CodeAnalysisRuleSet>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <PublishUrl>\\geevens-server\public\JsonViewer\</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Unc</InstallFrom>
+    <UpdateEnabled>true</UpdateEnabled>
+    <UpdateMode>Background</UpdateMode>
+    <UpdateInterval>7</UpdateInterval>
+    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
+    <UpdatePeriodically>true</UpdatePeriodically>
+    <UpdateRequired>false</UpdateRequired>
+    <MapFileExtensions>true</MapFileExtensions>
+    <SupportUrl>file://geevens-server/public/JsonViewer/publish.htm</SupportUrl>
+    <ProductName>Json Viewer</ProductName>
+    <PublisherName>Geeven Singh</PublisherName>
+    <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
+    <WebPage>publish.htm</WebPage>
+    <ApplicationRevision>8</ApplicationRevision>
+    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <UseApplicationTrust>false</UseApplicationTrust>
+    <PublishWizardCompleted>true</PublishWizardCompleted>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -36,9 +57,28 @@
     <WarningLevel>4</WarningLevel>
     <RunCodeAnalysis>true</RunCodeAnalysis>
   </PropertyGroup>
+  <PropertyGroup>
+    <ManifestCertificateThumbprint>C4359A10D7D3B54169390A4B14D41DB044D98F4C</ManifestCertificateThumbprint>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ManifestKeyFile>JsonViewer_TemporaryKey.pfx</ManifestKeyFile>
+  </PropertyGroup>
+  <PropertyGroup>
+    <GenerateManifests>true</GenerateManifests>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignManifests>true</SignManifests>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>Resources\json_light_128.ico</ApplicationIcon>
+  </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject>JsonViewer.App</StartupObject>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Data" />
+    <Reference Include="System.Drawing" />
     <Reference Include="System.Web.Extensions" />
     <Reference Include="System.Xml" />
     <Reference Include="Microsoft.CSharp" />
@@ -58,27 +98,27 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="CommandFactory.cs" />
-    <Compile Include="Config.cs" />
+    <Compile Include="View\CommandFactory.cs" />
+    <Compile Include="Model\Config.cs" />
     <Compile Include="CSEscape.cs" />
-    <Compile Include="CustomTreeView.cs" />
-    <Compile Include="Finder.cs" />
-    <Compile Include="FindWindow.xaml.cs">
+    <Compile Include="View\CustomTreeView.cs" />
+    <Compile Include="Model\Finder.cs" />
+    <Compile Include="View\FindWindow.xaml.cs">
       <DependentUpon>FindWindow.xaml</DependentUpon>
     </Compile>
-    <Compile Include="JsonObject.cs" />
-    <Compile Include="JsonObjectFactory.cs" />
+    <Compile Include="Model\JsonObject.cs" />
+    <Compile Include="Model\JsonObjectFactory.cs" />
     <Compile Include="NotifyPropertyChanged.cs" />
-    <Compile Include="RootObject.cs" />
-    <Compile Include="StretchingTreeViewItem.cs" />
-    <Compile Include="TreeViewData.cs" />
-    <Compile Include="TreeViewDataFactory.cs" />
-    <Compile Include="WindowPlacementSerializer.cs" />
-    <Page Include="FindWindow.xaml">
+    <Compile Include="Model\RootObject.cs" />
+    <Compile Include="View\StretchingTreeViewItem.cs" />
+    <Compile Include="View\TreeViewData.cs" />
+    <Compile Include="View\TreeViewDataFactory.cs" />
+    <Compile Include="View\WindowPlacementSerializer.cs" />
+    <Page Include="View\FindWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="MainWindow.xaml">
+    <Page Include="View\MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
@@ -86,7 +126,7 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="MainWindow.xaml.cs">
+    <Compile Include="View\MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
@@ -109,18 +149,21 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
-    <None Include="Config.json" />
+    <Content Include="Config.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <None Include="JsonViewer.ruleset" />
+    <None Include="Resources\JsonViewer_TemporaryKey.pfx" />
     <None Include="packages.config" />
-    <None Include="Recursive.json" />
-    <None Include="Semi-valid.json" />
+    <None Include="Examples Json\Recursive.json" />
+    <None Include="Examples Json\Semi-valid.json" />
     <None Include="stylecop.json" />
-    <None Include="Test.json" />
+    <None Include="Examples Json\Test.json" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
-    <None Include="LargeTest.json" />
+    <None Include="Examples Json\LargeTest.json" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
@@ -134,6 +177,38 @@
   <ItemGroup>
     <Analyzer Include="..\packages\StyleCop.Analyzers.1.0.2\analyzers\dotnet\cs\StyleCop.Analyzers.CodeFixes.dll" />
     <Analyzer Include="..\packages\StyleCop.Analyzers.1.0.2\analyzers\dotnet\cs\StyleCop.Analyzers.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <BootstrapperPackage Include=".NETFramework,Version=v4.6">
+      <Visible>False</Visible>
+      <ProductName>Microsoft .NET Framework 4.6 %28x86 and x64%29</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\json_dark_128.ico" />
+    <Resource Include="Resources\json_dark_256.ico" />
+    <Resource Include="Resources\json_dark_64.ico" />
+    <Resource Include="Resources\json_light_128.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Resources\json_light_256.ico" />
+    <Content Include="Resources\json_light_64.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <FileAssociation Include=".json">
+      <Visible>False</Visible>
+      <Description>JSON file</Description>
+      <Progid>JsonViewer.json</Progid>
+      <DefaultIcon>Resources\json_light_64.ico</DefaultIcon>
+    </FileAssociation>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

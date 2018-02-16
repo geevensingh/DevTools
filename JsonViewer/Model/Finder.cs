@@ -6,7 +6,7 @@
     {
         private Window _parentWindow;
         private RootObject _rootObject = null;
-        private string _text = "asjkhdakjsdh";
+        private string _text = string.Empty;
         private bool _shouldSearchKeys = Properties.Settings.Default.FindSearchKeys;
         private bool _shouldSearchValues = Properties.Settings.Default.FindSearchValues;
         private bool _shouldSearchParentValues = Properties.Settings.Default.FindSearchParentValues;
