@@ -24,20 +24,6 @@
             _finder.PropertyChanged += OnFinderPropertyChanged;
 
             InitializeComponent();
-
-#if DEBUG
-            var dispatcherTimer = new System.Windows.Threading.DispatcherTimer();
-            dispatcherTimer.Tick += new EventHandler((object o, EventArgs ea) =>
-            {
-                dispatcherTimer.Stop();
-                if (string.IsNullOrEmpty(this.Raw_TextBox.Text))
-                {
-                    this.Raw_TextBox.Text = System.IO.File.ReadAllText(@"S:\Repos\DevTools\JsonViewer\Examples Json\Test.json");
-                }
-            });
-            dispatcherTimer.Interval = new TimeSpan(0, 0, 1);
-            dispatcherTimer.Start();
-#endif
         }
 
         public Point InitialOffset { set => _initialOffset = value; }
