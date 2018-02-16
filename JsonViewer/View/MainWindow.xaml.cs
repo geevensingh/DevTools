@@ -279,7 +279,10 @@
             Properties.Settings.Default.Save();
             this.HighlightParentsButton.IsChecked = Properties.Settings.Default.HighlightSelectedParents;
             TreeViewData selected = Tree.SelectedValue as TreeViewData;
-            selected.IsSelected = selected.IsSelected;
+            if (selected != null)
+            {
+                selected.IsSelected = selected.IsSelected;
+            }
         }
 
         private void FindTextBox_TextChanged(object sender, TextChangedEventArgs e)
