@@ -13,7 +13,7 @@
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window, INotifyPropertyChanged
+    public partial class MainWindow : Window
     {
         private Finder _finder;
         private Point? _initialOffset = null;
@@ -21,20 +21,42 @@
         public MainWindow()
         {
             _finder = new Finder(this);
-            _finder.PropertyChanged += OnFinderPropertyChanged;
-
-            Properties.Settings.Default.PropertyChanged += OnSettingsPropertyChanged;
 
             InitializeComponent();
         }
 
-        public event PropertyChangedEventHandler PropertyChanged;
+        public Finder Finder { get => _finder; }
 
-        public Point InitialOffset { set => _initialOffset = value; }
+        public void ShowNewWindow()
+        {
+            this.SaveWindowPosition();
 
-        public Visibility ToolbarTextVisibility { get => Properties.Settings.Default.MainWindowToolbarTextVisible ? Visibility.Visible : Visibility.Collapsed; }
+            MainWindow newWindow = new MainWindow();
+            newWindow._initialOffset = new Point(20, 20);
+            newWindow.Show();
+        }
 
-        public Visibility ToolbarIconVisibility { get => Properties.Settings.Default.MainWindowToolbarIconVisible ? Visibility.Visible : Visibility.Collapsed; }
+        public async Task<bool> ReloadAsync()
+        {
+            JsonObjectFactory factory = new JsonObjectFactory();
+            RootObject rootObject = await factory.Parse(this.Raw_TextBox.Text);
+            _finder.SetObjects(rootObject);
+            if (rootObject == null)
+            {
+                this.SetErrorMessage("Unable to parse given string");
+                return false;
+            }
+
+            this.SetErrorMessage(string.Empty);
+            this.Tree.ItemsSource = rootObject.ViewChildren;
+
+            if (rootObject.TotalChildCount <= 50)
+            {
+                this.Tree.ExpandAll();
+            }
+
+            return true;
+        }
 
         protected override void OnSourceInitialized(EventArgs e)
         {
@@ -74,38 +96,6 @@
             }
 
             this.Raw_TextBox.Text = initialText;
-
-            FindTextBox.Text = _finder.Text;
-
-            Config config = Config.This;
-            this.Tree.Foreground = config.GetBrush(ConfigValue.TreeViewForeground);
-            this.Tree.Resources[SystemColors.HighlightBrushKey] = config.GetBrush(ConfigValue.TreeViewHighlightBrushKey);
-            this.Tree.Resources[SystemColors.HighlightTextBrushKey] = config.GetBrush(ConfigValue.TreeViewHighlightTextBrushKey);
-            this.Tree.Resources[SystemColors.InactiveSelectionHighlightBrushKey] = config.GetBrush(ConfigValue.TreeViewInactiveSelectionHighlightBrushKey);
-            this.Tree.Resources[SystemColors.InactiveSelectionHighlightTextBrushKey] = config.GetBrush(ConfigValue.TreeViewInactiveSelectionHighlightTextBrushKey);
-            this.HighlightParentsButton.IsChecked = Properties.Settings.Default.HighlightSelectedParents;
-        }
-
-        private void OnSettingsPropertyChanged(object sender, PropertyChangedEventArgs e)
-        {
-            switch (e.PropertyName)
-            {
-                case "MainWindowToolbarTextVisible":
-                    NotifyPropertyChanged.FirePropertyChanged("ToolbarTextVisibility", this, this.PropertyChanged);
-                    break;
-                case "MainWindowToolbarIconVisible":
-                    NotifyPropertyChanged.FirePropertyChanged("ToolbarIconVisibility", this, this.PropertyChanged);
-                    break;
-            }
-        }
-
-        private void OnFinderPropertyChanged(object sender, PropertyChangedEventArgs e)
-        {
-            Debug.Assert(sender == _finder);
-            if (e.PropertyName == "Text")
-            {
-                this.FindTextBox.Text = _finder.Text;
-            }
         }
 
         private void SetErrorMessage(string message)
@@ -138,28 +128,6 @@
             }
         }
 
-        private async Task<bool> ReloadAsync()
-        {
-            JsonObjectFactory factory = new JsonObjectFactory();
-            RootObject rootObject = await factory.Parse(this.Raw_TextBox.Text);
-            _finder.SetObjects(rootObject);
-            if (rootObject == null)
-            {
-                this.SetErrorMessage("Unable to parse given string");
-                return false;
-            }
-
-            this.SetErrorMessage(string.Empty);
-            this.Tree.ItemsSource = rootObject.ViewChildren;
-
-            if (rootObject.TotalChildCount <= 50)
-            {
-                this.Tree.ExpandAll();
-            }
-
-            return true;
-        }
-
         private void ContextExpandChildren_Click(object sender, RoutedEventArgs e)
         {
             Debug.Assert(sender as FrameworkElement == sender);
@@ -182,16 +150,6 @@
             FrameworkElement element = sender as FrameworkElement;
             Debug.Assert(element.DataContext.GetType() == typeof(TreeViewData));
             this.Tree.CollapseSubtree(element.DataContext as TreeViewData);
-        }
-
-        private void ExpandAllButton_Click(object sender, RoutedEventArgs e)
-        {
-            this.Tree.ExpandAll();
-        }
-
-        private void CollapseAllButton_Click(object sender, RoutedEventArgs e)
-        {
-            this.Tree.CollapseAll();
         }
 
         private void ContextCopyValue_Click(object sender, RoutedEventArgs e)
@@ -225,17 +183,12 @@
 
         private void Reload_CommandBinding_Executed(object sender, ExecutedRoutedEventArgs e)
         {
-            Config.Reload();
-            this.ReloadAsync().Forget();
+            this.Toolbar.Reload_CommandBinding_Executed(sender, e);
         }
 
         private void NewWindow_CommandBinding_Executed(object sender, ExecutedRoutedEventArgs e)
         {
-            this.SaveWindowPosition();
-
-            MainWindow newWindow = new MainWindow();
-            newWindow.InitialOffset = new Point(20, 20);
-            newWindow.Show();
+            this.Toolbar.NewWindow_CommandBinding_Executed(sender, e);
         }
 
         private void ContextTreatAsJson_Click(object sender, RoutedEventArgs e)
@@ -250,86 +203,17 @@
 
         private void PickConfig_CommandBinding_Executed(object sender, ExecutedRoutedEventArgs e)
         {
-            string filePath = this.PickJsonFile();
-            if (!string.IsNullOrEmpty(filePath))
-            {
-                if (Config.SetPath(filePath))
-                {
-                    this.ReloadAsync().Forget();
-                }
-                else
-                {
-                    MessageBox.Show(this, "Unable to load config: " + filePath, "Error!", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
+            this.Toolbar.PickConfig_CommandBinding_Executed(sender, e);
         }
 
         private void OpenJsonFile_CommandBinding_Executed(object sender, ExecutedRoutedEventArgs e)
         {
-            string filePath = this.PickJsonFile();
-            if (!string.IsNullOrEmpty(filePath))
-            {
-                try
-                {
-                    this.Raw_TextBox.Text = System.IO.File.ReadAllText(filePath);
-                }
-                catch
-                {
-                }
-            }
-        }
-
-        private string PickJsonFile()
-        {
-            OpenFileDialog openFileDialog = new OpenFileDialog
-            {
-                Filter = "Json files (*.json)|*.json|All files (*.*)|*.*"
-            };
-            bool? ofdResult = openFileDialog.ShowDialog(this);
-            if (ofdResult.HasValue && ofdResult.Value)
-            {
-                return openFileDialog.FileName;
-            }
-
-            return null;
+            this.Toolbar.OpenJsonFile_CommandBinding_Executed(sender, e);
         }
 
         private void HighlightParents_CommandBinding_Executed(object sender, ExecutedRoutedEventArgs e)
         {
-            Properties.Settings.Default.HighlightSelectedParents = !Properties.Settings.Default.HighlightSelectedParents;
-            Properties.Settings.Default.Save();
-            this.HighlightParentsButton.IsChecked = Properties.Settings.Default.HighlightSelectedParents;
-            TreeViewData selected = Tree.SelectedValue as TreeViewData;
-            if (selected != null)
-            {
-                selected.IsSelected = selected.IsSelected;
-            }
-        }
-
-        private void FindTextBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            _finder.Text = FindTextBox.Text;
-        }
-
-        static int foo = 0;
-        private void Button_Click(object sender, RoutedEventArgs e)
-        {
-            switch(foo++ % 3)
-            {
-                case 0:
-                    Properties.Settings.Default.MainWindowToolbarTextVisible = true;
-                    Properties.Settings.Default.MainWindowToolbarIconVisible = true;
-                    break;
-                case 1:
-                    Properties.Settings.Default.MainWindowToolbarTextVisible = true;
-                    Properties.Settings.Default.MainWindowToolbarIconVisible = false;
-                    break;
-                case 2:
-                    Properties.Settings.Default.MainWindowToolbarTextVisible = false;
-                    Properties.Settings.Default.MainWindowToolbarIconVisible = true;
-                    break;
-            }
-            Properties.Settings.Default.Save();
+            this.Toolbar.HighlightParents_CommandBinding_Executed(sender, e);
         }
     }
 }

@@ -5,6 +5,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:JsonViewer"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    x:Name="mainWindow"
     Title="Json Viewer"
     Width="1000"
     Height="750"
@@ -74,14 +75,6 @@
                     Text="{Binding Path=ValueType}" />
             </Grid>
         </HierarchicalDataTemplate>
-        <BitmapImage x:Key="ExpandAllImage" UriSource="..\Resources\expand_all.png" />
-        <BitmapImage x:Key="CollapseAllImage" UriSource="..\Resources\collapse_all.png" />
-        <BitmapImage x:Key="CurlyBracesImage" UriSource="..\Resources\curly_braces.png" />
-        <BitmapImage x:Key="OrgImage" UriSource="..\Resources\org.png" />
-        <BitmapImage x:Key="ReloadImage" UriSource="..\Resources\reload.png" />
-        <BitmapImage x:Key="SearchImage" UriSource="..\Resources\search.png" />
-        <BitmapImage x:Key="SettingsImage" UriSource="..\Resources\settings.png" />
-        <BitmapImage x:Key="WindowImage" UriSource="..\Resources\window.png" />
     </Window.Resources>
     <Window.CommandBindings>
         <CommandBinding Command="ApplicationCommands.Find" Executed="Tree_CommandBinding_Find" />
@@ -110,72 +103,7 @@
                 <RowDefinition Height="auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
-            <ToolBarTray Background="White">
-                <ToolBar Band="1" BandIndex="1">
-                    <!--<Button Click="Button_Click">Toolbar</Button>-->
-                    <Button x:Name="ExpandAllButton" Click="ExpandAllButton_Click" ToolTip="Expand All">
-                        <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                            <Image Height="25" Source="{StaticResource ExpandAllImage}" Visibility="{Binding Path=ToolbarIconVisibility}" />
-                            <TextBlock Margin="5,0" VerticalAlignment="Center" Visibility="{Binding Path=ToolbarTextVisibility}">Expand All</TextBlock>
-                        </StackPanel>
-                    </Button>
-                    <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
-                    <Button x:Name="CollapseAllButton" Click="CollapseAllButton_Click" ToolTip="Collapse All">
-                        <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                            <Image Height="25" Source="{StaticResource CollapseAllImage}" Visibility="{Binding Path=ToolbarIconVisibility}" />
-                            <TextBlock Margin="5,0" VerticalAlignment="Center" Visibility="{Binding Path=ToolbarTextVisibility}">Collapse All</TextBlock>
-                        </StackPanel>
-                    </Button>
-                </ToolBar>
-                <ToolBar Band="1" BandIndex="2">
-                    <Button x:Name="OpenJsonFileButton" Command="local:CommandFactory.OpenJsonFile" ToolTip="Open Json File">
-                        <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                            <Image Height="25" Source="{StaticResource CurlyBracesImage}" Visibility="{Binding Path=ToolbarIconVisibility}" />
-                            <TextBlock Margin="5,0" VerticalAlignment="Center" Visibility="{Binding Path=ToolbarTextVisibility}">Open Json File</TextBlock>
-                        </StackPanel>
-                    </Button>
-                    <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
-                    <Button x:Name="PickConfigButton" Command="local:CommandFactory.PickConfig" ToolTip="Pick Config File">
-                        <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                            <Image Height="25" Source="{StaticResource SettingsImage}" Visibility="{Binding Path=ToolbarIconVisibility}" />
-                            <TextBlock Margin="5,0" VerticalAlignment="Center" Visibility="{Binding Path=ToolbarTextVisibility}">Pick Config File</TextBlock>
-                        </StackPanel>
-                    </Button>
-                    <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
-                    <Button x:Name="ReloadButton" Command="local:CommandFactory.Reload" ToolTip="Reload">
-                        <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                            <Image Height="25" Source="{StaticResource ReloadImage}" Visibility="{Binding Path=ToolbarIconVisibility}" />
-                            <TextBlock Margin="5,0" VerticalAlignment="Center" Visibility="{Binding Path=ToolbarTextVisibility}">Reload</TextBlock>
-                        </StackPanel>
-                    </Button>
-                </ToolBar>
-                <ToolBar Band="1" BandIndex="3">
-                    <CheckBox
-                        x:Name="HighlightParentsButton"
-                        Command="local:CommandFactory.HighlightParents"
-                        IsChecked="True"
-                        ToolTip="Highlight Selected Item Parents">
-                        <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                            <Image Height="25" Source="{StaticResource OrgImage}" Visibility="{Binding Path=ToolbarIconVisibility}" />
-                            <TextBlock Margin="5,0" VerticalAlignment="Center" Visibility="{Binding Path=ToolbarTextVisibility}">Highlight Selected Item Parents</TextBlock>
-                        </StackPanel>
-                    </CheckBox>
-                </ToolBar>
-                <ToolBar Band="1" BandIndex="4">
-                    <Button x:Name="NewWindowButton" Command="local:CommandFactory.NewWindow" ToolTip="New Window">
-                        <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                            <Image Height="25" Source="{StaticResource WindowImage}" Visibility="{Binding Path=ToolbarIconVisibility}" />
-                            <TextBlock Margin="5,0" VerticalAlignment="Center" Visibility="{Binding Path=ToolbarTextVisibility}">New Window</TextBlock>
-                        </StackPanel>
-                    </Button>
-                </ToolBar>
-                <ToolBar Band="1" BandIndex="5">
-                    <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                        <TextBlock Margin="5,0" VerticalAlignment="Center" Visibility="{Binding Path=ToolbarTextVisibility}">Find:</TextBlock>
-                        <TextBox x:Name="FindTextBox" MinWidth="200" TextChanged="FindTextBox_TextChanged" />
-                    </StackPanel>
-                </ToolBar>
-            </ToolBarTray>
+            <local:MainWindowToolbar x:Name="Toolbar" Grid.Row="1" DataContext="{Binding ElementName=mainWindow}" />
             <TextBlock
                 x:Name="Banner"
                 Grid.Row="1"
