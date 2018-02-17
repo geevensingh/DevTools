@@ -130,5 +130,29 @@ namespace JsonViewer.Properties {
                 this["FindText"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool MainWindowToolbarTextVisible {
+            get {
+                return ((bool)(this["MainWindowToolbarTextVisible"]));
+            }
+            set {
+                this["MainWindowToolbarTextVisible"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool MainWindowToolbarIconVisible {
+            get {
+                return ((bool)(this["MainWindowToolbarIconVisible"]));
+            }
+            set {
+                this["MainWindowToolbarIconVisible"] = value;
+            }
+        }
     }
 }

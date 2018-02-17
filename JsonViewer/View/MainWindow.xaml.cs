@@ -13,7 +13,7 @@
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, INotifyPropertyChanged
     {
         private Finder _finder;
         private Point? _initialOffset = null;
@@ -23,10 +23,18 @@
             _finder = new Finder(this);
             _finder.PropertyChanged += OnFinderPropertyChanged;
 
+            Properties.Settings.Default.PropertyChanged += OnSettingsPropertyChanged;
+
             InitializeComponent();
         }
 
+        public event PropertyChangedEventHandler PropertyChanged;
+
         public Point InitialOffset { set => _initialOffset = value; }
+
+        public Visibility ToolbarTextVisibility { get => Properties.Settings.Default.MainWindowToolbarTextVisible ? Visibility.Visible : Visibility.Collapsed; }
+
+        public Visibility ToolbarIconVisibility { get => Properties.Settings.Default.MainWindowToolbarIconVisible ? Visibility.Visible : Visibility.Collapsed; }
 
         protected override void OnSourceInitialized(EventArgs e)
         {
@@ -76,6 +84,19 @@
             this.Tree.Resources[SystemColors.InactiveSelectionHighlightBrushKey] = config.GetBrush(ConfigValue.TreeViewInactiveSelectionHighlightBrushKey);
             this.Tree.Resources[SystemColors.InactiveSelectionHighlightTextBrushKey] = config.GetBrush(ConfigValue.TreeViewInactiveSelectionHighlightTextBrushKey);
             this.HighlightParentsButton.IsChecked = Properties.Settings.Default.HighlightSelectedParents;
+        }
+
+        private void OnSettingsPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            switch (e.PropertyName)
+            {
+                case "MainWindowToolbarTextVisible":
+                    NotifyPropertyChanged.FirePropertyChanged("ToolbarTextVisibility", this, this.PropertyChanged);
+                    break;
+                case "MainWindowToolbarIconVisible":
+                    NotifyPropertyChanged.FirePropertyChanged("ToolbarIconVisibility", this, this.PropertyChanged);
+                    break;
+            }
         }
 
         private void OnFinderPropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -288,6 +309,27 @@
         private void FindTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             _finder.Text = FindTextBox.Text;
+        }
+
+        static int foo = 0;
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            switch(foo++ % 3)
+            {
+                case 0:
+                    Properties.Settings.Default.MainWindowToolbarTextVisible = true;
+                    Properties.Settings.Default.MainWindowToolbarIconVisible = true;
+                    break;
+                case 1:
+                    Properties.Settings.Default.MainWindowToolbarTextVisible = true;
+                    Properties.Settings.Default.MainWindowToolbarIconVisible = false;
+                    break;
+                case 2:
+                    Properties.Settings.Default.MainWindowToolbarTextVisible = false;
+                    Properties.Settings.Default.MainWindowToolbarIconVisible = true;
+                    break;
+            }
+            Properties.Settings.Default.Save();
         }
     }
 }

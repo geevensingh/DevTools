@@ -70,7 +70,7 @@
     <SignManifests>true</SignManifests>
   </PropertyGroup>
   <PropertyGroup>
-    <ApplicationIcon>Resources\json_light_128.ico</ApplicationIcon>
+    <ApplicationIcon>Resources\json_light_64.ico</ApplicationIcon>
   </PropertyGroup>
   <PropertyGroup>
     <StartupObject>JsonViewer.App</StartupObject>
@@ -146,7 +146,7 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
     <EmbeddedResource Include="Properties\Resources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
+      <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <Content Include="Config.json">
@@ -191,16 +191,19 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="Resources\json_dark_128.ico" />
-    <Resource Include="Resources\json_dark_256.ico" />
-    <Resource Include="Resources\json_dark_64.ico" />
-    <Resource Include="Resources\json_light_128.ico">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Resources\json_light_256.ico" />
     <Content Include="Resources\json_light_64.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\collapse_all.png" />
+    <Resource Include="Resources\curly_braces.png" />
+    <Resource Include="Resources\expand_all.png" />
+    <Resource Include="Resources\org.png" />
+    <Resource Include="Resources\reload.png" />
+    <Resource Include="Resources\search.png" />
+    <Resource Include="Resources\settings.png" />
+    <Resource Include="Resources\window.png" />
   </ItemGroup>
   <ItemGroup>
     <FileAssociation Include=".json">
