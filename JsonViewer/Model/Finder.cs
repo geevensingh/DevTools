@@ -1,5 +1,6 @@
 ﻿namespace JsonViewer
 {
+    using System.Diagnostics;
     using System.Windows;
 
     public class Finder : NotifyPropertyChanged
@@ -96,10 +97,13 @@
 
         public int HitCount { get => _hitCount; }
 
+        public bool HasWindow { get => _findWindow != null; }
+
         public void ShowWindow()
         {
             this.HideWindow();
 
+            Debug.Assert(_findWindow == null);
             _findWindow = new FindWindow(_parentWindow, this);
             _findWindow.Show();
         }
