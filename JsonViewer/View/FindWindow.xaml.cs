@@ -59,7 +59,7 @@
 
         private void Tree_CommandBinding_HideFind(object sender, ExecutedRoutedEventArgs e)
         {
-            CommandFactory.HideFind_Execute(_finder);
+            _finder.HideWindow();
         }
 
         private void OnTextBoxTextChanged(object sender, TextChangedEventArgs e)

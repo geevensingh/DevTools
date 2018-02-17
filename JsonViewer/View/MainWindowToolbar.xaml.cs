@@ -72,101 +72,15 @@
             }
         }
 
-        private void ExpandAllButton_Click(object sender, RoutedEventArgs e)
-        {
-            _mainWindow.Tree.ExpandAll();
-        }
-
-        private void CollapseAllButton_Click(object sender, RoutedEventArgs e)
-        {
-            _mainWindow.Tree.CollapseAll();
-        }
-
         private void FindTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             _mainWindow.Finder.Text = FindTextBox.Text;
         }
 
-        private void Tree_CommandBinding_Find(object sender, ExecutedRoutedEventArgs e)
-        {
-
-        }
-
-        private void Tree_CommandBinding_HideFind(object sender, ExecutedRoutedEventArgs e)
-        {
-
-        }
-
-        public void PickConfig_CommandBinding_Executed(object sender, ExecutedRoutedEventArgs e)
-        {
-            string filePath = this.PickJsonFile();
-            if (!string.IsNullOrEmpty(filePath))
-            {
-                if (Config.SetPath(filePath))
-                {
-                    _mainWindow.ReloadAsync().Forget();
-                }
-                else
-                {
-                    MessageBox.Show(_mainWindow, "Unable to load config: " + filePath, "Error!", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
-        }
-
-        public void Reload_CommandBinding_Executed(object sender, ExecutedRoutedEventArgs e)
-        {
-            Config.Reload();
-            _mainWindow.ReloadAsync().Forget();
-        }
-
-        public void NewWindow_CommandBinding_Executed(object sender, ExecutedRoutedEventArgs e)
-        {
-            _mainWindow.ShowNewWindow();
-        }
-
-        public void OpenJsonFile_CommandBinding_Executed(object sender, ExecutedRoutedEventArgs e)
-        {
-            string filePath = this.PickJsonFile();
-            if (!string.IsNullOrEmpty(filePath))
-            {
-                try
-                {
-                    _mainWindow.Raw_TextBox.Text = System.IO.File.ReadAllText(filePath);
-                }
-                catch
-                {
-                }
-            }
-        }
-
-        public void HighlightParents_CommandBinding_Executed(object sender, ExecutedRoutedEventArgs e)
-        {
-            Properties.Settings.Default.HighlightSelectedParents = !Properties.Settings.Default.HighlightSelectedParents;
-            Properties.Settings.Default.Save();
-            this.HighlightParentsButton.IsChecked = Properties.Settings.Default.HighlightSelectedParents;
-            TreeViewData selected = _mainWindow.Tree.SelectedValue as TreeViewData;
-            if (selected != null)
-            {
-                selected.IsSelected = selected.IsSelected;
-            }
-        }
-
-        private string PickJsonFile()
-        {
-            OpenFileDialog openFileDialog = new OpenFileDialog
-            {
-                Filter = "Json files (*.json)|*.json|All files (*.*)|*.*"
-            };
-            bool? ofdResult = openFileDialog.ShowDialog(_mainWindow);
-            if (ofdResult.HasValue && ofdResult.Value)
-            {
-                return openFileDialog.FileName;
-            }
-
-            return null;
-        }
-
+#pragma warning disable SA1201 // Elements must appear in the correct order
+#pragma warning disable SA1400 // Access modifier must be declared
         static int foo = 0;
+
         private void Button_Click(object sender, RoutedEventArgs e)
         {
             switch (foo++ % 3)
@@ -184,7 +98,10 @@
                     Properties.Settings.Default.MainWindowToolbarIconVisible = true;
                     break;
             }
+
             Properties.Settings.Default.Save();
         }
+#pragma warning restore SA1400 // Access modifier must be declared
+#pragma warning restore SA1201 // Elements must appear in the correct order
     }
 }

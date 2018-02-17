@@ -76,14 +76,22 @@
             </Grid>
         </HierarchicalDataTemplate>
     </Window.Resources>
+    <Window.InputBindings>
+        <KeyBinding Key="Esc" Command="local:CommandFactory.HideFind" />
+        <KeyBinding Key="F5" Command="local:CommandFactory.Reload" />
+        <KeyBinding Key="H" Command="local:CommandFactory.HighlightParents" Modifiers="Ctrl" />
+        <KeyBinding Key="L" Command="local:CommandFactory.PickConfig" Modifiers="Ctrl" />
+        <KeyBinding Key="N" Command="local:CommandFactory.NewWindow" Modifiers="Ctrl" />
+        <KeyBinding Key="O" Command="local:CommandFactory.OpenJsonFile" Modifiers="Ctrl" />
+    </Window.InputBindings>
     <Window.CommandBindings>
         <CommandBinding Command="ApplicationCommands.Find" Executed="Tree_CommandBinding_Find" />
-        <CommandBinding Command="local:CommandFactory.HideFind" Executed="Tree_CommandBinding_HideFind" />
-        <CommandBinding Command="local:CommandFactory.PickConfig" Executed="PickConfig_CommandBinding_Executed" />
-        <CommandBinding Command="local:CommandFactory.Reload" Executed="Reload_CommandBinding_Executed" />
-        <CommandBinding Command="local:CommandFactory.NewWindow" Executed="NewWindow_CommandBinding_Executed" />
-        <CommandBinding Command="local:CommandFactory.OpenJsonFile" Executed="OpenJsonFile_CommandBinding_Executed" />
-        <CommandBinding Command="local:CommandFactory.HighlightParents" Executed="HighlightParents_CommandBinding_Executed" />
+        <CommandBinding Command="local:CommandFactory.HideFind" />
+        <CommandBinding Command="local:CommandFactory.PickConfig" />
+        <CommandBinding Command="local:CommandFactory.Reload" />
+        <CommandBinding Command="local:CommandFactory.NewWindow" />
+        <CommandBinding Command="local:CommandFactory.OpenJsonFile" />
+        <CommandBinding Command="local:CommandFactory.HighlightParents" />
     </Window.CommandBindings>
     <DockPanel>
         <!--<Menu DockPanel.Dock="Top">

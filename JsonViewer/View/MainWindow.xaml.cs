@@ -17,15 +17,20 @@
     {
         private Finder _finder;
         private Point? _initialOffset = null;
+        private RootObject _rootObject = null;
 
         public MainWindow()
         {
             _finder = new Finder(this);
 
             InitializeComponent();
+
+            App.Current.AddWindow(this);
         }
 
         public Finder Finder { get => _finder; }
+
+        internal RootObject RootObject { get => _rootObject; }
 
         public void ShowNewWindow()
         {
@@ -47,10 +52,13 @@
                 return false;
             }
 
+            _rootObject = rootObject;
             this.SetErrorMessage(string.Empty);
-            this.Tree.ItemsSource = rootObject.ViewChildren;
+            this.Tree.ItemsSource = _rootObject.ViewChildren;
+            CommandFactory.ExpandAll.Update();
+            CommandFactory.CollapseAll.Update();
 
-            if (rootObject.TotalChildCount <= 50)
+            if (_rootObject.TotalChildCount <= 50)
             {
                 this.Tree.ExpandAll();
             }
@@ -71,6 +79,7 @@
         protected override void OnClosing(CancelEventArgs e)
         {
             this.SaveWindowPosition();
+            App.Current.RemoveWindow(this);
             base.OnClosing(e);
         }
 
@@ -176,21 +185,6 @@
             _finder.ShowWindow();
         }
 
-        private void Tree_CommandBinding_HideFind(object sender, ExecutedRoutedEventArgs e)
-        {
-            CommandFactory.HideFind_Execute(_finder);
-        }
-
-        private void Reload_CommandBinding_Executed(object sender, ExecutedRoutedEventArgs e)
-        {
-            this.Toolbar.Reload_CommandBinding_Executed(sender, e);
-        }
-
-        private void NewWindow_CommandBinding_Executed(object sender, ExecutedRoutedEventArgs e)
-        {
-            this.Toolbar.NewWindow_CommandBinding_Executed(sender, e);
-        }
-
         private void ContextTreatAsJson_Click(object sender, RoutedEventArgs e)
         {
             ((sender as FrameworkElement).DataContext as TreeViewData).TreatAsJson();
@@ -199,21 +193,6 @@
         private void ContextTreatAsText_Click(object sender, RoutedEventArgs e)
         {
             ((sender as FrameworkElement).DataContext as TreeViewData).TreatAsText();
-        }
-
-        private void PickConfig_CommandBinding_Executed(object sender, ExecutedRoutedEventArgs e)
-        {
-            this.Toolbar.PickConfig_CommandBinding_Executed(sender, e);
-        }
-
-        private void OpenJsonFile_CommandBinding_Executed(object sender, ExecutedRoutedEventArgs e)
-        {
-            this.Toolbar.OpenJsonFile_CommandBinding_Executed(sender, e);
-        }
-
-        private void HighlightParents_CommandBinding_Executed(object sender, ExecutedRoutedEventArgs e)
-        {
-            this.Toolbar.HighlightParents_CommandBinding_Executed(sender, e);
         }
     }
 }

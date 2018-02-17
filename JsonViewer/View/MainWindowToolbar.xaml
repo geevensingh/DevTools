@@ -22,25 +22,23 @@
         <BitmapImage x:Key="WindowImage" UriSource="..\Resources\window.png" />
     </UserControl.Resources>
     <UserControl.CommandBindings>
-        <CommandBinding Command="ApplicationCommands.Find" Executed="Tree_CommandBinding_Find" />
-        <CommandBinding Command="local:CommandFactory.HideFind" Executed="Tree_CommandBinding_HideFind" />
-        <CommandBinding Command="local:CommandFactory.PickConfig" Executed="PickConfig_CommandBinding_Executed" />
-        <CommandBinding Command="local:CommandFactory.Reload" Executed="Reload_CommandBinding_Executed" />
-        <CommandBinding Command="local:CommandFactory.NewWindow" Executed="NewWindow_CommandBinding_Executed" />
-        <CommandBinding Command="local:CommandFactory.OpenJsonFile" Executed="OpenJsonFile_CommandBinding_Executed" />
-        <CommandBinding Command="local:CommandFactory.HighlightParents" Executed="HighlightParents_CommandBinding_Executed" />
+        <CommandBinding Command="local:CommandFactory.PickConfig" />
+        <CommandBinding Command="local:CommandFactory.Reload" />
+        <CommandBinding Command="local:CommandFactory.NewWindow" />
+        <CommandBinding Command="local:CommandFactory.OpenJsonFile" />
+        <CommandBinding Command="local:CommandFactory.HighlightParents" />
     </UserControl.CommandBindings>
     <ToolBarTray Background="White" DataContext="{Binding ElementName=Root}">
         <ToolBar Band="1" BandIndex="1">
             <Button Click="Button_Click">Toolbar</Button>
-            <Button x:Name="ExpandAllButton" Click="ExpandAllButton_Click" ToolTip="Expand All">
+            <Button x:Name="ExpandAllButton" Command="local:CommandFactory.ExpandAll" ToolTip="Expand All">
                 <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                     <Image Height="25" Source="{StaticResource ExpandAllImage}" Visibility="{Binding Path=ToolbarIconVisibility, Mode=OneWay}" />
                     <TextBlock Margin="5,0" VerticalAlignment="Center" Visibility="{Binding Path=ToolbarTextVisibility, Mode=OneWay}">Expand All</TextBlock>
                 </StackPanel>
             </Button>
             <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
-            <Button x:Name="CollapseAllButton" Click="CollapseAllButton_Click" ToolTip="Collapse All">
+            <Button x:Name="CollapseAllButton" Command="local:CommandFactory.CollapseAll" ToolTip="Collapse All">
                 <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                     <Image Height="25" Source="{StaticResource CollapseAllImage}" Visibility="{Binding Path=ToolbarIconVisibility}" />
                     <TextBlock Margin="5,0" VerticalAlignment="Center" Visibility="{Binding Path=ToolbarTextVisibility}">Collapse All</TextBlock>

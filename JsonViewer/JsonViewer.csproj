@@ -98,10 +98,19 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Commands\BaseCommand.cs" />
+    <Compile Include="Commands\CollapseAllCommand.cs" />
+    <Compile Include="Commands\ExpandAllCommand.cs" />
+    <Compile Include="Commands\HideFindCommand.cs" />
+    <Compile Include="Commands\HighlightParentsCommand.cs" />
+    <Compile Include="Commands\NewWindowCommand.cs" />
+    <Compile Include="Commands\OpenJsonFileCommand.cs" />
+    <Compile Include="Commands\PickConfigCommand.cs" />
+    <Compile Include="Commands\ReloadCommand.cs" />
     <Compile Include="View\MainWindowToolbar.xaml.cs">
       <DependentUpon>MainWindowToolbar.xaml</DependentUpon>
     </Compile>
-    <Compile Include="View\CommandFactory.cs" />
+    <Compile Include="Commands\CommandFactory.cs" />
     <Compile Include="Model\Config.cs" />
     <Compile Include="CSEscape.cs" />
     <Compile Include="View\CustomTreeView.cs" />
