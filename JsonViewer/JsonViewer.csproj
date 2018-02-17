@@ -61,7 +61,7 @@
     <ManifestCertificateThumbprint>C4359A10D7D3B54169390A4B14D41DB044D98F4C</ManifestCertificateThumbprint>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestKeyFile>JsonViewer_TemporaryKey.pfx</ManifestKeyFile>
+    <ManifestKeyFile>Resources\JsonViewer_TemporaryKey.pfx</ManifestKeyFile>
   </PropertyGroup>
   <PropertyGroup>
     <GenerateManifests>true</GenerateManifests>
