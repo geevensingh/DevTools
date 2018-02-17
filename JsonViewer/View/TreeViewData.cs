@@ -27,14 +27,6 @@
             Properties.Settings.Default.PropertyChanged += OnSettingsPropertyChanged;
         }
 
-        private void OnSettingsPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName == "HighlightSelectedParents" && _isChildSelected)
-            {
-                this.FirePropertyChanged("BackgroundColor");
-            }
-        }
-
         public string KeyName { get => _jsonObject.Key; }
 
         public string Value
@@ -226,6 +218,14 @@
                 default:
                     Debug.Assert(false, "Unknown property change");
                     break;
+            }
+        }
+
+        private void OnSettingsPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == "HighlightSelectedParents" && _isChildSelected)
+            {
+                this.FirePropertyChanged("BackgroundColor");
             }
         }
 
