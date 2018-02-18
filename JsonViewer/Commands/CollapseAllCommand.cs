@@ -9,6 +9,7 @@
     internal class CollapseAllCommand : BaseCommand
     {
         public CollapseAllCommand()
+            : base("Collapse All")
         {
             this.Update();
             App.Current.MainWindowChanged += OnMainWindowChanged;

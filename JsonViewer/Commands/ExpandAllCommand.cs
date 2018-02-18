@@ -9,6 +9,7 @@
     internal class ExpandAllCommand : BaseCommand
     {
         public ExpandAllCommand()
+            : base("Expand All")
         {
             this.Update();
             App.Current.MainWindowChanged += OnMainWindowChanged;

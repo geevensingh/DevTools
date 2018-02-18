@@ -8,11 +8,6 @@
         private string _text = string.Empty;
         private bool _canExecute = false;
 
-        public BaseCommand()
-            : this(string.Empty, false)
-        {
-        }
-
         public BaseCommand(string text)
             : this(text, false)
         {
