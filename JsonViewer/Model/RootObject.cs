@@ -1,16 +1,20 @@
 ﻿namespace JsonViewer
 {
+    using System.Collections.Generic;
     using System.Collections.ObjectModel;
     using System.Diagnostics;
 
     internal class RootObject : JsonObject
     {
         private ObservableCollection<TreeViewData> _viewChildren = null;
+        private List<JsonObject> _allChildren = null;
 
         public RootObject()
             : base(string.Empty, string.Empty)
         {
         }
+
+        public override RootObject Root { get => this; }
 
         internal ObservableCollection<TreeViewData> ViewChildren
         {
@@ -23,6 +27,19 @@
 
                 Debug.Assert(_viewChildren != null);
                 return _viewChildren;
+            }
+        }
+
+        internal List<JsonObject> AllChildren
+        {
+            get
+            {
+                if (_allChildren == null)
+                {
+                    _allChildren = new List<JsonObject>(this.GetAllChildren());
+                }
+
+                return _allChildren;
             }
         }
 
@@ -39,6 +56,7 @@
         {
             Debug.Assert(_viewChildren == null);
             base.AddChild(child);
+            _allChildren = null;
         }
     }
 }

@@ -48,6 +48,17 @@
 
         public JsonObject Parent { get => _parent; }
 
+        public virtual RootObject Root
+        {
+            get
+            {
+                Debug.Assert(_parent != null);
+                return _parent.Root;
+            }
+        }
+
+        public int OverallIndex { get => this.Root.AllChildren.IndexOf(this); }
+
         public virtual IList<JsonObject> Children { get => _children; }
 
         public bool HasChildren { get => this.Children.Count > 0; }
@@ -193,6 +204,18 @@
             _viewObject.Children.Insert(index, child.ResetView());
         }
 
+        protected IList<JsonObject> GetAllChildren()
+        {
+            List<JsonObject> allChildren = new List<JsonObject>();
+            foreach (JsonObject child in _children)
+            {
+                allChildren.Add(child);
+                allChildren.AddRange(child.GetAllChildren());
+            }
+
+            return allChildren;
+        }
+
         private static object GetTypedValue(object value, out DataType dataType)
         {
             dataType = DataType.Other;
@@ -221,27 +244,23 @@
             }
 
             string str = (string)value;
-            Guid guidValue;
-            if (Guid.TryParse(str, out guidValue))
+            if (Guid.TryParse(str, out Guid guidValue))
             {
                 dataType = DataType.Guid;
                 return guidValue;
             }
 
-            double doubleValue;
-            if (double.TryParse(str, out doubleValue))
+            if (double.TryParse(str, out double doubleValue))
             {
                 return doubleValue;
             }
 
-            DateTime dateTimeValue;
-            if (DateTime.TryParse(str, out dateTimeValue))
+            if (DateTime.TryParse(str, out DateTime dateTimeValue))
             {
                 return dateTimeValue;
             }
 
-            TimeSpan timeSpanValue;
-            if (TimeSpan.TryParse(str, out timeSpanValue))
+            if (TimeSpan.TryParse(str, out TimeSpan timeSpanValue))
             {
                 return timeSpanValue;
             }
