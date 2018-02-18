@@ -7,8 +7,6 @@
     using System.Windows;
     using System.Windows.Controls;
     using System.Windows.Input;
-    using Microsoft.Win32;
-    using Utilities;
 
     /// <summary>
     /// Interaction logic for MainWindow.xaml
@@ -36,8 +34,10 @@
         {
             this.SaveWindowPosition();
 
-            MainWindow newWindow = new MainWindow();
-            newWindow._initialOffset = new Point(20, 20);
+            MainWindow newWindow = new MainWindow
+            {
+                _initialOffset = new Point(20, 20)
+            };
             newWindow.Show();
         }
 
@@ -173,8 +173,7 @@
 
         private void Tree_CommandBinding_Copy(object sender, ExecutedRoutedEventArgs e)
         {
-            TreeViewData selectedData = this.Tree.SelectedItem as TreeViewData;
-            if (selectedData != null)
+            if (this.Tree.SelectedItem is TreeViewData selectedData)
             {
                 Clipboard.SetText(selectedData.Value);
             }
