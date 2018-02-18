@@ -13,6 +13,7 @@
         {
             TreeViewItem item = GetItem(data);
             item.IsExpanded = true;
+            item.UpdateLayout();
             item.ItemContainerGenerator.GenerateBatches().Dispose();
             Debug.Assert(item.ItemContainerGenerator.Status == System.Windows.Controls.Primitives.GeneratorStatus.ContainersGenerated);
             foreach (TreeViewData child in data.Children)
@@ -27,6 +28,7 @@
                             if (asyncChildItem != null)
                             {
                                 asyncChildItem.IsExpanded = true;
+                                asyncChildItem.UpdateLayout();
                             }
                         }), System.Windows.Threading.DispatcherPriority.Background);
                 }
@@ -35,7 +37,7 @@
 
         public void ExpandSubtree(TreeViewData data)
         {
-            this.ExpandSubtree(GetParentItemContainerGenerator(data), data);
+            this.ExpandSubtree(GetItemContainerGenerator(data.Parent), data);
         }
 
         public void ExpandAll()
@@ -49,7 +51,7 @@
 
         public void CollapseSubtree(TreeViewData data)
         {
-            this.CollapseSubtree(this.GetParentItemContainerGenerator(data), data);
+            this.CollapseSubtree(this.GetItemContainerGenerator(data.Parent), data);
         }
 
         public void CollapseAll()
@@ -98,21 +100,21 @@
             }
         }
 
-        private ItemContainerGenerator GetParentItemContainerGenerator(TreeViewData data)
+        private ItemContainerGenerator GetItemContainerGenerator(TreeViewData data)
         {
-            var parentList = data.ParentList;
-            var generator = this.ItemContainerGenerator;
-            for (int ii = 0; ii < parentList.Count; ii++)
+            if (data == null)
             {
-                generator = (generator.ContainerFromItem(parentList[ii]) as TreeViewItem).ItemContainerGenerator;
+                return this.ItemContainerGenerator;
             }
 
-            return generator;
+            ItemContainerGenerator generator = GetItemContainerGenerator(data.Parent);
+            TreeViewItem treeViewItem = generator.ContainerFromItem(data) as TreeViewItem;
+            return treeViewItem.ItemContainerGenerator;
         }
 
         private TreeViewItem GetItem(TreeViewData data)
         {
-            return GetParentItemContainerGenerator(data).ContainerFromItem(data) as TreeViewItem;
+            return GetItemContainerGenerator(data.Parent).ContainerFromItem(data) as TreeViewItem;
         }
 
         private void ExpandSubtree(ItemContainerGenerator parentContainerGenerator, TreeViewData data)
@@ -132,6 +134,52 @@
                     this.CollapseSubtree(tvi.ItemContainerGenerator, child);
                 }
             }
+        }
+
+        public TreeViewItem ExpandToItem(TreeViewData treeViewData)
+        {
+            TreeViewItem parentItem = null;
+            if (treeViewData.Parent != null)
+            {
+                parentItem = ExpandToItem(treeViewData.Parent);
+            }
+
+            TreeViewItem item = null;
+            if (parentItem == null)
+            {
+                Debug.Assert(treeViewData.Parent == null);
+                item = GetItem(treeViewData);
+            }
+            else
+            {
+                bool isExpanded = parentItem.IsExpanded;
+                if (!isExpanded)
+                {
+                    parentItem.IsExpanded = true;
+                    parentItem.UpdateLayout();
+                }
+
+                item = (TreeViewItem)parentItem.ItemContainerGenerator.ContainerFromItem(treeViewData);
+            }
+
+            Debug.Assert(item != null);
+            Debug.Assert(item.DataContext == treeViewData);
+
+            item.IsSelected = true;
+            item.BringIntoView(new Rect(0, -50, item.ActualWidth, 100 + item.ActualHeight));
+            return item;
+        }
+
+        public TreeViewItem SelectItem(TreeViewData treeViewData)
+        {
+            TreeViewItem item = ExpandToItem(treeViewData);
+            item.IsSelected = true;
+
+            Debug.Assert(!double.IsNaN(item.ActualWidth));
+            Debug.Assert(!double.IsNaN(item.ActualHeight));
+            item.BringIntoView(new Rect(0, -50, item.ActualWidth, 100 + item.ActualHeight));
+
+            return item;
         }
     }
 }

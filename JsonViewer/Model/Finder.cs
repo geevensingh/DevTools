@@ -1,5 +1,6 @@
 ﻿namespace JsonViewer
 {
+    using System.Collections.Generic;
     using System.Diagnostics;
     using System.Windows;
 
@@ -14,6 +15,7 @@
         private bool _shouldIgnoreCase = Properties.Settings.Default.FindIgnoreCase;
         private FindWindow _findWindow = null;
         private int _hitCount = 0;
+        private List<JsonObject> _hits = new List<JsonObject>();
 
         public Finder(Window parentWindow)
         {
@@ -99,6 +101,8 @@
 
         public bool HasWindow { get => _findWindow != null; }
 
+        internal IList<JsonObject> Hits { get => _hits; }
+
         public void ShowWindow()
         {
             this.HideWindow();
@@ -127,16 +131,37 @@
 
         private void Update()
         {
-            int count = 0;
+            bool changedSomething = false;
+            List<JsonObject> hits = new List<JsonObject>();
             if (_rootObject != null)
             {
-                Highlight(_rootObject, ref count);
+                Highlight(_rootObject, ref hits, ref changedSomething);
             }
 
-            this.SetValue(ref _hitCount, count, "HitCount");
+            if (this.SetValue(ref _hitCount, hits.Count, "HitCount"))
+            {
+                // If the hit count changed, then certainly the hits changed.
+                this.SetValue(ref _hits, hits, "Hits");
+                Debug.Assert(changedSomething);
+                return;
+            }
+
+            // But if the hit count did NOT change, then we have to look at the lists
+            Debug.Assert(hits.Count == _hits.Count);
+            for (int ii = 0; ii < hits.Count; ii++)
+            {
+                if (hits[ii] != _hits[ii])
+                {
+                    this.SetValue(ref _hits, hits, "Hits");
+                    Debug.Assert(changedSomething);
+                    return;
+                }
+            }
+
+            Debug.Assert(!changedSomething);
         }
 
-        private void Highlight(JsonObject obj, ref int count)
+        private void Highlight(JsonObject obj, ref List<JsonObject> hits, ref bool changedSomething)
         {
             bool found = false;
             if (!string.IsNullOrEmpty(_text))
@@ -154,16 +179,20 @@
 
             if (found)
             {
-                count++;
+                hits.Add(obj);
             }
 
-            obj.IsFindMatch = found;
+            if (obj.IsFindMatch != found)
+            {
+                changedSomething = true;
+                obj.IsFindMatch = found;
+            }
 
             if (obj.HasChildren)
             {
                 foreach (JsonObject child in obj.Children)
                 {
-                    this.Highlight(child, ref count);
+                    this.Highlight(child, ref hits, ref changedSomething);
                 }
             }
         }

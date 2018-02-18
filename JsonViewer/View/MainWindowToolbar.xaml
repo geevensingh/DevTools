@@ -87,8 +87,23 @@
         </ToolBar>
         <ToolBar Band="1" BandIndex="5">
             <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                <TextBlock Margin="5,0" VerticalAlignment="Center" Visibility="{Binding ElementName=Root, Path=ToolbarTextVisibility}">Find:</TextBlock>
+                <TextBlock Margin="5,0" VerticalAlignment="Center" Visibility="{Binding Path=ToolbarTextVisibility}">Find:</TextBlock>
                 <TextBox x:Name="FindTextBox" MinWidth="200" TextChanged="FindTextBox_TextChanged" />
+
+                <StackPanel Orientation="Horizontal" Visibility="{Binding Path=ShowFindControls}">
+                    <TextBlock Margin="5,0" VerticalAlignment="Center">Matches:</TextBlock>
+                    <TextBlock Margin="5,0" VerticalAlignment="Center" Text="{Binding Path=FindMatchText}" />
+                    <Button x:Name="FindPreviousButton" ToolTip="Find Previous" Click="FindPreviousButton_Click">
+                        <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                            <TextBlock Margin="5,0" VerticalAlignment="Center">Previous</TextBlock>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="FindNextButton" ToolTip="Find Next" Click="FindNextButton_Click">
+                        <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                            <TextBlock Margin="5,0" VerticalAlignment="Center">Next</TextBlock>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
             </StackPanel>
         </ToolBar>
     </ToolBarTray>

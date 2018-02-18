@@ -1,23 +1,9 @@
 ﻿namespace JsonViewer
 {
-    using System;
-    using System.Collections.Generic;
     using System.ComponentModel;
     using System.Diagnostics;
-    using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
     using System.Windows;
     using System.Windows.Controls;
-    using System.Windows.Data;
-    using System.Windows.Documents;
-    using System.Windows.Input;
-    using System.Windows.Media;
-    using System.Windows.Media.Imaging;
-    using System.Windows.Navigation;
-    using System.Windows.Shapes;
-    using Microsoft.Win32;
-    using Utilities;
 
     /// <summary>
     /// Interaction logic for MainWindowToolbar.xaml
@@ -25,6 +11,10 @@
     public partial class MainWindowToolbar : UserControl, INotifyPropertyChanged
     {
         private MainWindow _mainWindow = null;
+
+        private string _findMatchText = string.Empty;
+
+        private int _currentHitIndex = 0;
 
         public MainWindowToolbar()
         {
@@ -38,6 +28,10 @@
         public Visibility ToolbarTextVisibility { get => Properties.Settings.Default.MainWindowToolbarTextVisible ? Visibility.Visible : Visibility.Collapsed; }
 
         public Visibility ToolbarIconVisibility { get => Properties.Settings.Default.MainWindowToolbarIconVisible ? Visibility.Visible : Visibility.Collapsed; }
+
+        public Visibility ShowFindControls { get => string.IsNullOrEmpty(_findMatchText) ? Visibility.Collapsed : Visibility.Visible; }
+
+        public string FindMatchText { get => _findMatchText; }
 
         private void OnSettingsPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
@@ -66,15 +60,51 @@
         private void OnFinderPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
             Debug.Assert(sender == _mainWindow.Finder);
-            if (e.PropertyName == "Text")
+            switch (e.PropertyName)
             {
-                this.FindTextBox.Text = _mainWindow.Finder.Text;
+                case "Text":
+                    this.FindTextBox.Text = _mainWindow.Finder.Text;
+                    break;
+                case "HitCount":
+                case "Hits":
+                    _currentHitIndex = 0;
+                    UpdateFindMatches();
+                    break;
             }
+        }
+
+        private void UpdateFindMatches()
+        {
+            Finder finder = _mainWindow.Finder;
+            if (finder.HitCount == 0)
+            {
+                NotifyPropertyChanged.SetValue(ref _findMatchText, string.Empty, new string[] { "ShowFindControls", "FindMatchText" }, this, this.PropertyChanged);
+                return;
+            }
+
+            string findMatchText = $"{_currentHitIndex + 1} / {finder.HitCount}";
+            NotifyPropertyChanged.SetValue(ref _findMatchText, findMatchText, new string[] { "ShowFindControls", "FindMatchText" }, this, this.PropertyChanged);
         }
 
         private void FindTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             _mainWindow.Finder.Text = FindTextBox.Text;
+        }
+
+        private void FindNextButton_Click(object sender, RoutedEventArgs e)
+        {
+            _currentHitIndex = (_currentHitIndex + 1) % _mainWindow.Finder.Hits.Count;
+            JsonObject hit = _mainWindow.Finder.Hits[_currentHitIndex];
+            _mainWindow.Tree.ExpandToItem(hit.ViewObject);
+            UpdateFindMatches();
+        }
+
+        private void FindPreviousButton_Click(object sender, RoutedEventArgs e)
+        {
+            _currentHitIndex = (_currentHitIndex + _mainWindow.Finder.Hits.Count - 1) % _mainWindow.Finder.Hits.Count;
+            JsonObject hit = _mainWindow.Finder.Hits[_currentHitIndex];
+            _mainWindow.Tree.ExpandToItem(hit.ViewObject);
+            UpdateFindMatches();
         }
 
 #pragma warning disable SA1201 // Elements must appear in the correct order
