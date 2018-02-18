@@ -15,6 +15,9 @@
     WindowStartupLocation="CenterOwner"
     WindowStyle="ToolWindow"
     mc:Ignorable="d">
+    <Window.InputBindings>
+        <KeyBinding Key="Esc" Command="local:CommandFactory.HideFind" />
+    </Window.InputBindings>
     <Window.CommandBindings>
         <CommandBinding Command="local:CommandFactory.HideFind" Executed="Tree_CommandBinding_HideFind" />
     </Window.CommandBindings>

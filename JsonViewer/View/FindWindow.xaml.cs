@@ -43,6 +43,7 @@
                 case "ShouldSearchValues":
                 case "ShouldSearchParentValues":
                 case "ShouldIgnoreCase":
+                case "HasWindow":
                     break;
                 default:
                     Debug.Fail("Unknown property name");
