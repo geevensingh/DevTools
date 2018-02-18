@@ -31,7 +31,7 @@
             <Button Click="Button_Click">Toolbar</Button>
             <StackPanel Orientation="Horizontal">
                 <TextBlock Margin="5,0" VerticalAlignment="Center">Current index:</TextBlock>
-                <TextBlock Margin="5,0" VerticalAlignment="Center" Text="{Binding Path=CurrentIndex}" />
+                <TextBlock Margin="5,0" VerticalAlignment="Center" Text="{Binding Path=FindMatchNavigator.CurrentIndex}" />
             </StackPanel>
             <Button x:Name="ExpandAllButton" Command="local:CommandFactory.ExpandAll" DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}" ToolTip="{Binding Path=Text}">
                 <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
@@ -94,9 +94,9 @@
                 <TextBlock Margin="5,0" VerticalAlignment="Center" Visibility="{Binding Path=ToolbarTextVisibility}">Find:</TextBlock>
                 <TextBox x:Name="FindTextBox" MinWidth="200" TextChanged="FindTextBox_TextChanged" />
 
-                <StackPanel Orientation="Horizontal" Visibility="{Binding Path=ShowFindControls}">
+                <StackPanel Orientation="Horizontal" Visibility="{Binding Path=FindMatchNavigator.ShowFindControls}">
                     <TextBlock Margin="5,0" VerticalAlignment="Center">Matches:</TextBlock>
-                    <TextBlock Margin="5,0" VerticalAlignment="Center" Text="{Binding Path=FindMatchText}" />
+                    <TextBlock Margin="5,0" VerticalAlignment="Center" Text="{Binding Path=FindMatchNavigator.FindMatchText}" />
                     <Button x:Name="FindPreviousButton" ToolTip="Find Previous" Click="FindPreviousButton_Click">
                         <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                             <TextBlock Margin="5,0" VerticalAlignment="Center">Previous</TextBlock>

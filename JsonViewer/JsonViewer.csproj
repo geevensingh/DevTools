@@ -107,6 +107,7 @@
     <Compile Include="Commands\OpenJsonFileCommand.cs" />
     <Compile Include="Commands\PickConfigCommand.cs" />
     <Compile Include="Commands\ReloadCommand.cs" />
+    <Compile Include="View\FindMatchNavigator.cs" />
     <Compile Include="View\MainWindowToolbar.xaml.cs">
       <DependentUpon>MainWindowToolbar.xaml</DependentUpon>
     </Compile>
