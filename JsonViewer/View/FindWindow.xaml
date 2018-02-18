@@ -21,7 +21,6 @@
     <Window.CommandBindings>
         <CommandBinding Command="local:CommandFactory.HideFind" Executed="Tree_CommandBinding_HideFind" />
     </Window.CommandBindings>
-    <Border Background="White" BorderBrush="AliceBlue" BorderThickness="2">
         <StackPanel Orientation="Vertical">
             <StackPanel Orientation="Horizontal">
                 <TextBlock Margin="5">Find:</TextBlock>
@@ -43,7 +42,5 @@
             <CheckBox x:Name="searchKeysCheckbox" Margin="5" IsChecked="{Binding Path=ViewModel.ShouldSearchKeys, Mode=TwoWay}">Search keys</CheckBox>
             <CheckBox x:Name="searchValuesCheckbox" Margin="5" IsChecked="{Binding Path=ViewModel.ShouldSearchValues, Mode=TwoWay}">Search values</CheckBox>
             <CheckBox x:Name="searchParentValuesCheckbox" Margin="5" IsChecked="{Binding Path=ViewModel.ShouldSearchParentValues, Mode=TwoWay}">Search parent values</CheckBox>
-
         </StackPanel>
-    </Border>
 </Window>
