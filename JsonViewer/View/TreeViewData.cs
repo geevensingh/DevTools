@@ -46,7 +46,7 @@
 
         public ObservableCollection<TreeViewData> Children { get => _children; }
 
-        public TreeViewData Parent { get => (_jsonObject.Parent == null) ? null : _jsonObject.Parent.ViewObject; }
+        public TreeViewData Parent { get => _jsonObject.Parent?.ViewObject; }
 
         public bool HasChildren { get => _jsonObject.HasChildren; }
 
@@ -191,6 +191,8 @@
         public Visibility ShowTreatAsJson { get => _jsonObject.CanTreatAsJson ? Visibility.Visible : Visibility.Collapsed; }
 
         public Visibility ShowTreatAsText { get => _jsonObject.CanTreatAsText ? Visibility.Visible : Visibility.Collapsed; }
+
+        internal JsonObject JsonObject { get => _jsonObject; }
 
         public void RemoveChildren()
         {
