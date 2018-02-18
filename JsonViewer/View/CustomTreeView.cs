@@ -63,6 +63,52 @@
             }
         }
 
+        public TreeViewItem ExpandToItem(TreeViewData treeViewData)
+        {
+            TreeViewItem parentItem = null;
+            if (treeViewData.Parent != null)
+            {
+                parentItem = ExpandToItem(treeViewData.Parent);
+            }
+
+            TreeViewItem item = null;
+            if (parentItem == null)
+            {
+                Debug.Assert(treeViewData.Parent == null);
+                item = GetItem(treeViewData);
+            }
+            else
+            {
+                bool isExpanded = parentItem.IsExpanded;
+                if (!isExpanded)
+                {
+                    parentItem.IsExpanded = true;
+                    parentItem.UpdateLayout();
+                }
+
+                item = (TreeViewItem)parentItem.ItemContainerGenerator.ContainerFromItem(treeViewData);
+            }
+
+            Debug.Assert(item != null);
+            Debug.Assert(item.DataContext == treeViewData);
+
+            item.IsSelected = true;
+            item.BringIntoView(new Rect(0, -50, item.ActualWidth, 100 + item.ActualHeight));
+            return item;
+        }
+
+        public TreeViewItem SelectItem(TreeViewData treeViewData)
+        {
+            TreeViewItem item = ExpandToItem(treeViewData);
+            item.IsSelected = true;
+
+            Debug.Assert(!double.IsNaN(item.ActualWidth));
+            Debug.Assert(!double.IsNaN(item.ActualHeight));
+            item.BringIntoView(new Rect(0, -50, item.ActualWidth, 100 + item.ActualHeight));
+
+            return item;
+        }
+
         protected override void OnInitialized(EventArgs e)
         {
             base.OnInitialized(e);
@@ -125,8 +171,7 @@
 
         private void CollapseSubtree(ItemContainerGenerator parentContainerGenerator, TreeViewData data)
         {
-            TreeViewItem tvi = parentContainerGenerator.ContainerFromItem(data) as TreeViewItem;
-            if (tvi != null)
+            if (parentContainerGenerator.ContainerFromItem(data) is TreeViewItem tvi)
             {
                 tvi.IsExpanded = false;
                 foreach (TreeViewData child in data.Children)
@@ -134,52 +179,6 @@
                     this.CollapseSubtree(tvi.ItemContainerGenerator, child);
                 }
             }
-        }
-
-        public TreeViewItem ExpandToItem(TreeViewData treeViewData)
-        {
-            TreeViewItem parentItem = null;
-            if (treeViewData.Parent != null)
-            {
-                parentItem = ExpandToItem(treeViewData.Parent);
-            }
-
-            TreeViewItem item = null;
-            if (parentItem == null)
-            {
-                Debug.Assert(treeViewData.Parent == null);
-                item = GetItem(treeViewData);
-            }
-            else
-            {
-                bool isExpanded = parentItem.IsExpanded;
-                if (!isExpanded)
-                {
-                    parentItem.IsExpanded = true;
-                    parentItem.UpdateLayout();
-                }
-
-                item = (TreeViewItem)parentItem.ItemContainerGenerator.ContainerFromItem(treeViewData);
-            }
-
-            Debug.Assert(item != null);
-            Debug.Assert(item.DataContext == treeViewData);
-
-            item.IsSelected = true;
-            item.BringIntoView(new Rect(0, -50, item.ActualWidth, 100 + item.ActualHeight));
-            return item;
-        }
-
-        public TreeViewItem SelectItem(TreeViewData treeViewData)
-        {
-            TreeViewItem item = ExpandToItem(treeViewData);
-            item.IsSelected = true;
-
-            Debug.Assert(!double.IsNaN(item.ActualWidth));
-            Debug.Assert(!double.IsNaN(item.ActualHeight));
-            item.BringIntoView(new Rect(0, -50, item.ActualWidth, 100 + item.ActualHeight));
-
-            return item;
         }
     }
 }
