@@ -127,6 +127,9 @@
     <Compile Include="Model\JsonObjectFactory.cs" />
     <Compile Include="NotifyPropertyChanged.cs" />
     <Compile Include="Model\RootObject.cs" />
+    <Compile Include="View\StatusBar.xaml.cs">
+      <DependentUpon>StatusBar.xaml</DependentUpon>
+    </Compile>
     <Compile Include="View\StretchingTreeViewItem.cs" />
     <Compile Include="View\TreeViewData.cs" />
     <Compile Include="View\TreeViewDataFactory.cs" />
@@ -151,6 +154,10 @@
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Page Include="View\StatusBar.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs">

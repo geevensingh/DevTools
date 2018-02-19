@@ -5,6 +5,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:JsonViewer"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:view="clr-namespace:JsonViewer.View"
     x:Name="mainWindow"
     Title="Json Viewer"
     Width="1000"
@@ -142,33 +143,21 @@
                     IsChecked="{Binding ElementName=Toolbar, Path=ShowToolbarIcon, Mode=OneWay}" />
             </MenuItem>
         </Menu>
-        <StatusBar DockPanel.Dock="Bottom">
-            <StatusBarItem>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Margin="5,0" VerticalAlignment="Center">Current index:</TextBlock>
-                    <TextBlock
-                        Margin="5,0"
-                        VerticalAlignment="Center"
-                        Text="{Binding ElementName=Toolbar, Path=FindMatchNavigator.CurrentIndex}" />
-                </StackPanel>
-            </StatusBarItem>
-        </StatusBar>
+        <local:MainWindowToolbar
+            x:Name="Toolbar"
+            DataContext="{Binding ElementName=mainWindow}"
+            DockPanel.Dock="Top" />
+        <TextBlock
+            x:Name="Banner"
+            Margin="5"
+            Background="Pink"
+            DockPanel.Dock="Top"
+            Visibility="Collapsed" />
+        <view:StatusBar
+            x:Name="statusBar"
+            DataContext="{Binding ElementName=mainWindow}"
+            DockPanel.Dock="Bottom" />
         <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="auto" />
-                <RowDefinition Height="auto" />
-                <RowDefinition Height="*" />
-            </Grid.RowDefinitions>
-            <local:MainWindowToolbar
-                x:Name="Toolbar"
-                Grid.Row="1"
-                DataContext="{Binding ElementName=mainWindow}" />
-            <TextBlock
-                x:Name="Banner"
-                Grid.Row="1"
-                Margin="5"
-                Background="Pink"
-                Visibility="Collapsed" />
             <Grid Grid.Row="2">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />

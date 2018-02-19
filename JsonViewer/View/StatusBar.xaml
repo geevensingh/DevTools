@@ -1,0 +1,23 @@
+﻿<UserControl
+    x:Class="JsonViewer.View.StatusBar"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:view="clr-namespace:JsonViewer.View"
+    x:Name="Root"
+    DataContext="{Binding RelativeSource={RelativeSource Self}}"
+    Loaded="OnLoaded"
+    mc:Ignorable="d">
+    <StatusBar DataContext="{Binding ElementName=Root}">
+        <StatusBarItem>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Margin="5,0" VerticalAlignment="Center">Current index:</TextBlock>
+                <TextBlock
+                    Margin="5,0"
+                    VerticalAlignment="Center"
+                    Text="{Binding Path=CurrentIndex}" />
+            </StackPanel>
+        </StatusBarItem>
+    </StatusBar>
+</UserControl>
