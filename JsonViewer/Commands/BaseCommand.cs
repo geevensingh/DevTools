@@ -17,6 +17,8 @@
         {
             _text = text;
             _canExecute = canExecute;
+
+            App.Current.MainWindowChanged += OnMainWindowChanged;
         }
 
         public event EventHandler CanExecuteChanged;
@@ -45,6 +47,10 @@
         protected void SetText(string text)
         {
             this.SetValue(ref _text, text, "Text");
+        }
+
+        protected virtual void OnMainWindowChanged(App sender)
+        {
         }
     }
 }

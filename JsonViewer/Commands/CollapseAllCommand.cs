@@ -12,7 +12,6 @@
             : base("Collapse All")
         {
             this.Update();
-            App.Current.MainWindowChanged += OnMainWindowChanged;
         }
 
         public static bool HasMultipleLevels(App app)
@@ -44,7 +43,7 @@
             this.OnMainWindowChanged(App.Current);
         }
 
-        private void OnMainWindowChanged(App sender)
+        protected override void OnMainWindowChanged(App sender)
         {
             this.SetCanExecute(HasMultipleLevels(sender));
         }

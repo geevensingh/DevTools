@@ -24,5 +24,9 @@
         public static readonly ShowToolbarTextCommand ShowToolbarText = new ShowToolbarTextCommand();
 
         public static readonly ShowToolbarIconCommand ShowToolbarIcon = new ShowToolbarIconCommand();
+
+        public static readonly FindNextCommand FindNext = new FindNextCommand();
+
+        public static readonly FindPreviousCommand FindPrevious = new FindPreviousCommand();
     }
 }

@@ -12,7 +12,6 @@
             : base("Expand All")
         {
             this.Update();
-            App.Current.MainWindowChanged += OnMainWindowChanged;
         }
 
         public override void Execute(object parameter)
@@ -25,7 +24,7 @@
             this.OnMainWindowChanged(App.Current);
         }
 
-        private void OnMainWindowChanged(App sender)
+        protected override void OnMainWindowChanged(App sender)
         {
             this.SetCanExecute(CollapseAllCommand.HasMultipleLevels(sender));
         }
