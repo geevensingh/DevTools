@@ -11,6 +11,7 @@
     {
         private Finder _finder = null;
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2214:DoNotCallOverridableMethodsInConstructors")]
         public HideFindCommand()
             : base("Hide Find Window")
         {
