@@ -41,12 +41,9 @@
 
         public static void FirePropertyChanged(string[] propertyNames, INotifyPropertyChanged sender, PropertyChangedEventHandler propertyChangedEvent)
         {
-            if (propertyChangedEvent != null)
+            foreach (string propertyName in propertyNames)
             {
-                foreach (string propertyName in propertyNames)
-                {
-                    propertyChangedEvent(sender, new PropertyChangedEventArgs(propertyName));
-                }
+                propertyChangedEvent?.Invoke(sender, new PropertyChangedEventArgs(propertyName));
             }
         }
 
