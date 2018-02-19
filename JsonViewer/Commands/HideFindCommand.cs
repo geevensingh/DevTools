@@ -14,7 +14,6 @@
         public HideFindCommand()
             : base("Hide Find Window")
         {
-            App.Current.MainWindowChanged += OnMainWindowChanged;
             OnMainWindowChanged(App.Current);
         }
 
@@ -24,7 +23,7 @@
             _finder.HideWindow();
         }
 
-        private void OnMainWindowChanged(App sender)
+        protected override void OnMainWindowChanged(App sender)
         {
             if (_finder != null)
             {
