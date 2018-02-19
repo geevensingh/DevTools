@@ -13,7 +13,10 @@
     Loaded="OnLoaded"
     mc:Ignorable="d">
     <Window.Resources>
-        <HierarchicalDataTemplate x:Key="myTaskTemplate" DataType="local:TreeViewData" ItemsSource="{Binding Path=Children}">
+        <HierarchicalDataTemplate
+            x:Key="myTaskTemplate"
+            DataType="local:TreeViewData"
+            ItemsSource="{Binding Path=Children}">
             <Grid HorizontalAlignment="Stretch" Background="{Binding Path=BackgroundColor}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="auto" />
@@ -38,9 +41,18 @@
                             Click="ContextCollapseAll_Click"
                             Header="Collapse all"
                             IsEnabled="{Binding Path=CanCollapse}" />
-                        <MenuItem x:Name="Something" Header="Something" Visibility="{Binding Path=ShowSomething}" />
-                        <MenuItem x:Name="ContextCopyValue" Click="ContextCopyValue_Click" Header="Copy Value" />
-                        <MenuItem x:Name="ContextCopyEscapedValue" Click="ContextCopyEscapedValue_Click" Header="Copy Escaped Value" />
+                        <MenuItem
+                            x:Name="Something"
+                            Header="Something"
+                            Visibility="{Binding Path=ShowSomething}" />
+                        <MenuItem
+                            x:Name="ContextCopyValue"
+                            Click="ContextCopyValue_Click"
+                            Header="Copy Value" />
+                        <MenuItem
+                            x:Name="ContextCopyEscapedValue"
+                            Click="ContextCopyEscapedValue_Click"
+                            Header="Copy Escaped Value" />
                         <MenuItem
                             x:Name="ContextTreatAsJson"
                             Click="ContextTreatAsJson_Click"
@@ -56,10 +68,10 @@
                 <TextBlock
                     x:Name="KeyBlock"
                     Grid.Column="0"
+                    Padding="0,0,5,0"
                     FontSize="{Binding Path=FontSize}"
                     FontWeight="Bold"
                     Foreground="{Binding Path=TextColor}"
-                    Padding="0,0,5,0"
                     Text="{Binding Path=KeyName}" />
                 <TextBlock
                     x:Name="OneLineValueBlock"
@@ -79,10 +91,22 @@
     <Window.InputBindings>
         <KeyBinding Key="Esc" Command="local:CommandFactory.HideFind" />
         <KeyBinding Key="F5" Command="local:CommandFactory.Reload" />
-        <KeyBinding Key="H" Command="local:CommandFactory.HighlightParents" Modifiers="Ctrl" />
-        <KeyBinding Key="L" Command="local:CommandFactory.PickConfig" Modifiers="Ctrl" />
-        <KeyBinding Key="N" Command="local:CommandFactory.NewWindow" Modifiers="Ctrl" />
-        <KeyBinding Key="O" Command="local:CommandFactory.OpenJsonFile" Modifiers="Ctrl" />
+        <KeyBinding
+            Key="H"
+            Modifiers="Ctrl"
+            Command="local:CommandFactory.HighlightParents" />
+        <KeyBinding
+            Key="L"
+            Modifiers="Ctrl"
+            Command="local:CommandFactory.PickConfig" />
+        <KeyBinding
+            Key="N"
+            Modifiers="Ctrl"
+            Command="local:CommandFactory.NewWindow" />
+        <KeyBinding
+            Key="O"
+            Modifiers="Ctrl"
+            Command="local:CommandFactory.OpenJsonFile" />
     </Window.InputBindings>
     <Window.CommandBindings>
         <CommandBinding Command="ApplicationCommands.Find" Executed="CommandBinding_Find" />
@@ -98,18 +122,26 @@
             <MenuItem Header="_View">
                 <MenuItem Command="local:CommandFactory.NewWindow" Header="_New Window" />
                 <Separator />
-                <MenuItem Command="local:CommandFactory.ShowToolbarText" 
-                          IsCheckable="True" 
-                          IsChecked="{Binding ElementName=Toolbar, Path=ShowToolbarText, Mode=OneWay}" 
-                          Header="Show toolbar _text" />
-                <MenuItem Command="local:CommandFactory.ShowToolbarIcon" IsCheckable="True" IsChecked="{Binding ElementName=Toolbar, Path=ShowToolbarIcon, Mode=OneWay}" Header="Show toolbar _icons" />
+                <MenuItem
+                    Command="local:CommandFactory.ShowToolbarText"
+                    Header="Show toolbar _text"
+                    IsCheckable="True"
+                    IsChecked="{Binding ElementName=Toolbar, Path=ShowToolbarText, Mode=OneWay}" />
+                <MenuItem
+                    Command="local:CommandFactory.ShowToolbarIcon"
+                    Header="Show toolbar _icons"
+                    IsCheckable="True"
+                    IsChecked="{Binding ElementName=Toolbar, Path=ShowToolbarIcon, Mode=OneWay}" />
             </MenuItem>
         </Menu>
         <StatusBar DockPanel.Dock="Bottom">
             <StatusBarItem>
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Margin="5,0" VerticalAlignment="Center">Current index:</TextBlock>
-                    <TextBlock Margin="5,0" VerticalAlignment="Center" Text="{Binding ElementName=Toolbar, Path=FindMatchNavigator.CurrentIndex}" />
+                    <TextBlock
+                        Margin="5,0"
+                        VerticalAlignment="Center"
+                        Text="{Binding ElementName=Toolbar, Path=FindMatchNavigator.CurrentIndex}" />
                 </StackPanel>
             </StatusBarItem>
         </StatusBar>
@@ -119,7 +151,10 @@
                 <RowDefinition Height="auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
-            <local:MainWindowToolbar x:Name="Toolbar" Grid.Row="1" DataContext="{Binding ElementName=mainWindow}" />
+            <local:MainWindowToolbar
+                x:Name="Toolbar"
+                Grid.Row="1"
+                DataContext="{Binding ElementName=mainWindow}" />
             <TextBlock
                 x:Name="Banner"
                 Grid.Row="1"
