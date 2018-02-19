@@ -44,13 +44,13 @@
             }
         }
 
-        protected void SetText(string text)
-        {
-            this.SetValue(ref _text, text, "Text");
-        }
-
         protected virtual void OnMainWindowChanged(App sender)
         {
+        }
+
+        private void SetText(string text)
+        {
+            this.SetValue(ref _text, text, "Text");
         }
     }
 }

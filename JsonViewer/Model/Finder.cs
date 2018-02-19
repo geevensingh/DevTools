@@ -161,7 +161,6 @@
             bool found = false;
             if (!string.IsNullOrEmpty(_text))
             {
-                bool shouldSearchValue = obj.HasChildren ? _shouldSearchParentValues : _shouldSearchValues;
                 if (_shouldSearchKeys && this.CompareStrings(obj.Key, _text))
                 {
                     found = true;

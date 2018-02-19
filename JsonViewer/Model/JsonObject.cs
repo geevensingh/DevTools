@@ -71,26 +71,6 @@
 
         public bool CanTreatAsText { get => _dataType == DataType.Json; }
 
-        public string ParentPath
-        {
-            get
-            {
-                string parentPath = string.Empty;
-                if (_parent != null)
-                {
-                    parentPath = _parent.ParentPath;
-                    if (!string.IsNullOrEmpty(parentPath))
-                    {
-                        parentPath += " : ";
-                    }
-
-                    parentPath += _parent._key;
-                }
-
-                return parentPath;
-            }
-        }
-
         public string ValueString
         {
             get

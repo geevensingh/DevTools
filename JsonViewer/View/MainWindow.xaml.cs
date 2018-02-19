@@ -139,24 +139,24 @@
 
         private void ContextExpandChildren_Click(object sender, RoutedEventArgs e)
         {
-            Debug.Assert(sender as FrameworkElement == sender);
             FrameworkElement element = sender as FrameworkElement;
+            Debug.Assert(element == sender);
             Debug.Assert(element.DataContext.GetType() == typeof(TreeViewData));
             this.Tree.ExpandChildren(element.DataContext as TreeViewData);
         }
 
         private void ContextExpandAll_Click(object sender, RoutedEventArgs e)
         {
-            Debug.Assert(sender as FrameworkElement == sender);
             FrameworkElement element = sender as FrameworkElement;
+            Debug.Assert(element == sender);
             Debug.Assert(element.DataContext.GetType() == typeof(TreeViewData));
             this.Tree.ExpandSubtree(element.DataContext as TreeViewData);
         }
 
         private void ContextCollapseAll_Click(object sender, RoutedEventArgs e)
         {
-            Debug.Assert(sender as FrameworkElement == sender);
             FrameworkElement element = sender as FrameworkElement;
+            Debug.Assert(element == sender);
             Debug.Assert(element.DataContext.GetType() == typeof(TreeViewData));
             this.Tree.CollapseSubtree(element.DataContext as TreeViewData);
         }

@@ -75,15 +75,5 @@
         {
             _mainWindow.Finder.Text = FindTextBox.Text;
         }
-
-        private void FindNextButton_Click(object sender, RoutedEventArgs e)
-        {
-            _findMatchNavigator.Go(FindMatchNavigator.Direction.Forward);
-        }
-
-        private void FindPreviousButton_Click(object sender, RoutedEventArgs e)
-        {
-            _findMatchNavigator.Go(FindMatchNavigator.Direction.Backward);
-        }
     }
 }

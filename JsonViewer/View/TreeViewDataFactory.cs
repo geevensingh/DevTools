@@ -3,7 +3,7 @@
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
 
-    internal class TreeViewDataFactory
+    internal static class TreeViewDataFactory
     {
         public static ObservableCollection<TreeViewData> CreateCollection(RootObject rootObject)
         {

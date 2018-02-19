@@ -11,7 +11,7 @@
     /// </summary>
     public partial class App : Application
     {
-        private string[] _args = new string[] { };
+        private List<string> _args = null;
         private string _initialText = string.Empty;
         private List<MainWindow> _windows = new List<MainWindow>();
 
@@ -19,7 +19,7 @@
 
         internal event MainWindowChangedHandler MainWindowChanged;
 
-        public string[] Args { get => _args; }
+        public IList<string> Args { get => _args; }
 
         public string InitialText { get => _initialText; set => _initialText = value; }
 
@@ -51,9 +51,9 @@
         {
             base.OnStartup(e);
 
-            _args = e.Args;
+            _args = new List<string>(e?.Args);
 
-            if (_args.Length > 0)
+            if (_args.Count > 0)
             {
                 string launchFilePath = _args[0];
                 if (File.Exists(launchFilePath))
