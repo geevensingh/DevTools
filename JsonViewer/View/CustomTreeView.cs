@@ -155,6 +155,7 @@
             {
                 _selected.IsSelected = true;
                 newSelectedIndex = _selected.JsonObject.OverallIndex;
+                Debug.Assert(newSelectedIndex >= 0);
             }
 
             NotifyPropertyChanged.SetValue(ref _selectedIndex, newSelectedIndex, "SelectedIndex", this, this.PropertyChanged);

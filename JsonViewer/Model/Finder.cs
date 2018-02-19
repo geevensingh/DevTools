@@ -125,8 +125,24 @@
 
         internal void SetObjects(RootObject rootObject)
         {
+            if (_rootObject != null)
+            {
+                _rootObject.PropertyChanged -= OnRootObjectPropertyChanged;
+            }
+
             _rootObject = rootObject;
+            _rootObject.PropertyChanged += OnRootObjectPropertyChanged;
             Update();
+        }
+
+        private void OnRootObjectPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            switch (e.PropertyName)
+            {
+                case "AllChildren":
+                    Update();
+                    break;
+            }
         }
 
         private void Update()

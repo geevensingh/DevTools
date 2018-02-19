@@ -131,7 +131,7 @@
             _dataType = DataType.Json;
             JsonObjectFactory.Flatten(ref _children, dict, this);
 
-            _parent.RebuildViewObjects(this);
+            _parent.UpdateChild(this);
 
             return true;
         }
@@ -156,7 +156,7 @@
             _dataType = DataType.ParsableString;
             _children.Clear();
 
-            _parent.RebuildViewObjects(this);
+            _parent.UpdateChild(this);
 
             return true;
         }
@@ -175,13 +175,21 @@
             this.Children.Add(child);
         }
 
-        protected virtual void RebuildViewObjects(JsonObject child)
+        protected virtual void UpdateChild(JsonObject child)
         {
             Debug.Assert(_children.Contains(child));
             int index = _children.IndexOf(child);
             Debug.Assert(_children[index].ViewObject == _viewObject.Children[index]);
             _viewObject.Children.RemoveAt(index);
             _viewObject.Children.Insert(index, child.ResetView());
+
+            this.OnChildrenChanged();
+        }
+
+        protected virtual void OnChildrenChanged()
+        {
+            Debug.Assert(_parent != null);
+            _parent.OnChildrenChanged();
         }
 
         protected IList<JsonObject> GetAllChildren()

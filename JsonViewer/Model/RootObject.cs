@@ -43,7 +43,7 @@
             }
         }
 
-        protected override void RebuildViewObjects(JsonObject child)
+        protected override void UpdateChild(JsonObject child)
         {
             Debug.Assert(this.Children.Contains(child));
             int index = this.Children.IndexOf(child);
@@ -57,6 +57,13 @@
             Debug.Assert(_viewChildren == null);
             base.AddChild(child);
             _allChildren = null;
+            this.FirePropertyChanged("AllChildren");
+        }
+
+        protected override void OnChildrenChanged()
+        {
+            _allChildren = null;
+            this.FirePropertyChanged("AllChildren");
         }
     }
 }
