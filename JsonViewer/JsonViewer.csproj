@@ -166,6 +166,7 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
+    <Resource Include="Resources\open_file.png" />
     <Resource Include="Resources\left.png" />
     <Resource Include="Resources\right.png" />
     <EmbeddedResource Include="Properties\Resources.resx">
