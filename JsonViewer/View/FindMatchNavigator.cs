@@ -26,11 +26,29 @@
             _mainWindow.Finder.PropertyChanged += OnFinderPropertyChanged;
         }
 
+        public enum Direction
+        {
+            Forward,
+            Backward
+        }
+
         public Visibility ShowFindControls { get => string.IsNullOrEmpty(_findMatchText) ? Visibility.Collapsed : Visibility.Visible; }
 
         public string FindMatchText { get => _findMatchText; }
 
         public string CurrentIndex { get => _currentIndex.HasValue ? _currentIndex.ToString() : "--"; }
+
+        public void Go(Direction direction)
+        {
+            Debug.Assert(_mainWindow.Finder.HitCount > 0);
+            GetHitIndexRange(out int previous, out int next);
+
+            int adjusted = direction == Direction.Forward ? (previous + 1) : (next - 1);
+            _currentHitIndex = (adjusted + _mainWindow.Finder.Hits.Count) % _mainWindow.Finder.Hits.Count;
+            JsonObject hit = _mainWindow.Finder.Hits[_currentHitIndex.Value];
+            _mainWindow.Tree.ExpandToItem(hit.ViewObject);
+            UpdateFindMatches();
+        }
 
         private void OnTreeSelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
@@ -92,26 +110,6 @@
             }
 
             this.SetValue(ref _findMatchText, findMatchText, new string[] { "ShowFindControls", "FindMatchText" });
-        }
-
-        public void FindNextButton_Click(object sender, RoutedEventArgs e)
-        {
-            GetHitIndexRange(out int previous, out int next);
-
-            _currentHitIndex = (previous + 1) % _mainWindow.Finder.Hits.Count;
-            JsonObject hit = _mainWindow.Finder.Hits[_currentHitIndex.Value];
-            _mainWindow.Tree.ExpandToItem(hit.ViewObject);
-            UpdateFindMatches();
-        }
-
-        public void FindPreviousButton_Click(object sender, RoutedEventArgs e)
-        {
-            GetHitIndexRange(out int previous, out int next);
-
-            _currentHitIndex = (next + _mainWindow.Finder.Hits.Count - 1) % _mainWindow.Finder.Hits.Count;
-            JsonObject hit = _mainWindow.Finder.Hits[_currentHitIndex.Value];
-            _mainWindow.Tree.ExpandToItem(hit.ViewObject);
-            UpdateFindMatches();
         }
 
         private void GetHitIndexRange(out int previous, out int next)

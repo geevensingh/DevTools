@@ -78,12 +78,12 @@
 
         private void FindNextButton_Click(object sender, RoutedEventArgs e)
         {
-            _findMatchNavigator.FindNextButton_Click(sender, e);
+            _findMatchNavigator.Go(FindMatchNavigator.Direction.Forward);
         }
 
         private void FindPreviousButton_Click(object sender, RoutedEventArgs e)
         {
-            _findMatchNavigator.FindPreviousButton_Click(sender, e);
+            _findMatchNavigator.Go(FindMatchNavigator.Direction.Backward);
         }
     }
 }

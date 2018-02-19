@@ -101,7 +101,9 @@
     <Compile Include="Commands\BaseCommand.cs" />
     <Compile Include="Commands\CollapseAllCommand.cs" />
     <Compile Include="Commands\ExpandAllCommand.cs" />
+    <Compile Include="Commands\FindPreviousCommand.cs" />
     <Compile Include="Commands\HideFindCommand.cs" />
+    <Compile Include="Commands\FindNextCommand.cs" />
     <Compile Include="Commands\ShowToolbarTextCommand.cs" />
     <Compile Include="Commands\ShowToolbarIconCommand.cs" />
     <Compile Include="Commands\HighlightParentsCommand.cs" />
@@ -164,6 +166,8 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
+    <Resource Include="Resources\left.png" />
+    <Resource Include="Resources\right.png" />
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>

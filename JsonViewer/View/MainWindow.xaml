@@ -107,6 +107,14 @@
             Key="O"
             Modifiers="Ctrl"
             Command="local:CommandFactory.OpenJsonFile" />
+        <KeyBinding
+            Key="Left"
+            Modifiers="Ctrl"
+            Command="local:CommandFactory.FindPrevious" />
+        <KeyBinding
+            Key="Right"
+            Modifiers="Ctrl"
+            Command="local:CommandFactory.FindNext" />
     </Window.InputBindings>
     <Window.CommandBindings>
         <CommandBinding Command="ApplicationCommands.Find" Executed="CommandBinding_Find" />
