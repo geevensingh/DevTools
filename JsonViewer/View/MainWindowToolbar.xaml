@@ -39,37 +39,32 @@
                     <TextBlock Margin="5,0" VerticalAlignment="Center" Visibility="{Binding ElementName=Root, Path=ToolbarTextVisibility}" Text="{Binding Path=Text}" />
                 </StackPanel>
             </Button>
-            <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
             <Button x:Name="CollapseAllButton" Command="local:CommandFactory.CollapseAll" DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}" ToolTip="{Binding Path=Text}">
                 <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                     <Image Height="25" Source="{StaticResource CollapseAllImage}" Visibility="{Binding ElementName=Root, Path=ToolbarIconVisibility}" />
                     <TextBlock Margin="5,0" VerticalAlignment="Center" Visibility="{Binding ElementName=Root, Path=ToolbarTextVisibility}" Text="{Binding Path=Text}" />
                 </StackPanel>
             </Button>
-        </ToolBar>
-        <ToolBar Band="1" BandIndex="2">
+            <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
             <Button x:Name="OpenJsonFileButton" Command="local:CommandFactory.OpenJsonFile" DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}" ToolTip="{Binding Path=Text}">
                 <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                     <Image Height="25" Source="{StaticResource CurlyBracesImage}" Visibility="{Binding ElementName=Root, Path=ToolbarIconVisibility}" />
                     <TextBlock Margin="5,0" VerticalAlignment="Center" Visibility="{Binding ElementName=Root, Path=ToolbarTextVisibility}" Text="{Binding Path=Text}" />
                 </StackPanel>
             </Button>
-            <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
             <Button x:Name="PickConfigButton" Command="local:CommandFactory.PickConfig" DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}" ToolTip="{Binding Path=Text}">
                 <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                     <Image Height="25" Source="{StaticResource SettingsImage}" Visibility="{Binding ElementName=Root, Path=ToolbarIconVisibility}" />
                     <TextBlock Margin="5,0" VerticalAlignment="Center" Visibility="{Binding ElementName=Root, Path=ToolbarTextVisibility}" Text="{Binding Path=Text}" />
                 </StackPanel>
             </Button>
-            <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
             <Button x:Name="ReloadButton" Command="local:CommandFactory.Reload" DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}" ToolTip="{Binding Path=Text}">
                 <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                     <Image Height="25" Source="{StaticResource ReloadImage}" Visibility="{Binding ElementName=Root, Path=ToolbarIconVisibility}" />
                     <TextBlock Margin="5,0" VerticalAlignment="Center" Visibility="{Binding ElementName=Root, Path=ToolbarTextVisibility}" Text="{Binding Path=Text}" />
                 </StackPanel>
             </Button>
-        </ToolBar>
-        <ToolBar Band="1" BandIndex="3">
+            <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
             <CheckBox
                 x:Name="HighlightParentsButton"
                 Command="local:CommandFactory.HighlightParents"
@@ -80,16 +75,14 @@
                     <TextBlock Margin="5,0" VerticalAlignment="Center" Visibility="{Binding ElementName=Root, Path=ToolbarTextVisibility}" Text="{Binding Path=Text}" />
                 </StackPanel>
             </CheckBox>
-        </ToolBar>
-        <ToolBar Band="1" BandIndex="4">
+            <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
             <Button x:Name="NewWindowButton" Command="local:CommandFactory.NewWindow" DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}" ToolTip="{Binding Path=Text}">
                 <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                     <Image Height="25" Source="{StaticResource WindowImage}" Visibility="{Binding ElementName=Root, Path=ToolbarIconVisibility}" />
                     <TextBlock Margin="5,0" VerticalAlignment="Center" Visibility="{Binding ElementName=Root, Path=ToolbarTextVisibility}" Text="{Binding Path=Text}" />
                 </StackPanel>
             </Button>
-        </ToolBar>
-        <ToolBar Band="1" BandIndex="5">
+            <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
             <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                 <TextBlock Margin="5,0" VerticalAlignment="Center" Visibility="{Binding Path=ToolbarTextVisibility}">Find:</TextBlock>
                 <TextBox x:Name="FindTextBox" MinWidth="200" TextChanged="FindTextBox_TextChanged" />
