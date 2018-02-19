@@ -14,15 +14,13 @@
 
         private int? _currentHitIndex = null;
 
-        private int? _currentIndex = null;
-
         private string _findMatchText = string.Empty;
 
         public FindMatchNavigator(MainWindow mainWindow)
         {
             _mainWindow = mainWindow;
 
-            _mainWindow.Tree.SelectedItemChanged += OnTreeSelectedItemChanged;
+            _mainWindow.Tree.PropertyChanged += OnTreePropertyChanged;
             _mainWindow.Finder.PropertyChanged += OnFinderPropertyChanged;
         }
 
@@ -36,7 +34,7 @@
 
         public string FindMatchText { get => _findMatchText; }
 
-        public string CurrentIndex { get => _currentIndex.HasValue ? _currentIndex.ToString() : "--"; }
+        private int? CurrentIndex { get => _mainWindow.Tree.SelectedIndex; }
 
         public void Go(Direction direction)
         {
@@ -46,28 +44,24 @@
             int adjusted = direction == Direction.Forward ? (previous + 1) : (next - 1);
             _currentHitIndex = (adjusted + _mainWindow.Finder.Hits.Count) % _mainWindow.Finder.Hits.Count;
             JsonObject hit = _mainWindow.Finder.Hits[_currentHitIndex.Value];
-            _mainWindow.Tree.ExpandToItem(hit.ViewObject);
-            UpdateFindMatches();
+            _mainWindow.Tree.SelectItem(hit.ViewObject);
         }
 
-        private void OnTreeSelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+        private void OnTreePropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
             Debug.Assert(sender == _mainWindow.Tree);
-            TreeViewData newSelectedData = (TreeViewData)e.NewValue;
-
-            _currentHitIndex = null;
-            int? newIndex = null;
-            if (newSelectedData != null)
+            switch (e.PropertyName)
             {
-                newIndex = newSelectedData.JsonObject.OverallIndex;
-                if (newSelectedData.JsonObject.IsFindMatch)
-                {
-                    _currentHitIndex = _mainWindow.Finder.Hits.IndexOf(newSelectedData.JsonObject);
-                }
-            }
+                case "SelectedIndex":
+                    TreeViewData newSelectedData = (TreeViewData)_mainWindow.Tree.SelectedItem;
+                    if (newSelectedData != null && newSelectedData.JsonObject.IsFindMatch)
+                    {
+                        _currentHitIndex = _mainWindow.Finder.Hits.IndexOf(newSelectedData.JsonObject);
+                    }
 
-            this.SetValue(ref _currentIndex, newIndex, "CurrentIndex");
-            UpdateFindMatches();
+                    UpdateFindMatches();
+                    break;
+            }
         }
 
         private void OnFinderPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -77,7 +71,6 @@
             {
                 case "HitCount":
                 case "Hits":
-                    _currentHitIndex = null;
                     UpdateFindMatches();
                     break;
             }
@@ -85,6 +78,8 @@
 
         private void UpdateFindMatches()
         {
+            _currentHitIndex = null;
+
             Finder finder = _mainWindow.Finder;
             if (finder.HitCount == 0)
             {
@@ -93,9 +88,10 @@
                 return;
             }
 
-            if (_currentIndex.HasValue)
+            int? currentIndex = this.CurrentIndex;
+            if (currentIndex.HasValue)
             {
-                JsonObject currentObj = _mainWindow.RootObject.AllChildren[_currentIndex.Value];
+                JsonObject currentObj = _mainWindow.RootObject.AllChildren[currentIndex.Value];
                 if (currentObj.IsFindMatch)
                 {
                     int indexOfCurrentObj = finder.Hits.IndexOf(currentObj);
@@ -130,13 +126,14 @@
             }
 
             previous = -1;
-            if (_currentIndex.HasValue)
+            int? currentIndex = this.CurrentIndex;
+            if (currentIndex.HasValue)
             {
                 Debug.Assert(_mainWindow.Finder.HitCount == _mainWindow.Finder.Hits.Count);
                 for (int ii = 0; ii < _mainWindow.Finder.Hits.Count; ii++)
                 {
                     JsonObject foo = _mainWindow.Finder.Hits[ii];
-                    if (foo.OverallIndex <= _currentIndex.Value)
+                    if (foo.OverallIndex <= currentIndex.Value)
                     {
                         previous = ii;
                     }

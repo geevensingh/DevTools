@@ -1,13 +1,19 @@
 ﻿namespace JsonViewer
 {
     using System;
+    using System.ComponentModel;
     using System.Diagnostics;
     using System.Windows;
     using System.Windows.Controls;
 
-    internal class CustomTreeView : TreeView
+    internal class CustomTreeView : TreeView, INotifyPropertyChanged
     {
         private TreeViewData _selected = null;
+        private int? _selectedIndex = null;
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        public int? SelectedIndex { get => _selectedIndex; }
 
         public void ExpandChildren(TreeViewData data)
         {
@@ -92,8 +98,6 @@
             Debug.Assert(item != null);
             Debug.Assert(item.DataContext == treeViewData);
 
-            item.IsSelected = true;
-            item.BringIntoView(new Rect(0, -50, item.ActualWidth, 100 + item.ActualHeight));
             return item;
         }
 
@@ -134,16 +138,26 @@
         protected override void OnSelectedItemChanged(RoutedPropertyChangedEventArgs<object> e)
         {
             base.OnSelectedItemChanged(e);
+            TreeViewData newSelected = this.SelectedValue as TreeViewData;
+            if (newSelected == _selected)
+            {
+                return;
+            }
+
             if (_selected != null)
             {
                 _selected.IsSelected = false;
             }
 
-            _selected = this.SelectedValue as TreeViewData;
+            int? newSelectedIndex = null;
+            _selected = newSelected;
             if (_selected != null)
             {
                 _selected.IsSelected = true;
+                newSelectedIndex = _selected.JsonObject.OverallIndex;
             }
+
+            NotifyPropertyChanged.SetValue(ref _selectedIndex, newSelectedIndex, "SelectedIndex", this, this.PropertyChanged);
         }
 
         private ItemContainerGenerator GetItemContainerGenerator(TreeViewData data)
