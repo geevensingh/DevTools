@@ -131,18 +131,16 @@
 
         private void Update()
         {
-            bool changedSomething = false;
             List<JsonObject> hits = new List<JsonObject>();
             if (_rootObject != null)
             {
-                Highlight(_rootObject, ref hits, ref changedSomething);
+                Highlight(_rootObject, ref hits);
             }
 
             if (this.SetValue(ref _hitCount, hits.Count, "HitCount"))
             {
                 // If the hit count changed, then certainly the hits changed.
                 this.SetValue(ref _hits, hits, "Hits");
-                Debug.Assert(changedSomething);
                 return;
             }
 
@@ -153,15 +151,12 @@
                 if (hits[ii] != _hits[ii])
                 {
                     this.SetValue(ref _hits, hits, "Hits");
-                    Debug.Assert(changedSomething);
                     return;
                 }
             }
-
-            Debug.Assert(!changedSomething);
         }
 
-        private void Highlight(JsonObject obj, ref List<JsonObject> hits, ref bool changedSomething)
+        private void Highlight(JsonObject obj, ref List<JsonObject> hits)
         {
             bool found = false;
             if (!string.IsNullOrEmpty(_text))
@@ -184,7 +179,6 @@
 
             if (obj.IsFindMatch != found)
             {
-                changedSomething = true;
                 obj.IsFindMatch = found;
             }
 
@@ -192,7 +186,7 @@
             {
                 foreach (JsonObject child in obj.Children)
                 {
-                    this.Highlight(child, ref hits, ref changedSomething);
+                    this.Highlight(child, ref hits);
                 }
             }
         }
