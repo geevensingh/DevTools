@@ -179,7 +179,7 @@
             }
         }
 
-        private void Tree_CommandBinding_Find(object sender, ExecutedRoutedEventArgs e)
+        private void CommandBinding_Find(object sender, ExecutedRoutedEventArgs e)
         {
             _finder.ShowWindow();
         }

@@ -20,5 +20,9 @@
         public static readonly ExpandAllCommand ExpandAll = new ExpandAllCommand();
 
         public static readonly CollapseAllCommand CollapseAll = new CollapseAllCommand();
+
+        public static readonly ShowToolbarTextCommand ShowToolbarText = new ShowToolbarTextCommand();
+
+        public static readonly ShowToolbarIconCommand ShowToolbarIcon = new ShowToolbarIconCommand();
     }
 }

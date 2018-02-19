@@ -30,7 +30,7 @@
 
         public string FindMatchText { get => _findMatchText; }
 
-        public int? CurrentIndex { get => _currentIndex; }
+        public string CurrentIndex { get => _currentIndex.HasValue ? _currentIndex.ToString() : "--"; }
 
         private void OnTreeSelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {

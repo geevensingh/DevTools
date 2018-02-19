@@ -85,26 +85,34 @@
         <KeyBinding Key="O" Command="local:CommandFactory.OpenJsonFile" Modifiers="Ctrl" />
     </Window.InputBindings>
     <Window.CommandBindings>
-        <CommandBinding Command="ApplicationCommands.Find" Executed="Tree_CommandBinding_Find" />
-        <CommandBinding Command="local:CommandFactory.HideFind" />
-        <CommandBinding Command="local:CommandFactory.PickConfig" />
-        <CommandBinding Command="local:CommandFactory.Reload" />
-        <CommandBinding Command="local:CommandFactory.NewWindow" />
-        <CommandBinding Command="local:CommandFactory.OpenJsonFile" />
-        <CommandBinding Command="local:CommandFactory.HighlightParents" />
+        <CommandBinding Command="ApplicationCommands.Find" Executed="CommandBinding_Find" />
     </Window.CommandBindings>
     <DockPanel>
-        <!--<Menu DockPanel.Dock="Top">
+        <Menu DockPanel.Dock="Top">
             <MenuItem Header="_File">
                 <MenuItem Command="local:CommandFactory.OpenJsonFile" Header="_Open Json file..." />
                 <Separator />
                 <MenuItem Command="local:CommandFactory.PickConfig" Header="Load _Config file..." />
                 <MenuItem Command="local:CommandFactory.Reload" Header="_Reload current config" />
             </MenuItem>
-            <MenuItem Header="_Window">
+            <MenuItem Header="_View">
                 <MenuItem Command="local:CommandFactory.NewWindow" Header="_New Window" />
+                <Separator />
+                <MenuItem Command="local:CommandFactory.ShowToolbarText" 
+                          IsCheckable="True" 
+                          IsChecked="{Binding ElementName=Toolbar, Path=ShowToolbarText, Mode=OneWay}" 
+                          Header="Show toolbar _text" />
+                <MenuItem Command="local:CommandFactory.ShowToolbarIcon" IsCheckable="True" IsChecked="{Binding ElementName=Toolbar, Path=ShowToolbarIcon, Mode=OneWay}" Header="Show toolbar _icons" />
             </MenuItem>
-        </Menu>-->
+        </Menu>
+        <StatusBar DockPanel.Dock="Bottom">
+            <StatusBarItem>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Margin="5,0" VerticalAlignment="Center">Current index:</TextBlock>
+                    <TextBlock Margin="5,0" VerticalAlignment="Center" Text="{Binding ElementName=Toolbar, Path=FindMatchNavigator.CurrentIndex}" />
+                </StackPanel>
+            </StatusBarItem>
+        </StatusBar>
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="auto" />

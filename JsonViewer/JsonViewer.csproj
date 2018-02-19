@@ -102,6 +102,8 @@
     <Compile Include="Commands\CollapseAllCommand.cs" />
     <Compile Include="Commands\ExpandAllCommand.cs" />
     <Compile Include="Commands\HideFindCommand.cs" />
+    <Compile Include="Commands\ShowToolbarTextCommand.cs" />
+    <Compile Include="Commands\ShowToolbarIconCommand.cs" />
     <Compile Include="Commands\HighlightParentsCommand.cs" />
     <Compile Include="Commands\NewWindowCommand.cs" />
     <Compile Include="Commands\OpenJsonFileCommand.cs" />

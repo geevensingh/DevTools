@@ -24,9 +24,13 @@
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        public Visibility ToolbarTextVisibility { get => Properties.Settings.Default.MainWindowToolbarTextVisible ? Visibility.Visible : Visibility.Collapsed; }
+        public bool ShowToolbarText { get => Properties.Settings.Default.MainWindowToolbarTextVisible; }
 
-        public Visibility ToolbarIconVisibility { get => Properties.Settings.Default.MainWindowToolbarIconVisible ? Visibility.Visible : Visibility.Collapsed; }
+        public Visibility ToolbarTextVisibility { get => this.ShowToolbarText ? Visibility.Visible : Visibility.Collapsed; }
+
+        public bool ShowToolbarIcon { get => Properties.Settings.Default.MainWindowToolbarIconVisible; }
+
+        public Visibility ToolbarIconVisibility { get => this.ShowToolbarIcon ? Visibility.Visible : Visibility.Collapsed; }
 
         public FindMatchNavigator FindMatchNavigator { get => _findMatchNavigator; }
 
@@ -35,10 +39,10 @@
             switch (e.PropertyName)
             {
                 case "MainWindowToolbarTextVisible":
-                    NotifyPropertyChanged.FirePropertyChanged("ToolbarTextVisibility", this, this.PropertyChanged);
+                    NotifyPropertyChanged.FirePropertyChanged(new string[] { "ShowToolbarText", "ToolbarTextVisibility" }, this, this.PropertyChanged);
                     break;
                 case "MainWindowToolbarIconVisible":
-                    NotifyPropertyChanged.FirePropertyChanged("ToolbarIconVisibility", this, this.PropertyChanged);
+                    NotifyPropertyChanged.FirePropertyChanged(new string[] { "ShowToolbarIcon", "ToolbarIconVisibility" }, this, this.PropertyChanged);
                     break;
             }
         }
@@ -81,32 +85,5 @@
         {
             _findMatchNavigator.FindPreviousButton_Click(sender, e);
         }
-
-#pragma warning disable SA1201 // Elements must appear in the correct order
-#pragma warning disable SA1400 // Access modifier must be declared
-        static int foo = 0;
-
-        private void Button_Click(object sender, RoutedEventArgs e)
-        {
-            switch (foo++ % 3)
-            {
-                case 0:
-                    Properties.Settings.Default.MainWindowToolbarTextVisible = true;
-                    Properties.Settings.Default.MainWindowToolbarIconVisible = true;
-                    break;
-                case 1:
-                    Properties.Settings.Default.MainWindowToolbarTextVisible = true;
-                    Properties.Settings.Default.MainWindowToolbarIconVisible = false;
-                    break;
-                case 2:
-                    Properties.Settings.Default.MainWindowToolbarTextVisible = false;
-                    Properties.Settings.Default.MainWindowToolbarIconVisible = true;
-                    break;
-            }
-
-            Properties.Settings.Default.Save();
-        }
-#pragma warning restore SA1400 // Access modifier must be declared
-#pragma warning restore SA1201 // Elements must appear in the correct order
     }
 }
