@@ -2,6 +2,7 @@
 {
     using System;
     using System.ComponentModel;
+    using System.Deployment.Application;
     using System.Diagnostics;
     using System.Threading.Tasks;
     using System.Windows;
@@ -148,6 +149,83 @@
         private void CommandBinding_Find(object sender, ExecutedRoutedEventArgs e)
         {
             _finder.ShowWindow();
+        }
+
+        private void CheckForUpdates(object sender, RoutedEventArgs e)
+        {
+            UpdateCheckInfo info = null;
+
+            if (!ApplicationDeployment.IsNetworkDeployed)
+            {
+                MessageBox.Show("This application was not network deployed.", "Update", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            ApplicationDeployment ad = ApplicationDeployment.CurrentDeployment;
+
+            try
+            {
+                info = ad.CheckForDetailedUpdate();
+            }
+            catch (DeploymentDownloadException dde)
+            {
+                MessageBox.Show("The new version of the application cannot be downloaded at this time. \n\nPlease check your network connection, or try again later. Error: " + dde.Message, "Error!", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+            catch (InvalidDeploymentException ide)
+            {
+                MessageBox.Show("Cannot check for a new version of the application. The ClickOnce deployment is corrupt. Please redeploy the application and try again. Error: " + ide.Message, "Error!", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+            catch (InvalidOperationException ioe)
+            {
+                MessageBox.Show("This application cannot be updated. It is likely not a ClickOnce application. Error: " + ioe.Message, "Error!", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            if (!info.UpdateAvailable)
+            {
+                MessageBox.Show("This application is up to date.", "Update", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            bool doUpdate = true;
+
+            if (!info.IsUpdateRequired)
+            {
+                MessageBoxResult dr = MessageBox.Show("An update is available. Would you like to update the application now?", "Update Available", MessageBoxButton.OKCancel, MessageBoxImage.Question);
+                if (dr != MessageBoxResult.OK)
+                {
+                    doUpdate = false;
+                }
+            }
+            else
+            {
+                // Display a message that the app MUST reboot. Display the minimum required version.
+                MessageBox.Show(
+                    "This application has detected a mandatory update from your current " +
+                    "version to version " + info.MinimumRequiredVersion.ToString() +
+                    ". The application will now install the update and restart.",
+                    "Update Available",
+                    button: MessageBoxButton.OK,
+                    icon: MessageBoxImage.Information);
+            }
+
+            if (doUpdate)
+            {
+                try
+                {
+                    ad.Update();
+                    MessageBox.Show("The application has been upgraded, and will now restart.", "Update", MessageBoxButton.OK, MessageBoxImage.Information);
+                    System.Windows.Forms.Application.Restart();
+                    Application.Current.Shutdown();
+                }
+                catch (DeploymentDownloadException dde)
+                {
+                    MessageBox.Show("Cannot install the latest version of the application. \n\nPlease check your network connection, or try again later. Error: " + dde, "Error!", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+            }
         }
     }
 }

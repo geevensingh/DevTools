@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.ComponentModel;
+    using System.Deployment.Application;
     using System.Diagnostics;
     using System.Linq;
     using System.Text;
@@ -42,6 +43,19 @@
                 }
 
                 return "--";
+            }
+        }
+
+        public string CurrentVersion
+        {
+            get
+            {
+                string result = ApplicationDeployment.CurrentDeployment?.CurrentVersion?.ToString();
+                if (string.IsNullOrEmpty(result))
+                {
+                    result = "unknown";
+                }
+                return result;
             }
         }
 

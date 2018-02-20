@@ -13,10 +13,13 @@
         <StatusBarItem>
             <StackPanel Orientation="Horizontal">
                 <TextBlock Margin="5,0" VerticalAlignment="Center">Current index:</TextBlock>
-                <TextBlock
-                    Margin="5,0"
-                    VerticalAlignment="Center"
-                    Text="{Binding Path=CurrentIndex}" />
+                <TextBlock Margin="5,0" VerticalAlignment="Center" Text="{Binding Path=CurrentIndex}" />
+            </StackPanel>
+        </StatusBarItem>
+        <StatusBarItem HorizontalAlignment="Right">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Margin="5,0" VerticalAlignment="Center">Current version:</TextBlock>
+                <TextBlock Margin="5,0" VerticalAlignment="Center" Text="{Binding Path=CurrentVersion}" />
             </StackPanel>
         </StatusBarItem>
     </StatusBar>
