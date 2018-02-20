@@ -43,6 +43,10 @@
                             Header="Collapse all"
                             IsEnabled="{Binding Path=CanCollapse}" />
                         <MenuItem
+                            x:Name="ContextCopyKey"
+                            Click="ContextCopyKey_Click"
+                            Header="Copy Key" />
+                        <MenuItem
                             x:Name="ContextCopyValue"
                             Click="ContextCopyValue_Click"
                             Header="Copy Value" />

@@ -161,6 +161,11 @@
             this.Tree.CollapseSubtree(element.DataContext as TreeViewData);
         }
 
+        private void ContextCopyKey_Click(object sender, RoutedEventArgs e)
+        {
+            Clipboard.SetText(((sender as FrameworkElement).DataContext as TreeViewData).KeyName);
+        }
+
         private void ContextCopyValue_Click(object sender, RoutedEventArgs e)
         {
             Clipboard.SetText(((sender as FrameworkElement).DataContext as TreeViewData).Value);
