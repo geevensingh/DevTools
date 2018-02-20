@@ -122,14 +122,6 @@
             }
         }
 
-        public Visibility ShowSomething
-        {
-            get
-            {
-                return (_jsonObject.Type == JsonObject.DataType.Guid) ? Visibility.Visible : Visibility.Collapsed;
-            }
-        }
-
         public bool CanExpand { get => this.HasChildren; }
 
         public bool CanCollapse { get => this.HasChildren; }
