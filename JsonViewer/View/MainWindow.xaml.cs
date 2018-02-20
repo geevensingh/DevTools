@@ -46,23 +46,24 @@
         {
             JsonObjectFactory factory = new JsonObjectFactory();
             RootObject rootObject = await factory.Parse(this.Raw_TextBox.Text);
-            _finder.SetObjects(rootObject);
             if (rootObject == null)
             {
                 this.SetErrorMessage("Unable to parse given string");
                 return false;
             }
 
-            _rootObject = rootObject;
             this.SetErrorMessage(string.Empty);
+            _rootObject = rootObject;
+            _finder.SetObjects(rootObject);
             this.Tree.ItemsSource = _rootObject.ViewChildren;
-            CommandFactory.ExpandAll.Update();
-            CommandFactory.CollapseAll.Update();
 
             if (_rootObject.TotalChildCount <= 50)
             {
                 this.Tree.ExpandAll();
             }
+
+            CommandFactory.ExpandAll.Update();
+            CommandFactory.CollapseAll.Update();
 
             return true;
         }
