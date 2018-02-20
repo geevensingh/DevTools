@@ -109,6 +109,8 @@
 
             Debug.Assert(_findWindow == null);
             _findWindow = new FindWindow(_parentWindow, this);
+            _findWindow.Closed += (sender, e) => this.HideWindow();
+
             _findWindow.Show();
             this.FirePropertyChanged("HasWindow");
         }
