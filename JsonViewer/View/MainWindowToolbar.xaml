@@ -126,6 +126,7 @@
             <TextBox
                 x:Name="FindTextBox"
                 MinWidth="200"
+                MaxWidth="600"
                 TextChanged="FindTextBox_TextChanged" />
 
             <StackPanel Orientation="Horizontal" Visibility="{Binding Path=FindMatchNavigator.ShowFindControls}">
