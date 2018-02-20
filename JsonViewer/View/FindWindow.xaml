@@ -6,8 +6,7 @@
     xmlns:local="clr-namespace:JsonViewer"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     Title="Find Window"
-    MinWidth="200"
-    MinHeight="50"
+    DataContext="{Binding RelativeSource={RelativeSource Self}}"
     Loaded="OnLoaded"
     ResizeMode="NoResize"
     ShowInTaskbar="False"
@@ -15,8 +14,28 @@
     WindowStartupLocation="CenterOwner"
     WindowStyle="ToolWindow"
     mc:Ignorable="d">
+    <Window.Resources>
+        <BitmapImage x:Key="RightImage" UriSource="..\Resources\right.png" />
+        <BitmapImage x:Key="LeftImage" UriSource="..\Resources\left.png" />
+    </Window.Resources>
     <Window.InputBindings>
         <KeyBinding Key="Esc" Command="local:CommandFactory.HideFind" />
+        <KeyBinding
+            Key="Left"
+            Modifiers="Alt"
+            Command="local:CommandFactory.FindPrevious" />
+        <KeyBinding
+            Key="Right"
+            Modifiers="Alt"
+            Command="local:CommandFactory.FindNext" />
+        <KeyBinding
+            Key="Left"
+            Modifiers="Ctrl"
+            Command="local:CommandFactory.FindPrevious" />
+        <KeyBinding
+            Key="Right"
+            Modifiers="Ctrl"
+            Command="local:CommandFactory.FindNext" />
     </Window.InputBindings>
     <Window.CommandBindings>
         <CommandBinding Command="local:CommandFactory.HideFind" Executed="Tree_CommandBinding_HideFind" />
@@ -27,7 +46,7 @@
             <TextBox
                 x:Name="textBox"
                 MinWidth="200"
-                MaxWidth="600"
+                MaxWidth="400"
                 Margin="5"
                 Text="{Binding Path=ViewModel.Text, Mode=OneTime}"
                 TextChanged="OnTextBoxTextChanged" />
@@ -36,6 +55,38 @@
         <StackPanel Orientation="Horizontal" Visibility="{Binding Path=HitCountVisible}">
             <TextBlock Margin="5">Matching elements:</TextBlock>
             <TextBlock Margin="5" Text="{Binding Path=ViewModel.HitCount}" />
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" Visibility="{Binding Path=FindMatchNavigator.ShowFindControls}">
+            <TextBlock Margin="5,0" VerticalAlignment="Center">Matches:</TextBlock>
+            <TextBlock
+                Margin="5,0"
+                VerticalAlignment="Center"
+                Text="{Binding Path=FindMatchNavigator.FindMatchText}" />
+            <Button
+                x:Name="FindPreviousButton"
+                Command="local:CommandFactory.FindPrevious"
+                DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}"
+                ToolTip="{Binding Path=Text}">
+                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                    <Image
+                        Height="25"
+                        Source="{StaticResource LeftImage}"
+                        Visibility="{Binding ElementName=Root, Path=ToolbarIconVisibility}" />
+                </StackPanel>
+            </Button>
+            <Button
+                x:Name="FindNextButton"
+                Command="local:CommandFactory.FindNext"
+                DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}"
+                ToolTip="{Binding Path=Text}">
+                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                    <Image
+                        Height="25"
+                        Source="{StaticResource RightImage}"
+                        Visibility="{Binding ElementName=Root, Path=ToolbarIconVisibility}" />
+                </StackPanel>
+            </Button>
         </StackPanel>
 
         <CheckBox

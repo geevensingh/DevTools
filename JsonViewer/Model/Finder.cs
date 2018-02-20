@@ -6,7 +6,7 @@
 
     public class Finder : NotifyPropertyChanged
     {
-        private Window _parentWindow;
+        private MainWindow _parentWindow;
         private RootObject _rootObject = null;
         private string _text = Properties.Settings.Default.FindText;
         private bool _shouldSearchKeys = Properties.Settings.Default.FindSearchKeys;
@@ -17,7 +17,7 @@
         private int _hitCount = 0;
         private List<JsonObject> _hits = new List<JsonObject>();
 
-        public Finder(Window parentWindow)
+        public Finder(MainWindow parentWindow)
         {
             _parentWindow = parentWindow;
         }

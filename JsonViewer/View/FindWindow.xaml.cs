@@ -5,6 +5,7 @@
     using System.Windows;
     using System.Windows.Controls;
     using System.Windows.Input;
+    using JsonViewer.View;
 
     /// <summary>
     /// Interaction logic for FindWindow.xaml
@@ -12,14 +13,17 @@
     public partial class FindWindow : Window, INotifyPropertyChanged
     {
         private Finder _finder;
+        private FindMatchNavigator _navigator;
 
-        internal FindWindow(Window owner, Finder finder)
+        internal FindWindow(MainWindow owner, Finder finder)
         {
-            InitializeComponent();
-            this.Owner = owner;
             _finder = finder;
             _finder.PropertyChanged += OnViewModelPropertyChanged;
-            this.DataContext = this;
+
+            _navigator = new FindMatchNavigator(owner);
+
+            InitializeComponent();
+            this.Owner = owner;
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -27,6 +31,8 @@
         public Finder ViewModel { get => _finder; }
 
         public Visibility HitCountVisible { get => (_finder.HitCount > 0 || !string.IsNullOrEmpty(_finder.Text)) ? Visibility.Visible : Visibility.Collapsed; }
+
+        public FindMatchNavigator FindMatchNavigator { get => _navigator; }
 
         private void OnViewModelPropertyChanged(object sender, PropertyChangedEventArgs e)
         {

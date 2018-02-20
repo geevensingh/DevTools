@@ -22,6 +22,8 @@
 
             _mainWindow.Tree.PropertyChanged += OnTreePropertyChanged;
             _mainWindow.Finder.PropertyChanged += OnFinderPropertyChanged;
+
+            UpdateFindMatches();
         }
 
         public enum Direction
@@ -69,7 +71,6 @@
             Debug.Assert(sender == _mainWindow.Finder);
             switch (e.PropertyName)
             {
-                case "HitCount":
                 case "Hits":
                     UpdateFindMatches();
                     break;
