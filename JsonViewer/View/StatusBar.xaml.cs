@@ -50,11 +50,24 @@
         {
             get
             {
-                string result = ApplicationDeployment.CurrentDeployment?.CurrentVersion?.ToString();
+                string result = string.Empty;
+                try
+                {
+                    result = ApplicationDeployment.CurrentDeployment?.CurrentVersion?.ToString();
+                }
+                catch (InvalidDeploymentException)
+                {
+                    result = "local";
+                }
+                catch
+                {
+                }
+
                 if (string.IsNullOrEmpty(result))
                 {
                     result = "unknown";
                 }
+
                 return result;
             }
         }
