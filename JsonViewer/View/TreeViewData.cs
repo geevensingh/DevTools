@@ -6,6 +6,7 @@
     using System.Diagnostics;
     using System.Windows;
     using System.Windows.Media;
+    using JsonViewer.Commands.PerItem;
 
     internal class TreeViewData : NotifyPropertyChanged
     {
@@ -21,10 +22,37 @@
             _jsonObject.ViewObject = this;
             _children = new ObservableCollection<TreeViewData>(children);
 
-            SetValue();
+            _oneLineValue = this.GetValueTypeString(includeChildCount: false);
+            object value = _jsonObject.Value;
+            if (value != null)
+            {
+                if (!_jsonObject.HasChildren)
+                {
+                    _oneLineValue = _jsonObject.ValueString;
+                }
+
+                Type valueType = value.GetType();
+                if (valueType == typeof(DateTime))
+                {
+                    _oneLineValue += " (" + Utilities.TimeSpanStringify.PrettyApprox(DateTime.Now - (DateTime)value) + ")";
+                }
+                else if (valueType == typeof(TimeSpan))
+                {
+                    _oneLineValue += " (" + Utilities.TimeSpanStringify.PrettyExact((TimeSpan)value) + ")";
+                }
+            }
 
             _jsonObject.PropertyChanged += OnDataModelPropertyChanged;
             Properties.Settings.Default.PropertyChanged += OnSettingsPropertyChanged;
+
+            this.ExpandChildrenCommand = new ExpandChildrenCommand(this);
+            this.ExpandAllCommand = new ExpandAllCommand(this);
+            this.CollapseAllCommand = new CollapseAllCommand(this);
+            this.CopyKeyCommand = new CopyKeyCommand(this);
+            this.CopyValueCommand = new CopyValueCommand(this);
+            this.CopyEscapedValueCommand = new CopyEscapedValueCommand(this);
+            this.TreatAsJsonCommand = new TreatAsJsonCommand(this);
+            this.TreatAsTextCommand = new TreatAsTextCommand(this);
         }
 
         public string KeyName { get => _jsonObject.Key; }
@@ -180,26 +208,23 @@
             }
         }
 
-        public Visibility ShowTreatAsJson { get => _jsonObject.CanTreatAsJson ? Visibility.Visible : Visibility.Collapsed; }
+        public ExpandChildrenCommand ExpandChildrenCommand { get; private set; }
 
-        public Visibility ShowTreatAsText { get => _jsonObject.CanTreatAsText ? Visibility.Visible : Visibility.Collapsed; }
+        public ExpandAllCommand ExpandAllCommand { get; private set; }
+
+        public CollapseAllCommand CollapseAllCommand { get; private set; }
+
+        public CopyKeyCommand CopyKeyCommand { get; private set; }
+
+        public CopyValueCommand CopyValueCommand { get; private set; }
+
+        public CopyEscapedValueCommand CopyEscapedValueCommand { get; private set; }
+
+        public TreatAsJsonCommand TreatAsJsonCommand { get; private set; }
+
+        public TreatAsTextCommand TreatAsTextCommand { get; private set; }
 
         internal JsonObject JsonObject { get => _jsonObject; }
-
-        public void RemoveChildren()
-        {
-            _children.Clear();
-        }
-
-        public bool TreatAsJson()
-        {
-            return _jsonObject.TreatAsJson();
-        }
-
-        public bool TreatAsText()
-        {
-            return _jsonObject.TreatAsText();
-        }
 
         private void OnDataModelPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
@@ -220,34 +245,6 @@
             if (e.PropertyName == "HighlightSelectedParents" && _isChildSelected)
             {
                 this.FirePropertyChanged("BackgroundColor");
-            }
-        }
-
-        private void SetValue()
-        {
-            SetOneLineValue();
-        }
-
-        private void SetOneLineValue()
-        {
-            _oneLineValue = this.GetValueTypeString(includeChildCount: false);
-            object value = _jsonObject.Value;
-            if (value != null)
-            {
-                if (!_jsonObject.HasChildren)
-                {
-                    _oneLineValue = _jsonObject.ValueString;
-                }
-
-                Type valueType = value.GetType();
-                if (valueType == typeof(DateTime))
-                {
-                    _oneLineValue += " (" + Utilities.TimeSpanStringify.PrettyApprox(DateTime.Now - (DateTime)value) + ")";
-                }
-                else if (valueType == typeof(TimeSpan))
-                {
-                    _oneLineValue += " (" + Utilities.TimeSpanStringify.PrettyExact((TimeSpan)value) + ")";
-                }
             }
         }
 

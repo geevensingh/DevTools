@@ -100,6 +100,15 @@
     </ApplicationDefinition>
     <Compile Include="Commands\BaseCommand.cs" />
     <Compile Include="Commands\CollapseAllCommand.cs" />
+    <Compile Include="Commands\PerItem\BaseTreeViewDataCommand.cs" />
+    <Compile Include="Commands\PerItem\CopyEscapedValueCommand.cs" />
+    <Compile Include="Commands\PerItem\CollapseAllCommand.cs" />
+    <Compile Include="Commands\PerItem\ExpandChildrenCommand.cs" />
+    <Compile Include="Commands\PerItem\ExpandAllCommand.cs" />
+    <Compile Include="Commands\PerItem\TreatAsTextCommand.cs" />
+    <Compile Include="Commands\PerItem\TreatAsJsonCommand.cs" />
+    <Compile Include="Commands\PerItem\CopyValueCommand.cs" />
+    <Compile Include="Commands\PerItem\CopyKeyCommand.cs" />
     <Compile Include="Commands\ExpandAllCommand.cs" />
     <Compile Include="Commands\FindPreviousCommand.cs" />
     <Compile Include="Commands\HideFindCommand.cs" />

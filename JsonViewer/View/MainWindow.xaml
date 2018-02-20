@@ -21,7 +21,6 @@
             <Grid HorizontalAlignment="Stretch" Background="{Binding Path=BackgroundColor}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="auto" />
-                    <ColumnDefinition Width="auto" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="auto" />
                 </Grid.ColumnDefinitions>
@@ -29,41 +28,44 @@
                     <ContextMenu>
                         <MenuItem
                             x:Name="ContextExpandChildren"
-                            Click="ContextExpandChildren_Click"
-                            Header="Expand children"
-                            IsEnabled="{Binding Path=CanExpandChildren}" />
+                            Command="{Binding Path=ExpandChildrenCommand}"
+                            Header="{Binding Path=ExpandChildrenCommand.Text}"
+                            IsEnabled="{Binding Path=ExpandChildrenCommand.IsEnabled}" />
                         <MenuItem
                             x:Name="ContextExpandAll"
-                            Click="ContextExpandAll_Click"
-                            Header="Expand all"
-                            IsEnabled="{Binding Path=CanExpand}" />
+                            Command="{Binding Path=ExpandAllCommand}"
+                            Header="{Binding Path=ExpandAllCommand.Text}"
+                            IsEnabled="{Binding Path=ExpandAllCommand.IsEnabled}" />
                         <MenuItem
                             x:Name="ContextCollapseAll"
-                            Click="ContextCollapseAll_Click"
-                            Header="Collapse all"
-                            IsEnabled="{Binding Path=CanCollapse}" />
+                            Command="{Binding Path=CollapseAllCommand}"
+                            Header="{Binding Path=CollapseAllCommand.Text}"
+                            IsEnabled="{Binding Path=CollapseAllCommand.IsEnabled}" />
                         <MenuItem
                             x:Name="ContextCopyKey"
-                            Click="ContextCopyKey_Click"
-                            Header="Copy Key" />
+                            Command="{Binding Path=CopyKeyCommand}"
+                            Header="{Binding Path=CopyKeyCommand.Text}"
+                            IsEnabled="{Binding Path=CopyKeyCommand.IsEnabled}" />
                         <MenuItem
                             x:Name="ContextCopyValue"
-                            Click="ContextCopyValue_Click"
-                            Header="Copy Value" />
+                            Command="{Binding Path=CopyValueCommand}"
+                            Header="{Binding Path=CopyValueCommand.Text}"
+                            IsEnabled="{Binding Path=CopyValueCommand.IsEnabled}" />
                         <MenuItem
                             x:Name="ContextCopyEscapedValue"
-                            Click="ContextCopyEscapedValue_Click"
-                            Header="Copy Escaped Value" />
+                            Command="{Binding Path=CopyEscapedValueCommand}"
+                            Header="{Binding Path=CopyEscapedValueCommand.Text}"
+                            IsEnabled="{Binding Path=CopyEscapedValueCommand.IsEnabled}" />
                         <MenuItem
                             x:Name="ContextTreatAsJson"
-                            Click="ContextTreatAsJson_Click"
-                            Header="Treat as Json"
-                            Visibility="{Binding Path=ShowTreatAsJson}" />
+                            Command="{Binding Path=TreatAsJsonCommand}"
+                            Header="{Binding Path=TreatAsJsonCommand.Text}"
+                            Visibility="{Binding Path=TreatAsJsonCommand.IsVisible}" />
                         <MenuItem
                             x:Name="ContextTreatAsText"
-                            Click="ContextTreatAsText_Click"
-                            Header="Treat as text"
-                            Visibility="{Binding Path=ShowTreatAsText}" />
+                            Command="{Binding Path=TreatAsTextCommand}"
+                            Header="{Binding Path=TreatAsTextCommand.Text}"
+                            Visibility="{Binding Path=TreatAsTextCommand.IsVisible}" />
                     </ContextMenu>
                 </Grid.ContextMenu>
                 <TextBlock
@@ -79,7 +81,8 @@
                     Grid.Column="1"
                     FontSize="{Binding Path=FontSize}"
                     Foreground="{Binding Path=TextColor}"
-                    Text="{Binding Path=OneLineValue}" />
+                    Text="{Binding Path=OneLineValue}"
+                    TextWrapping="Wrap" />
                 <TextBlock
                     x:Name="ValueTypeBlock"
                     Grid.Column="3"
@@ -205,7 +208,8 @@
                     Grid.Column="3"
                     HorizontalAlignment="Stretch"
                     HorizontalContentAlignment="Stretch"
-                    ItemTemplate="{StaticResource myTaskTemplate}">
+                    ItemTemplate="{StaticResource myTaskTemplate}"
+                    ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                     <local:CustomTreeView.CommandBindings>
                         <CommandBinding Command="Copy" Executed="Tree_CommandBinding_Copy" />
                     </local:CustomTreeView.CommandBindings>

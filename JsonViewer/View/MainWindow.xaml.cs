@@ -137,45 +137,6 @@
             }
         }
 
-        private void ContextExpandChildren_Click(object sender, RoutedEventArgs e)
-        {
-            FrameworkElement element = sender as FrameworkElement;
-            Debug.Assert(element == sender);
-            Debug.Assert(element.DataContext.GetType() == typeof(TreeViewData));
-            this.Tree.ExpandChildren(element.DataContext as TreeViewData);
-        }
-
-        private void ContextExpandAll_Click(object sender, RoutedEventArgs e)
-        {
-            FrameworkElement element = sender as FrameworkElement;
-            Debug.Assert(element == sender);
-            Debug.Assert(element.DataContext.GetType() == typeof(TreeViewData));
-            this.Tree.ExpandSubtree(element.DataContext as TreeViewData);
-        }
-
-        private void ContextCollapseAll_Click(object sender, RoutedEventArgs e)
-        {
-            FrameworkElement element = sender as FrameworkElement;
-            Debug.Assert(element == sender);
-            Debug.Assert(element.DataContext.GetType() == typeof(TreeViewData));
-            this.Tree.CollapseSubtree(element.DataContext as TreeViewData);
-        }
-
-        private void ContextCopyKey_Click(object sender, RoutedEventArgs e)
-        {
-            Clipboard.SetText(((sender as FrameworkElement).DataContext as TreeViewData).KeyName);
-        }
-
-        private void ContextCopyValue_Click(object sender, RoutedEventArgs e)
-        {
-            Clipboard.SetText(((sender as FrameworkElement).DataContext as TreeViewData).Value);
-        }
-
-        private void ContextCopyEscapedValue_Click(object sender, RoutedEventArgs e)
-        {
-            Clipboard.SetText(CSEscape.Escape(((sender as FrameworkElement).DataContext as TreeViewData).Value));
-        }
-
         private void Tree_CommandBinding_Copy(object sender, ExecutedRoutedEventArgs e)
         {
             if (this.Tree.SelectedItem is TreeViewData selectedData)
@@ -187,16 +148,6 @@
         private void CommandBinding_Find(object sender, ExecutedRoutedEventArgs e)
         {
             _finder.ShowWindow();
-        }
-
-        private void ContextTreatAsJson_Click(object sender, RoutedEventArgs e)
-        {
-            ((sender as FrameworkElement).DataContext as TreeViewData).TreatAsJson();
-        }
-
-        private void ContextTreatAsText_Click(object sender, RoutedEventArgs e)
-        {
-            ((sender as FrameworkElement).DataContext as TreeViewData).TreatAsText();
         }
     }
 }

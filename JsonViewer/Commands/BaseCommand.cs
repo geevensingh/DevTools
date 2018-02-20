@@ -1,6 +1,7 @@
 ﻿namespace JsonViewer.Commands
 {
     using System;
+    using System.Windows;
     using System.Windows.Input;
 
     internal class BaseCommand : NotifyPropertyChanged, ICommand
@@ -25,6 +26,10 @@
 
         public string Text { get => _text; set => _text = value; }
 
+        public bool IsEnabled { get => this.CanExecute(null); }
+
+        public Visibility IsVisible { get => this.IsEnabled ? Visibility.Visible : Visibility.Collapsed; }
+
         public bool CanExecute(object parameter)
         {
             return _canExecute;
@@ -37,9 +42,8 @@
 
         protected void SetCanExecute(bool canExecute)
         {
-            if (canExecute != _canExecute)
+            if (this.SetValue(ref _canExecute, canExecute, new string[] { "CanExecute", "IsEnabled", "IsVisible" }))
             {
-                _canExecute = canExecute;
                 this.CanExecuteChanged?.Invoke(this, new EventArgs());
             }
         }
