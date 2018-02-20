@@ -116,6 +116,14 @@
             Key="Right"
             Modifiers="Ctrl"
             Command="local:CommandFactory.FindNext" />
+        <KeyBinding
+            Key="Left"
+            Modifiers="Alt"
+            Command="local:CommandFactory.FindPrevious" />
+        <KeyBinding
+            Key="Right"
+            Modifiers="Alt"
+            Command="local:CommandFactory.FindNext" />
     </Window.InputBindings>
     <Window.CommandBindings>
         <CommandBinding Command="ApplicationCommands.Find" Executed="CommandBinding_Find" />
