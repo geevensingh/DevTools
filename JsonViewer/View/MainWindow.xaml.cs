@@ -64,9 +64,6 @@
                 this.Tree.ExpandAll();
             }
 
-            CommandFactory.ExpandAll.Update();
-            CommandFactory.CollapseAll.Update();
-
             return true;
         }
 
