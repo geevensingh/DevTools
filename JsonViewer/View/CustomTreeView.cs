@@ -113,6 +113,11 @@
             return item;
         }
 
+        public TreeViewItem GetItem(TreeViewData data)
+        {
+            return GetItemContainerGenerator(data.Parent).ContainerFromItem(data) as TreeViewItem;
+        }
+
         protected override void OnInitialized(EventArgs e)
         {
             base.OnInitialized(e);
@@ -171,11 +176,6 @@
             ItemContainerGenerator generator = GetItemContainerGenerator(data.Parent);
             TreeViewItem treeViewItem = generator.ContainerFromItem(data) as TreeViewItem;
             return treeViewItem.ItemContainerGenerator;
-        }
-
-        private TreeViewItem GetItem(TreeViewData data)
-        {
-            return GetItemContainerGenerator(data.Parent).ContainerFromItem(data) as TreeViewItem;
         }
 
         private void ExpandSubtree(ItemContainerGenerator parentContainerGenerator, TreeViewData data)

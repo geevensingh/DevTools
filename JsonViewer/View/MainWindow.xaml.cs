@@ -53,6 +53,13 @@
             }
 
             this.SetErrorMessage(string.Empty);
+            int? oldSelectionIndex = this.Tree.SelectedIndex;
+            TreeViewData treeViewData = (TreeViewData)this.Tree.SelectedItem;
+            if (treeViewData != null)
+            {
+                this.Tree.GetItem(treeViewData).IsSelected = false;
+            }
+
             _rootObject = rootObject;
             NotifyPropertyChanged.FirePropertyChanged("RootObject", this, this.PropertyChanged);
 
@@ -62,6 +69,11 @@
             if (_rootObject.TotalChildCount <= 50)
             {
                 this.Tree.ExpandAll();
+            }
+
+            if (oldSelectionIndex.HasValue && oldSelectionIndex.Value < _rootObject.AllChildren.Count)
+            {
+                this.Tree.SelectItem(_rootObject.AllChildren[oldSelectionIndex.Value].ViewObject);
             }
 
             return true;
