@@ -7,7 +7,6 @@
     internal class RootObject : JsonObject
     {
         private ObservableCollection<TreeViewData> _viewChildren = null;
-        private List<JsonObject> _allChildren = null;
 
         public RootObject()
             : base(string.Empty, string.Empty)
@@ -16,31 +15,16 @@
 
         public override RootObject Root { get => this; }
 
-        internal ObservableCollection<TreeViewData> ViewChildren
+        internal void SetTreeItemsSource(CustomTreeView tree)
         {
-            get
+            if (_viewChildren == null)
             {
-                if (_viewChildren == null)
-                {
-                    _viewChildren = TreeViewDataFactory.CreateCollection(this);
-                }
-
-                Debug.Assert(_viewChildren != null);
-                return _viewChildren;
+                _viewChildren = TreeViewDataFactory.CreateCollection(tree, this);
             }
-        }
 
-        internal List<JsonObject> AllChildren
-        {
-            get
-            {
-                if (_allChildren == null)
-                {
-                    _allChildren = new List<JsonObject>(this.GetAllChildren());
-                }
-
-                return _allChildren;
-            }
+            Debug.Assert(_viewChildren != null);
+            Debug.Assert(_viewChildren.Count == 0 || _viewChildren[0].Tree == tree);
+            tree.ItemsSource = _viewChildren;
         }
 
         protected override void UpdateChild(JsonObject child)
@@ -55,15 +39,8 @@
         protected override void AddChild(JsonObject child)
         {
             Debug.Assert(_viewChildren == null);
+            _viewChildren = null;
             base.AddChild(child);
-            _allChildren = null;
-            this.FirePropertyChanged("AllChildren");
-        }
-
-        protected override void OnChildrenChanged()
-        {
-            _allChildren = null;
-            this.FirePropertyChanged("AllChildren");
         }
     }
 }

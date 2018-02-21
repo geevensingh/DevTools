@@ -10,14 +10,16 @@
 
     internal class TreeViewData : NotifyPropertyChanged
     {
+        private CustomTreeView _tree = null;
         private JsonObject _jsonObject;
         private string _oneLineValue = string.Empty;
         private ObservableCollection<TreeViewData> _children = new ObservableCollection<TreeViewData>();
         private bool _isSelected = false;
         private bool _isChildSelected = false;
 
-        internal TreeViewData(JsonObject jsonObject, IList<TreeViewData> children)
+        internal TreeViewData(CustomTreeView tree, JsonObject jsonObject, IList<TreeViewData> children)
         {
+            _tree = tree;
             _jsonObject = jsonObject;
             _jsonObject.ViewObject = this;
             _children = new ObservableCollection<TreeViewData>(children);
@@ -150,26 +152,6 @@
             }
         }
 
-        public bool CanExpand { get => this.HasChildren; }
-
-        public bool CanCollapse { get => this.HasChildren; }
-
-        public bool CanExpandChildren
-        {
-            get
-            {
-                foreach (TreeViewData child in _children)
-                {
-                    if (child.CanExpand)
-                    {
-                        return true;
-                    }
-                }
-
-                return false;
-            }
-        }
-
         public bool IsChildSelected
         {
             get
@@ -226,6 +208,8 @@
 
         internal JsonObject JsonObject { get => _jsonObject; }
 
+        internal CustomTreeView Tree { get => _tree; }
+
         private void OnDataModelPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
             switch (e.PropertyName)
@@ -233,6 +217,19 @@
                 case "IsFindMatch":
                     this.FirePropertyChanged("TextColor");
                     this.FirePropertyChanged("BackgroundColor");
+                    break;
+                case "HasChildren":
+                    this.FirePropertyChanged(new string[] { "HasChildren", "ValueType" });
+                    break;
+                case "TotalChildCount":
+                    this.FirePropertyChanged(new string[] { "ValueType", "OneLineValue" });
+                    break;
+                case "ValueString":
+                    this.FirePropertyChanged("Value");
+                    break;
+                case "Children":
+                case "AllChildren":
+                    this.FirePropertyChanged("AllChildren");
                     break;
                 default:
                     Debug.Assert(false, "Unknown property change");

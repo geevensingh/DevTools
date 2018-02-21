@@ -1,4 +1,4 @@
-﻿namespace JsonViewer.Commands
+﻿namespace JsonViewer.Commands.PerWindow
 {
     using System;
     using System.Collections.Generic;
@@ -7,17 +7,20 @@
     using System.Threading.Tasks;
     using Utilities;
 
-    internal class ReloadCommand : BaseCommand
+    public class ReloadCommand : BaseCommand
     {
-        public ReloadCommand()
+        private MainWindow _mainWindow = null;
+
+        public ReloadCommand(MainWindow mainWindow)
             : base("Reload", true)
         {
+            _mainWindow = mainWindow;
         }
 
         public override void Execute(object parameter)
         {
             Config.Reload();
-            App.Current.MainWindow.ReloadAsync().Forget();
+            _mainWindow.ReloadAsync().Forget();
         }
     }
 }

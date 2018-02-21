@@ -4,6 +4,8 @@
     using System.Diagnostics;
     using System.Windows;
     using System.Windows.Controls;
+    using JsonViewer.Commands;
+    using JsonViewer.Commands.PerWindow;
     using JsonViewer.View;
 
     /// <summary>
@@ -14,6 +16,18 @@
         private MainWindow _mainWindow = null;
 
         private FindMatchNavigator _findMatchNavigator = null;
+        private NewWindowCommand _newWindowCommand = null;
+        private PickConfigCommand _pickConfigCommand = null;
+        private ReloadCommand _reloadCommand = null;
+        private HideFindCommand _hideFindCommand = null;
+        private OpenJsonFileCommand _openJsonFileCommand = null;
+        private HighlightParentsCommand _highlightParentsCommand = null;
+        private ExpandAllCommand _expandAllCommand = null;
+        private CollapseAllCommand _collapseAllCommand = null;
+        private ShowToolbarTextCommand _showToolbarTextCommand = null;
+        private ShowToolbarIconCommand _showToolbarIconCommand = null;
+        private FindNextCommand _findNextCommand = null;
+        private FindPreviousCommand _findPreviousCommand = null;
 
         public MainWindowToolbar()
         {
@@ -23,6 +37,30 @@
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
+
+        public NewWindowCommand NewWindowCommand { get => _newWindowCommand; }
+
+        public PickConfigCommand PickConfigCommand { get => _pickConfigCommand; }
+
+        public ReloadCommand ReloadCommand { get => _reloadCommand; }
+
+        public HideFindCommand HideFindCommand { get => _hideFindCommand; }
+
+        public OpenJsonFileCommand OpenJsonFileCommand { get => _openJsonFileCommand; }
+
+        public HighlightParentsCommand HighlightParentsCommand { get => _highlightParentsCommand; }
+
+        public ExpandAllCommand ExpandAllCommand { get => _expandAllCommand; }
+
+        public CollapseAllCommand CollapseAllCommand { get => _collapseAllCommand; }
+
+        public ShowToolbarTextCommand ShowToolbarTextCommand { get => _showToolbarTextCommand; }
+
+        public ShowToolbarIconCommand ShowToolbarIconCommand { get => _showToolbarIconCommand; }
+
+        public FindNextCommand FindNextCommand { get => _findNextCommand; }
+
+        public FindPreviousCommand FindPreviousCommand { get => _findPreviousCommand; }
 
         public bool ShowToolbarText { get => Properties.Settings.Default.MainWindowToolbarTextVisible; }
 
@@ -51,6 +89,19 @@
         {
             _mainWindow = (MainWindow)this.DataContext;
             Debug.Assert(_mainWindow != null);
+
+            NotifyPropertyChanged.SetValue(ref _newWindowCommand, new NewWindowCommand(_mainWindow), "NewWindowCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _pickConfigCommand, new PickConfigCommand(_mainWindow), "PickConfigCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _reloadCommand, new ReloadCommand(_mainWindow), "ReloadCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _hideFindCommand, new HideFindCommand(_mainWindow), "HideFindCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _openJsonFileCommand, new OpenJsonFileCommand(_mainWindow), "OpenJsonFileCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _highlightParentsCommand, new HighlightParentsCommand(), "HighlightParentsCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _expandAllCommand, new ExpandAllCommand(_mainWindow), "ExpandAllCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _collapseAllCommand, new CollapseAllCommand(_mainWindow), "CollapseAllCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _showToolbarTextCommand, new ShowToolbarTextCommand(), "ShowToolbarTextCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _showToolbarIconCommand, new ShowToolbarIconCommand(), "ShowToolbarIconCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _findNextCommand, new FindNextCommand(_mainWindow), "FindNextCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _findPreviousCommand, new FindPreviousCommand(_mainWindow), "FindPreviousCommand", this, this.PropertyChanged);
 
             NotifyPropertyChanged.SetValue(ref _findMatchNavigator, new FindMatchNavigator(_mainWindow), "FindMatchNavigator", this, this.PropertyChanged);
 

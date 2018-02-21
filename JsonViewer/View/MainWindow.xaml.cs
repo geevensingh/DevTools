@@ -12,7 +12,7 @@
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, INotifyPropertyChanged
     {
         private Finder _finder;
         private Point? _initialOffset = null;
@@ -23,9 +23,9 @@
             _finder = new Finder(this);
 
             InitializeComponent();
-
-            App.Current.AddWindow(this);
         }
+
+        public event PropertyChangedEventHandler PropertyChanged;
 
         public Finder Finder { get => _finder; }
 
@@ -54,8 +54,10 @@
 
             this.SetErrorMessage(string.Empty);
             _rootObject = rootObject;
+            NotifyPropertyChanged.FirePropertyChanged("RootObject", this, this.PropertyChanged);
+
             _finder.SetObjects(rootObject);
-            this.Tree.ItemsSource = _rootObject.ViewChildren;
+            _rootObject.SetTreeItemsSource(this.Tree);
 
             if (_rootObject.TotalChildCount <= 50)
             {
@@ -81,7 +83,6 @@
         protected override void OnClosing(CancelEventArgs e)
         {
             this.SaveWindowPosition();
-            App.Current.RemoveWindow(this);
             base.OnClosing(e);
         }
 
@@ -93,9 +94,8 @@
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
-            App app = (App)App.Current;
-            string initialText = app.InitialText;
-            app.InitialText = string.Empty;
+            string initialText = App.Current.InitialText;
+            App.Current.InitialText = string.Empty;
 
             if (string.IsNullOrEmpty(initialText) && Clipboard.ContainsText())
             {

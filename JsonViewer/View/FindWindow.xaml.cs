@@ -5,6 +5,8 @@
     using System.Windows;
     using System.Windows.Controls;
     using System.Windows.Input;
+    using JsonViewer.Commands;
+    using JsonViewer.Commands.PerWindow;
     using JsonViewer.View;
 
     /// <summary>
@@ -12,11 +14,13 @@
     /// </summary>
     public partial class FindWindow : Window, INotifyPropertyChanged
     {
+        private MainWindow _mainWindow;
         private Finder _finder;
         private FindMatchNavigator _navigator;
 
         internal FindWindow(MainWindow owner, Finder finder)
         {
+            _mainWindow = owner;
             _finder = finder;
             _finder.PropertyChanged += OnViewModelPropertyChanged;
 
@@ -33,6 +37,12 @@
         public Visibility HitCountVisible { get => (_finder.HitCount > 0 || !string.IsNullOrEmpty(_finder.Text)) ? Visibility.Visible : Visibility.Collapsed; }
 
         public FindMatchNavigator FindMatchNavigator { get => _navigator; }
+
+        public HideFindCommand HideFindCommand { get => _mainWindow.Toolbar.HideFindCommand; }
+
+        public FindNextCommand FindNextCommand { get => _mainWindow.Toolbar.FindNextCommand; }
+
+        public FindPreviousCommand FindPreviousCommand { get => _mainWindow.Toolbar.FindPreviousCommand; }
 
         private void OnViewModelPropertyChanged(object sender, PropertyChangedEventArgs e)
         {

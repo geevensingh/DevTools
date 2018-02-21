@@ -24,6 +24,7 @@
     public partial class StatusBar : UserControl, INotifyPropertyChanged
     {
         private MainWindow _mainWindow = null;
+        private RootObject _rootObject = null;
 
         public StatusBar()
         {
@@ -39,10 +40,18 @@
                 int? currentIndex = _mainWindow?.Tree?.SelectedIndex;
                 if (currentIndex.HasValue)
                 {
-                    return currentIndex.Value.ToString();
+                    return (currentIndex.Value + 1).ToString();
                 }
 
                 return "--";
+            }
+        }
+
+        public string TotalItems
+        {
+            get
+            {
+                return _mainWindow?.RootObject?.TotalChildCount.ToString();
             }
         }
 
@@ -78,6 +87,49 @@
             Debug.Assert(_mainWindow != null);
 
             _mainWindow.Tree.PropertyChanged += OnTreePropertyChanged;
+            _mainWindow.PropertyChanged += OnMainWindowPropertyChanged;
+            this.AddRootObjectPropertyChangedHandler();
+        }
+
+        private void AddRootObjectPropertyChangedHandler()
+        {
+            if (_rootObject == _mainWindow.RootObject)
+            {
+                return;
+            }
+
+            if (_rootObject != null)
+            {
+                _rootObject.PropertyChanged -= OnRootObjectPropertyChanged;
+            }
+
+            _rootObject = _mainWindow.RootObject;
+            if (_rootObject != null)
+            {
+                _rootObject.PropertyChanged += OnRootObjectPropertyChanged;
+            }
+
+            NotifyPropertyChanged.FirePropertyChanged("TotalItems", this, this.PropertyChanged);
+        }
+
+        private void OnMainWindowPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            switch (e.PropertyName)
+            {
+                case "RootObject":
+                    AddRootObjectPropertyChangedHandler();
+                    break;
+            }
+        }
+
+        private void OnRootObjectPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            switch (e.PropertyName)
+            {
+                case "TotalChildCount":
+                    NotifyPropertyChanged.FirePropertyChanged("TotalItems", this, this.PropertyChanged);
+                    break;
+            }
         }
 
         private void OnTreePropertyChanged(object sender, PropertyChangedEventArgs e)

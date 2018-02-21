@@ -4,7 +4,7 @@
     using System.Windows;
     using System.Windows.Input;
 
-    internal class BaseCommand : NotifyPropertyChanged, ICommand
+    public class BaseCommand : NotifyPropertyChanged, ICommand
     {
         private string _text = string.Empty;
         private bool _canExecute = false;
@@ -18,8 +18,6 @@
         {
             _text = text;
             _canExecute = canExecute;
-
-            App.Current.MainWindowChanged += OnMainWindowChanged;
         }
 
         public event EventHandler CanExecuteChanged;
@@ -46,10 +44,6 @@
             {
                 this.CanExecuteChanged?.Invoke(this, new EventArgs());
             }
-        }
-
-        protected virtual void OnMainWindowChanged(App sender)
-        {
         }
 
         private void SetText(string text)

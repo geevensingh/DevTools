@@ -18,19 +18,12 @@
         <BitmapImage x:Key="RightImage" UriSource="..\Resources\right.png" />
         <BitmapImage x:Key="LeftImage" UriSource="..\Resources\left.png" />
     </UserControl.Resources>
-    <UserControl.CommandBindings>
-        <CommandBinding Command="local:CommandFactory.PickConfig" />
-        <CommandBinding Command="local:CommandFactory.Reload" />
-        <CommandBinding Command="local:CommandFactory.NewWindow" />
-        <CommandBinding Command="local:CommandFactory.OpenJsonFile" />
-        <CommandBinding Command="local:CommandFactory.HighlightParents" />
-    </UserControl.CommandBindings>
     <ToolBarTray Background="White" DataContext="{Binding ElementName=Root}">
         <ToolBar Band="1" BandIndex="1">
             <Button
-                x:Name="OpenJsonFileButton"
-                Command="local:CommandFactory.OpenJsonFile"
+                Command="{Binding ElementName=Root, Path=OpenJsonFileCommand}"
                 DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}"
+                IsEnabled="{Binding Path=IsEnabled}"
                 ToolTip="{Binding Path=Text}">
                 <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                     <Image
@@ -46,9 +39,9 @@
             </Button>
             <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
             <Button
-                x:Name="ExpandAllButton"
-                Command="local:CommandFactory.ExpandAll"
+                Command="{Binding ElementName=Root, Path=ExpandAllCommand}"
                 DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}"
+                IsEnabled="{Binding Path=IsEnabled}"
                 ToolTip="{Binding Path=Text}">
                 <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                     <Image
@@ -63,9 +56,9 @@
                 </StackPanel>
             </Button>
             <Button
-                x:Name="CollapseAllButton"
-                Command="local:CommandFactory.CollapseAll"
+                Command="{Binding ElementName=Root, Path=CollapseAllCommand}"
                 DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}"
+                IsEnabled="{Binding Path=IsEnabled}"
                 ToolTip="{Binding Path=Text}">
                 <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                     <Image
@@ -82,9 +75,10 @@
             <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
             <CheckBox
                 x:Name="HighlightParentsButton"
-                Command="local:CommandFactory.HighlightParents"
+                Command="{Binding ElementName=Root, Path=HighlightParentsCommand}"
                 DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}"
                 IsChecked="True"
+                IsEnabled="{Binding Path=IsEnabled}"
                 ToolTip="{Binding Path=Text}">
                 <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                     <Image
@@ -100,9 +94,9 @@
             </CheckBox>
             <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
             <Button
-                x:Name="NewWindowButton"
-                Command="local:CommandFactory.NewWindow"
+                Command="{Binding ElementName=Root, Path=NewWindowCommand}"
                 DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}"
+                IsEnabled="{Binding Path=IsEnabled}"
                 ToolTip="{Binding Path=Text}">
                 <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                     <Image
@@ -137,9 +131,9 @@
                     Text="{Binding Path=FindMatchNavigator.FindMatchText}" />
             </StackPanel>
             <Button
-                x:Name="FindPreviousButton"
-                Command="local:CommandFactory.FindPrevious"
+                Command="{Binding ElementName=Root, Path=FindPreviousCommand}"
                 DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}"
+                IsEnabled="{Binding Path=IsEnabled}"
                 ToolTip="{Binding Path=Text}"
                 Visibility="{Binding ElementName=Root, Path=FindMatchNavigator.ShowFindControls}">
                 <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
@@ -155,9 +149,9 @@
                 </StackPanel>
             </Button>
             <Button
-                x:Name="FindNextButton"
-                Command="local:CommandFactory.FindNext"
+                Command="{Binding ElementName=Root, Path=FindNextCommand}"
                 DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}"
+                IsEnabled="{Binding Path=IsEnabled}"
                 ToolTip="{Binding Path=Text}"
                 Visibility="{Binding ElementName=Root, Path=FindMatchNavigator.ShowFindControls}">
                 <StackPanel VerticalAlignment="Center" Orientation="Horizontal">

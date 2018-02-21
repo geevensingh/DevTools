@@ -1,4 +1,4 @@
-﻿namespace JsonViewer.Commands
+﻿namespace JsonViewer.Commands.PerWindow
 {
     using System;
     using System.Collections.Generic;
@@ -7,11 +7,14 @@
     using System.Threading.Tasks;
     using Microsoft.Win32;
 
-    internal class OpenJsonFileCommand : BaseCommand
+    public class OpenJsonFileCommand : BaseCommand
     {
-        public OpenJsonFileCommand()
+        private MainWindow _mainWindow = null;
+
+        public OpenJsonFileCommand(MainWindow mainWindow)
             : base("Open Json File", true)
         {
+            _mainWindow = mainWindow;
         }
 
         public static string PickJsonFile(MainWindow mainWindow, string title)
@@ -32,13 +35,12 @@
 
         public override void Execute(object parameter)
         {
-            MainWindow mainWindow = App.Current.MainWindow;
-            string filePath = OpenJsonFileCommand.PickJsonFile(mainWindow, "Pick Json content file");
+            string filePath = OpenJsonFileCommand.PickJsonFile(_mainWindow, "Pick Json content file");
             if (!string.IsNullOrEmpty(filePath))
             {
                 try
                 {
-                    mainWindow.Raw_TextBox.Text = System.IO.File.ReadAllText(filePath);
+                    _mainWindow.Raw_TextBox.Text = System.IO.File.ReadAllText(filePath);
                 }
                 catch
                 {

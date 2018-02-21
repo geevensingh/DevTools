@@ -8,6 +8,7 @@
     {
         private JsonObject _parent = null;
         private List<JsonObject> _children = new List<JsonObject>();
+        private List<JsonObject> _allChildren = null;
         private TreeViewData _viewObject = null;
         private string _key;
         private object _value;
@@ -104,6 +105,25 @@
             }
         }
 
+        public List<JsonObject> AllChildren
+        {
+            get
+            {
+                if (_allChildren == null)
+                {
+                    _allChildren = new List<JsonObject>();
+                    foreach (JsonObject child in _children)
+                    {
+                        _allChildren.Add(child);
+                        _allChildren.AddRange(child.AllChildren);
+                    }
+                }
+
+                Debug.Assert(_allChildren.Count == this.TotalChildCount);
+                return _allChildren;
+            }
+        }
+
         internal TreeViewData ViewObject
         {
             get
@@ -130,6 +150,7 @@
             _value = dict;
             _dataType = DataType.Json;
             JsonObjectFactory.Flatten(ref _children, dict, this);
+            this.FireChildrenChanged();
 
             _parent.UpdateChild(this);
 
@@ -155,6 +176,7 @@
 
             _dataType = DataType.ParsableString;
             _children.Clear();
+            this.FireChildrenChanged();
 
             _parent.UpdateChild(this);
 
@@ -163,14 +185,16 @@
 
         internal TreeViewData ResetView()
         {
+            CustomTreeView tree = _viewObject.Tree;
             _viewObject = null;
-            TreeViewDataFactory.CreateNode(this);
+            TreeViewDataFactory.CreateNode(tree, this);
             Debug.Assert(_viewObject != null);
             return _viewObject;
         }
 
         protected virtual void AddChild(JsonObject child)
         {
+            _allChildren = null;
             Debug.Assert(!this.Children.Contains(child));
             this.Children.Add(child);
         }
@@ -182,26 +206,13 @@
             Debug.Assert(_children[index].ViewObject == _viewObject.Children[index]);
             _viewObject.Children.RemoveAt(index);
             _viewObject.Children.Insert(index, child.ResetView());
-
-            this.OnChildrenChanged();
         }
 
-        protected virtual void OnChildrenChanged()
+        protected virtual void FireChildrenChanged()
         {
-            Debug.Assert(_parent != null);
-            _parent.OnChildrenChanged();
-        }
-
-        protected IList<JsonObject> GetAllChildren()
-        {
-            List<JsonObject> allChildren = new List<JsonObject>();
-            foreach (JsonObject child in _children)
-            {
-                allChildren.Add(child);
-                allChildren.AddRange(child.GetAllChildren());
-            }
-
-            return allChildren;
+            _allChildren = null;
+            _parent?.FireChildrenChanged();
+            this.FirePropertyChanged(new string[] { "AllChildren", "Children", "HasChildren", "ValueString", "TotalChildCount" });
         }
 
         private static object GetTypedValue(object value, out DataType dataType)

@@ -101,7 +101,7 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Commands\BaseCommand.cs" />
-    <Compile Include="Commands\CollapseAllCommand.cs" />
+    <Compile Include="Commands\PerWindow\CollapseAllCommand.cs" />
     <Compile Include="Commands\PerItem\BaseTreeViewDataCommand.cs" />
     <Compile Include="Commands\PerItem\CopyEscapedValueCommand.cs" />
     <Compile Include="Commands\PerItem\CollapseAllCommand.cs" />
@@ -111,22 +111,21 @@
     <Compile Include="Commands\PerItem\TreatAsJsonCommand.cs" />
     <Compile Include="Commands\PerItem\CopyValueCommand.cs" />
     <Compile Include="Commands\PerItem\CopyKeyCommand.cs" />
-    <Compile Include="Commands\ExpandAllCommand.cs" />
-    <Compile Include="Commands\FindPreviousCommand.cs" />
-    <Compile Include="Commands\HideFindCommand.cs" />
-    <Compile Include="Commands\FindNextCommand.cs" />
+    <Compile Include="Commands\PerWindow\ExpandAllCommand.cs" />
+    <Compile Include="Commands\PerWindow\FindPreviousCommand.cs" />
+    <Compile Include="Commands\PerWindow\HideFindCommand.cs" />
+    <Compile Include="Commands\PerWindow\FindNextCommand.cs" />
     <Compile Include="Commands\ShowToolbarTextCommand.cs" />
     <Compile Include="Commands\ShowToolbarIconCommand.cs" />
     <Compile Include="Commands\HighlightParentsCommand.cs" />
-    <Compile Include="Commands\NewWindowCommand.cs" />
-    <Compile Include="Commands\OpenJsonFileCommand.cs" />
-    <Compile Include="Commands\PickConfigCommand.cs" />
-    <Compile Include="Commands\ReloadCommand.cs" />
+    <Compile Include="Commands\PerWindow\NewWindowCommand.cs" />
+    <Compile Include="Commands\PerWindow\OpenJsonFileCommand.cs" />
+    <Compile Include="Commands\PerWindow\PickConfigCommand.cs" />
+    <Compile Include="Commands\PerWindow\ReloadCommand.cs" />
     <Compile Include="View\FindMatchNavigator.cs" />
     <Compile Include="View\MainWindowToolbar.xaml.cs">
       <DependentUpon>MainWindowToolbar.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Commands\CommandFactory.cs" />
     <Compile Include="Model\Config.cs" />
     <Compile Include="CSEscape.cs" />
     <Compile Include="View\CustomTreeView.cs" />

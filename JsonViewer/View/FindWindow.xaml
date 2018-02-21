@@ -5,6 +5,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:JsonViewer"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    x:Name="Root"
     Title="Find Window"
     DataContext="{Binding RelativeSource={RelativeSource Self}}"
     Loaded="OnLoaded"
@@ -19,27 +20,24 @@
         <BitmapImage x:Key="LeftImage" UriSource="..\Resources\left.png" />
     </Window.Resources>
     <Window.InputBindings>
-        <KeyBinding Key="Esc" Command="local:CommandFactory.HideFind" />
+        <KeyBinding Key="Esc" Command="{Binding ElementName=Root, Path=HideFindCommand}" />
         <KeyBinding
             Key="Left"
             Modifiers="Alt"
-            Command="local:CommandFactory.FindPrevious" />
+            Command="{Binding ElementName=Root, Path=FindPreviousCommand}" />
         <KeyBinding
             Key="Right"
             Modifiers="Alt"
-            Command="local:CommandFactory.FindNext" />
+            Command="{Binding ElementName=Root, Path=FindNextCommand}" />
         <KeyBinding
             Key="Left"
             Modifiers="Ctrl"
-            Command="local:CommandFactory.FindPrevious" />
+            Command="{Binding ElementName=Root, Path=FindPreviousCommand}" />
         <KeyBinding
             Key="Right"
             Modifiers="Ctrl"
-            Command="local:CommandFactory.FindNext" />
+            Command="{Binding ElementName=Root, Path=FindNextCommand}" />
     </Window.InputBindings>
-    <Window.CommandBindings>
-        <CommandBinding Command="local:CommandFactory.HideFind" Executed="Tree_CommandBinding_HideFind" />
-    </Window.CommandBindings>
     <StackPanel Orientation="Vertical">
         <StackPanel Orientation="Horizontal">
             <TextBlock Margin="5">Find:</TextBlock>
@@ -64,8 +62,7 @@
                 VerticalAlignment="Center"
                 Text="{Binding Path=FindMatchNavigator.FindMatchText}" />
             <Button
-                x:Name="FindPreviousButton"
-                Command="local:CommandFactory.FindPrevious"
+                Command="{Binding ElementName=Root, Path=FindPreviousCommand}"
                 DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}"
                 ToolTip="{Binding Path=Text}">
                 <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
@@ -76,8 +73,7 @@
                 </StackPanel>
             </Button>
             <Button
-                x:Name="FindNextButton"
-                Command="local:CommandFactory.FindNext"
+                Command="{Binding ElementName=Root, Path=FindNextCommand}"
                 DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}"
                 ToolTip="{Binding Path=Text}">
                 <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
@@ -89,28 +85,16 @@
             </Button>
         </StackPanel>
 
-        <CheckBox
-            x:Name="ignoreCaseCheckbox"
-            Margin="5"
-            IsChecked="{Binding Path=ViewModel.ShouldIgnoreCase, Mode=TwoWay}">
+        <CheckBox Margin="5" IsChecked="{Binding Path=ViewModel.ShouldIgnoreCase, Mode=TwoWay}">
             Ignore case
         </CheckBox>
-        <CheckBox
-            x:Name="searchKeysCheckbox"
-            Margin="5"
-            IsChecked="{Binding Path=ViewModel.ShouldSearchKeys, Mode=TwoWay}">
+        <CheckBox Margin="5" IsChecked="{Binding Path=ViewModel.ShouldSearchKeys, Mode=TwoWay}">
             Search keys
         </CheckBox>
-        <CheckBox
-            x:Name="searchValuesCheckbox"
-            Margin="5"
-            IsChecked="{Binding Path=ViewModel.ShouldSearchValues, Mode=TwoWay}">
+        <CheckBox Margin="5" IsChecked="{Binding Path=ViewModel.ShouldSearchValues, Mode=TwoWay}">
             Search values
         </CheckBox>
-        <CheckBox
-            x:Name="searchParentValuesCheckbox"
-            Margin="5"
-            IsChecked="{Binding Path=ViewModel.ShouldSearchParentValues, Mode=TwoWay}">
+        <CheckBox Margin="5" IsChecked="{Binding Path=ViewModel.ShouldSearchParentValues, Mode=TwoWay}">
             Search parent values
         </CheckBox>
     </StackPanel>

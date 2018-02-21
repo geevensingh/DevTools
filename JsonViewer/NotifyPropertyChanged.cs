@@ -59,7 +59,12 @@
 
         protected void FirePropertyChanged(string propertyName)
         {
-            NotifyPropertyChanged.FirePropertyChanged(propertyName, this, this.PropertyChanged);
+            NotifyPropertyChanged.FirePropertyChanged(new string[] { propertyName }, this, this.PropertyChanged);
+        }
+
+        protected void FirePropertyChanged(string[] propertyNames)
+        {
+            NotifyPropertyChanged.FirePropertyChanged(propertyNames, this, this.PropertyChanged);
         }
     }
 }
