@@ -13,7 +13,7 @@
 
         public override void Execute(object parameter)
         {
-            App.Current.MainWindow.Tree.CollapseSubtree(this.Data);
+            this.Data.Tree.CollapseSubtree(this.Data);
         }
 
         protected override void OnDataPropertyChanged(string propertyName)

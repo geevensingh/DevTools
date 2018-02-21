@@ -93,16 +93,16 @@
         </HierarchicalDataTemplate>
     </Window.Resources>
     <Window.InputBindings>
-        <KeyBinding Key="Esc" Command="local:CommandFactory.HideFind" />
-        <KeyBinding Key="F5" Command="local:CommandFactory.Reload" />
+        <KeyBinding Key="Esc" Command="{Binding ElementName=Toolbar, Path=HideFindCommand}" />
+        <KeyBinding Key="F5" Command="{Binding ElementName=Toolbar, Path=ReloadCommand}" />
         <KeyBinding
             Key="H"
             Modifiers="Ctrl"
-            Command="local:CommandFactory.HighlightParents" />
+            Command="{Binding ElementName=Toolbar, Path=HighlightParentsCommand}" />
         <KeyBinding
             Key="L"
             Modifiers="Ctrl"
-            Command="local:CommandFactory.PickConfig" />
+            Command="{Binding ElementName=Toolbar, Path=PickConfigCommand}" />
         <KeyBinding
             Key="N"
             Modifiers="Ctrl"
@@ -110,23 +110,23 @@
         <KeyBinding
             Key="O"
             Modifiers="Ctrl"
-            Command="local:CommandFactory.OpenJsonFile" />
+            Command="{Binding ElementName=Toolbar, Path=OpenJsonFileCommand}" />
         <KeyBinding
             Key="Left"
             Modifiers="Ctrl"
-            Command="local:CommandFactory.FindPrevious" />
+            Command="{Binding ElementName=Toolbar, Path=FindPreviousCommand}" />
         <KeyBinding
             Key="Right"
             Modifiers="Ctrl"
-            Command="local:CommandFactory.FindNext" />
+            Command="{Binding ElementName=Toolbar, Path=FindNextCommand}" />
         <KeyBinding
             Key="Left"
             Modifiers="Alt"
-            Command="local:CommandFactory.FindPrevious" />
+            Command="{Binding ElementName=Toolbar, Path=FindPreviousCommand}" />
         <KeyBinding
             Key="Right"
             Modifiers="Alt"
-            Command="local:CommandFactory.FindNext" />
+            Command="{Binding ElementName=Toolbar, Path=FindNextCommand}" />
     </Window.InputBindings>
     <Window.CommandBindings>
         <CommandBinding Command="ApplicationCommands.Find" Executed="CommandBinding_Find" />
@@ -134,10 +134,10 @@
     <DockPanel>
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="_File">
-                <MenuItem Command="local:CommandFactory.OpenJsonFile" Header="_Open Json file..." />
+                <MenuItem Command="{Binding ElementName=Toolbar, Path=OpenJsonFileCommand}" Header="_Open Json file..." />
                 <Separator />
-                <MenuItem Command="local:CommandFactory.PickConfig" Header="Load _Config file..." />
-                <MenuItem Command="local:CommandFactory.Reload" Header="_Reload current config" />
+                <MenuItem Command="{Binding ElementName=Toolbar, Path=PickConfigCommand}" Header="Load _Config file..." />
+                <MenuItem Command="{Binding ElementName=Toolbar, Path=ReloadCommand}" Header="_Reload current config" />
                 <Separator />
                 <MenuItem Click="CheckForUpdates" Header="Check for _updates" />
             </MenuItem>
@@ -145,15 +145,15 @@
                 <MenuItem Command="{Binding ElementName=Toolbar, Path=NewWindowCommand}" Header="_New Window" />
                 <Separator />
                 <MenuItem
-                    Command="local:CommandFactory.ShowToolbarText"
+                    Command="{Binding ElementName=Toolbar, Path=ShowToolbarTextCommand}"
                     Header="Show toolbar _text"
                     IsCheckable="True"
-                    IsChecked="{Binding ElementName=Toolbar, Path=ShowToolbarText, Mode=OneWay}" />
+                    IsChecked="{Binding ElementName=Toolbar, Path=ShowToolbarTextCommand.IsEnabled, Mode=OneWay}" />
                 <MenuItem
-                    Command="local:CommandFactory.ShowToolbarIcon"
+                    Command="{Binding ElementName=Toolbar, Path=ShowToolbarIconCommand}"
                     Header="Show toolbar _icons"
                     IsCheckable="True"
-                    IsChecked="{Binding ElementName=Toolbar, Path=ShowToolbarIcon, Mode=OneWay}" />
+                    IsChecked="{Binding ElementName=Toolbar, Path=ShowToolbarIconCommand.IsEnabled, Mode=OneWay}" />
             </MenuItem>
         </Menu>
         <local:MainWindowToolbar
@@ -166,15 +166,11 @@
             Background="Pink"
             DockPanel.Dock="Top"
             Visibility="Collapsed" />
-        <view:StatusBar
-            x:Name="statusBar"
-            DataContext="{Binding ElementName=mainWindow}"
-            DockPanel.Dock="Bottom" />
+        <view:StatusBar DataContext="{Binding ElementName=mainWindow}" DockPanel.Dock="Bottom" />
         <Grid>
             <Grid Grid.Row="2">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="auto" />
                     <ColumnDefinition Width="auto" />
                     <ColumnDefinition Width="5*" />
                 </Grid.ColumnDefinitions>
@@ -194,20 +190,9 @@
                     HorizontalAlignment="Right"
                     VerticalAlignment="Stretch"
                     Background="Blue" />
-                <TextBox
-                    x:Name="Pretty_TextBox"
-                    Grid.Column="2"
-                    AcceptsReturn="True"
-                    AcceptsTab="False"
-                    AutoWordSelection="True"
-                    HorizontalScrollBarVisibility="Auto"
-                    IsInactiveSelectionHighlightEnabled="True"
-                    IsReadOnly="True"
-                    VerticalScrollBarVisibility="Auto"
-                    Visibility="Collapsed" />
                 <local:CustomTreeView
                     x:Name="Tree"
-                    Grid.Column="3"
+                    Grid.Column="2"
                     HorizontalAlignment="Stretch"
                     HorizontalContentAlignment="Stretch"
                     ItemTemplate="{StaticResource myTaskTemplate}"

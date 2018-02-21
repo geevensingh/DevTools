@@ -10,14 +10,16 @@
 
     internal class TreeViewData : NotifyPropertyChanged
     {
+        private CustomTreeView _tree = null;
         private JsonObject _jsonObject;
         private string _oneLineValue = string.Empty;
         private ObservableCollection<TreeViewData> _children = new ObservableCollection<TreeViewData>();
         private bool _isSelected = false;
         private bool _isChildSelected = false;
 
-        internal TreeViewData(JsonObject jsonObject, IList<TreeViewData> children)
+        internal TreeViewData(CustomTreeView tree, JsonObject jsonObject, IList<TreeViewData> children)
         {
+            _tree = tree;
             _jsonObject = jsonObject;
             _jsonObject.ViewObject = this;
             _children = new ObservableCollection<TreeViewData>(children);
@@ -205,6 +207,8 @@
         public TreatAsTextCommand TreatAsTextCommand { get; private set; }
 
         internal JsonObject JsonObject { get => _jsonObject; }
+
+        internal CustomTreeView Tree { get => _tree; }
 
         private void OnDataModelPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {

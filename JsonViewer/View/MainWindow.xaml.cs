@@ -23,8 +23,6 @@
             _finder = new Finder(this);
 
             InitializeComponent();
-
-            App.Current.AddWindow(this);
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -48,21 +46,18 @@
         {
             JsonObjectFactory factory = new JsonObjectFactory();
             RootObject rootObject = await factory.Parse(this.Raw_TextBox.Text);
-            _finder.SetObjects(rootObject);
             if (rootObject == null)
             {
                 this.SetErrorMessage("Unable to parse given string");
                 return false;
             }
 
-            _rootObject = rootObject;
             this.SetErrorMessage(string.Empty);
-            this.Tree.ItemsSource = _rootObject.ViewChildren;
-
+            _rootObject = rootObject;
             NotifyPropertyChanged.FirePropertyChanged("RootObject", this, this.PropertyChanged);
 
-            CommandFactory.ExpandAll.Update();
-            CommandFactory.CollapseAll.Update();
+            _finder.SetObjects(rootObject);
+            _rootObject.SetTreeItemsSource(this.Tree);
 
             if (_rootObject.TotalChildCount <= 50)
             {
@@ -85,7 +80,6 @@
         protected override void OnClosing(CancelEventArgs e)
         {
             this.SaveWindowPosition();
-            App.Current.RemoveWindow(this);
             base.OnClosing(e);
         }
 
@@ -97,9 +91,8 @@
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
-            App app = (App)App.Current;
-            string initialText = app.InitialText;
-            app.InitialText = string.Empty;
+            string initialText = App.Current.InitialText;
+            App.Current.InitialText = string.Empty;
 
             if (string.IsNullOrEmpty(initialText) && Clipboard.ContainsText())
             {

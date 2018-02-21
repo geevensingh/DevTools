@@ -12,7 +12,7 @@
 
         public override void Execute(object parameter)
         {
-            App.Current.MainWindow.Tree.ExpandSubtree(this.Data);
+            this.Data.Tree.ExpandSubtree(this.Data);
         }
 
         protected override void OnDataPropertyChanged(string propertyName)

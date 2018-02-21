@@ -185,8 +185,9 @@
 
         internal TreeViewData ResetView()
         {
+            CustomTreeView tree = _viewObject.Tree;
             _viewObject = null;
-            TreeViewDataFactory.CreateNode(this);
+            TreeViewDataFactory.CreateNode(tree, this);
             Debug.Assert(_viewObject != null);
             return _viewObject;
         }

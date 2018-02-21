@@ -15,18 +15,16 @@
 
         public override RootObject Root { get => this; }
 
-        internal ObservableCollection<TreeViewData> ViewChildren
+        internal void SetTreeItemsSource(CustomTreeView tree)
         {
-            get
+            if (_viewChildren == null)
             {
-                if (_viewChildren == null)
-                {
-                    _viewChildren = TreeViewDataFactory.CreateCollection(this);
-                }
-
-                Debug.Assert(_viewChildren != null);
-                return _viewChildren;
+                _viewChildren = TreeViewDataFactory.CreateCollection(tree, this);
             }
+
+            Debug.Assert(_viewChildren != null);
+            Debug.Assert(_viewChildren.Count == 0 || _viewChildren[0].Tree == tree);
+            tree.ItemsSource = _viewChildren;
         }
 
         protected override void UpdateChild(JsonObject child)

@@ -1,17 +1,14 @@
 ﻿namespace JsonViewer.Commands
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
-
-    internal class ShowToolbarIconCommand : BaseCommand
+    public class ShowToolbarIconCommand : BaseCommand
     {
         public ShowToolbarIconCommand()
             : base("Show toolbar icons", true)
         {
+            Properties.Settings.Default.PropertyChanged += OnSettingsPropertyChanged;
         }
+
+        public bool IsChecked { get => Properties.Settings.Default.MainWindowToolbarIconVisible; }
 
         public override void Execute(object parameter)
         {
@@ -23,6 +20,16 @@
 
             Properties.Settings.Default.MainWindowToolbarIconVisible = newValue;
             Properties.Settings.Default.Save();
+        }
+
+        private void OnSettingsPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            switch (e.PropertyName)
+            {
+                case "MainWindowToolbarIconVisible":
+                    this.FirePropertyChanged("IsChecked");
+                    break;
+            }
         }
     }
 }

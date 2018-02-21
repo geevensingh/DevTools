@@ -1,4 +1,4 @@
-﻿namespace JsonViewer.Commands
+﻿namespace JsonViewer.Commands.PerWindow
 {
     public class NewWindowCommand : BaseCommand
     {
