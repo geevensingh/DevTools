@@ -150,26 +150,6 @@
             }
         }
 
-        public bool CanExpand { get => this.HasChildren; }
-
-        public bool CanCollapse { get => this.HasChildren; }
-
-        public bool CanExpandChildren
-        {
-            get
-            {
-                foreach (TreeViewData child in _children)
-                {
-                    if (child.CanExpand)
-                    {
-                        return true;
-                    }
-                }
-
-                return false;
-            }
-        }
-
         public bool IsChildSelected
         {
             get
@@ -233,6 +213,19 @@
                 case "IsFindMatch":
                     this.FirePropertyChanged("TextColor");
                     this.FirePropertyChanged("BackgroundColor");
+                    break;
+                case "HasChildren":
+                    this.FirePropertyChanged(new string[] { "HasChildren", "ValueType" });
+                    break;
+                case "TotalChildCount":
+                    this.FirePropertyChanged(new string[] { "ValueType", "OneLineValue" });
+                    break;
+                case "ValueString":
+                    this.FirePropertyChanged("Value");
+                    break;
+                case "Children":
+                case "AllChildren":
+                    this.FirePropertyChanged("AllChildren");
                     break;
                 default:
                     Debug.Assert(false, "Unknown property change");

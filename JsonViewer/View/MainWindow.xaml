@@ -95,14 +95,38 @@
     <Window.InputBindings>
         <KeyBinding Key="Esc" Command="local:CommandFactory.HideFind" />
         <KeyBinding Key="F5" Command="local:CommandFactory.Reload" />
-        <KeyBinding Key="H" Command="local:CommandFactory.HighlightParents" Modifiers="Ctrl" />
-        <KeyBinding Key="L" Command="local:CommandFactory.PickConfig" Modifiers="Ctrl" />
-        <KeyBinding Key="N" Command="local:CommandFactory.NewWindow" Modifiers="Ctrl" />
-        <KeyBinding Key="O" Command="local:CommandFactory.OpenJsonFile" Modifiers="Ctrl" />
-        <KeyBinding Key="Left" Command="local:CommandFactory.FindPrevious" Modifiers="Ctrl" />
-        <KeyBinding Key="Right" Command="local:CommandFactory.FindNext" Modifiers="Ctrl" />
-        <KeyBinding Key="Left" Command="local:CommandFactory.FindPrevious" Modifiers="Alt" />
-        <KeyBinding Key="Right" Command="local:CommandFactory.FindNext" Modifiers="Alt" />
+        <KeyBinding
+            Key="H"
+            Modifiers="Ctrl"
+            Command="local:CommandFactory.HighlightParents" />
+        <KeyBinding
+            Key="L"
+            Modifiers="Ctrl"
+            Command="local:CommandFactory.PickConfig" />
+        <KeyBinding
+            Key="N"
+            Modifiers="Ctrl"
+            Command="local:CommandFactory.NewWindow" />
+        <KeyBinding
+            Key="O"
+            Modifiers="Ctrl"
+            Command="local:CommandFactory.OpenJsonFile" />
+        <KeyBinding
+            Key="Left"
+            Modifiers="Ctrl"
+            Command="local:CommandFactory.FindPrevious" />
+        <KeyBinding
+            Key="Right"
+            Modifiers="Ctrl"
+            Command="local:CommandFactory.FindNext" />
+        <KeyBinding
+            Key="Left"
+            Modifiers="Alt"
+            Command="local:CommandFactory.FindPrevious" />
+        <KeyBinding
+            Key="Right"
+            Modifiers="Alt"
+            Command="local:CommandFactory.FindNext" />
     </Window.InputBindings>
     <Window.CommandBindings>
         <CommandBinding Command="ApplicationCommands.Find" Executed="CommandBinding_Find" />

@@ -12,7 +12,7 @@
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, INotifyPropertyChanged
     {
         private Finder _finder;
         private Point? _initialOffset = null;
@@ -26,6 +26,8 @@
 
             App.Current.AddWindow(this);
         }
+
+        public event PropertyChangedEventHandler PropertyChanged;
 
         public Finder Finder { get => _finder; }
 
@@ -56,6 +58,9 @@
             _rootObject = rootObject;
             this.SetErrorMessage(string.Empty);
             this.Tree.ItemsSource = _rootObject.ViewChildren;
+
+            NotifyPropertyChanged.FirePropertyChanged("RootObject", this, this.PropertyChanged);
+
             CommandFactory.ExpandAll.Update();
             CommandFactory.CollapseAll.Update();
 

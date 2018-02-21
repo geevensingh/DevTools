@@ -7,7 +7,6 @@
     internal class RootObject : JsonObject
     {
         private ObservableCollection<TreeViewData> _viewChildren = null;
-        private List<JsonObject> _allChildren = null;
 
         public RootObject()
             : base(string.Empty, string.Empty)
@@ -30,19 +29,6 @@
             }
         }
 
-        internal List<JsonObject> AllChildren
-        {
-            get
-            {
-                if (_allChildren == null)
-                {
-                    _allChildren = new List<JsonObject>(this.GetAllChildren());
-                }
-
-                return _allChildren;
-            }
-        }
-
         protected override void UpdateChild(JsonObject child)
         {
             Debug.Assert(this.Children.Contains(child));
@@ -55,15 +41,8 @@
         protected override void AddChild(JsonObject child)
         {
             Debug.Assert(_viewChildren == null);
+            _viewChildren = null;
             base.AddChild(child);
-            _allChildren = null;
-            this.FirePropertyChanged("AllChildren");
-        }
-
-        protected override void OnChildrenChanged()
-        {
-            _allChildren = null;
-            this.FirePropertyChanged("AllChildren");
         }
     }
 }

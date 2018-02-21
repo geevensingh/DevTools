@@ -1,5 +1,6 @@
 ﻿namespace JsonViewer.Commands.PerItem
 {
+    using System.Diagnostics;
     using JsonViewer;
 
     internal class BaseTreeViewDataCommand : BaseCommand
@@ -15,8 +16,14 @@
 
         internal TreeViewData Data { get => _data; }
 
-        protected virtual void OnDataPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        protected virtual void OnDataPropertyChanged(string propertyName)
         {
+        }
+
+        private void OnDataPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            Debug.Assert(sender == _data);
+            this.OnDataPropertyChanged(e.PropertyName);
         }
     }
 }
