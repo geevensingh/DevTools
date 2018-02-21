@@ -4,7 +4,7 @@
     using System.Windows;
     using System.Windows.Input;
 
-    internal class BaseCommand : NotifyPropertyChanged, ICommand
+    public class BaseCommand : NotifyPropertyChanged, ICommand
     {
         private string _text = string.Empty;
         private bool _canExecute = false;

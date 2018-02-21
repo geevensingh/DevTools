@@ -1,15 +1,18 @@
 ﻿namespace JsonViewer.Commands
 {
-    internal class NewWindowCommand : BaseCommand
+    public class NewWindowCommand : BaseCommand
     {
-        public NewWindowCommand()
+        private MainWindow _mainWindow = null;
+
+        public NewWindowCommand(MainWindow mainWindow)
             : base("New Window", true)
         {
+            _mainWindow = mainWindow;
         }
 
         public override void Execute(object parameter)
         {
-            App.Current.MainWindow.ShowNewWindow();
+            _mainWindow.ShowNewWindow();
         }
     }
 }

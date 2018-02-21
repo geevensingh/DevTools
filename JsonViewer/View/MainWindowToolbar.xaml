@@ -18,13 +18,6 @@
         <BitmapImage x:Key="RightImage" UriSource="..\Resources\right.png" />
         <BitmapImage x:Key="LeftImage" UriSource="..\Resources\left.png" />
     </UserControl.Resources>
-    <UserControl.CommandBindings>
-        <CommandBinding Command="local:CommandFactory.PickConfig" />
-        <CommandBinding Command="local:CommandFactory.Reload" />
-        <CommandBinding Command="local:CommandFactory.NewWindow" />
-        <CommandBinding Command="local:CommandFactory.OpenJsonFile" />
-        <CommandBinding Command="local:CommandFactory.HighlightParents" />
-    </UserControl.CommandBindings>
     <ToolBarTray Background="White" DataContext="{Binding ElementName=Root}">
         <ToolBar Band="1" BandIndex="1">
             <Button
@@ -101,7 +94,7 @@
             <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
             <Button
                 x:Name="NewWindowButton"
-                Command="local:CommandFactory.NewWindow"
+                Command="{Binding ElementName=Root, Path=NewWindowCommand}"
                 DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}"
                 ToolTip="{Binding Path=Text}">
                 <StackPanel VerticalAlignment="Center" Orientation="Horizontal">

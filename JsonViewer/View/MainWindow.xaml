@@ -106,7 +106,7 @@
         <KeyBinding
             Key="N"
             Modifiers="Ctrl"
-            Command="local:CommandFactory.NewWindow" />
+            Command="{Binding ElementName=Toolbar, Path=NewWindowCommand}" />
         <KeyBinding
             Key="O"
             Modifiers="Ctrl"
@@ -142,7 +142,7 @@
                 <MenuItem Click="CheckForUpdates" Header="Check for _updates" />
             </MenuItem>
             <MenuItem Header="_View">
-                <MenuItem Command="local:CommandFactory.NewWindow" Header="_New Window" />
+                <MenuItem Command="{Binding ElementName=Toolbar, Path=NewWindowCommand}" Header="_New Window" />
                 <Separator />
                 <MenuItem
                     Command="local:CommandFactory.ShowToolbarText"

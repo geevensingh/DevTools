@@ -5,8 +5,6 @@
 
     internal static class CommandFactory
     {
-        public static readonly NewWindowCommand NewWindow = new NewWindowCommand();
-
         public static readonly ReloadCommand Reload = new ReloadCommand();
 
         public static readonly PickConfigCommand PickConfig = new PickConfigCommand();

@@ -4,6 +4,7 @@
     using System.Diagnostics;
     using System.Windows;
     using System.Windows.Controls;
+    using JsonViewer.Commands;
     using JsonViewer.View;
 
     /// <summary>
@@ -14,6 +15,7 @@
         private MainWindow _mainWindow = null;
 
         private FindMatchNavigator _findMatchNavigator = null;
+        private NewWindowCommand _newWindowCommand = null;
 
         public MainWindowToolbar()
         {
@@ -23,6 +25,8 @@
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
+
+        public NewWindowCommand NewWindowCommand { get => _newWindowCommand; }
 
         public bool ShowToolbarText { get => Properties.Settings.Default.MainWindowToolbarTextVisible; }
 
@@ -51,6 +55,8 @@
         {
             _mainWindow = (MainWindow)this.DataContext;
             Debug.Assert(_mainWindow != null);
+
+            NotifyPropertyChanged.SetValue(ref _newWindowCommand, new NewWindowCommand(_mainWindow), "NewWindowCommand", this, this.PropertyChanged);
 
             NotifyPropertyChanged.SetValue(ref _findMatchNavigator, new FindMatchNavigator(_mainWindow), "FindMatchNavigator", this, this.PropertyChanged);
 
