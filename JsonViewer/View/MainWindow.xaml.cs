@@ -148,14 +148,6 @@
             }
         }
 
-        private void Tree_CommandBinding_Copy(object sender, ExecutedRoutedEventArgs e)
-        {
-            if (this.Tree.SelectedItem is TreeViewData selectedData)
-            {
-                Clipboard.SetText(selectedData.Value);
-            }
-        }
-
         private void CommandBinding_Find(object sender, ExecutedRoutedEventArgs e)
         {
             _finder.ShowWindow();

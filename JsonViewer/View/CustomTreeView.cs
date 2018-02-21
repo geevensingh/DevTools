@@ -5,11 +5,24 @@
     using System.Diagnostics;
     using System.Windows;
     using System.Windows.Controls;
+    using System.Windows.Input;
+    using JsonViewer.Commands.PerWindow;
 
     internal class CustomTreeView : TreeView, INotifyPropertyChanged
     {
         private TreeViewData _selected = null;
         private int? _selectedIndex = null;
+
+        public CustomTreeView()
+        {
+            CommandBinding copyCommandBinding = new CommandBinding
+            {
+                Command = ApplicationCommands.Copy
+            };
+            copyCommandBinding.Executed += OnCopyCommandExecuted;
+            copyCommandBinding.CanExecute += OnCopyCommandCanExecute;
+            this.CommandBindings.Add(copyCommandBinding);
+        }
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -164,6 +177,18 @@
             }
 
             NotifyPropertyChanged.SetValue(ref _selectedIndex, newSelectedIndex, "SelectedIndex", this, this.PropertyChanged);
+        }
+
+        private void OnCopyCommandCanExecute(object sender, CanExecuteRoutedEventArgs e)
+        {
+            Debug.Assert(sender == this);
+            e.CanExecute = this.SelectedItem as TreeViewData != null;
+        }
+
+        private void OnCopyCommandExecuted(object sender, ExecutedRoutedEventArgs e)
+        {
+            Debug.Assert(sender == this);
+            Clipboard.SetText((this.SelectedItem as TreeViewData)?.Value);
         }
 
         private ItemContainerGenerator GetItemContainerGenerator(TreeViewData data)

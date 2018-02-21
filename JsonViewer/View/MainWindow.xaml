@@ -197,9 +197,24 @@
                     HorizontalContentAlignment="Stretch"
                     ItemTemplate="{StaticResource myTaskTemplate}"
                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                    <local:CustomTreeView.CommandBindings>
-                        <CommandBinding Command="Copy" Executed="Tree_CommandBinding_Copy" />
-                    </local:CustomTreeView.CommandBindings>
+                    <local:CustomTreeView.InputBindings>
+                        <KeyBinding
+                            Key="Left"
+                            Modifiers="Ctrl"
+                            Command="{Binding ElementName=Toolbar, Path=FindPreviousCommand}" />
+                        <KeyBinding
+                            Key="Right"
+                            Modifiers="Ctrl"
+                            Command="{Binding ElementName=Toolbar, Path=FindNextCommand}" />
+                        <KeyBinding
+                            Key="Left"
+                            Modifiers="Alt"
+                            Command="{Binding ElementName=Toolbar, Path=FindPreviousCommand}" />
+                        <KeyBinding
+                            Key="Right"
+                            Modifiers="Alt"
+                            Command="{Binding ElementName=Toolbar, Path=FindNextCommand}" />
+                    </local:CustomTreeView.InputBindings>
                 </local:CustomTreeView>
             </Grid>
         </Grid>
