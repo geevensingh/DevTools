@@ -122,6 +122,7 @@
     <Compile Include="Commands\PerWindow\OpenJsonFileCommand.cs" />
     <Compile Include="Commands\PerWindow\PickConfigCommand.cs" />
     <Compile Include="Commands\PerWindow\ReloadCommand.cs" />
+    <Compile Include="Model\ConfigRule.cs" />
     <Compile Include="View\FindMatchNavigator.cs" />
     <Compile Include="View\MainWindowToolbar.xaml.cs">
       <DependentUpon>MainWindowToolbar.xaml</DependentUpon>
@@ -259,4 +260,9 @@
   copy "$(TargetPath)" D:\Tools
 )</PostBuildEvent>
   </PropertyGroup>
+  <ProjectExtensions>
+    <VisualStudio>
+      <UserProperties Config_1json__JSONSchema="" />
+    </VisualStudio>
+  </ProjectExtensions>
 </Project>

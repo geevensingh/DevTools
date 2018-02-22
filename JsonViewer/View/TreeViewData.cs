@@ -109,7 +109,7 @@
                     return Config.This.GetBrush(ConfigValue.TreeViewSearchResultForeground);
                 }
 
-                return Config.This.GetHightlightColor(_jsonObject.Key);
+                return Config.This.GetHightlightColor(_jsonObject);
             }
         }
 
@@ -148,7 +148,7 @@
         {
             get
             {
-                return Config.This.GetHighlightFontSize(_jsonObject.Key);
+                return Config.This.GetHighlightFontSize(_jsonObject);
             }
         }
 

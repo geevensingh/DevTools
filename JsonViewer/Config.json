@@ -1,34 +1,46 @@
 ﻿{
-  "treeViewForeground": "darkgray",
-  "treeViewHighlightBrushKey": "Yellow",
+  "treeViewForeground": "DarkGray",
+  "treeViewHighlightBrushKey": "LightYellow",
   "treeViewHighlightTextBrushKey": "Black",
   "treeViewInactiveSelectionHighlightBrushKey": "LightYellow",
   "treeViewInactiveSelectionHighlightTextBrushKey": "Black",
   "treeViewFontSize": 12,
   "treeViewSearchResultForeground": "blue",
-  "treeViewSearchResultBackground": "lightgreen",
+  "treeViewSearchResultBackground": "LightGreen",
   "treeViewHighlights": [
     {
-      "keyName": "account_id",
-      "color": "green"
-    },
-    {
-      "keyName": "events",
-      "color": "green"
-    },
-    {
-      "keyName": "event_type",
-      "color": "blue",
-      "fontSize": 16
-    },
-    {
-      "keyName": "state",
+      "valueContains": [ "failure", "failed", "error" ],
       "color": "red",
+      "fontSize": 16,
+      "appliesToParents":  true
+    },
+    {
+      "valueContains": [ "success", "succeeded", "passed" ],
+      "color": "green",
+      "fontSize": 16,
+      "appliesToParents": true
+    },
+    {
+      "valueContains": [ "pending", "warning" ],
+      "color": "DarkOrange",
+      "appliesToParents": true
+    },
+    {
+      "keyNames": [ "result" ],
+      "color": "DarkRed",
       "fontSize": 16
     },
     {
-      "keyName": "result",
-      "color": "darkred",
+      "keyContains": [ "account" ],
+      "color": "green"
+    },
+    {
+      "keyNames": [ "events" ],
+      "color": "green"
+    },
+    {
+      "keyNames": [ "event_type", "state" ],
+      "color": "blue",
       "fontSize": 16
     }
   ]

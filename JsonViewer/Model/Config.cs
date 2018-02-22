@@ -1,11 +1,13 @@
 ﻿namespace JsonViewer
 {
+    using System;
     using System.Collections;
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.IO;
     using System.Web.Script.Serialization;
     using System.Windows.Media;
+    using Utilities;
 
     internal enum ConfigValue
     {
@@ -27,6 +29,7 @@
         private Dictionary<string, double> _highlightFontSize = new Dictionary<string, double>();
         private Dictionary<ConfigValue, Color> _colors = new Dictionary<ConfigValue, Color>();
         private Dictionary<ConfigValue, Brush> _brushes = new Dictionary<ConfigValue, Brush>();
+        private IList<ConfigRule> _rules = null;
 
         private Config()
         {
@@ -49,26 +52,10 @@
 
             if (_rawValues.ContainsKey("treeViewFontSize"))
             {
-                _rawValues["treeViewFontSize"] = ConvertToDouble(_rawValues["treeViewFontSize"]);
+                _rawValues["treeViewFontSize"] = Converters.ToDouble(_rawValues["treeViewFontSize"]).Value;
             }
 
-            ArrayList highlightsList = (ArrayList)_rawValues["treeViewHighlights"];
-            foreach (Dictionary<string, object> highlightObj in highlightsList)
-            {
-                string key = highlightObj["keyName"] as string;
-                Debug.Assert(!string.IsNullOrEmpty(key));
-
-                string color = highlightObj["color"] as string;
-                if (!string.IsNullOrEmpty(color))
-                {
-                    _highlightColor[key] = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
-                }
-
-                if (highlightObj.ContainsKey("fontSize"))
-                {
-                    _highlightFontSize[key] = ConvertToDouble(highlightObj["fontSize"]);
-                }
-            }
+            _rules = ConfigRule.GenerateRules((ArrayList)_rawValues["treeViewHighlights"]);
         }
 
         internal static Config This
@@ -172,21 +159,29 @@
             }
         }
 
-        public Brush GetHightlightColor(string key)
+        public Brush GetHightlightColor(JsonObject obj)
         {
-            if (_highlightColor.ContainsKey(key))
+            IList<ConfigRule> rules = this.FindMatchingRule(obj);
+            foreach (ConfigRule rule in rules)
             {
-                return _highlightColor[key];
+                if (rule.ForegroundBrush != null)
+                {
+                    return rule.ForegroundBrush;
+                }
             }
 
             return this.GetBrush(ConfigValue.TreeViewForeground);
         }
 
-        internal double GetHighlightFontSize(string key)
+        internal double GetHighlightFontSize(JsonObject obj)
         {
-            if (_highlightFontSize.ContainsKey(key))
+            IList<ConfigRule> rules = this.FindMatchingRule(obj);
+            foreach (ConfigRule rule in rules)
             {
-                return _highlightFontSize[key];
+                if (rule.FontSize.HasValue)
+                {
+                    return rule.FontSize.Value;
+                }
             }
 
             if (_rawValues.ContainsKey("treeViewFontSize"))
@@ -197,25 +192,18 @@
             return 12.0;
         }
 
-        private static double ConvertToDouble(object obj)
+        private IList<ConfigRule> FindMatchingRule(JsonObject obj)
         {
-            if (obj.GetType() == typeof(int))
+            List<ConfigRule> rules = new List<ConfigRule>();
+            foreach (ConfigRule rule in _rules)
             {
-                return (int)obj;
+                if (rule.Matches(obj))
+                {
+                    rules.Add(rule);
+                }
             }
 
-            if (obj.GetType() == typeof(float))
-            {
-                return (float)obj;
-            }
-
-            if (obj.GetType() == typeof(double))
-            {
-                return (double)obj;
-            }
-
-            Debug.Fail("invalid double: " + obj.ToString());
-            return double.MinValue;
+            return rules;
         }
     }
 }
