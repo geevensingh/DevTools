@@ -1,9 +1,9 @@
-﻿namespace JsonViewer
+﻿namespace Utilities
 {
     using System.Diagnostics;
     using System.Text;
 
-    internal static class CSEscape
+    public static class CSEscape
     {
         public static string Unescape(string input)
         {

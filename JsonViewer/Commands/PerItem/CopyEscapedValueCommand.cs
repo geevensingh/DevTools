@@ -2,6 +2,7 @@
 {
     using System.Windows;
     using JsonViewer;
+    using Utilities;
 
     internal class CopyEscapedValueCommand : BaseTreeViewDataCommand
     {

@@ -127,7 +127,6 @@
       <DependentUpon>MainWindowToolbar.xaml</DependentUpon>
     </Compile>
     <Compile Include="Model\Config.cs" />
-    <Compile Include="CSEscape.cs" />
     <Compile Include="View\CustomTreeView.cs" />
     <Compile Include="Model\Finder.cs" />
     <Compile Include="View\FindWindow.xaml.cs">
