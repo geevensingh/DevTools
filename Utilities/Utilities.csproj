@@ -39,6 +39,7 @@
   <ItemGroup>
     <Compile Include="Change.cs" />
     <Compile Include="Client.cs" />
+    <Compile Include="Converters.cs" />
     <Compile Include="CSEscape.cs" />
     <Compile Include="Depot.cs" />
     <Compile Include="GitFileInfo.cs" />
