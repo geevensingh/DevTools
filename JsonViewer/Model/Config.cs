@@ -25,8 +25,6 @@
     {
         private static Config _this = null;
         private Dictionary<string, object> _rawValues = null;
-        private Dictionary<string, SolidColorBrush> _highlightColor = new Dictionary<string, SolidColorBrush>();
-        private Dictionary<string, double> _highlightFontSize = new Dictionary<string, double>();
         private Dictionary<ConfigValue, Color> _colors = new Dictionary<ConfigValue, Color>();
         private Dictionary<ConfigValue, Brush> _brushes = new Dictionary<ConfigValue, Brush>();
         private IList<ConfigRule> _rules = null;
