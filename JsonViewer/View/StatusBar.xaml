@@ -35,6 +35,11 @@
                     Margin="5,0"
                     VerticalAlignment="Center"
                     Text="{Binding Path=CurrentVersion}" />
+                <TextBlock
+                    Margin="5,0"
+                    VerticalAlignment="Center"
+                    Text="Debug!!"
+                    Visibility="{Binding Path=FlavorVisibility}" />
             </StackPanel>
         </StatusBarItem>
     </StatusBar>

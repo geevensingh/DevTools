@@ -81,6 +81,15 @@
             }
         }
 
+        public Visibility FlavorVisibility
+        {
+#if DEBUG
+            get => Visibility.Visible;
+#else
+            get => Visibility.Collapsed;
+#endif
+        }
+
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
             _mainWindow = (MainWindow)this.DataContext;
