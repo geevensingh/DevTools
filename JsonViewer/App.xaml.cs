@@ -98,6 +98,7 @@
                 {
                     dr = MessageBox.Show("The application has been upgraded.  Restart now?", "Update", MessageBoxButton.YesNo, MessageBoxImage.Question);
                 }
+
                 if (dr == MessageBoxResult.Yes)
                 {
                     System.Windows.Forms.Application.Restart();
