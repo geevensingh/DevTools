@@ -26,20 +26,17 @@
       "appliesToParents": true
     },
     {
-      "keyNames": [ "result" ],
+      "keyIs": [ "result" ],
       "color": "DarkRed",
       "fontSize": 16
     },
     {
       "keyContains": [ "account" ],
+      "keyIs": [ "events" ],
       "color": "green"
     },
     {
-      "keyNames": [ "events" ],
-      "color": "green"
-    },
-    {
-      "keyNames": [ "event_type", "state" ],
+      "keyIs": [ "event_type", "state" ],
       "color": "blue",
       "fontSize": 16
     }

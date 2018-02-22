@@ -105,8 +105,8 @@
 
         private static ConfigRule GenerateRule(Dictionary<string, object> dict)
         {
-            IList<string> keys = GetList(dict, "keyNames");
-            IList<string> values = GetList(dict, "values");
+            IList<string> keys = GetList(dict, "keyIs");
+            IList<string> values = GetList(dict, "valueIs");
             IList<string> keyPartials = GetList(dict, "keyContains");
             IList<string> valuePartials = GetList(dict, "valueContains");
 
