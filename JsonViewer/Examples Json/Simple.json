@@ -1,0 +1,10 @@
+﻿{
+  "events": [
+    {
+      "id": "fbfa4789-353b-413a-9369-6b3a0b6ca018",
+      "event_type": "dependent_service_call_failure",
+      "version_added": 4,
+      "timestamp": "2017-12-03T01:22:04.1022041Z"
+    }
+  ]
+}

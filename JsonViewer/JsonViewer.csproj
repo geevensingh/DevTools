@@ -193,18 +193,19 @@
     <Content Include="Config.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <None Include="JsonViewer.ruleset" />
-    <None Include="Resources\JsonViewer_TemporaryKey.pfx" />
-    <None Include="packages.config" />
+    <None Include="Examples Json\LargeTest.json" />
     <None Include="Examples Json\Recursive.json" />
     <None Include="Examples Json\Semi-valid.json" />
-    <None Include="stylecop.json" />
+    <None Include="Examples Json\Simple.json" />
     <None Include="Examples Json\Test.json" />
+    <None Include="JsonViewer.ruleset" />
+    <None Include="packages.config" />
+    <None Include="Resources\JsonViewer_TemporaryKey.pfx" />
+    <None Include="stylecop.json" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
-    <None Include="Examples Json\LargeTest.json" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
