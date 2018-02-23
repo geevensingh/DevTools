@@ -162,12 +162,9 @@
             }
         }
 
-        public bool TreatAsJson()
+        public void TreatAsJson()
         {
-            if (!this.CanTreatAsJson)
-            {
-                return false;
-            }
+            Debug.Assert(this.CanTreatAsJson);
 
             Dictionary<string, object> dict = JsonObjectFactory.TryDeserialize(this.Value as string);
             Debug.Assert(dict != null);
@@ -177,16 +174,11 @@
             this.FireChildrenChanged();
 
             _parent.UpdateChild(this);
-
-            return true;
         }
 
-        public bool TreatAsText()
+        public void TreatAsText()
         {
-            if (!this.CanTreatAsText)
-            {
-                return false;
-            }
+            Debug.Assert(this.CanTreatAsText);
 
             if (string.IsNullOrEmpty(_originalString))
             {
@@ -203,8 +195,6 @@
             this.AddChildren(_children);
 
             _parent.UpdateChild(this);
-
-            return true;
         }
 
         internal TreeViewData ResetView()

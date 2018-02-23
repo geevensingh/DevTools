@@ -53,8 +53,8 @@
             this.CopyKeyCommand = new CopyKeyCommand(this);
             this.CopyValueCommand = new CopyValueCommand(this);
             this.CopyEscapedValueCommand = new CopyEscapedValueCommand(this);
-            this.TreatAsJsonCommand = new TreatAsJsonCommand(this);
-            this.TreatAsTextCommand = new TreatAsTextCommand(this);
+            this.TreatAsJsonCommand = new TreatAsJsonCommand(tree, this);
+            this.TreatAsTextCommand = new TreatAsTextCommand(tree, this);
         }
 
         public string KeyName { get => _jsonObject.Key; }

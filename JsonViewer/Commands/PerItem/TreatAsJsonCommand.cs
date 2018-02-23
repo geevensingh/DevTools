@@ -5,14 +5,19 @@
 
     internal class TreatAsJsonCommand : BaseTreeViewDataCommand
     {
-        public TreatAsJsonCommand(TreeViewData data)
+        private CustomTreeView _tree;
+
+        public TreatAsJsonCommand(CustomTreeView tree, TreeViewData data)
             : base(data, "Treat as Json", data.JsonObject.CanTreatAsJson)
         {
+            _tree = tree;
         }
 
         public override void Execute(object parameter)
         {
-            this.Data.JsonObject.TreatAsJson();
+            JsonObject obj = this.Data.JsonObject;
+            obj.TreatAsJson();
+            _tree.SelectItem(obj.ViewObject).IsExpanded = true;
         }
     }
 }
