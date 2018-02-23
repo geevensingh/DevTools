@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
+    using System.Linq;
 
     internal class JsonObject : NotifyPropertyChanged
     {
@@ -43,13 +44,14 @@
 
         public string Key { get => _key; }
 
-        public object Value {
+        public object Value
+        {
             get => _value;
             private set
             {
                 _value = value;
 
-                if (this.Children.Count > 0)
+                if (_children.Count > 0)
                 {
                     System.Web.Script.Serialization.JavaScriptSerializer ser = new System.Web.Script.Serialization.JavaScriptSerializer();
                     _valueString = ser.Serialize(_value);
@@ -98,19 +100,7 @@
 
         public string ValueString { get => _valueString; }
 
-        public int TotalChildCount
-        {
-            get
-            {
-                int result = this.Children.Count;
-                foreach (JsonObject child in this.Children)
-                {
-                    result += child.TotalChildCount;
-                }
-
-                return result;
-            }
-        }
+        public int TotalChildCount { get => this.Children.Count + this.Children.Sum(x => x.TotalChildCount); }
 
         public List<JsonObject> AllChildren
         {

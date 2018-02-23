@@ -3,6 +3,7 @@
     using System.Collections;
     using System.Collections.Generic;
     using System.Diagnostics;
+    using System.Linq;
     using System.Windows.Media;
     using Utilities;
 
@@ -80,29 +81,15 @@
         private static bool MatchStringToList(string value, IList<string> values)
         {
             Debug.Assert(value == value.ToLower());
-            foreach (string v in values)
-            {
-                if (value == v)
-                {
-                    return true;
-                }
-            }
-
-            return false;
+            Debug.Assert(values.All(x => x.ToLower() == x));
+            return values.Any(x => value == x);
         }
 
         private static bool MatchPartialStringToList(string value, IList<string> values)
         {
             Debug.Assert(value == value.ToLower());
-            foreach (string v in values)
-            {
-                if (value.Contains(v))
-                {
-                    return true;
-                }
-            }
-
-            return false;
+            Debug.Assert(values.All(x => x.ToLower() == x));
+            return values.Any(x => value.Contains(x));
         }
 
         private static ConfigRule GenerateRule(Dictionary<string, object> dict)
