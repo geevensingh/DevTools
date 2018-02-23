@@ -95,7 +95,7 @@
             }
         }
 
-        public Brush TextColor
+        public Brush KeyTextColor
         {
             get
             {
@@ -104,7 +104,7 @@
                     return Config.This.GetBrush(ConfigValue.TreeViewHighlightTextBrushKey);
                 }
 
-                if (_jsonObject.IsFindMatch)
+                if (_jsonObject.IsKeyFindMatch)
                 {
                     return Config.This.GetBrush(ConfigValue.TreeViewSearchResultForeground);
                 }
@@ -113,7 +113,25 @@
             }
         }
 
-        public Brush BackgroundColor
+        public Brush ValueTextColor
+        {
+            get
+            {
+                if (this._isSelected)
+                {
+                    return Config.This.GetBrush(ConfigValue.TreeViewHighlightTextBrushKey);
+                }
+
+                if (_jsonObject.IsValueFindMatch)
+                {
+                    return Config.This.GetBrush(ConfigValue.TreeViewSearchResultForeground);
+                }
+
+                return Config.This.GetHightlightColor(_jsonObject);
+            }
+        }
+
+        public Brush KeyBackgroundColor
         {
             get
             {
@@ -122,7 +140,30 @@
                     return Config.This.GetBrush(ConfigValue.TreeViewHighlightBrushKey);
                 }
 
-                if (_jsonObject.IsFindMatch)
+                if (_jsonObject.IsKeyFindMatch)
+                {
+                    return Config.This.GetBrush(ConfigValue.TreeViewSearchResultBackground);
+                }
+
+                if (_isChildSelected && Properties.Settings.Default.HighlightSelectedParents)
+                {
+                    return Config.This.GetBrush(ConfigValue.TreeViewSelectedItemParent);
+                }
+
+                return Brushes.Transparent;
+            }
+        }
+
+        public Brush ValueBackgroundColor
+        {
+            get
+            {
+                if (this._isSelected)
+                {
+                    return Config.This.GetBrush(ConfigValue.TreeViewHighlightBrushKey);
+                }
+
+                if (_jsonObject.IsValueFindMatch)
                 {
                     return Config.This.GetBrush(ConfigValue.TreeViewSearchResultBackground);
                 }
@@ -161,7 +202,7 @@
 
             set
             {
-                if (this.SetValue(ref _isChildSelected, value, new string[] { "BackgroundColor", "TextColor" }))
+                if (this.SetValue(ref _isChildSelected, value, new string[] { "KeyBackgroundColor", "KeyTextColor", "ValueBackgroundColor", "ValueTextColor" }))
                 {
                     if (this.Parent != null)
                     {
@@ -180,7 +221,7 @@
 
             set
             {
-                if (this.SetValue(ref _isSelected, value, new string[] { "BackgroundColor", "TextColor" }))
+                if (this.SetValue(ref _isSelected, value, new string[] { "KeyBackgroundColor", "KeyTextColor", "ValueBackgroundColor", "ValueTextColor" }))
                 {
                     if (this.Parent != null)
                     {
@@ -214,9 +255,13 @@
         {
             switch (e.PropertyName)
             {
-                case "IsFindMatch":
-                    this.FirePropertyChanged("TextColor");
-                    this.FirePropertyChanged("BackgroundColor");
+                case "IsKeyFindMatch":
+                    this.FirePropertyChanged("KeyTextColor");
+                    this.FirePropertyChanged("KeyBackgroundColor");
+                    break;
+                case "IsValueFindMatch":
+                    this.FirePropertyChanged("ValueTextColor");
+                    this.FirePropertyChanged("ValueBackgroundColor");
                     break;
                 case "HasChildren":
                     this.FirePropertyChanged(new string[] { "HasChildren", "ValueType" });
@@ -231,6 +276,8 @@
                 case "AllChildren":
                     this.FirePropertyChanged("AllChildren");
                     break;
+                case "IsFindMatch":
+                    break;
                 default:
                     Debug.Assert(false, "Unknown property change");
                     break;
@@ -241,7 +288,8 @@
         {
             if (e.PropertyName == "HighlightSelectedParents" && _isChildSelected)
             {
-                this.FirePropertyChanged("BackgroundColor");
+                this.FirePropertyChanged("KeyBackgroundColor");
+                this.FirePropertyChanged("ValueBackgroundColor");
             }
         }
 

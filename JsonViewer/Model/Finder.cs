@@ -176,27 +176,27 @@
 
         private void Highlight(JsonObject obj, ref List<JsonObject> hits)
         {
-            bool found = false;
+            bool keyFound = false;
+            bool valueFound = false;
             if (!string.IsNullOrEmpty(_text))
             {
                 if (_shouldSearchKeys && this.CompareStrings(obj.Key, _text))
                 {
-                    found = true;
+                    keyFound = true;
                 }
-                else if (obj.HasChildren ? _shouldSearchParentValues : _shouldSearchValues)
+
+                if (obj.HasChildren ? _shouldSearchParentValues : _shouldSearchValues)
                 {
-                    found = this.CompareStrings(obj.ValueString, _text);
+                    valueFound = this.CompareStrings(obj.ValueString, _text);
                 }
             }
 
-            if (found)
+            obj.IsKeyFindMatch = keyFound;
+            obj.IsValueFindMatch = valueFound;
+
+            if (keyFound || valueFound)
             {
                 hits.Add(obj);
-            }
-
-            if (obj.IsFindMatch != found)
-            {
-                obj.IsFindMatch = found;
             }
 
             if (obj.HasChildren)

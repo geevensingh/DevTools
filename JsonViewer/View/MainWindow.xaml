@@ -18,7 +18,7 @@
             x:Key="myTaskTemplate"
             DataType="local:TreeViewData"
             ItemsSource="{Binding Path=Children}">
-            <Grid HorizontalAlignment="Stretch" Background="{Binding Path=BackgroundColor}">
+            <Grid HorizontalAlignment="Stretch">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="auto" />
                     <ColumnDefinition Width="*" />
@@ -71,23 +71,31 @@
                 <TextBlock
                     x:Name="KeyBlock"
                     Grid.Column="0"
-                    Padding="0,0,5,0"
+                    Padding="5,0"
+                    VerticalAlignment="Center"
+                    Background="{Binding Path=KeyBackgroundColor}"
                     FontSize="{Binding Path=FontSize}"
                     FontWeight="Bold"
-                    Foreground="{Binding Path=TextColor}"
+                    Foreground="{Binding Path=KeyTextColor}"
                     Text="{Binding Path=KeyName}" />
                 <TextBlock
                     x:Name="OneLineValueBlock"
                     Grid.Column="1"
+                    VerticalAlignment="Center"
+                    Background="{Binding Path=ValueBackgroundColor}"
                     FontSize="{Binding Path=FontSize}"
-                    Foreground="{Binding Path=TextColor}"
+                    Foreground="{Binding Path=ValueTextColor}"
+                    Padding="5,0"
                     Text="{Binding Path=OneLineValue}"
                     TextWrapping="Wrap" />
                 <TextBlock
                     x:Name="ValueTypeBlock"
                     Grid.Column="3"
+                    VerticalAlignment="Center"
+                    Background="{Binding Path=ValueBackgroundColor}"
+                    Padding="5,0"
                     FontSize="{Binding Path=FontSize}"
-                    Foreground="{Binding Path=TextColor}"
+                    Foreground="{Binding Path=ValueTextColor}"
                     Text="{Binding Path=ValueType}" />
             </Grid>
         </HierarchicalDataTemplate>

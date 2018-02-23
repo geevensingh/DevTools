@@ -15,7 +15,8 @@
         private string _originalString;
         private object _typedValue;
         private DataType _dataType = DataType.Other;
-        private bool _isFindMatch = false;
+        private bool _isKeyFindMatch = false;
+        private bool _isValueFindMatch = false;
 
         public JsonObject(string key, object value, JsonObject parent)
             : this(key, value)
@@ -66,7 +67,11 @@
 
         public DataType Type { get => _dataType; }
 
-        public bool IsFindMatch { get => _isFindMatch; set => this.SetValue(ref _isFindMatch, value, "IsFindMatch"); }
+        public bool IsFindMatch { get => this.IsKeyFindMatch || this.IsValueFindMatch; }
+
+        public bool IsKeyFindMatch { get => _isKeyFindMatch; set => this.SetValue(ref _isKeyFindMatch, value, new string[] { "IsKeyFindMatch", "IsFindMatch" }); }
+
+        public bool IsValueFindMatch { get => _isValueFindMatch; set => this.SetValue(ref _isValueFindMatch, value, new string[] { "IsValueFindMatch", "IsFindMatch" }); }
 
         public bool CanTreatAsJson { get => _dataType == DataType.ParsableString; }
 
