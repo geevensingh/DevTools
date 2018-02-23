@@ -74,6 +74,23 @@
 
         public JsonObject Parent { get => _parent; }
 
+        public string ParentPath
+        {
+            get
+            {
+                if (_parent == null)
+                {
+                    return string.Empty;
+                }
+
+                List<string> list = new List<string>();
+                list.Add(_parent.ParentPath);
+                list.Add(_parent.Key);
+                list.RemoveAll(x => string.IsNullOrEmpty(x));
+                return string.Join(" : ", list.ToArray());
+            }
+        }
+
         public virtual RootObject Root
         {
             get

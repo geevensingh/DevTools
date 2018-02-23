@@ -47,6 +47,14 @@
             }
         }
 
+        public string CurrentPath
+        {
+            get
+            {
+                return (_mainWindow?.Tree?.SelectedItem as TreeViewData)?.JsonObject.ParentPath;
+            }
+        }
+
         public string TotalItems
         {
             get
@@ -146,7 +154,7 @@
             switch (e.PropertyName)
             {
                 case "SelectedIndex":
-                    NotifyPropertyChanged.FirePropertyChanged("CurrentIndex", this, this.PropertyChanged);
+                    NotifyPropertyChanged.FirePropertyChanged(new string[] { "CurrentIndex", "CurrentPath" }, this, this.PropertyChanged);
                     break;
             }
         }
