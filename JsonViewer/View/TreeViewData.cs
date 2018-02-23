@@ -25,7 +25,7 @@
             _children = new ObservableCollection<TreeViewData>(children);
 
             _oneLineValue = this.GetValueTypeString(includeChildCount: false);
-            object value = _jsonObject.Value;
+            object value = _jsonObject.TypedValue;
             if (value != null)
             {
                 if (!_jsonObject.HasChildren)
@@ -63,9 +63,9 @@
         {
             get
             {
-                if (_jsonObject.Value.GetType() == typeof(Guid))
+                if (_jsonObject.TypedValue.GetType() == typeof(Guid))
                 {
-                    return _jsonObject.RawValue.ToString();
+                    return _jsonObject.Value.ToString();
                 }
 
                 return _jsonObject.ValueString;
@@ -247,7 +247,7 @@
 
         private string GetValueTypeString(bool includeChildCount)
         {
-            object value = _jsonObject.Value;
+            object value = _jsonObject.TypedValue;
             if (value == null)
             {
                 return "null";

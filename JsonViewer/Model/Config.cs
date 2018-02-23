@@ -1,10 +1,10 @@
 ﻿namespace JsonViewer
 {
-    using System;
     using System.Collections;
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.IO;
+    using System.Linq;
     using System.Web.Script.Serialization;
     using System.Windows.Media;
     using Utilities;
@@ -159,13 +159,11 @@
 
         public Brush GetHightlightColor(JsonObject obj)
         {
-            IList<ConfigRule> rules = this.FindMatchingRule(obj);
-            foreach (ConfigRule rule in rules)
+            IEnumerable<ConfigRule> rules = this.FindMatchingRule(obj);
+            ConfigRule rule = rules.FirstOrDefault(x => x.ForegroundBrush != null);
+            if (rule != null)
             {
-                if (rule.ForegroundBrush != null)
-                {
-                    return rule.ForegroundBrush;
-                }
+                return rule.ForegroundBrush;
             }
 
             return this.GetBrush(ConfigValue.TreeViewForeground);
@@ -173,13 +171,11 @@
 
         internal double GetHighlightFontSize(JsonObject obj)
         {
-            IList<ConfigRule> rules = this.FindMatchingRule(obj);
-            foreach (ConfigRule rule in rules)
+            IEnumerable<ConfigRule> rules = this.FindMatchingRule(obj);
+            ConfigRule rule = rules.FirstOrDefault(x => x.FontSize.HasValue);
+            if (rule != null)
             {
-                if (rule.FontSize.HasValue)
-                {
-                    return rule.FontSize.Value;
-                }
+                return rule.FontSize.Value;
             }
 
             if (_rawValues.ContainsKey("treeViewFontSize"))
@@ -190,18 +186,9 @@
             return 12.0;
         }
 
-        private IList<ConfigRule> FindMatchingRule(JsonObject obj)
+        private IEnumerable<ConfigRule> FindMatchingRule(JsonObject obj)
         {
-            List<ConfigRule> rules = new List<ConfigRule>();
-            foreach (ConfigRule rule in _rules)
-            {
-                if (rule.Matches(obj))
-                {
-                    rules.Add(rule);
-                }
-            }
-
-            return rules;
+            return _rules.Where(rule => rule.Matches(obj));
         }
     }
 }

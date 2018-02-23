@@ -47,12 +47,13 @@
 
         public bool Matches(JsonObject obj)
         {
-            if (MatchStringToList(obj.Key, _keys))
+            string key = obj.Key.ToLower();
+            if (MatchStringToList(key, _keys))
             {
                 return true;
             }
 
-            if (MatchPartialStringToList(obj.Key, _keyPartials))
+            if (MatchPartialStringToList(key, _keyPartials))
             {
                 return true;
             }
@@ -62,12 +63,13 @@
                 return false;
             }
 
-            if (MatchStringToList(obj.ValueString, _values))
+            string valueString = obj.ValueString.ToLower();
+            if (MatchStringToList(valueString, _values))
             {
                 return true;
             }
 
-            if (MatchPartialStringToList(obj.ValueString, _valuePartials))
+            if (MatchPartialStringToList(valueString, _valuePartials))
             {
                 return true;
             }
@@ -77,7 +79,7 @@
 
         private static bool MatchStringToList(string value, IList<string> values)
         {
-            value = value.ToLower();
+            Debug.Assert(value == value.ToLower());
             foreach (string v in values)
             {
                 if (value == v)
@@ -91,7 +93,7 @@
 
         private static bool MatchPartialStringToList(string value, IList<string> values)
         {
-            value = value.ToLower();
+            Debug.Assert(value == value.ToLower());
             foreach (string v in values)
             {
                 if (value.Contains(v))

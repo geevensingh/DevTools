@@ -12,6 +12,7 @@
         private TreeViewData _viewObject = null;
         private string _key;
         private object _value;
+        private string _valueString;
         private string _originalString;
         private object _typedValue;
         private DataType _dataType = DataType.Other;
@@ -27,9 +28,8 @@
         protected JsonObject(string key, object value)
         {
             _key = key;
-            _value = value;
             _originalString = value as string;
-            _typedValue = GetTypedValue(_value, out _dataType);
+            this.Value = value;
         }
 
         public enum DataType
@@ -43,9 +43,33 @@
 
         public string Key { get => _key; }
 
-        public object RawValue { get => _value; }
+        public object Value {
+            get => _value;
+            private set
+            {
+                _value = value;
 
-        public object Value { get => _typedValue; }
+                if (this.Children.Count > 0)
+                {
+                    System.Web.Script.Serialization.JavaScriptSerializer ser = new System.Web.Script.Serialization.JavaScriptSerializer();
+                    _valueString = ser.Serialize(_value);
+                }
+                else if (_value == null)
+                {
+                    _valueString = "null";
+                }
+                else
+                {
+                    _valueString = _value.ToString();
+                }
+
+                Debug.Assert(string.IsNullOrEmpty(_value as string) || !string.IsNullOrEmpty(_valueString));
+
+                _typedValue = GetTypedValue(_value, out _dataType);
+            }
+        }
+
+        public object TypedValue { get => _typedValue; }
 
         public JsonObject Parent { get => _parent; }
 
@@ -72,24 +96,7 @@
 
         public bool CanTreatAsText { get => _dataType == DataType.Json; }
 
-        public string ValueString
-        {
-            get
-            {
-                if (this.Children.Count > 0)
-                {
-                    System.Web.Script.Serialization.JavaScriptSerializer ser = new System.Web.Script.Serialization.JavaScriptSerializer();
-                    return ser.Serialize(_value);
-                }
-
-                if (_value == null)
-                {
-                    return "null";
-                }
-
-                return _value.ToString();
-            }
-        }
+        public string ValueString { get => _valueString; }
 
         public int TotalChildCount
         {
@@ -145,9 +152,9 @@
                 return false;
             }
 
-            Dictionary<string, object> dict = JsonObjectFactory.TryDeserialize(_value as string);
+            Dictionary<string, object> dict = JsonObjectFactory.TryDeserialize(this.Value as string);
             Debug.Assert(dict != null);
-            _value = dict;
+            this.Value = dict;
             _dataType = DataType.Json;
             JsonObjectFactory.Flatten(ref _children, dict, this);
             this.FireChildrenChanged();
@@ -167,11 +174,11 @@
             if (string.IsNullOrEmpty(_originalString))
             {
                 System.Web.Script.Serialization.JavaScriptSerializer ser = new System.Web.Script.Serialization.JavaScriptSerializer();
-                _value = ser.Serialize(_value);
+                this.Value = ser.Serialize(this.Value);
             }
             else
             {
-                _value = _originalString;
+                this.Value = _originalString;
             }
 
             _dataType = DataType.ParsableString;
