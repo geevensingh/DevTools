@@ -260,7 +260,7 @@
                     type = "array[" + (value as System.Collections.ArrayList).Count + "]";
                     break;
                 case JsonObject.DataType.Json:
-                    type = "json-object[" + (value as Dictionary<string, object>).Keys.Count + "]";
+                    type = "json-object{" + (value as Dictionary<string, object>).Keys.Count + "}";
                     break;
                 case JsonObject.DataType.ParsableString:
                     type = "parse-able-string";
