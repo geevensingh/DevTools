@@ -32,7 +32,7 @@
     },
     {
       "keyContains": [ "account" ],
-      "keyIs": [ "events" ],
+      "keyIs": [ "events", "expiration" ],
       "color": "green"
     },
     {
