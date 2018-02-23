@@ -188,7 +188,34 @@
                 AutoWordSelection="True"
                 HorizontalScrollBarVisibility="Auto"
                 TextChanged="Raw_TextBox_TextChanged"
-                VerticalScrollBarVisibility="Auto" />
+                VerticalScrollBarVisibility="Auto">
+                <TextBox.Style>
+                    <Style xmlns:sys="clr-namespace:System;assembly=mscorlib" TargetType="TextBox">
+                        <Style.Resources>
+                            <VisualBrush
+                                x:Key="CueBannerBrush"
+                                AlignmentX="Left"
+                                AlignmentY="Top"
+                                Stretch="None">
+                                <VisualBrush.Visual>
+                                    <Label Content="Enter JSON here" Foreground="DarkGray" />
+                                </VisualBrush.Visual>
+                            </VisualBrush>
+                        </Style.Resources>
+                        <Style.Triggers>
+                            <Trigger Property="Text" Value="{x:Static sys:String.Empty}">
+                                <Setter Property="Background" Value="{StaticResource CueBannerBrush}" />
+                            </Trigger>
+                            <Trigger Property="Text" Value="{x:Null}">
+                                <Setter Property="Background" Value="{StaticResource CueBannerBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter Property="Background" Value="White" />
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBox.Style>
+            </TextBox>
             <GridSplitter
                 Grid.Column="1"
                 Width="5"
