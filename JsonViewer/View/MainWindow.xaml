@@ -68,17 +68,23 @@
                             Visibility="{Binding Path=TreatAsTextCommand.IsVisible}" />
                     </ContextMenu>
                 </Grid.ContextMenu>
-                <TextBlock
-                    x:Name="KeyBlock"
-                    Grid.Column="0"
-                    Padding="0,0,5,0"
-                    FontSize="{Binding Path=FontSize}"
-                    FontWeight="Bold"
-                    Foreground="{Binding Path=TextColor}"
-                    Text="{Binding Path=KeyName}" />
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <TextBlock
+                        x:Name="KeyBlock"
+                        FontSize="{Binding Path=FontSize}"
+                        FontWeight="Bold"
+                        Foreground="{Binding Path=TextColor}"
+                        Text="{Binding Path=KeyName}" />
+                    <TextBlock
+                        FontSize="{Binding Path=FontSize}"
+                        FontWeight="Bold"
+                        Foreground="{Binding Path=TextColor}"
+                        Text=" : " />
+                </StackPanel>
                 <TextBlock
                     x:Name="OneLineValueBlock"
                     Grid.Column="1"
+                    Padding="5,0"
                     FontSize="{Binding Path=FontSize}"
                     Foreground="{Binding Path=TextColor}"
                     Text="{Binding Path=OneLineValue}"
