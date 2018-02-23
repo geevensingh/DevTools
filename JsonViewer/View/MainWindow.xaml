@@ -154,12 +154,12 @@
                     Command="{Binding ElementName=Toolbar, Path=ShowToolbarTextCommand}"
                     Header="Show toolbar _text"
                     IsCheckable="True"
-                    IsChecked="{Binding ElementName=Toolbar, Path=ShowToolbarTextCommand.IsEnabled, Mode=OneWay}" />
+                    IsChecked="{Binding ElementName=Toolbar, Path=ShowToolbarTextCommand.IsChecked, Mode=OneWay}" />
                 <MenuItem
                     Command="{Binding ElementName=Toolbar, Path=ShowToolbarIconCommand}"
                     Header="Show toolbar _icons"
                     IsCheckable="True"
-                    IsChecked="{Binding ElementName=Toolbar, Path=ShowToolbarIconCommand.IsEnabled, Mode=OneWay}" />
+                    IsChecked="{Binding ElementName=Toolbar, Path=ShowToolbarIconCommand.IsChecked, Mode=OneWay}" />
             </MenuItem>
         </Menu>
         <local:MainWindowToolbar
