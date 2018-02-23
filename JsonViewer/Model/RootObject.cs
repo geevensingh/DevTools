@@ -36,11 +36,11 @@
             _viewChildren.Insert(index, child.ResetView());
         }
 
-        protected override void AddChild(JsonObject child)
+        public override void AddChildren(IList<JsonObject> children)
         {
             Debug.Assert(_viewChildren == null);
             _viewChildren = null;
-            base.AddChild(child);
+            base.AddChildren(children);
         }
     }
 }

@@ -46,53 +46,63 @@
 
         public static void Flatten(ref List<JsonObject> items, Dictionary<string, object> dictionary, JsonObject parent)
         {
+            List<JsonObject> children = new List<JsonObject>();
             foreach (string key in dictionary.Keys)
             {
-                object jsonObject = dictionary[key];
+                object rawObject = dictionary[key];
 
-                JsonObject data = new JsonObject(key, jsonObject, parent);
+                JsonObject data = new JsonObject(key, rawObject, parent);
+                children.Add(data);
+
                 if (parent == null)
                 {
                     items.Add(data);
                 }
 
-                if (jsonObject != null)
+                if (rawObject != null)
                 {
-                    Type valueType = jsonObject.GetType();
+                    Type valueType = rawObject.GetType();
                     if (valueType == typeof(Dictionary<string, object>))
                     {
-                        Flatten(ref items, jsonObject as Dictionary<string, object>, data);
+                        Flatten(ref items, rawObject as Dictionary<string, object>, data);
                     }
                     else if (valueType == typeof(System.Collections.ArrayList))
                     {
-                        Flatten(ref items, jsonObject as System.Collections.ArrayList, data);
+                        Flatten(ref items, rawObject as System.Collections.ArrayList, data);
                     }
                 }
             }
+
+            parent.AddChildren(children);
         }
 
         public static void Flatten(ref List<JsonObject> items, System.Collections.ArrayList arrayList, JsonObject parent)
         {
+            List<JsonObject> children = new List<JsonObject>();
             for (int ii = 0; ii < arrayList.Count; ii++)
             {
-                object jsonObject = arrayList[ii];
+                object rawObject = arrayList[ii];
 
-                JsonObject data = new JsonObject("[" + ii + "]", jsonObject, parent);
+                JsonObject data = new JsonObject("[" + ii + "]", rawObject, parent);
+                children.Add(data);
+
                 if (parent == null)
                 {
                     items.Add(data);
                 }
 
-                Type valueType = jsonObject.GetType();
+                Type valueType = rawObject.GetType();
                 if (valueType == typeof(Dictionary<string, object>))
                 {
-                    Flatten(ref items, jsonObject as Dictionary<string, object>, data);
+                    Flatten(ref items, rawObject as Dictionary<string, object>, data);
                 }
                 else if (valueType == typeof(System.Collections.ArrayList))
                 {
-                    Flatten(ref items, jsonObject as System.Collections.ArrayList, data);
+                    Flatten(ref items, rawObject as System.Collections.ArrayList, data);
                 }
             }
+
+            parent.AddChildren(children);
         }
 
         public void Dispose()

@@ -23,7 +23,6 @@
             : this(key, value)
         {
             _parent = parent;
-            _parent.AddChild(this);
         }
 
         protected JsonObject(string key, object value)
@@ -135,6 +134,17 @@
             }
         }
 
+        public virtual void AddChildren(IList<JsonObject> children)
+        {
+            Debug.Assert(_children.Count == 0);
+            _children = new List<JsonObject>(children);
+            this.Value = this.Value;
+            if (_children.Count > 1)
+            {
+                this.FireChildrenChanged();
+            }
+        }
+
         public bool TreatAsJson()
         {
             if (!this.CanTreatAsJson)
@@ -173,7 +183,7 @@
 
             _dataType = DataType.ParsableString;
             _children.Clear();
-            this.FireChildrenChanged();
+            this.AddChildren(_children);
 
             _parent.UpdateChild(this);
 
@@ -187,13 +197,6 @@
             TreeViewDataFactory.CreateNode(tree, this);
             Debug.Assert(_viewObject != null);
             return _viewObject;
-        }
-
-        protected virtual void AddChild(JsonObject child)
-        {
-            _allChildren = null;
-            Debug.Assert(!this.Children.Contains(child));
-            this.Children.Add(child);
         }
 
         protected virtual void UpdateChild(JsonObject child)
