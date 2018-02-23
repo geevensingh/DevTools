@@ -15,6 +15,13 @@
 
         public override RootObject Root { get => this; }
 
+        public override void AddChildren(IList<JsonObject> children)
+        {
+            Debug.Assert(_viewChildren == null);
+            _viewChildren = null;
+            base.AddChildren(children);
+        }
+
         internal void SetTreeItemsSource(CustomTreeView tree)
         {
             if (_viewChildren == null)
@@ -34,13 +41,6 @@
             Debug.Assert(this.Children[index].ViewObject == _viewChildren[index]);
             _viewChildren.RemoveAt(index);
             _viewChildren.Insert(index, child.ResetView());
-        }
-
-        public override void AddChildren(IList<JsonObject> children)
-        {
-            Debug.Assert(_viewChildren == null);
-            _viewChildren = null;
-            base.AddChildren(children);
         }
     }
 }
