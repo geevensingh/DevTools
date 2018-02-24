@@ -8,7 +8,7 @@
     xmlns:view="clr-namespace:JsonViewer.View"
     x:Name="mainWindow"
     Title="Json Viewer"
-    Width="1000"
+    Width="1200"
     Height="750"
     DataContext="{Binding RelativeSource={RelativeSource Self}}"
     Loaded="OnLoaded"
