@@ -3,6 +3,7 @@
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
     using System.Diagnostics;
+    using System.Threading.Tasks;
 
     internal class RootObject : JsonObject
     {
@@ -13,7 +14,19 @@
         {
         }
 
-        public override RootObject Root { get => this; }
+        public static async Task<RootObject> Create(string jsonString)
+        {
+            return await Task.Run(
+                () =>
+                {
+                    System.Web.Script.Serialization.JavaScriptSerializer ser = new System.Web.Script.Serialization.JavaScriptSerializer();
+                    Dictionary<string, object> jsonObj = JsonObjectFactory.TryDeserialize(jsonString);
+                    RootObject root = new RootObject();
+                    var jsonObjects = new List<JsonObject>();
+                    JsonObjectFactory.Flatten(ref jsonObjects, jsonObj, root);
+                    return root;
+                });
+        }
 
         public override void AddChildren(IList<JsonObject> children)
         {

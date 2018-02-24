@@ -110,31 +110,5 @@
             _refreshCancellationTokenSource.Cancel();
             _refreshCancellationTokenSource.Dispose();
         }
-
-        public async Task<RootObject> Parse(string jsonString)
-        {
-            _refreshCancellationTokenSource.Cancel();
-            _refreshCancellationTokenSource = new CancellationTokenSource();
-            CancellationToken token = _refreshCancellationTokenSource.Token;
-            return await Task.Run(
-                () =>
-                {
-                    System.Web.Script.Serialization.JavaScriptSerializer ser = new System.Web.Script.Serialization.JavaScriptSerializer();
-                    if (token.IsCancellationRequested)
-                    {
-                        return null;
-                    }
-                    Dictionary<string, object> jsonObj = TryDeserialize(jsonString);
-                    if (token.IsCancellationRequested || jsonObj == null)
-                    {
-                        return null;
-                    }
-
-                    RootObject root = new RootObject();
-                    var jsonObjects = new List<JsonObject>();
-                    Flatten(ref jsonObjects, jsonObj, root);
-                    return root;
-                }, token);
-        }
     }
 }

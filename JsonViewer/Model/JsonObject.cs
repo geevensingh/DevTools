@@ -94,7 +94,12 @@
         {
             get
             {
-                Debug.Assert(_parent != null);
+                if (_parent == null)
+                {
+                    Debug.Assert(this as RootObject != null);
+                    return this as RootObject;
+                }
+
                 return _parent.Root;
             }
         }

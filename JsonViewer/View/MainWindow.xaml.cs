@@ -69,8 +69,7 @@
                 return false;
             }
 
-            JsonObjectFactory factory = new JsonObjectFactory();
-            RootObject rootObject = await factory.Parse(this.Raw_TextBox.Text);
+            RootObject rootObject = await RootObject.Create(this.Raw_TextBox.Text);
             if (rootObject == null)
             {
                 this.SetErrorMessage("Unable to parse given string");
