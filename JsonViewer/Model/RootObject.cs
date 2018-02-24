@@ -21,6 +21,11 @@
                 {
                     System.Web.Script.Serialization.JavaScriptSerializer ser = new System.Web.Script.Serialization.JavaScriptSerializer();
                     Dictionary<string, object> jsonObj = JsonObjectFactory.TryDeserialize(jsonString);
+                    if (jsonObj == null)
+                    {
+                        return null;
+                    }
+
                     RootObject root = new RootObject();
                     var jsonObjects = new List<JsonObject>();
                     JsonObjectFactory.Flatten(ref jsonObjects, jsonObj, root);
