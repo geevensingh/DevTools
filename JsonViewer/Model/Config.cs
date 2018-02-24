@@ -35,14 +35,28 @@
             _this = this;
 
             this.IsDefault = true;
-            JavaScriptSerializer ser = new JavaScriptSerializer();
-            try
+
+            string filePath = string.Empty;
+            if (File.Exists(Properties.Settings.Default.ConfigPath))
             {
-                _rawValues = ser.Deserialize<Dictionary<string, object>>(File.ReadAllText(Properties.Settings.Default.ConfigPath));
-                this.IsDefault = false;
+                filePath = Properties.Settings.Default.ConfigPath;
             }
-            catch
+            else if (File.Exists("Config.json"))
             {
+                filePath = "Config.json";
+            }
+
+            JavaScriptSerializer ser = new JavaScriptSerializer();
+            if (!string.IsNullOrEmpty(filePath))
+            {
+                try
+                {
+                    _rawValues = ser.Deserialize<Dictionary<string, object>>(File.ReadAllText(filePath));
+                    this.IsDefault = false;
+                }
+                catch
+                {
+                }
             }
 
             if (_rawValues == null)
