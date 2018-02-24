@@ -112,6 +112,7 @@
             _findWindow.Closed += (sender, e) => this.HideWindow();
 
             _findWindow.Show();
+            _findWindow.Closed += (sender, e) => this.HideWindow();
             this.FirePropertyChanged("HasWindow");
         }
 
@@ -122,6 +123,7 @@
                 _findWindow.Close();
                 _findWindow = null;
                 this.FirePropertyChanged("HasWindow");
+                _parentWindow.Focus();
             }
         }
 
