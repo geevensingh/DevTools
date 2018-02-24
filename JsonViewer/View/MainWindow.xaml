@@ -150,6 +150,8 @@
             <MenuItem Header="_View">
                 <MenuItem Command="{Binding ElementName=Toolbar, Path=NewWindowCommand}" Header="_New Window" />
                 <Separator />
+                <MenuItem Command="ApplicationCommands.Find" Header="_Find Window" />
+                <Separator />
                 <MenuItem
                     Command="{Binding ElementName=Toolbar, Path=ShowToolbarTextCommand}"
                     Header="Show toolbar _text"
