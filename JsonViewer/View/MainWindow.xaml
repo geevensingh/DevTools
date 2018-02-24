@@ -185,7 +185,6 @@
                 <ColumnDefinition Width="auto" />
             </Grid.ColumnDefinitions>
             <TextBlock
-                x:Name="WarningBannerActionTextBlock"
                 Grid.Column="0"
                 Padding="5"
                 HorizontalAlignment="Left">
