@@ -85,7 +85,7 @@ namespace JsonViewer.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("S:\\Repos\\DevTools\\JsonViewer\\Config.json")]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
         public string ConfigPath {
             get {
                 return ((string)(this["ConfigPath"]));

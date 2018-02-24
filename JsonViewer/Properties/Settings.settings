@@ -18,7 +18,7 @@
       <Value Profile="(Default)">False</Value>
     </Setting>
     <Setting Name="ConfigPath" Type="System.String" Scope="User">
-      <Value Profile="(Default)">S:\Repos\DevTools\JsonViewer\Config.json</Value>
+      <Value Profile="(Default)" />
     </Setting>
     <Setting Name="DefaultConfigJson" Type="System.String" Scope="User">
       <Value Profile="(Default)">{
