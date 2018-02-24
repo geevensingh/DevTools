@@ -10,13 +10,43 @@
     Loaded="OnLoaded"
     mc:Ignorable="d">
     <UserControl.Resources>
-        <BitmapImage x:Key="ExpandAllImage" UriSource="..\Resources\expand_all.png" />
-        <BitmapImage x:Key="CollapseAllImage" UriSource="..\Resources\collapse_all.png" />
-        <BitmapImage x:Key="OpenFileImage" UriSource="..\Resources\open_file.png" />
         <BitmapImage x:Key="OrgImage" UriSource="..\Resources\org.png" />
-        <BitmapImage x:Key="WindowImage" UriSource="..\Resources\window.png" />
         <BitmapImage x:Key="RightImage" UriSource="..\Resources\right.png" />
         <BitmapImage x:Key="LeftImage" UriSource="..\Resources\left.png" />
+
+        <Style x:Key="MyButtonStyle" TargetType="Button">
+            <Setter Property="OverridesDefaultStyle" Value="True" />
+            <Setter Property="Opacity" Value="1" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                            <Image
+                                Height="25"
+                                Opacity="{TemplateBinding Opacity}"
+                                Source="{DynamicResource Image}"
+                                Visibility="{Binding ElementName=Root, Path=ToolbarIconVisibility}" />
+                            <TextBlock
+                                Margin="5,0"
+                                VerticalAlignment="Center"
+                                Text="{Binding Path=Text}"
+                                Visibility="{Binding ElementName=Root, Path=ToolbarTextVisibility}" />
+                            <ContentPresenter
+                                x:Name="MyContentPresenter"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Content="{TemplateBinding Content}" />
+                        </StackPanel>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.25" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
     </UserControl.Resources>
     <ToolBarTray Background="White" DataContext="{Binding ElementName=Root}">
         <ToolBar Band="1" BandIndex="1">
@@ -24,53 +54,32 @@
                 Command="{Binding ElementName=Root, Path=OpenJsonFileCommand}"
                 DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}"
                 IsEnabled="{Binding Path=IsEnabled}"
+                Style="{StaticResource MyButtonStyle}"
                 ToolTip="{Binding Path=Text}">
-                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                    <Image
-                        Height="25"
-                        Source="{StaticResource OpenFileImage}"
-                        Visibility="{Binding ElementName=Root, Path=ToolbarIconVisibility}" />
-                    <TextBlock
-                        Margin="5,0"
-                        VerticalAlignment="Center"
-                        Text="{Binding Path=Text}"
-                        Visibility="{Binding ElementName=Root, Path=ToolbarTextVisibility}" />
-                </StackPanel>
+                <Button.Resources>
+                    <BitmapImage x:Key="Image" UriSource="..\Resources\open_file.png" />
+                </Button.Resources>
             </Button>
             <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
             <Button
                 Command="{Binding ElementName=Root, Path=ExpandAllCommand}"
                 DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}"
                 IsEnabled="{Binding Path=IsEnabled}"
+                Style="{StaticResource MyButtonStyle}"
                 ToolTip="{Binding Path=Text}">
-                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                    <Image
-                        Height="25"
-                        Source="{StaticResource ExpandAllImage}"
-                        Visibility="{Binding ElementName=Root, Path=ToolbarIconVisibility, Mode=OneWay}" />
-                    <TextBlock
-                        Margin="5,0"
-                        VerticalAlignment="Center"
-                        Text="{Binding Path=Text}"
-                        Visibility="{Binding ElementName=Root, Path=ToolbarTextVisibility}" />
-                </StackPanel>
+                <Button.Resources>
+                    <BitmapImage x:Key="Image" UriSource="..\Resources\expand_all.png" />
+                </Button.Resources>
             </Button>
             <Button
                 Command="{Binding ElementName=Root, Path=CollapseAllCommand}"
                 DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}"
                 IsEnabled="{Binding Path=IsEnabled}"
+                Style="{StaticResource MyButtonStyle}"
                 ToolTip="{Binding Path=Text}">
-                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                    <Image
-                        Height="25"
-                        Source="{StaticResource CollapseAllImage}"
-                        Visibility="{Binding ElementName=Root, Path=ToolbarIconVisibility}" />
-                    <TextBlock
-                        Margin="5,0"
-                        VerticalAlignment="Center"
-                        Text="{Binding Path=Text}"
-                        Visibility="{Binding ElementName=Root, Path=ToolbarTextVisibility}" />
-                </StackPanel>
+                <Button.Resources>
+                    <BitmapImage x:Key="Image" UriSource="..\Resources\collapse_all.png" />
+                </Button.Resources>
             </Button>
             <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
             <CheckBox
@@ -97,18 +106,22 @@
                 Command="{Binding ElementName=Root, Path=NewWindowCommand}"
                 DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}"
                 IsEnabled="{Binding Path=IsEnabled}"
+                Style="{StaticResource MyButtonStyle}"
                 ToolTip="{Binding Path=Text}">
-                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                    <Image
-                        Height="25"
-                        Source="{StaticResource WindowImage}"
-                        Visibility="{Binding ElementName=Root, Path=ToolbarIconVisibility}" />
-                    <TextBlock
-                        Margin="5,0"
-                        VerticalAlignment="Center"
-                        Text="{Binding Path=Text}"
-                        Visibility="{Binding ElementName=Root, Path=ToolbarTextVisibility}" />
-                </StackPanel>
+                <Button.Resources>
+                    <BitmapImage x:Key="Image" UriSource="..\Resources\window.png" />
+                </Button.Resources>
+            </Button>
+            <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
+            <Button
+                Command="{Binding ElementName=Root, Path=PasteCommand}"
+                DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}"
+                IsEnabled="{Binding Path=IsEnabled}"
+                Style="{StaticResource MyButtonStyle}"
+                ToolTip="{Binding Path=Text}">
+                <Button.Resources>
+                    <BitmapImage x:Key="Image" UriSource="..\Resources\clipboard.png" />
+                </Button.Resources>
             </Button>
             <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
             <TextBlock

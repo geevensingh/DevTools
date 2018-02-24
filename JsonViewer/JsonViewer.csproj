@@ -113,6 +113,7 @@
     <Compile Include="Commands\PerItem\CopyKeyCommand.cs" />
     <Compile Include="Commands\PerWindow\ExpandAllCommand.cs" />
     <Compile Include="Commands\PerWindow\FindPreviousCommand.cs" />
+    <Compile Include="Commands\PerWindow\PasteCommand.cs" />
     <Compile Include="Commands\PerWindow\HideFindCommand.cs" />
     <Compile Include="Commands\PerWindow\FindNextCommand.cs" />
     <Compile Include="Commands\ShowToolbarTextCommand.cs" />
@@ -122,6 +123,7 @@
     <Compile Include="Commands\PerWindow\OpenJsonFileCommand.cs" />
     <Compile Include="Commands\PerWindow\PickConfigCommand.cs" />
     <Compile Include="Commands\PerWindow\ReloadCommand.cs" />
+    <Compile Include="Model\ClipboardManager.cs" />
     <Compile Include="Model\ConfigRule.cs" />
     <Compile Include="View\FindMatchNavigator.cs" />
     <Compile Include="View\MainWindowToolbar.xaml.cs">
@@ -143,6 +145,7 @@
     <Compile Include="View\StretchingTreeViewItem.cs" />
     <Compile Include="View\TreeViewData.cs" />
     <Compile Include="View\TreeViewDataFactory.cs" />
+    <Compile Include="View\NativeMethods.cs" />
     <Compile Include="View\WindowPlacementSerializer.cs" />
     <Page Include="View\MainWindowToolbar.xaml">
       <SubType>Designer</SubType>
@@ -233,6 +236,7 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
+    <Resource Include="Resources\clipboard.png" />
     <Content Include="Resources\json_light_64.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

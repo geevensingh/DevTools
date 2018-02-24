@@ -28,6 +28,7 @@
         private ShowToolbarIconCommand _showToolbarIconCommand = null;
         private FindNextCommand _findNextCommand = null;
         private FindPreviousCommand _findPreviousCommand = null;
+        private PasteCommand _pasteCommand = null;
 
         public MainWindowToolbar()
         {
@@ -61,6 +62,8 @@
         public FindNextCommand FindNextCommand { get => _findNextCommand; }
 
         public FindPreviousCommand FindPreviousCommand { get => _findPreviousCommand; }
+
+        public PasteCommand PasteCommand { get => _pasteCommand; }
 
         public bool ShowToolbarText { get => Properties.Settings.Default.MainWindowToolbarTextVisible; }
 
@@ -102,6 +105,7 @@
             NotifyPropertyChanged.SetValue(ref _showToolbarIconCommand, new ShowToolbarIconCommand(), "ShowToolbarIconCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _findNextCommand, new FindNextCommand(_mainWindow), "FindNextCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _findPreviousCommand, new FindPreviousCommand(_mainWindow), "FindPreviousCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _pasteCommand, new PasteCommand(_mainWindow), "PasteCommand", this, this.PropertyChanged);
 
             NotifyPropertyChanged.SetValue(ref _findMatchNavigator, new FindMatchNavigator(_mainWindow), "FindMatchNavigator", this, this.PropertyChanged);
 

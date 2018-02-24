@@ -1,10 +1,5 @@
 ﻿namespace JsonViewer
 {
-#pragma warning disable SA1129 // Do not use default value type constructor
-#pragma warning disable SA1201 // Elements must appear in the correct order
-#pragma warning disable SA1307 // Accessible fields must begin with upper-case letter
-#pragma warning disable SA1310 // Field names must not contain underscore
-
     using System;
     using System.IO;
     using System.Runtime.InteropServices;
@@ -13,70 +8,12 @@
     using System.Windows.Interop;
     using System.Xml;
     using System.Xml.Serialization;
+    using static JsonViewer.NativeMethods;
 
     public static class WindowPlacementSerializer
     {
-        private const int SW_SHOWNORMAL = 1;
-        private const int SW_SHOWMINIMIZED = 2;
-
-        // RECT structure required by WINDOWPLACEMENT structure
-        [Serializable]
-        [StructLayout(LayoutKind.Sequential)]
-        public struct RECT
-        {
-            public int Left;
-            public int Top;
-            public int Right;
-            public int Bottom;
-
-            public RECT(int left, int top, int right, int bottom)
-            {
-                this.Left = left;
-                this.Top = top;
-                this.Right = right;
-                this.Bottom = bottom;
-            }
-        }
-
-        // POINT structure required by WINDOWPLACEMENT structure
-        [Serializable]
-        [StructLayout(LayoutKind.Sequential)]
-        public struct POINT
-        {
-            public int X;
-            public int Y;
-
-            public POINT(int x, int y)
-            {
-                this.X = x;
-                this.Y = y;
-            }
-        }
-
-        // WINDOWPLACEMENT stores the position, size, and state of a window
-        [Serializable]
-        [StructLayout(LayoutKind.Sequential)]
-        public struct WINDOWPLACEMENT
-        {
-            public int length;
-            public int flags;
-            public int showCmd;
-            public POINT minPosition;
-            public POINT maxPosition;
-            public RECT normalPosition;
-        }
-
         private static Encoding encoding = new UTF8Encoding();
         private static XmlSerializer serializer = new XmlSerializer(typeof(WINDOWPLACEMENT));
-
-        private static class NativeMethods
-        {
-            [DllImport("user32.dll")]
-            public static extern bool SetWindowPlacement(IntPtr hWnd, [In] ref WINDOWPLACEMENT lpwndpl);
-
-            [DllImport("user32.dll")]
-            public static extern bool GetWindowPlacement(IntPtr hWnd, out WINDOWPLACEMENT lpwndpl);
-        }
 
         public static void SetPlacement(Window window, string placementXml, Point? offset = null)
         {
@@ -118,8 +55,7 @@
 
         public static string GetPlacement(Window window)
         {
-            WINDOWPLACEMENT placement = new WINDOWPLACEMENT();
-            NativeMethods.GetWindowPlacement(new WindowInteropHelper(window).Handle, out placement);
+            NativeMethods.GetWindowPlacement(new WindowInteropHelper(window).Handle, out WINDOWPLACEMENT placement);
 
             MemoryStream memoryStream = null;
             try
