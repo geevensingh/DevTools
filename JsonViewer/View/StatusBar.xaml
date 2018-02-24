@@ -21,15 +21,6 @@
         </StatusBarItem>
         <StatusBarItem>
             <StackPanel Orientation="Horizontal">
-                <TextBlock Margin="5,0" VerticalAlignment="Center">Total items:</TextBlock>
-                <TextBlock
-                    Margin="5,0"
-                    VerticalAlignment="Center"
-                    Text="{Binding Path=TotalItems}" />
-            </StackPanel>
-        </StatusBarItem>
-        <StatusBarItem>
-            <StackPanel Orientation="Horizontal">
                 <TextBlock Margin="5,0" VerticalAlignment="Center">Current path:</TextBlock>
                 <TextBlock VerticalAlignment="Center" Text="{Binding Path=CurrentPath}" />
             </StackPanel>

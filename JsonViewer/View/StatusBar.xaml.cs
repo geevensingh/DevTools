@@ -37,13 +37,14 @@
         {
             get
             {
+                string currentIndexString = "--";
                 int? currentIndex = _mainWindow?.Tree?.SelectedIndex;
                 if (currentIndex.HasValue)
                 {
-                    return (currentIndex.Value + 1).ToString();
+                    currentIndexString = (currentIndex.Value + 1).ToString();
                 }
 
-                return "--";
+                return currentIndexString + " / " + (_mainWindow?.RootObject?.TotalChildCount.ToString() ?? "--");
             }
         }
 
@@ -52,14 +53,6 @@
             get
             {
                 return (_mainWindow?.Tree?.SelectedItem as TreeViewData)?.JsonObject.ParentPath;
-            }
-        }
-
-        public string TotalItems
-        {
-            get
-            {
-                return _mainWindow?.RootObject?.TotalChildCount.ToString();
             }
         }
 
@@ -126,7 +119,7 @@
                 _rootObject.PropertyChanged += OnRootObjectPropertyChanged;
             }
 
-            NotifyPropertyChanged.FirePropertyChanged("TotalItems", this, this.PropertyChanged);
+            NotifyPropertyChanged.FirePropertyChanged("CurrentIndex", this, this.PropertyChanged);
         }
 
         private void OnMainWindowPropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -144,7 +137,7 @@
             switch (e.PropertyName)
             {
                 case "TotalChildCount":
-                    NotifyPropertyChanged.FirePropertyChanged("TotalItems", this, this.PropertyChanged);
+                    NotifyPropertyChanged.FirePropertyChanged("CurrentIndex", this, this.PropertyChanged);
                     break;
             }
         }
