@@ -20,8 +20,36 @@
     <Setting Name="ConfigPath" Type="System.String" Scope="User">
       <Value Profile="(Default)">S:\Repos\DevTools\JsonViewer\Config.json</Value>
     </Setting>
-    <Setting Name="ConfigJson" Type="System.String" Scope="User">
-      <Value Profile="(Default)">{ "treeViewForeground": "darkgray", "treeViewHighlightBrushKey": "Yellow", "treeViewHighlightTextBrushKey": "Black", "treeViewInactiveSelectionHighlightBrushKey": "LightYellow", "treeViewInactiveSelectionHighlightTextBrushKey": "Black", "treeViewFontSize": 12, "treeViewSearchResultForeground": "blue", "treeViewSearchResultBackground": "lightgreen", "treeViewHighlights": [ ] } </Value>
+    <Setting Name="DefaultConfigJson" Type="System.String" Scope="User">
+      <Value Profile="(Default)">{
+  "treeViewForeground": "DarkGray",
+  "treeViewHighlightBrushKey": "LightYellow",
+  "treeViewHighlightTextBrushKey": "Black",
+  "treeViewInactiveSelectionHighlightBrushKey": "LightYellow",
+  "treeViewInactiveSelectionHighlightTextBrushKey": "Black",
+  "treeViewFontSize": 12,
+  "treeViewSearchResultForeground": "blue",
+  "treeViewSearchResultBackground": "LightGreen",
+  "treeViewHighlights": [
+    {
+      "valueContains": [ "failure", "failed", "error" ],
+      "color": "red",
+      "fontSize": 16,
+      "appliesToParents":  true
+    },
+    {
+      "valueContains": [ "success", "succeeded", "passed" ],
+      "color": "green",
+      "fontSize": 16,
+      "appliesToParents": true
+    },
+    {
+      "valueContains": [ "pending", "warning" ],
+      "color": "DarkOrange",
+      "appliesToParents": true
+    }
+  ]
+}</Value>
     </Setting>
     <Setting Name="HighlightSelectedParents" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>

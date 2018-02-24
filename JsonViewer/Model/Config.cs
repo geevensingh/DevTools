@@ -45,7 +45,7 @@
 
             if (_rawValues == null)
             {
-                _rawValues = ser.Deserialize<Dictionary<string, object>>(Properties.Settings.Default.ConfigJson);
+                _rawValues = ser.Deserialize<Dictionary<string, object>>(Properties.Settings.Default.DefaultConfigJson);
             }
 
             if (_rawValues.ContainsKey("treeViewFontSize"))

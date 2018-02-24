@@ -12,7 +12,7 @@ namespace JsonViewer.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "15.3.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "15.5.0.0")]
     internal sealed partial class Settings : global::System.Configuration.ApplicationSettingsBase {
         
         private static Settings defaultInstance = ((Settings)(global::System.Configuration.ApplicationSettingsBase.Synchronized(new Settings())));
@@ -97,13 +97,41 @@ namespace JsonViewer.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute(@"{ ""treeViewForeground"": ""darkgray"", ""treeViewHighlightBrushKey"": ""Yellow"", ""treeViewHighlightTextBrushKey"": ""Black"", ""treeViewInactiveSelectionHighlightBrushKey"": ""LightYellow"", ""treeViewInactiveSelectionHighlightTextBrushKey"": ""Black"", ""treeViewFontSize"": 12, ""treeViewSearchResultForeground"": ""blue"", ""treeViewSearchResultBackground"": ""lightgreen"", ""treeViewHighlights"": [ ] } ")]
-        public string ConfigJson {
+        [global::System.Configuration.DefaultSettingValueAttribute(@"{
+  ""treeViewForeground"": ""DarkGray"",
+  ""treeViewHighlightBrushKey"": ""LightYellow"",
+  ""treeViewHighlightTextBrushKey"": ""Black"",
+  ""treeViewInactiveSelectionHighlightBrushKey"": ""LightYellow"",
+  ""treeViewInactiveSelectionHighlightTextBrushKey"": ""Black"",
+  ""treeViewFontSize"": 12,
+  ""treeViewSearchResultForeground"": ""blue"",
+  ""treeViewSearchResultBackground"": ""LightGreen"",
+  ""treeViewHighlights"": [
+    {
+      ""valueContains"": [ ""failure"", ""failed"", ""error"" ],
+      ""color"": ""red"",
+      ""fontSize"": 16,
+      ""appliesToParents"":  true
+    },
+    {
+      ""valueContains"": [ ""success"", ""succeeded"", ""passed"" ],
+      ""color"": ""green"",
+      ""fontSize"": 16,
+      ""appliesToParents"": true
+    },
+    {
+      ""valueContains"": [ ""pending"", ""warning"" ],
+      ""color"": ""DarkOrange"",
+      ""appliesToParents"": true
+    }
+  ]
+}")]
+        public string DefaultConfigJson {
             get {
-                return ((string)(this["ConfigJson"]));
+                return ((string)(this["DefaultConfigJson"]));
             }
             set {
-                this["ConfigJson"] = value;
+                this["DefaultConfigJson"] = value;
             }
         }
         
