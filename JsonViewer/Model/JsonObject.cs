@@ -74,20 +74,19 @@
 
         public JsonObject Parent { get => _parent; }
 
-        public string ParentPath
+        public string Path
         {
             get
             {
-                if (_parent == null)
+                if (string.IsNullOrEmpty(_parent?.Path))
                 {
-                    return string.Empty;
+                    return this.Key;
                 }
 
                 List<string> list = new List<string>();
-                list.Add(_parent.ParentPath);
-                list.Add(_parent.Key);
-                list.RemoveAll(x => string.IsNullOrEmpty(x));
-                return string.Join(" : ", list.ToArray());
+                list.Add(_parent.Path);
+                list.Add(this.Key);
+                return string.Join("\\", list.ToArray());
             }
         }
 

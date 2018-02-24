@@ -52,7 +52,7 @@
         {
             get
             {
-                return (_mainWindow?.Tree?.SelectedItem as TreeViewData)?.JsonObject.ParentPath;
+                return (_mainWindow?.Tree?.SelectedItem as TreeViewData)?.JsonObject.Path;
             }
         }
 
