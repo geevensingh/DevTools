@@ -17,6 +17,8 @@
         private Finder _finder;
         private Point? _initialOffset = null;
         private RootObject _rootObject = null;
+        private WarningBannerActionHandler _warningBannerAction;
+        private WarningBannerActionHandler _warningBannerDismiss;
 
         public MainWindow()
         {
@@ -24,6 +26,8 @@
 
             InitializeComponent();
         }
+
+        private delegate void WarningBannerActionHandler();
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -44,6 +48,11 @@
 
         public async Task<bool> ReloadAsync()
         {
+            if (string.IsNullOrWhiteSpace(this.Raw_TextBox.Text))
+            {
+                return false;
+            }
+
             JsonObjectFactory factory = new JsonObjectFactory();
             RootObject rootObject = await factory.Parse(this.Raw_TextBox.Text);
             if (rootObject == null)
@@ -87,6 +96,10 @@
             {
                 this.SaveWindowPosition();
             }
+
+            Properties.Settings.Default.PropertyChanged += OnSettingsPropertyChanged;
+
+            this.UpdateWarnings();
         }
 
         protected override void OnClosing(CancelEventArgs e)
@@ -122,12 +135,12 @@
         {
             if (string.IsNullOrEmpty(message))
             {
-                this.Banner.Visibility = Visibility.Collapsed;
+                this.ErrorBanner.Visibility = Visibility.Collapsed;
             }
             else
             {
-                this.Banner.Text = message;
-                this.Banner.Visibility = Visibility.Visible;
+                this.ErrorBanner.Text = message;
+                this.ErrorBanner.Visibility = Visibility.Visible;
             }
         }
 
@@ -156,6 +169,80 @@
         private void CheckForUpdates(object sender, RoutedEventArgs e)
         {
             App.Current.CheckForUpdates();
+        }
+
+        private void OnSettingsPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            switch (e.PropertyName)
+            {
+                case "ConfigPath":
+                    this.SetWarningMessage(
+                        "Your default config file has changed.  Would you like to reload?",
+                        () =>
+                        {
+                            this.Toolbar.ReloadCommand.Execute(null);
+                            this.UpdateWarnings();
+                        },
+                        () =>
+                        {
+                            this.UpdateWarnings();
+                        });
+                    break;
+                case "MainWindowWarnOnDefaultConfig":
+                    this.UpdateWarnings();
+                    break;
+            }
+        }
+
+        private void UpdateWarnings()
+        {
+            this.ClearWarningMessage();
+
+            if (Config.This.IsDefault && Properties.Settings.Default.MainWindowWarnOnDefaultConfig)
+            {
+                this.SetWarningMessage(
+                    "Currently using the default configuration.  Do you want to pick a better configuration?",
+                    () =>
+                    {
+                        this.Toolbar.PickConfigCommand.Execute(null);
+                        this.UpdateWarnings();
+                    },
+                    () =>
+                    {
+                        Properties.Settings.Default.MainWindowWarnOnDefaultConfig = false;
+                        Properties.Settings.Default.Save();
+                    });
+            }
+        }
+
+        private void ClearWarningMessage()
+        {
+            this.WarningBanner.Visibility = Visibility.Collapsed;
+            this._warningBannerAction = null;
+            this._warningBannerDismiss = null;
+        }
+
+        private void SetWarningMessage(string message, WarningBannerActionHandler onAction, WarningBannerActionHandler onDismiss)
+        {
+            Debug.Assert(!string.IsNullOrEmpty(message));
+
+            this.WarningBanner.Visibility = Visibility.Visible;
+            this.WarningBannerActionLink.Inlines.Clear();
+            this.WarningBannerActionLink.Inlines.Add(new System.Windows.Documents.Run(message));
+            this._warningBannerAction = onAction;
+            this._warningBannerDismiss = onDismiss;
+        }
+
+        private void OnWarningBannerDismiss(object sender, RoutedEventArgs e)
+        {
+            Debug.Assert(this._warningBannerDismiss != null);
+            this._warningBannerDismiss?.Invoke();
+        }
+
+        private void OnWarningBannerAction(object sender, RoutedEventArgs e)
+        {
+            Debug.Assert(this._warningBannerAction != null);
+            this._warningBannerAction?.Invoke();
         }
     }
 }

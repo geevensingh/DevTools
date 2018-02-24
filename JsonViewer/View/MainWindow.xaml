@@ -167,11 +167,41 @@
             DataContext="{Binding ElementName=mainWindow}"
             DockPanel.Dock="Top" />
         <TextBlock
-            x:Name="Banner"
+            x:Name="ErrorBanner"
             Margin="5"
             Background="Pink"
             DockPanel.Dock="Top"
             Visibility="Collapsed" />
+        <Grid
+            x:Name="WarningBanner"
+            Margin="5"
+            Background="Yellow"
+            DockPanel.Dock="Top"
+            Visibility="Collapsed">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock
+                x:Name="WarningBannerActionTextBlock"
+                Grid.Column="0"
+                Padding="5"
+                HorizontalAlignment="Left">
+                <Hyperlink
+                    x:Name="WarningBannerActionLink"
+                    Click="OnWarningBannerAction"
+                    Foreground="Black"
+                    TextDecorations="None" />
+            </TextBlock>
+            <TextBlock Grid.Column="1" Padding="5">
+                <Hyperlink
+                    Click="OnWarningBannerDismiss"
+                    Foreground="Black"
+                    TextDecorations="None">
+                    <Run>x</Run>
+                </Hyperlink>
+            </TextBlock>
+        </Grid>
         <view:StatusBar DataContext="{Binding ElementName=mainWindow}" DockPanel.Dock="Bottom" />
         <Grid>
             <Grid.ColumnDefinitions>

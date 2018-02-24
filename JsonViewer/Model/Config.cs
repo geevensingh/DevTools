@@ -34,10 +34,12 @@
             Debug.Assert(_this == null);
             _this = this;
 
+            this.IsDefault = true;
             JavaScriptSerializer ser = new JavaScriptSerializer();
             try
             {
                 _rawValues = ser.Deserialize<Dictionary<string, object>>(File.ReadAllText(Properties.Settings.Default.ConfigPath));
+                this.IsDefault = false;
             }
             catch
             {
@@ -56,23 +58,26 @@
             _rules = ConfigRule.GenerateRules((ArrayList)_rawValues["treeViewHighlights"]);
         }
 
+        public bool IsDefault { get; private set; }
+
         internal static Config This
         {
             get
             {
                 if (_this == null)
                 {
-                    _this = new Config();
+                    Config.Reload();
                 }
 
+                Debug.Assert(_this != null);
                 return _this;
             }
         }
 
-        public static Config Reload()
+        public static void Reload()
         {
             _this = null;
-            return new Config();
+            _this = new Config();
         }
 
         public static bool SetPath(string fileName)

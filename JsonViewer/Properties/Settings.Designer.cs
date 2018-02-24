@@ -182,5 +182,17 @@ namespace JsonViewer.Properties {
                 this["MainWindowToolbarIconVisible"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool MainWindowWarnOnDefaultConfig {
+            get {
+                return ((bool)(this["MainWindowWarnOnDefaultConfig"]));
+            }
+            set {
+                this["MainWindowWarnOnDefaultConfig"] = value;
+            }
+        }
     }
 }
