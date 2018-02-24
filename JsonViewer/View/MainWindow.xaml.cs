@@ -2,12 +2,12 @@
 {
     using System;
     using System.ComponentModel;
-    using System.Deployment.Application;
     using System.Diagnostics;
     using System.Threading.Tasks;
     using System.Windows;
     using System.Windows.Controls;
     using System.Windows.Input;
+    using Utilities;
 
     /// <summary>
     /// Interaction logic for MainWindow.xaml
@@ -44,6 +44,22 @@
                 _initialOffset = new Point(20, 20)
             };
             newWindow.Show();
+        }
+
+        public void LoadConfig(string filePath)
+        {
+            Properties.Settings.Default.PropertyChanged -= OnSettingsPropertyChanged;
+            bool succeeded = Config.SetPath(filePath);
+            Properties.Settings.Default.PropertyChanged += OnSettingsPropertyChanged;
+
+            if (succeeded)
+            {
+                this.ReloadAsync().Forget();
+            }
+            else
+            {
+                MessageBox.Show(this, "Unable to load config: " + filePath, "Error!", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         public async Task<bool> ReloadAsync()
