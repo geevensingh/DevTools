@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Linq;
+    using JsonViewer.View;
 
     internal class JsonObject : NotifyPropertyChanged
     {

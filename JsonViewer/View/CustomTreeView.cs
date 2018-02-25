@@ -1,12 +1,13 @@
-﻿namespace JsonViewer
+﻿namespace JsonViewer.View
 {
     using System;
     using System.ComponentModel;
     using System.Diagnostics;
+    using System.Threading.Tasks;
     using System.Windows;
     using System.Windows.Controls;
     using System.Windows.Input;
-    using JsonViewer.Commands.PerWindow;
+    using Utilities;
 
     internal class CustomTreeView : TreeView, INotifyPropertyChanged
     {
@@ -30,42 +31,20 @@
 
         public void ExpandChildren(TreeViewData data)
         {
-            TreeViewItem item = GetItem(data);
-            item.IsExpanded = true;
-            item.UpdateLayout();
-            item.ItemContainerGenerator.GenerateBatches().Dispose();
-            Debug.Assert(item.ItemContainerGenerator.Status == System.Windows.Controls.Primitives.GeneratorStatus.ContainersGenerated);
-            foreach (TreeViewData child in data.Children)
-            {
-                if (child.HasChildren)
-                {
-                    this.Dispatcher.BeginInvoke(
-                        new Action(() =>
-                        {
-                            TreeViewItem asyncChildItem = (TreeViewItem)item.ItemContainerGenerator.ContainerFromItem(child);
-                            Debug.Assert(asyncChildItem != null);
-                            if (asyncChildItem != null)
-                            {
-                                asyncChildItem.IsExpanded = true;
-                                asyncChildItem.UpdateLayout();
-                            }
-                        }), System.Windows.Threading.DispatcherPriority.Background);
-                }
-            }
-        }
-
-        public void ExpandSubtree(TreeViewData data)
-        {
-            this.ExpandSubtree(GetItemContainerGenerator(data.Parent), data);
+            this.ExpandSubtree(data, 1).Forget();
         }
 
         public void ExpandAll()
         {
-            foreach (TreeViewData data in this.Items)
+            foreach (TreeViewData child in this.Items)
             {
-                Debug.Assert(data.Parent == null);
-                this.ExpandSubtree(this.ItemContainerGenerator, data);
+                this.ExpandSubtree(child, int.MaxValue).Forget();
             }
+        }
+
+        public void ExpandAll(TreeViewData data)
+        {
+            this.ExpandSubtree(data, int.MaxValue).Forget();
         }
 
         public void CollapseSubtree(TreeViewData data)
@@ -203,12 +182,6 @@
             return treeViewItem.ItemContainerGenerator;
         }
 
-        private void ExpandSubtree(ItemContainerGenerator parentContainerGenerator, TreeViewData data)
-        {
-            Debug.Assert(parentContainerGenerator.ContainerFromItem(data) != null);
-            this.ExpandSubtree(parentContainerGenerator.ContainerFromItem(data) as TreeViewItem);
-        }
-
         private void CollapseSubtree(ItemContainerGenerator parentContainerGenerator, TreeViewData data)
         {
             if (parentContainerGenerator.ContainerFromItem(data) is TreeViewItem tvi)
@@ -217,6 +190,49 @@
                 foreach (TreeViewData child in data.Children)
                 {
                     this.CollapseSubtree(tvi.ItemContainerGenerator, child);
+                }
+            }
+        }
+
+        private async Task ExpandSubtree(TreeViewData data, int depth)
+        {
+            using (new WaitCursor())
+            {
+                await this.Dispatcher.BeginInvoke(
+                    new Action(() =>
+                    {
+                        TreeViewItem item = GetItem(data);
+                        item.IsExpanded = true;
+                        item.UpdateLayout();
+                        item.ItemContainerGenerator.GenerateBatches().Dispose();
+                        Debug.Assert(item.ItemContainerGenerator.Status == System.Windows.Controls.Primitives.GeneratorStatus.ContainersGenerated);
+                    }), System.Windows.Threading.DispatcherPriority.Background).Task;
+
+                if (depth > 0)
+                {
+                    foreach (TreeViewData child in data.Children)
+                    {
+                        if (child.HasChildren)
+                        {
+                            await this.Dispatcher.BeginInvoke(
+                                new Action(async () =>
+                                {
+                                    TreeViewItem item = GetItem(data);
+                                    TreeViewItem asyncChildItem = (TreeViewItem)item.ItemContainerGenerator.ContainerFromItem(child);
+                                    Debug.Assert(asyncChildItem != null);
+                                    if (asyncChildItem != null)
+                                    {
+                                        asyncChildItem.IsExpanded = true;
+                                        asyncChildItem.UpdateLayout();
+                                    }
+
+                                    if (depth > 0)
+                                    {
+                                        await this.ExpandSubtree(child, depth - 1);
+                                    }
+                                }), System.Windows.Threading.DispatcherPriority.Background).Task;
+                        }
+                    }
                 }
             }
         }

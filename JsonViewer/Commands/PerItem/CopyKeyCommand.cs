@@ -1,7 +1,7 @@
 ﻿namespace JsonViewer.Commands.PerItem
 {
     using System.Windows;
-    using JsonViewer;
+    using JsonViewer.View;
 
     internal class CopyKeyCommand : BaseTreeViewDataCommand
     {

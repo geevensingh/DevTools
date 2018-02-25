@@ -1,4 +1,4 @@
-﻿namespace JsonViewer
+﻿namespace JsonViewer.View
 {
     using System.Collections.Generic;
     using System.Collections.ObjectModel;

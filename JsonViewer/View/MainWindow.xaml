@@ -253,14 +253,14 @@
                 HorizontalAlignment="Right"
                 VerticalAlignment="Stretch"
                 Background="Blue" />
-            <local:CustomTreeView
+            <view:CustomTreeView
                 x:Name="Tree"
                 Grid.Column="2"
                 HorizontalAlignment="Stretch"
                 HorizontalContentAlignment="Stretch"
                 ItemTemplate="{StaticResource myTaskTemplate}"
                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                <local:CustomTreeView.InputBindings>
+                <view:CustomTreeView.InputBindings>
                     <KeyBinding
                         Key="Left"
                         Modifiers="Ctrl"
@@ -277,8 +277,8 @@
                         Key="Right"
                         Modifiers="Alt"
                         Command="{Binding ElementName=Toolbar, Path=FindNextCommand}" />
-                </local:CustomTreeView.InputBindings>
-            </local:CustomTreeView>
+                </view:CustomTreeView.InputBindings>
+            </view:CustomTreeView>
         </Grid>
     </DockPanel>
 </Window>

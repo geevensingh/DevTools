@@ -4,7 +4,7 @@
     using System.Windows;
     using System.Windows.Interop;
 
-    class ClipboardManager
+    internal class ClipboardManager
     {
         private static readonly IntPtr WndProcSuccess = IntPtr.Zero;
 

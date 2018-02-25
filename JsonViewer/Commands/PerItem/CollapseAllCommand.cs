@@ -2,7 +2,7 @@
 {
     using System.ComponentModel;
     using System.Windows;
-    using JsonViewer;
+    using JsonViewer.View;
 
     internal class CollapseAllCommand : BaseTreeViewDataCommand
     {
