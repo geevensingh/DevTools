@@ -88,6 +88,8 @@
             }
         }
 
+        internal IList<ConfigRule> Rules { get => _rules; }
+
         public static void Reload()
         {
             _this = null;
@@ -178,8 +180,7 @@
 
         public Brush GetHightlightColor(JsonObject obj)
         {
-            IEnumerable<ConfigRule> rules = this.FindMatchingRule(obj);
-            ConfigRule rule = rules.FirstOrDefault(x => x.ForegroundBrush != null);
+            ConfigRule rule = obj.Rules.FirstOrDefault(x => x.ForegroundBrush != null);
             if (rule != null)
             {
                 return rule.ForegroundBrush;
@@ -190,8 +191,7 @@
 
         internal double GetHighlightFontSize(JsonObject obj)
         {
-            IEnumerable<ConfigRule> rules = this.FindMatchingRule(obj);
-            ConfigRule rule = rules.FirstOrDefault(x => x.FontSize.HasValue);
+            ConfigRule rule = obj.Rules.FirstOrDefault(x => x.FontSize.HasValue);
             if (rule != null)
             {
                 return rule.FontSize.Value;
@@ -203,11 +203,6 @@
             }
 
             return 12.0;
-        }
-
-        private IEnumerable<ConfigRule> FindMatchingRule(JsonObject obj)
-        {
-            return _rules.Where(rule => rule.Matches(obj));
         }
     }
 }

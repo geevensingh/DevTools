@@ -19,6 +19,7 @@
         private object _typedValue;
         private DataType _dataType = DataType.Other;
         private bool _isFindMatch = false;
+        private List<ConfigRule> _rules;
 
         public JsonObject(string key, object value, JsonObject parent)
             : this(key, value)
@@ -31,6 +32,8 @@
             _key = key;
             _originalString = value as string;
             this.Value = value;
+
+            _rules = new List<ConfigRule>(Config.This.Rules.Where(rule => rule.Matches(this)));
         }
 
         public enum DataType
@@ -155,6 +158,8 @@
                 _viewObject = value;
             }
         }
+
+        internal List<ConfigRule> Rules { get => _rules; }
 
         public virtual void AddChildren(IList<JsonObject> children)
         {
