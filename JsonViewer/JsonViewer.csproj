@@ -197,6 +197,7 @@
     <Content Include="Config.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <None Include="Examples Json\StressTest.json" />
     <None Include="Examples Json\LargeTest.json" />
     <None Include="Examples Json\Recursive.json" />
     <None Include="Examples Json\Semi-valid.json" />
