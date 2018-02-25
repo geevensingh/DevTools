@@ -196,42 +196,35 @@
 
         private async Task ExpandSubtree(TreeViewData data, int depth)
         {
+            if (!data.HasChildren)
+            {
+                return;
+            }
+
             using (new WaitCursor())
             {
+                TreeViewItem item = GetItem(data);
+                Debug.Assert(item != null, "Did you try to collapse the tree while expanding it?");
+                if (item == null)
+                {
+                    return;
+                }
+
                 await this.Dispatcher.BeginInvoke(
                     new Action(() =>
                     {
-                        TreeViewItem item = GetItem(data);
                         item.IsExpanded = true;
-                        item.UpdateLayout();
-                        item.ItemContainerGenerator.GenerateBatches().Dispose();
-                        Debug.Assert(item.ItemContainerGenerator.Status == System.Windows.Controls.Primitives.GeneratorStatus.ContainersGenerated);
+                        if (depth > 0)
+                        {
+                            item.UpdateLayout();
+                        }
                     }), System.Windows.Threading.DispatcherPriority.Background).Task;
 
                 if (depth > 0)
                 {
                     foreach (TreeViewData child in data.Children)
                     {
-                        if (child.HasChildren)
-                        {
-                            await this.Dispatcher.BeginInvoke(
-                                new Action(async () =>
-                                {
-                                    TreeViewItem item = GetItem(data);
-                                    TreeViewItem asyncChildItem = (TreeViewItem)item.ItemContainerGenerator.ContainerFromItem(child);
-                                    Debug.Assert(asyncChildItem != null);
-                                    if (asyncChildItem != null)
-                                    {
-                                        asyncChildItem.IsExpanded = true;
-                                        asyncChildItem.UpdateLayout();
-                                    }
-
-                                    if (depth > 0)
-                                    {
-                                        await this.ExpandSubtree(child, depth - 1);
-                                    }
-                                }), System.Windows.Threading.DispatcherPriority.Background).Task;
-                        }
+                        await this.ExpandSubtree(child, depth - 1);
                     }
                 }
             }
