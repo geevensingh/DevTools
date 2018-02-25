@@ -8,16 +8,25 @@
     {
         private static Stack<Cursor> _previousCursors = new Stack<Cursor>();
 
+        private bool _isNoop = false;
+
         public WaitCursor()
         {
-            _previousCursors.Push(Mouse.OverrideCursor);
+            _isNoop = _previousCursors.Count > 0 && _previousCursors.Peek() == Cursors.Wait;
+            if (!_isNoop)
+            {
+                _previousCursors.Push(Mouse.OverrideCursor);
 
-            Mouse.OverrideCursor = Cursors.Wait;
+                Mouse.OverrideCursor = Cursors.Wait;
+            }
         }
 
         public void Dispose()
         {
-            Mouse.OverrideCursor = _previousCursors.Pop();
+            if (!_isNoop)
+            {
+                Mouse.OverrideCursor = _previousCursors.Pop();
+            }
         }
     }
 }
