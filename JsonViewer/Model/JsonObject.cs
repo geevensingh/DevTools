@@ -53,8 +53,9 @@
             private set
             {
                 _value = value;
+                _typedValue = GetTypedValue(_value, out _dataType);
 
-                if (_children.Count > 0)
+                if (_dataType == DataType.Array || _dataType == DataType.Json)
                 {
                     System.Web.Script.Serialization.JavaScriptSerializer ser = new System.Web.Script.Serialization.JavaScriptSerializer();
                     _valueString = ser.Serialize(_value);
@@ -69,8 +70,6 @@
                 }
 
                 Debug.Assert(string.IsNullOrEmpty(_value as string) || !string.IsNullOrEmpty(_valueString));
-
-                _typedValue = GetTypedValue(_value, out _dataType);
             }
         }
 
