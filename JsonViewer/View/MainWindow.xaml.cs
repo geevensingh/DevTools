@@ -7,6 +7,7 @@
     using System.Windows;
     using System.Windows.Controls;
     using System.Windows.Input;
+    using JsonViewer.Model;
     using JsonViewer.View;
     using Utilities;
 
@@ -137,7 +138,7 @@
 
             if (string.IsNullOrEmpty(initialText) && Clipboard.ContainsText())
             {
-                string jsonString = Clipboard.GetText();
+                string jsonString = ClipboardManager.TryGetText();
                 if (JsonObjectFactory.TryDeserialize(jsonString) != null)
                 {
                     initialText = jsonString;

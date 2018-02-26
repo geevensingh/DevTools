@@ -29,6 +29,19 @@
 
         public event EventHandler ClipboardChanged;
 
+        public static string TryGetText()
+        {
+            try
+            {
+                return Clipboard.GetText();
+            }
+            catch
+            {
+            }
+
+            return string.Empty;
+        }
+
         private void OnClipboardChanged()
         {
             ClipboardChanged?.Invoke(this, EventArgs.Empty);
