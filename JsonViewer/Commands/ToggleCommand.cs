@@ -10,11 +10,6 @@
     {
         private bool _isChecked = false;
 
-        public ToggleCommand(string text)
-            : this(text, isChecked: false)
-        {
-        }
-
         public ToggleCommand(string text, bool isChecked)
             : base(text, true)
         {
