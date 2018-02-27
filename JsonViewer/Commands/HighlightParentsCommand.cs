@@ -2,15 +2,13 @@
 {
     using JsonViewer;
 
-    public class HighlightParentsCommand : BaseCommand
+    public class HighlightParentsCommand : ToggleCommand
     {
         public HighlightParentsCommand()
-            : base("Highlight Selected Item Parents", true)
+            : base("Highlight Selected Item Parents", Properties.Settings.Default.HighlightSelectedParents)
         {
             Properties.Settings.Default.PropertyChanged += OnSettingsPropertyChanged;
         }
-
-        public bool IsChecked { get => Properties.Settings.Default.HighlightSelectedParents; }
 
         public override void Execute(object parameter)
         {
@@ -23,7 +21,7 @@
             switch (e.PropertyName)
             {
                 case "HighlightSelectedParents":
-                    this.FirePropertyChanged("IsChecked");
+                    this.IsChecked = Properties.Settings.Default.HighlightSelectedParents;
                     break;
             }
         }

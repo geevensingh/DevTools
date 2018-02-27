@@ -1,14 +1,12 @@
 ﻿namespace JsonViewer.Commands
 {
-    public class ShowToolbarIconCommand : BaseCommand
+    public class ShowToolbarIconCommand : ToggleCommand
     {
         public ShowToolbarIconCommand()
-            : base("Show toolbar icons", true)
+            : base("Show toolbar icons", Properties.Settings.Default.MainWindowToolbarIconVisible)
         {
             Properties.Settings.Default.PropertyChanged += OnSettingsPropertyChanged;
         }
-
-        public bool IsChecked { get => Properties.Settings.Default.MainWindowToolbarIconVisible; }
 
         public override void Execute(object parameter)
         {
@@ -27,7 +25,7 @@
             switch (e.PropertyName)
             {
                 case "MainWindowToolbarIconVisible":
-                    this.FirePropertyChanged("IsChecked");
+                    this.IsChecked = Properties.Settings.Default.MainWindowToolbarIconVisible;
                     break;
             }
         }

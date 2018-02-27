@@ -123,6 +123,7 @@
     <Compile Include="Commands\PerWindow\OpenJsonFileCommand.cs" />
     <Compile Include="Commands\PerWindow\PickConfigCommand.cs" />
     <Compile Include="Commands\PerWindow\ReloadCommand.cs" />
+    <Compile Include="Commands\ToggleCommand.cs" />
     <Compile Include="Model\ClipboardManager.cs" />
     <Compile Include="Model\ConfigRule.cs" />
     <Compile Include="View\FindMatchNavigator.cs" />

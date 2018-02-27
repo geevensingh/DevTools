@@ -1,14 +1,12 @@
 ﻿namespace JsonViewer.Commands
 {
-    public class ShowToolbarTextCommand : BaseCommand
+    public class ShowToolbarTextCommand : ToggleCommand
     {
         public ShowToolbarTextCommand()
-            : base("Show toolbar text", true)
+            : base("Show toolbar text", Properties.Settings.Default.MainWindowToolbarTextVisible)
         {
             Properties.Settings.Default.PropertyChanged += OnSettingsPropertyChanged;
         }
-
-        public bool IsChecked { get => Properties.Settings.Default.MainWindowToolbarTextVisible; }
 
         public override void Execute(object parameter)
         {
@@ -27,7 +25,7 @@
             switch (e.PropertyName)
             {
                 case "MainWindowToolbarTextVisible":
-                    this.FirePropertyChanged("IsChecked");
+                    this.IsChecked = Properties.Settings.Default.MainWindowToolbarTextVisible;
                     break;
             }
         }
