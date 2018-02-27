@@ -7,6 +7,7 @@
     using System.Windows;
     using System.Windows.Controls;
     using System.Windows.Input;
+    using JsonViewer.Commands.PerWindow;
     using JsonViewer.Model;
     using JsonViewer.View;
     using Utilities;
@@ -260,6 +261,15 @@
         {
             Debug.Assert(this._warningBannerAction != null);
             this._warningBannerAction?.Invoke();
+        }
+
+        private void CommandBinding_Open(object sender, ExecutedRoutedEventArgs e)
+        {
+            OpenJsonFileCommand command = this.Toolbar.OpenJsonFileCommand;
+            if (command.CanExecute(null))
+            {
+                command.Execute(null);
+            }
         }
     }
 }

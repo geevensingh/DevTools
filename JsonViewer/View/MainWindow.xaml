@@ -136,11 +136,12 @@
     </Window.InputBindings>
     <Window.CommandBindings>
         <CommandBinding Command="ApplicationCommands.Find" Executed="CommandBinding_Find" />
+        <CommandBinding Command="ApplicationCommands.Open" Executed="CommandBinding_Open" />
     </Window.CommandBindings>
     <DockPanel>
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="_File">
-                <MenuItem Command="{Binding ElementName=Toolbar, Path=OpenJsonFileCommand}" Header="_Open Json file..." />
+                <MenuItem Command="ApplicationCommands.Open" Header="_Open Json file..." />
                 <Separator />
                 <MenuItem Command="{Binding ElementName=Toolbar, Path=PickConfigCommand}" Header="Load _Config file..." />
                 <MenuItem Command="{Binding ElementName=Toolbar, Path=ReloadCommand}" Header="_Reload current config" />
