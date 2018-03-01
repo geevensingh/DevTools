@@ -32,7 +32,7 @@
     },
     {
       "keyIs": [ "events" ],
-      "expandChildren": 1
+      "expandChildren": 2
     },
     {
       "keyContains": [ "account" ],
