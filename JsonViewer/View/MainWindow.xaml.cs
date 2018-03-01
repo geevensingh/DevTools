@@ -122,6 +122,16 @@
             Properties.Settings.Default.PropertyChanged += OnSettingsPropertyChanged;
 
             this.UpdateWarnings();
+
+            for (int ii = 0; ii < 10; ii++)
+            {
+                MenuItem menuItem = new MenuItem();
+                ExpandToLevelCommand expandToLevelCommand = new ExpandToLevelCommand(this, ii);
+                menuItem.Command = expandToLevelCommand;
+                menuItem.Header = expandToLevelCommand.Text;
+                menuItem.IsCheckable = false;
+                this.ExpandToMenuItem.Items.Add(menuItem);
+            }
         }
 
         protected override void OnClosing(CancelEventArgs e)

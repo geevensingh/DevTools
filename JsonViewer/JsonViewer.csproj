@@ -113,6 +113,7 @@
     <Compile Include="Commands\PerItem\TreatAsJsonCommand.cs" />
     <Compile Include="Commands\PerItem\CopyValueCommand.cs" />
     <Compile Include="Commands\PerItem\CopyKeyCommand.cs" />
+    <Compile Include="Commands\PerWindow\ExpandToLevelCommand.cs" />
     <Compile Include="Commands\PerWindow\ExpandAllCommand.cs" />
     <Compile Include="Commands\PerWindow\FindPreviousCommand.cs" />
     <Compile Include="Commands\PerWindow\PasteCommand.cs" />

@@ -133,6 +133,7 @@
                     IsCheckable="True"
                     IsChecked="{Binding ElementName=Toolbar, Path=HighlightParentsToggleCommand.IsChecked, Mode=OneWay}" />
             </MenuItem>
+            <MenuItem x:Name="ExpandToMenuItem" Header="_Expand to" />
         </Menu>
         <local:MainWindowToolbar
             x:Name="Toolbar"

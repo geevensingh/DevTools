@@ -31,15 +31,20 @@
 
         public void ExpandAll()
         {
+            this.ExpandAll(int.MaxValue);
+        }
+
+        public void ExpandAll(int depth)
+        {
             foreach (TreeViewData child in this.Items)
             {
-                this.ExpandSubtree(child, int.MaxValue).Forget();
+                this.ExpandSubtree(child, depth).Forget();
             }
         }
 
         public async Task ExpandSubtree(TreeViewData data, int depth)
         {
-            if (!data.HasChildren)
+            if (!data.HasChildren || depth <= 0)
             {
                 return;
             }

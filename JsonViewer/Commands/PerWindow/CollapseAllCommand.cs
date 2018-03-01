@@ -14,15 +14,24 @@
 
         public static bool HasMultipleLevels(MainWindow mainWindow)
         {
-            RootObject root = (RootObject)mainWindow.RootObject;
+            return HasLevel(mainWindow.RootObject, 2);
+        }
+
+        internal static bool HasLevel(JsonObject root, int depth)
+        {
             if (root == null)
             {
                 return false;
             }
 
+            if (depth == 0)
+            {
+                return true;
+            }
+
             foreach (JsonObject child in root.Children)
             {
-                if (child.HasChildren)
+                if (HasLevel(child, depth - 1))
                 {
                     return true;
                 }
