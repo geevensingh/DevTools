@@ -128,7 +128,7 @@
                     IsChecked="{Binding ElementName=Toolbar, Path=ShowToolbarIconCommand.IsChecked, Mode=OneWay}" />
                 <Separator />
                 <MenuItem
-                    Command="{Binding ElementName=Toolbar, Path=HighlightParentsCommand}"
+                    Command="{Binding ElementName=Toolbar, Path=HighlightParentsCommand.RoutedUICommand}"
                     Header="Highlight parents"
                     IsCheckable="True"
                     IsChecked="{Binding ElementName=Toolbar, Path=HighlightParentsCommand.IsChecked, Mode=OneWay}" />
