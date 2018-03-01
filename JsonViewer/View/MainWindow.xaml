@@ -117,21 +117,21 @@
                 <MenuItem Command="ApplicationCommands.Find" Header="_Find window" />
                 <Separator />
                 <MenuItem
-                    Command="{Binding ElementName=Toolbar, Path=ShowToolbarTextCommand}"
+                    Command="{Binding ElementName=Toolbar, Path=ShowToolbarTextToggleCommand}"
                     Header="Show toolbar _text"
                     IsCheckable="True"
-                    IsChecked="{Binding ElementName=Toolbar, Path=ShowToolbarTextCommand.IsChecked, Mode=OneWay}" />
+                    IsChecked="{Binding ElementName=Toolbar, Path=ShowToolbarTextToggleCommand.IsChecked, Mode=OneWay}" />
                 <MenuItem
-                    Command="{Binding ElementName=Toolbar, Path=ShowToolbarIconCommand}"
+                    Command="{Binding ElementName=Toolbar, Path=ShowToolbarIconToggleCommand}"
                     Header="Show toolbar _icons"
                     IsCheckable="True"
-                    IsChecked="{Binding ElementName=Toolbar, Path=ShowToolbarIconCommand.IsChecked, Mode=OneWay}" />
+                    IsChecked="{Binding ElementName=Toolbar, Path=ShowToolbarIconToggleCommand.IsChecked, Mode=OneWay}" />
                 <Separator />
                 <MenuItem
-                    Command="{Binding ElementName=Toolbar, Path=HighlightParentsCommand.RoutedUICommand}"
+                    Command="{Binding ElementName=Toolbar, Path=HighlightParentsToggleCommand.RoutedUICommand}"
                     Header="Highlight parents"
                     IsCheckable="True"
-                    IsChecked="{Binding ElementName=Toolbar, Path=HighlightParentsCommand.IsChecked, Mode=OneWay}" />
+                    IsChecked="{Binding ElementName=Toolbar, Path=HighlightParentsToggleCommand.IsChecked, Mode=OneWay}" />
             </MenuItem>
         </Menu>
         <local:MainWindowToolbar

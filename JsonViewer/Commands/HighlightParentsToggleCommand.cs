@@ -2,9 +2,9 @@
 {
     using System.Windows.Input;
 
-    public class HighlightParentsCommand : ToggleCommand
+    public class HighlightParentsToggleCommand : ToggleCommand
     {
-        public HighlightParentsCommand()
+        public HighlightParentsToggleCommand()
             : base("Highlight parents", Properties.Settings.Default.HighlightSelectedParents)
         {
             Properties.Settings.Default.PropertyChanged += OnSettingsPropertyChanged;

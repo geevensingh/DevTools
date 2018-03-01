@@ -21,11 +21,11 @@
         private ReloadCommand _reloadCommand = null;
         private HideFindCommand _hideFindCommand = null;
         private OpenJsonFileCommand _openJsonFileCommand = null;
-        private HighlightParentsCommand _highlightParentsCommand = null;
+        private HighlightParentsToggleCommand _highlightParentsToggleCommand = null;
         private ExpandAllCommand _expandAllCommand = null;
         private CollapseAllCommand _collapseAllCommand = null;
-        private ShowToolbarTextCommand _showToolbarTextCommand = null;
-        private ShowToolbarIconCommand _showToolbarIconCommand = null;
+        private ShowToolbarTextToggleCommand _showToolbarTextToggleCommand = null;
+        private ShowToolbarIconToggleCommand _showToolbarIconToggleCommand = null;
         private FindNextCommand _findNextCommand = null;
         private FindPreviousCommand _findPreviousCommand = null;
         private PasteCommand _pasteCommand = null;
@@ -39,7 +39,7 @@
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        public BaseCommand[] AllCommands { get => new BaseCommand[] { _newWindowCommand, _pickConfigCommand, _reloadCommand, _hideFindCommand, _openJsonFileCommand, _highlightParentsCommand, _expandAllCommand, _collapseAllCommand, _showToolbarTextCommand, _showToolbarIconCommand, _findNextCommand, _findPreviousCommand, _pasteCommand }; }
+        public BaseCommand[] AllCommands { get => new BaseCommand[] { _newWindowCommand, _pickConfigCommand, _reloadCommand, _hideFindCommand, _openJsonFileCommand, _highlightParentsToggleCommand, _expandAllCommand, _collapseAllCommand, _showToolbarTextToggleCommand, _showToolbarIconToggleCommand, _findNextCommand, _findPreviousCommand, _pasteCommand }; }
 
         public NewWindowCommand NewWindowCommand { get => _newWindowCommand; }
 
@@ -51,15 +51,15 @@
 
         public OpenJsonFileCommand OpenJsonFileCommand { get => _openJsonFileCommand; }
 
-        public HighlightParentsCommand HighlightParentsCommand { get => _highlightParentsCommand; }
+        public HighlightParentsToggleCommand HighlightParentsToggleCommand { get => _highlightParentsToggleCommand; }
 
         public ExpandAllCommand ExpandAllCommand { get => _expandAllCommand; }
 
         public CollapseAllCommand CollapseAllCommand { get => _collapseAllCommand; }
 
-        public ShowToolbarTextCommand ShowToolbarTextCommand { get => _showToolbarTextCommand; }
+        public ShowToolbarTextToggleCommand ShowToolbarTextToggleCommand { get => _showToolbarTextToggleCommand; }
 
-        public ShowToolbarIconCommand ShowToolbarIconCommand { get => _showToolbarIconCommand; }
+        public ShowToolbarIconToggleCommand ShowToolbarIconToggleCommand { get => _showToolbarIconToggleCommand; }
 
         public FindNextCommand FindNextCommand { get => _findNextCommand; }
 
@@ -100,11 +100,11 @@
             NotifyPropertyChanged.SetValue(ref _reloadCommand, new ReloadCommand(_mainWindow), "ReloadCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _hideFindCommand, new HideFindCommand(_mainWindow), "HideFindCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _openJsonFileCommand, new OpenJsonFileCommand(_mainWindow), "OpenJsonFileCommand", this, this.PropertyChanged);
-            NotifyPropertyChanged.SetValue(ref _highlightParentsCommand, new HighlightParentsCommand(), "HighlightParentsCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _highlightParentsToggleCommand, new HighlightParentsToggleCommand(), "HighlightParentsToggleCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _expandAllCommand, new ExpandAllCommand(_mainWindow), "ExpandAllCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _collapseAllCommand, new CollapseAllCommand(_mainWindow), "CollapseAllCommand", this, this.PropertyChanged);
-            NotifyPropertyChanged.SetValue(ref _showToolbarTextCommand, new ShowToolbarTextCommand(), "ShowToolbarTextCommand", this, this.PropertyChanged);
-            NotifyPropertyChanged.SetValue(ref _showToolbarIconCommand, new ShowToolbarIconCommand(), "ShowToolbarIconCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _showToolbarTextToggleCommand, new ShowToolbarTextToggleCommand(), "ShowToolbarTextToggleCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _showToolbarIconToggleCommand, new ShowToolbarIconToggleCommand(), "ShowToolbarIconToggleCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _findNextCommand, new FindNextCommand(_mainWindow), "FindNextCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _findPreviousCommand, new FindPreviousCommand(_mainWindow), "FindPreviousCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _pasteCommand, new PasteCommand(_mainWindow), "PasteCommand", this, this.PropertyChanged);

@@ -84,7 +84,7 @@
             <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
             <CheckBox
                 x:Name="HighlightParentsButton"
-                Command="{Binding ElementName=Root, Path=HighlightParentsCommand}"
+                Command="{Binding ElementName=Root, Path=HighlightParentsToggleCommand}"
                 DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}"
                 IsChecked="{Binding Path=IsChecked, Mode=OneWay}"
                 IsEnabled="{Binding Path=IsEnabled}"

@@ -1,8 +1,8 @@
 ﻿namespace JsonViewer.Commands
 {
-    public class ShowToolbarTextCommand : ToggleCommand
+    public class ShowToolbarTextToggleCommand : ToggleCommand
     {
-        public ShowToolbarTextCommand()
+        public ShowToolbarTextToggleCommand()
             : base("Show toolbar text", Properties.Settings.Default.MainWindowToolbarTextVisible)
         {
             Properties.Settings.Default.PropertyChanged += OnSettingsPropertyChanged;

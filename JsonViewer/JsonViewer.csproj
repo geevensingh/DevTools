@@ -118,9 +118,9 @@
     <Compile Include="Commands\PerWindow\PasteCommand.cs" />
     <Compile Include="Commands\PerWindow\HideFindCommand.cs" />
     <Compile Include="Commands\PerWindow\FindNextCommand.cs" />
-    <Compile Include="Commands\ShowToolbarTextCommand.cs" />
-    <Compile Include="Commands\ShowToolbarIconCommand.cs" />
-    <Compile Include="Commands\HighlightParentsCommand.cs" />
+    <Compile Include="Commands\ShowToolbarTextToggleCommand.cs" />
+    <Compile Include="Commands\ShowToolbarIconToggleCommand.cs" />
+    <Compile Include="Commands\HighlightParentsToggleCommand.cs" />
     <Compile Include="Commands\PerWindow\NewWindowCommand.cs" />
     <Compile Include="Commands\PerWindow\OpenJsonFileCommand.cs" />
     <Compile Include="Commands\PerWindow\PickConfigCommand.cs" />
