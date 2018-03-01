@@ -1,6 +1,7 @@
 ﻿namespace JsonViewer.Commands.PerWindow
 {
     using System.Diagnostics;
+    using System.Windows.Input;
 
     public class HideFindCommand : BaseCommand
     {
@@ -12,6 +13,8 @@
             _finder = mainWindow.Finder;
             _finder.PropertyChanged += OnFinderPropertyChanged;
             this.SetCanExecute(_finder.HasWindow);
+
+            this.AddKeyGesture(new KeyGesture(Key.Escape));
         }
 
         public override void Execute(object parameter)

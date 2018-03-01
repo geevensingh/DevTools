@@ -98,60 +98,23 @@
             </Grid>
         </HierarchicalDataTemplate>
     </Window.Resources>
-    <Window.InputBindings>
-        <KeyBinding Key="Esc" Command="{Binding ElementName=Toolbar, Path=HideFindCommand}" />
-        <KeyBinding Key="F5" Command="{Binding ElementName=Toolbar, Path=ReloadCommand}" />
-        <KeyBinding
-            Key="H"
-            Modifiers="Ctrl"
-            Command="{Binding ElementName=Toolbar, Path=HighlightParentsCommand}" />
-        <KeyBinding
-            Key="L"
-            Modifiers="Ctrl"
-            Command="{Binding ElementName=Toolbar, Path=PickConfigCommand}" />
-        <KeyBinding
-            Key="N"
-            Modifiers="Ctrl"
-            Command="{Binding ElementName=Toolbar, Path=NewWindowCommand}" />
-        <KeyBinding
-            Key="O"
-            Modifiers="Ctrl"
-            Command="{Binding ElementName=Toolbar, Path=OpenJsonFileCommand}" />
-        <KeyBinding
-            Key="Left"
-            Modifiers="Ctrl"
-            Command="{Binding ElementName=Toolbar, Path=FindPreviousCommand}" />
-        <KeyBinding
-            Key="Right"
-            Modifiers="Ctrl"
-            Command="{Binding ElementName=Toolbar, Path=FindNextCommand}" />
-        <KeyBinding
-            Key="Left"
-            Modifiers="Alt"
-            Command="{Binding ElementName=Toolbar, Path=FindPreviousCommand}" />
-        <KeyBinding
-            Key="Right"
-            Modifiers="Alt"
-            Command="{Binding ElementName=Toolbar, Path=FindNextCommand}" />
-    </Window.InputBindings>
     <Window.CommandBindings>
         <CommandBinding Command="ApplicationCommands.Find" Executed="CommandBinding_Find" />
-        <CommandBinding Command="ApplicationCommands.Open" Executed="CommandBinding_Open" />
     </Window.CommandBindings>
     <DockPanel>
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="_File">
-                <MenuItem Command="ApplicationCommands.Open" Header="_Open Json file..." />
+                <MenuItem Command="{Binding ElementName=Toolbar, Path=OpenJsonFileCommand.RoutedUICommand}" Header="_Open Json file..." />
                 <Separator />
-                <MenuItem Command="{Binding ElementName=Toolbar, Path=PickConfigCommand}" Header="Load _Config file..." />
-                <MenuItem Command="{Binding ElementName=Toolbar, Path=ReloadCommand}" Header="_Reload current config" />
+                <MenuItem Command="{Binding ElementName=Toolbar, Path=PickConfigCommand.RoutedUICommand}" Header="_Load config file..." />
+                <MenuItem Command="{Binding ElementName=Toolbar, Path=ReloadCommand.RoutedUICommand}" Header="_Reload current config" />
                 <Separator />
                 <MenuItem Click="CheckForUpdates" Header="Check for _updates" />
             </MenuItem>
             <MenuItem Header="_View">
-                <MenuItem Command="{Binding ElementName=Toolbar, Path=NewWindowCommand}" Header="_New Window" />
+                <MenuItem Command="{Binding ElementName=Toolbar, Path=NewWindowCommand.RoutedUICommand}" Header="_New window" />
                 <Separator />
-                <MenuItem Command="ApplicationCommands.Find" Header="_Find Window" />
+                <MenuItem Command="ApplicationCommands.Find" Header="_Find window" />
                 <Separator />
                 <MenuItem
                     Command="{Binding ElementName=Toolbar, Path=ShowToolbarTextCommand}"

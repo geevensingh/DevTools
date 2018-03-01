@@ -7,7 +7,7 @@
     internal class CollapseAllCommand : BaseTreeViewDataCommand
     {
         public CollapseAllCommand(TreeViewData data)
-            : base(data, "Collapse All", data.HasChildren)
+            : base(data, "Collapse all", data.HasChildren)
         {
         }
 

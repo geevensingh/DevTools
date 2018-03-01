@@ -7,6 +7,7 @@
     using System.Windows;
     using System.Windows.Controls;
     using System.Windows.Input;
+    using JsonViewer.Commands;
     using JsonViewer.Commands.PerWindow;
     using JsonViewer.Model;
     using JsonViewer.View;
@@ -109,6 +110,9 @@
         protected override void OnSourceInitialized(EventArgs e)
         {
             base.OnSourceInitialized(e);
+
+            this.Toolbar.PropertyChanged += OnToolbarPropertyChanged;
+
             WindowPlacementSerializer.SetPlacement(this, Properties.Settings.Default.MainWindowPlacement, _initialOffset);
             if (_initialOffset.HasValue)
             {
@@ -147,6 +151,21 @@
             }
 
             this.Raw_TextBox.Text = initialText;
+        }
+
+        private void OnToolbarPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == "CommandsCreated")
+            {
+                foreach (BaseCommand command in this.Toolbar.AllCommands)
+                {
+                    CommandBinding commandBinding = command.CommandBinding;
+                    if (commandBinding != null)
+                    {
+                        this.CommandBindings.Add(commandBinding);
+                    }
+                }
+            }
         }
 
         private void SetErrorMessage(string message)
@@ -261,15 +280,6 @@
         {
             Debug.Assert(this._warningBannerAction != null);
             this._warningBannerAction?.Invoke();
-        }
-
-        private void CommandBinding_Open(object sender, ExecutedRoutedEventArgs e)
-        {
-            OpenJsonFileCommand command = this.Toolbar.OpenJsonFileCommand;
-            if (command.CanExecute(null))
-            {
-                command.Execute(null);
-            }
         }
     }
 }

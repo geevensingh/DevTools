@@ -5,6 +5,7 @@
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
+    using System.Windows.Input;
     using Microsoft.Win32;
 
     public class OpenJsonFileCommand : BaseCommand
@@ -15,6 +16,8 @@
             : base("Open Json File", true)
         {
             _mainWindow = mainWindow;
+
+            this.AddKeyGesture(new KeyGesture(Key.O, ModifierKeys.Control));
         }
 
         public static string PickJsonFile(MainWindow mainWindow, string title)

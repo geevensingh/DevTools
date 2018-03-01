@@ -100,6 +100,8 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Commands\BaseCommandBinding.cs" />
+    <Compile Include="Commands\BaseRoutedUICommand.cs" />
     <Compile Include="Commands\BaseCommand.cs" />
     <Compile Include="Commands\PerWindow\CollapseAllCommand.cs" />
     <Compile Include="Commands\PerItem\BaseTreeViewDataCommand.cs" />

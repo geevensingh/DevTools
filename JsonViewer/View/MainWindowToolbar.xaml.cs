@@ -39,6 +39,8 @@
 
         public event PropertyChangedEventHandler PropertyChanged;
 
+        public BaseCommand[] AllCommands { get => new BaseCommand[] { _newWindowCommand, _pickConfigCommand, _reloadCommand, _hideFindCommand, _openJsonFileCommand, _highlightParentsCommand, _expandAllCommand, _collapseAllCommand, _showToolbarTextCommand, _showToolbarIconCommand, _findNextCommand, _findPreviousCommand, _pasteCommand }; }
+
         public NewWindowCommand NewWindowCommand { get => _newWindowCommand; }
 
         public PickConfigCommand PickConfigCommand { get => _pickConfigCommand; }
@@ -106,6 +108,7 @@
             NotifyPropertyChanged.SetValue(ref _findNextCommand, new FindNextCommand(_mainWindow), "FindNextCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _findPreviousCommand, new FindPreviousCommand(_mainWindow), "FindPreviousCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _pasteCommand, new PasteCommand(_mainWindow), "PasteCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.FirePropertyChanged("CommandsCreated", this, this.PropertyChanged);
 
             NotifyPropertyChanged.SetValue(ref _findMatchNavigator, new FindMatchNavigator(_mainWindow), "FindMatchNavigator", this, this.PropertyChanged);
 

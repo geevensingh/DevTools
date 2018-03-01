@@ -1,7 +1,6 @@
 ﻿namespace JsonViewer.Commands.PerWindow
 {
-    using System.Windows;
-    using Utilities;
+    using System.Windows.Input;
 
     public class PickConfigCommand : BaseCommand
     {
@@ -11,6 +10,8 @@
             : base("Pick Config", true)
         {
             _mainWindow = mainWindow;
+
+            this.AddKeyGesture(new KeyGesture(Key.L, ModifierKeys.Control));
         }
 
         public override void Execute(object parameter)

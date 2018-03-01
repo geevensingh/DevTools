@@ -1,10 +1,6 @@
 ﻿namespace JsonViewer.Commands.PerWindow
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
+    using System.Windows.Input;
     using Utilities;
 
     public class ReloadCommand : BaseCommand
@@ -15,6 +11,8 @@
             : base("Reload", true)
         {
             _mainWindow = mainWindow;
+
+            this.AddKeyGesture(new KeyGesture(Key.F5));
         }
 
         public override void Execute(object parameter)

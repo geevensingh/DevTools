@@ -22,6 +22,10 @@
 
         public event EventHandler CanExecuteChanged;
 
+        public RoutedUICommand RoutedUICommand { get; private set; }
+
+        public CommandBinding CommandBinding { get; private set; }
+
         public string Text { get => _text; set => _text = value; }
 
         public bool IsEnabled { get => this.CanExecute(null); }
@@ -36,6 +40,19 @@
         public virtual void Execute(object parameter)
         {
             throw new NotImplementedException();
+        }
+
+        protected void AddKeyGesture(KeyGesture keyGesture)
+        {
+            if (this.RoutedUICommand == null)
+            {
+                this.RoutedUICommand = new BaseRoutedUICommand(this, keyGesture);
+                this.CommandBinding = new BaseCommandBinding(this.RoutedUICommand);
+            }
+            else
+            {
+                this.RoutedUICommand.InputGestures.Add(keyGesture);
+            }
         }
 
         protected void SetCanExecute(bool canExecute)

@@ -6,7 +6,7 @@
     internal class CopyKeyCommand : BaseTreeViewDataCommand
     {
         public CopyKeyCommand(TreeViewData data)
-            : base(data, "Copy Key", true)
+            : base(data, "Copy key", true)
         {
         }
 

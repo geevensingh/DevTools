@@ -1,6 +1,7 @@
 ﻿namespace JsonViewer.Commands.PerWindow
 {
     using System.Diagnostics;
+    using System.Windows.Input;
     using JsonViewer.View;
 
     public class FindPreviousCommand : BaseCommand
@@ -13,6 +14,9 @@
             _mainWindow = mainWindow;
             _mainWindow.Finder.PropertyChanged += OnFinderPropertyChanged;
             this.SetCanExecute(_mainWindow.Finder.HitCount > 0);
+
+            this.AddKeyGesture(new KeyGesture(Key.Left, ModifierKeys.Control));
+            this.AddKeyGesture(new KeyGesture(Key.Left, ModifierKeys.Alt));
         }
 
         public override void Execute(object parameter)

@@ -8,7 +8,7 @@
         private CustomTreeView _tree;
 
         public TreatAsTextCommand(CustomTreeView tree, TreeViewData data)
-            : base(data, "Treat as Text", data.JsonObject.CanTreatAsText)
+            : base(data, "Treat as text", data.JsonObject.CanTreatAsText)
         {
             _tree = tree;
         }
