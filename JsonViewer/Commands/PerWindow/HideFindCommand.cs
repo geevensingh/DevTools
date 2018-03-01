@@ -8,7 +8,7 @@
         private Finder _finder = null;
 
         public HideFindCommand(MainWindow mainWindow)
-            : base("Hide Find Window")
+            : base("Hide find window")
         {
             _finder = mainWindow.Finder;
             _finder.PropertyChanged += OnFinderPropertyChanged;

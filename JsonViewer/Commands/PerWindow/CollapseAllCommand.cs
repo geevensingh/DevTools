@@ -5,7 +5,7 @@
         private MainWindow _mainWindow = null;
 
         public CollapseAllCommand(MainWindow mainWindow)
-            : base("Collapse All")
+            : base("Collapse all")
         {
             _mainWindow = mainWindow;
             _mainWindow.PropertyChanged += OnMainWindowPropertyChanged;

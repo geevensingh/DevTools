@@ -13,7 +13,7 @@
         private MainWindow _mainWindow = null;
 
         public OpenJsonFileCommand(MainWindow mainWindow)
-            : base("Open Json File", true)
+            : base("Open Json file", true)
         {
             _mainWindow = mainWindow;
 

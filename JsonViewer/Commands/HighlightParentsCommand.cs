@@ -5,7 +5,7 @@
     public class HighlightParentsCommand : ToggleCommand
     {
         public HighlightParentsCommand()
-            : base("Highlight Selected Item Parents", Properties.Settings.Default.HighlightSelectedParents)
+            : base("Highlight parents", Properties.Settings.Default.HighlightSelectedParents)
         {
             Properties.Settings.Default.PropertyChanged += OnSettingsPropertyChanged;
 

@@ -5,7 +5,7 @@
         private MainWindow _mainWindow = null;
 
         public ExpandAllCommand(MainWindow mainWindow)
-            : base("Expand All")
+            : base("Expand all")
         {
             _mainWindow = mainWindow;
             _mainWindow.PropertyChanged += OnMainWindowPropertyChanged;

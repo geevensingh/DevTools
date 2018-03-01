@@ -7,7 +7,7 @@
         private MainWindow _mainWindow = null;
 
         public PickConfigCommand(MainWindow mainWindow)
-            : base("Pick Config", true)
+            : base("Pick config", true)
         {
             _mainWindow = mainWindow;
 
