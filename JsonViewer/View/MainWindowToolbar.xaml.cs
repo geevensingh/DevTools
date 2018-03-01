@@ -114,8 +114,6 @@
 
             _mainWindow.Finder.PropertyChanged += OnFinderPropertyChanged;
             FindTextBox.Text = _mainWindow.Finder.Text;
-
-            this.HighlightParentsButton.IsChecked = Properties.Settings.Default.HighlightSelectedParents;
         }
 
         private void OnFinderPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)

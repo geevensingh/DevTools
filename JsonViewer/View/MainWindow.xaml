@@ -126,6 +126,12 @@
                     Header="Show toolbar _icons"
                     IsCheckable="True"
                     IsChecked="{Binding ElementName=Toolbar, Path=ShowToolbarIconCommand.IsChecked, Mode=OneWay}" />
+                <Separator />
+                <MenuItem
+                    Command="{Binding ElementName=Toolbar, Path=HighlightParentsCommand}"
+                    Header="Highlight parents"
+                    IsCheckable="True"
+                    IsChecked="{Binding ElementName=Toolbar, Path=HighlightParentsCommand.IsChecked, Mode=OneWay}" />
             </MenuItem>
         </Menu>
         <local:MainWindowToolbar

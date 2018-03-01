@@ -86,7 +86,7 @@
                 x:Name="HighlightParentsButton"
                 Command="{Binding ElementName=Root, Path=HighlightParentsCommand}"
                 DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}"
-                IsChecked="True"
+                IsChecked="{Binding Path=IsChecked, Mode=OneWay}"
                 IsEnabled="{Binding Path=IsEnabled}"
                 ToolTip="{Binding Path=Text}">
                 <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
