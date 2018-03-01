@@ -31,8 +31,12 @@
       "fontSize": 16
     },
     {
+      "keyIs": [ "events" ],
+      "expandChildren": 1
+    },
+    {
       "keyContains": [ "account" ],
-      "keyIs": [ "events", "expiration" ],
+      "keyIs": [ "expiration" ],
       "color": "green"
     },
     {

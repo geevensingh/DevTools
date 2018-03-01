@@ -13,11 +13,9 @@
         private IList<string> _values;
         private IList<string> _keyPartials;
         private IList<string> _valuePartials;
-        private Brush _foregroundBrush;
-        private double? _fontSize;
         private bool _appliesToParents;
 
-        public ConfigRule(IList<string> keys, IList<string> values, IList<string> keyPartials, IList<string> valuePartials, Brush foregroundBrush, double? fontSize, bool appliesToParents)
+        public ConfigRule(IList<string> keys, IList<string> values, IList<string> keyPartials, IList<string> valuePartials, bool appliesToParents)
         {
             Debug.Assert(keys.Count + values.Count + keyPartials.Count + valuePartials.Count > 0, "No criteria found.");
 
@@ -25,14 +23,14 @@
             this._values = values;
             this._keyPartials = keyPartials;
             this._valuePartials = valuePartials;
-            this._foregroundBrush = foregroundBrush;
-            this._fontSize = fontSize;
             _appliesToParents = appliesToParents;
         }
 
-        public Brush ForegroundBrush { get => _foregroundBrush; }
+        public Brush ForegroundBrush { get; private set; }
 
-        public double? FontSize { get => _fontSize; }
+        public double? FontSize { get; private set; }
+
+        public int? ExpandChildren { get; private set; }
 
         public static IList<ConfigRule> GenerateRules(ArrayList arrayList)
         {
@@ -118,7 +116,18 @@
                 appliesToParents = (bool)dict["appliesToParents"];
             }
 
-            return new ConfigRule(keys, values, keyPartials, valuePartials, foregroundBrush, fontSize, appliesToParents);
+            int? expandChildren = null;
+            if (dict.ContainsKey("expandChildren"))
+            {
+                expandChildren = (int)dict["expandChildren"];
+            }
+
+            return new ConfigRule(keys, values, keyPartials, valuePartials, appliesToParents)
+            {
+                ForegroundBrush = foregroundBrush,
+                FontSize = fontSize,
+                ExpandChildren = expandChildren
+            };
         }
 
         private static IList<string> GetList(Dictionary<string, object> dict, string key)

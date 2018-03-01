@@ -29,11 +29,6 @@
 
         public int? SelectedIndex { get => _selectedIndex; }
 
-        public void ExpandChildren(TreeViewData data)
-        {
-            this.ExpandSubtree(data, 1).Forget();
-        }
-
         public void ExpandAll()
         {
             foreach (TreeViewData child in this.Items)
@@ -42,9 +37,40 @@
             }
         }
 
-        public void ExpandAll(TreeViewData data)
+        public async Task ExpandSubtree(TreeViewData data, int depth)
         {
-            this.ExpandSubtree(data, int.MaxValue).Forget();
+            if (!data.HasChildren)
+            {
+                return;
+            }
+
+            using (new WaitCursor())
+            {
+                TreeViewItem item = GetItem(data);
+                Debug.Assert(item != null, "Did you try to collapse the tree while expanding it?");
+                if (item == null)
+                {
+                    return;
+                }
+
+                await this.Dispatcher.BeginInvoke(
+                    new Action(() =>
+                    {
+                        item.IsExpanded = true;
+                        if (depth > 0)
+                        {
+                            item.UpdateLayout();
+                        }
+                    }), System.Windows.Threading.DispatcherPriority.Background).Task;
+
+                if (depth > 0)
+                {
+                    foreach (TreeViewData child in data.Children)
+                    {
+                        await this.ExpandSubtree(child, depth - 1);
+                    }
+                }
+            }
         }
 
         public void CollapseSubtree(TreeViewData data)
@@ -190,42 +216,6 @@
                 foreach (TreeViewData child in data.Children)
                 {
                     this.CollapseSubtree(tvi.ItemContainerGenerator, child);
-                }
-            }
-        }
-
-        private async Task ExpandSubtree(TreeViewData data, int depth)
-        {
-            if (!data.HasChildren)
-            {
-                return;
-            }
-
-            using (new WaitCursor())
-            {
-                TreeViewItem item = GetItem(data);
-                Debug.Assert(item != null, "Did you try to collapse the tree while expanding it?");
-                if (item == null)
-                {
-                    return;
-                }
-
-                await this.Dispatcher.BeginInvoke(
-                    new Action(() =>
-                    {
-                        item.IsExpanded = true;
-                        if (depth > 0)
-                        {
-                            item.UpdateLayout();
-                        }
-                    }), System.Windows.Threading.DispatcherPriority.Background).Task;
-
-                if (depth > 0)
-                {
-                    foreach (TreeViewData child in data.Children)
-                    {
-                        await this.ExpandSubtree(child, depth - 1);
-                    }
                 }
             }
         }

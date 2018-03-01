@@ -3,8 +3,10 @@
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
     using System.Diagnostics;
+    using System.Linq;
     using System.Threading.Tasks;
     using JsonViewer.View;
+    using Utilities;
 
     internal class RootObject : JsonObject
     {
@@ -51,6 +53,15 @@
             Debug.Assert(_viewChildren != null);
             Debug.Assert(_viewChildren.Count == 0 || _viewChildren[0].Tree == tree);
             tree.ItemsSource = _viewChildren;
+
+            foreach (JsonObject jsonObj in this.AllChildren)
+            {
+                ConfigRule rule = jsonObj.Rules.FirstOrDefault(x => x.ExpandChildren != null);
+                if (rule != null)
+                {
+                    tree.ExpandSubtree(jsonObj.ViewObject, rule.ExpandChildren.Value).Forget();
+                }
+            }
         }
 
         protected override void UpdateChild(JsonObject child)

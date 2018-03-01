@@ -1,7 +1,7 @@
 ﻿namespace JsonViewer.Commands.PerItem
 {
-    using System.Windows;
     using JsonViewer.View;
+    using Utilities;
 
     internal class ExpandChildrenCommand : BaseTreeViewDataCommand
     {
@@ -12,7 +12,7 @@
 
         public override void Execute(object parameter)
         {
-            this.Data.Tree.ExpandChildren(this.Data);
+            this.Data.Tree.ExpandSubtree(this.Data, 1).Forget();
         }
 
         protected override void OnDataPropertyChanged(string propertyName)
