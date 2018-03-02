@@ -9,7 +9,9 @@
         {
             _mainWindow = mainWindow;
             _mainWindow.PropertyChanged += OnMainWindowPropertyChanged;
-            this.SetCanExecute(HasMultipleLevels(_mainWindow));
+
+            _mainWindow.Tree.PropertyChanged += OnTreePropertyChanged;
+            this.Update();
         }
 
         public static bool HasMultipleLevels(MainWindow mainWindow)
@@ -45,12 +47,27 @@
             _mainWindow.Tree.CollapseAll();
         }
 
+        private void Update()
+        {
+            this.SetCanExecute(!_mainWindow.Tree.IsWaiting && HasMultipleLevels(_mainWindow));
+        }
+
+        private void OnTreePropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            switch (e.PropertyName)
+            {
+                case "IsWaiting":
+                    this.Update();
+                    break;
+            }
+        }
+
         private void OnMainWindowPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
             switch (e.PropertyName)
             {
                 case "RootObject":
-                    this.SetCanExecute(HasMultipleLevels(_mainWindow));
+                    this.Update();
                     break;
             }
         }

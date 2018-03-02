@@ -21,6 +21,8 @@
             }
         }
 
+        public static bool IsWaiting { get => _previousCursors.Count > 0; }
+
         public void Dispose()
         {
             if (!_isNoop)

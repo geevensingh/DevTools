@@ -29,6 +29,8 @@
 
         public int? SelectedIndex { get => _selectedIndex; }
 
+        public bool IsWaiting { get => WaitCursor.IsWaiting; }
+
         public void ExpandAll()
         {
             this.ExpandAll(int.MaxValue);
@@ -51,6 +53,8 @@
 
             using (new WaitCursor())
             {
+                NotifyPropertyChanged.FirePropertyChanged("IsWaiting", this, this.PropertyChanged);
+
                 TreeViewItem item = GetItem(data);
                 Debug.Assert(item != null, "Did you try to collapse the tree while expanding it?");
                 if (item == null)
@@ -76,6 +80,8 @@
                     }
                 }
             }
+
+            NotifyPropertyChanged.FirePropertyChanged("IsWaiting", this, this.PropertyChanged);
         }
 
         public void CollapseSubtree(TreeViewData data)

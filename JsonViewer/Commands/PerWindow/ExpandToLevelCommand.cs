@@ -15,6 +15,7 @@
             _depth = depth;
             _mainWindow = mainWindow;
             _mainWindow.PropertyChanged += OnMainWindowPropertyChanged;
+            _mainWindow.Tree.PropertyChanged += OnTreePropertyChanged;
             this.SetRootObject(_mainWindow.RootObject);
         }
 
@@ -30,6 +31,16 @@
             {
                 case "RootObject":
                     this.SetRootObject(_mainWindow.RootObject);
+                    break;
+            }
+        }
+
+        private void OnTreePropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            switch (e.PropertyName)
+            {
+                case "IsWaiting":
+                    this.Update();
                     break;
             }
         }
@@ -68,7 +79,7 @@
         private void Update()
         {
             Debug.Assert(_mainWindow.RootObject == _rootObject);
-            this.SetCanExecute(CollapseAllCommand.HasLevel(_rootObject, _depth));
+            this.SetCanExecute(!_mainWindow.Tree.IsWaiting && CollapseAllCommand.HasLevel(_rootObject, _depth));
         }
     }
 }

@@ -9,7 +9,9 @@
         {
             _mainWindow = mainWindow;
             _mainWindow.PropertyChanged += OnMainWindowPropertyChanged;
-            this.SetCanExecute(CollapseAllCommand.HasMultipleLevels(_mainWindow));
+
+            _mainWindow.Tree.PropertyChanged += OnTreePropertyChanged;
+            Update();
         }
 
         public override void Execute(object parameter)
@@ -17,12 +19,27 @@
             _mainWindow.Tree.ExpandAll();
         }
 
+        private void Update()
+        {
+            this.SetCanExecute(!_mainWindow.Tree.IsWaiting && CollapseAllCommand.HasMultipleLevels(_mainWindow));
+        }
+
+        private void OnTreePropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            switch (e.PropertyName)
+            {
+                case "IsWaiting":
+                    this.Update();
+                    break;
+            }
+        }
+
         private void OnMainWindowPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
             switch (e.PropertyName)
             {
                 case "RootObject":
-                    this.SetCanExecute(CollapseAllCommand.HasMultipleLevels(_mainWindow));
+                    this.Update();
                     break;
             }
         }
