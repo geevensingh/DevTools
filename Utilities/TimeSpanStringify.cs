@@ -11,10 +11,10 @@ namespace Utilities
     {
         public static string PrettyApprox(TimeSpan timeSpan, int decimals = 1)
         {
-            string suffix = " ago";
+            string suffix = " from now";
             if (timeSpan.TotalMilliseconds < 0)
             {
-                suffix = " from now";
+                suffix = " ago";
                 timeSpan = timeSpan.Negate();
             }
 
@@ -45,37 +45,6 @@ namespace Utilities
             }
 
             return str + suffix;
-        }
-
-        public static string PrettyExact(TimeSpan timeSpan, int decimals = 5)
-        {
-            if (timeSpan.TotalDays > 1)
-            {
-                return Math.Round(timeSpan.TotalDays, decimals) + " days";
-            }
-
-            if (timeSpan.TotalHours > 0)
-            {
-                return Math.Round(timeSpan.TotalHours, decimals) + " hours";
-            }
-
-            if (timeSpan.TotalMinutes > 0)
-            {
-                return Math.Round(timeSpan.TotalMinutes, decimals) + " minutes";
-            }
-
-            if (timeSpan.TotalSeconds > 0)
-            {
-                return Math.Round(timeSpan.TotalSeconds, decimals) + " seconds";
-            }
-
-            if (timeSpan.TotalMilliseconds > 0)
-            {
-                return Math.Round(timeSpan.TotalMilliseconds, decimals) + " milliseconds";
-            }
-
-            Debug.Assert(false);
-            return timeSpan.ToString();
         }
     }
 }

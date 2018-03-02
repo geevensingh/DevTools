@@ -36,11 +36,11 @@
                 Type valueType = value.GetType();
                 if (valueType == typeof(DateTime))
                 {
-                    _oneLineValue += " (" + Utilities.TimeSpanStringify.PrettyApprox(DateTime.Now - (DateTime)value) + ")";
+                    _oneLineValue += " (" + Utilities.TimeSpanStringify.PrettyApprox((DateTime)value - DateTime.Now) + ")";
                 }
                 else if (valueType == typeof(TimeSpan))
                 {
-                    _oneLineValue += " (" + Utilities.TimeSpanStringify.PrettyExact((TimeSpan)value) + ")";
+                    _oneLineValue += " (" + Utilities.TimeSpanStringify.PrettyApprox((TimeSpan)value) + ")";
                 }
             }
 

@@ -270,14 +270,14 @@
                 return doubleValue;
             }
 
-            if (DateTime.TryParse(str, out DateTime dateTimeValue))
-            {
-                return dateTimeValue;
-            }
-
             if (TimeSpan.TryParse(str, out TimeSpan timeSpanValue))
             {
                 return timeSpanValue;
+            }
+
+            if (DateTime.TryParse(str, out DateTime dateTimeValue))
+            {
+                return dateTimeValue;
             }
 
             try
