@@ -12,7 +12,7 @@
 
         public override void Execute(object parameter)
         {
-            Clipboard.SetText(this.Data.KeyName);
+            Clipboard.SetDataObject(this.Data.KeyName);
         }
     }
 }
