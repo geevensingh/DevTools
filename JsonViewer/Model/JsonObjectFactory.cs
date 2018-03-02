@@ -16,6 +16,14 @@
         {
             jsonString = jsonString.Trim();
 
+            int firstBrace = jsonString.IndexOfAny(new char[] { '{', '[' });
+            if (firstBrace < 0)
+            {
+                return null;
+            }
+
+            bool firstBraceIsSquare = jsonString[firstBrace] == '[';
+
             foreach (string str in new string[] { jsonString, CSEscape.Unescape(jsonString) })
             {
                 Dictionary<string, object> result = TryStrictDeserialize(str);
@@ -24,16 +32,29 @@
                     return result;
                 }
 
+                if (firstBraceIsSquare)
+                {
+                    result = TryArrayDeserialize(str);
+                    if (result != null)
+                    {
+                        return result;
+                    }
+                }
+
                 result = TryStrictDeserialize(StringHelper.GetTrimmedString(str, "{", "}"));
                 if (result != null)
                 {
                     return result;
                 }
 
-                result = TryArrayDeserialize(str);
-                if (result != null)
+
+                if (!firstBraceIsSquare)
                 {
-                    return result;
+                    result = TryArrayDeserialize(str);
+                    if (result != null)
+                    {
+                        return result;
+                    }
                 }
             }
 
