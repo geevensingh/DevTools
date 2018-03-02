@@ -43,6 +43,10 @@
       "keyIs": [ "event_type", "state" ],
       "color": "blue",
       "fontSize": 16
+    },
+    {
+      "keyIs": [ "test_header" ],
+      "warningMessage": "Warning: test_header key found!"
     }
   ]
 }

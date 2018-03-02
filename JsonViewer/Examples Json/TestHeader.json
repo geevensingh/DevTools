@@ -1,0 +1,328 @@
+﻿{
+  "CreatedVersion": {
+    "Major": 4,
+    "Minor": 5,
+    "Build": -1,
+    "Revision": -1,
+    "MajorRevision": -1,
+    "MinorRevision": -1
+  },
+  "events": [
+    {
+      "request": {
+        "profile_id": "89908720-25c1-5762-5537-09a5ffb66726",
+        "capture_contexts": [
+          {
+            "line_item_sets": [
+              "7bf5d29f-6b03-4798-9478-c6365cf1ece2"
+            ],
+            "capture_instructions": {
+              "payment_instrument_id": {
+                "account_id": "3035475a-7ea2-48e3-b9ec-6201f4fac9c9",
+                "id": "21dd9edc-af71-4d62-80ce-37151d475326"
+              },
+              "instruction_type": "single_payment_instrument",
+              "capture_session_info": {
+                "session_data": "{\"invoice_id\":\"R000097178\",\"charge_group_id\":\"c23cf703-7793-4c33-8894-e3ae4fa9bfb8\",\"sub_charge_group_id\":\"a509bc2c-1b6c-4f6e-a642-46c51a2731c0\"}",
+                "session_type": "invoice_pay"
+              }
+            },
+            "is_recurring": true
+          }
+        ],
+        "start_date": "2018-02-24T10:16:08.9557022Z",
+        "due_date": "2018-03-25T00:00:00",
+        "external_reference": {
+          "id": "31d0cf3f-6717-4c58-9193-52d594b072fd",
+          "url": "admin/checkpoint/13178368/3035475a-7ea2-48e3-b9ec-6201f4fac9c9/31d0cf3f-6717-4c58-9193-52d594b072fd"
+        },
+        "expiration": 155
+      },
+      "tracking_id": "87cd2365-4eb7-429a-8017-16d223f5c66e",
+      "self_url": "/3035475a-7ea2-48e3-b9ec-6201f4fac9c9/capture-schedules/0e4e89a0f6bada62953739c7a552d2d1",
+      "message_id": "be2d4a6e-7815-457a-ae4c-095e718b2d68",
+      "test_header": {
+        "contact": "cpbillinv",
+        "retention": "2018-03-08T04:53:18.6842862Z",
+        "scenarios": "invoice-flow-test,invoice-flow-test-fake-order,chargeaggregation-runner"
+      },
+      "trace_id": "d7d2421f-4c6c-42b5-a77c-3b6df42683bd",
+      "id": "218c7b52-abf9-49cc-98dd-4c42c3581f97",
+      "event_type": "created",
+      "version_added": 1,
+      "timestamp": "2018-02-24T10:16:10.0670478Z"
+    },
+    {
+      "tracking_id": "87cd2365-4eb7-429a-8017-16d223f5c66e",
+      "operation_type": "schedule_initialization",
+      "id": "10d28046-14f9-425b-8c65-84606b4c4e66",
+      "event_type": "operation_started",
+      "version_added": 1,
+      "timestamp": "2018-02-24T10:16:10.0670478Z"
+    },
+    {
+      "payment_instrument_info": [
+        {
+          "accountId": "3035475a-7ea2-48e3-b9ec-6201f4fac9c9",
+          "id": "21dd9edc-af71-4d62-80ce-37151d475326",
+          "status": "active",
+          "paymentMethod": {
+            "paymentMethodFamily": "offline_bank_transfer",
+            "paymentMethodType": "check",
+            "properties": {
+              "taxable": true,
+              "providerRemittable": false,
+              "offlineRecurring": false,
+              "riskyPaymentMethod": false
+            }
+          },
+          "details": null
+        }
+      ],
+      "updated_first_capture_attempt_date": "2018-02-24T10:16:08.9557022Z",
+      "id": "1d36ee04-31d7-464d-b89d-0b5bc99e07c5",
+      "event_type": "payment_instrument_info",
+      "version_added": 2,
+      "timestamp": "2018-02-24T10:16:15.2515388Z"
+    },
+    {
+      "line_item_set_id": "7bf5d29f-6b03-4798-9478-c6365cf1ece2",
+      "is_negative": false,
+      "id": "908fdcb5-7dad-470c-a77d-a8259deaa872",
+      "event_type": "line_item_set_info",
+      "version_added": 2,
+      "timestamp": "2018-02-24T10:16:15.7202913Z"
+    },
+    {
+      "operation_started_event_id": "10d28046-14f9-425b-8c65-84606b4c4e66",
+      "id": "330e2599-2601-4c39-af30-619d21f25413",
+      "event_type": "operation_ended",
+      "version_added": 2,
+      "timestamp": "2018-02-24T10:16:15.7202913Z"
+    },
+    {
+      "evaluation_time": "2018-02-24T10:16:08.9557022Z",
+      "message_id": "01a9cf39-b8ed-4375-bc2d-02ce590f0dca",
+      "id": "aadff1bd-ac44-467f-9eff-6e16aa55a30c",
+      "event_type": "capture_evaluation_scheduled",
+      "version_added": 2,
+      "timestamp": "2018-02-24T10:16:15.7202913Z"
+    },
+    {
+      "tracking_id": "aadff1bd-ac44-467f-9eff-6e16aa55a30c",
+      "operation_type": "capture_attempt",
+      "id": "f58638b9-66ba-4ab6-86b8-583c12e646a9",
+      "event_type": "operation_started",
+      "version_added": 3,
+      "timestamp": "2018-02-24T10:16:18.5484734Z"
+    },
+    {
+      "session_id": "PSS_0001edd1a56565e7480e865b84479b91f7bf",
+      "line_item_set_id": "7bf5d29f-6b03-4798-9478-c6365cf1ece2",
+      "id": "8c8f130b-d7a4-4ba9-8d94-d06e3c08b4cc",
+      "event_type": "session_id_changed",
+      "version_added": 3,
+      "timestamp": "2018-02-24T10:16:18.6109558Z"
+    },
+    {
+      "capture_context": {
+        "line_item_sets": [
+          "7bf5d29f-6b03-4798-9478-c6365cf1ece2"
+        ],
+        "capture_instructions": {
+          "payment_instrument_id": {
+            "account_id": "3035475a-7ea2-48e3-b9ec-6201f4fac9c9",
+            "id": "21dd9edc-af71-4d62-80ce-37151d475326"
+          },
+          "instruction_type": "single_payment_instrument",
+          "capture_session_info": {
+            "session_data": "{\"invoice_id\":\"R000097178\",\"charge_group_id\":\"c23cf703-7793-4c33-8894-e3ae4fa9bfb8\",\"sub_charge_group_id\":\"a509bc2c-1b6c-4f6e-a642-46c51a2731c0\"}",
+            "session_type": "invoice_pay"
+          }
+        },
+        "is_recurring": true
+      },
+      "session_id": "PSS_0001edd1a56565e7480e865b84479b91f7bf",
+      "line_item_set_id": "7bf5d29f-6b03-4798-9478-c6365cf1ece2",
+      "line_item_set_ids": [
+        "7bf5d29f-6b03-4798-9478-c6365cf1ece2"
+      ],
+      "id": "06e44f07-4027-4b53-b92c-ff6a47483091",
+      "event_type": "capture_attempting",
+      "version_added": 3,
+      "timestamp": "2018-02-24T10:16:18.6109558Z"
+    },
+    {
+      "capture_reference": {
+        "id": "bca09d99-93e8-45c1-92ab-576b6152d817",
+        "url": "https://billing.cpbillingcore-int-co4.co4.ap.phx.gbl/3035475a-7ea2-48e3-b9ec-6201f4fac9c9/captures/bca09d99-93e8-45c1-92ab-576b6152d817"
+      },
+      "result": "pending",
+      "tracking_id": "01a9cf39-b8ed-4375-bc2d-02ce590f0dca_CreateCapture_1",
+      "capture_attempting_event_id": "06e44f07-4027-4b53-b92c-ff6a47483091",
+      "line_item_set_id": "7bf5d29f-6b03-4798-9478-c6365cf1ece2",
+      "id": "8ea5f0d2-5c64-41d6-aae0-175626f3a357",
+      "event_type": "capture_attempted",
+      "version_added": 4,
+      "timestamp": "2018-02-24T10:16:20.6735331Z"
+    },
+    {
+      "operation_started_event_id": "f58638b9-66ba-4ab6-86b8-583c12e646a9",
+      "id": "b82a4c6a-8666-4462-a4db-73226f0e0bb1",
+      "event_type": "operation_ended",
+      "version_added": 4,
+      "timestamp": "2018-02-24T10:16:20.6735331Z"
+    },
+    {
+      "template_id": "c818c52f84349010cc64323ac014307f",
+      "template_version": 8,
+      "is_new_format": true,
+      "id": "8f67530f-3410-495c-9c77-80f0aea87cc2",
+      "event_type": "template_assigned",
+      "version_added": 4,
+      "timestamp": "2018-02-24T10:16:24.2204505Z"
+    },
+    {
+      "action_type": null,
+      "actions": [
+        {
+          "action_type": "Wait",
+          "duration": "5.00:00:00",
+          "action_param": null,
+          "wait_until": null
+        }
+      ],
+      "duration": "5.00:00:00",
+      "id": "2124ed4e-371e-462c-ae59-850eade2d71d",
+      "event_type": "template_evaluated",
+      "version_added": 4,
+      "timestamp": "2018-02-24T10:16:24.3141924Z"
+    },
+    {
+      "days_overdue": 0,
+      "days_since_start": 0,
+      "reason": "charge_pending",
+      "related_scheduling_id": "aadff1bd-ac44-467f-9eff-6e16aa55a30c",
+      "related_event_ids": [
+        "8ea5f0d2-5c64-41d6-aae0-175626f3a357"
+      ],
+      "collection_strategy_id": "ManualReview",
+      "id": "7c163e09-c6ec-4922-b69c-ef9b66a83cfa",
+      "event_type": "capture_evaluated",
+      "version_added": 4,
+      "timestamp": "2018-02-24T10:16:24.3141924Z"
+    },
+    {
+      "evaluation_time": "2018-03-01T10:16:18.5484734Z",
+      "message_id": "9261675e-70aa-44d3-b104-2dd0b45171c3",
+      "id": "60e8544c-1fb2-4935-9d75-7e7f87413d5e",
+      "event_type": "capture_evaluation_scheduled",
+      "version_added": 5,
+      "timestamp": "2018-02-24T10:16:25.1892562Z"
+    },
+    {
+      "tracking_id": "60e8544c-1fb2-4935-9d75-7e7f87413d5e",
+      "operation_type": "capture_attempt",
+      "id": "f8b773d7-8aef-43b8-9668-aa905c6ad7c0",
+      "event_type": "operation_started",
+      "version_added": 6,
+      "timestamp": "2018-03-01T10:16:18.8318433Z"
+    },
+    {
+      "capture_context": {
+        "line_item_sets": [
+          "7bf5d29f-6b03-4798-9478-c6365cf1ece2"
+        ],
+        "capture_instructions": {
+          "payment_instrument_id": {
+            "account_id": "3035475a-7ea2-48e3-b9ec-6201f4fac9c9",
+            "id": "21dd9edc-af71-4d62-80ce-37151d475326"
+          },
+          "instruction_type": "single_payment_instrument",
+          "capture_session_info": {
+            "session_data": "{\"invoice_id\":\"R000097178\",\"charge_group_id\":\"c23cf703-7793-4c33-8894-e3ae4fa9bfb8\",\"sub_charge_group_id\":\"a509bc2c-1b6c-4f6e-a642-46c51a2731c0\"}",
+            "session_type": "invoice_pay"
+          }
+        },
+        "is_recurring": true
+      },
+      "line_item_set_id": "7bf5d29f-6b03-4798-9478-c6365cf1ece2",
+      "line_item_set_ids": [
+        "7bf5d29f-6b03-4798-9478-c6365cf1ece2"
+      ],
+      "id": "1c043c7e-f102-4906-83b8-0bdd64905329",
+      "event_type": "capture_attempting",
+      "version_added": 6,
+      "timestamp": "2018-03-01T10:16:18.8318433Z"
+    },
+    {
+      "capture_reference": {
+        "id": "bca09d99-93e8-45c1-92ab-576b6152d817",
+        "url": "https://billing.cpbillingcore-int-co4.co4.ap.phx.gbl/3035475a-7ea2-48e3-b9ec-6201f4fac9c9/captures/bca09d99-93e8-45c1-92ab-576b6152d817"
+      },
+      "result": "pending",
+      "tracking_id": "9261675e-70aa-44d3-b104-2dd0b45171c3_CreateCapture_1",
+      "capture_attempting_event_id": "1c043c7e-f102-4906-83b8-0bdd64905329",
+      "line_item_set_id": "7bf5d29f-6b03-4798-9478-c6365cf1ece2",
+      "id": "0c4c3aa1-609c-4716-9f03-766ab0d71ea6",
+      "event_type": "capture_attempted",
+      "version_added": 7,
+      "timestamp": "2018-03-01T10:16:19.3318538Z"
+    },
+    {
+      "operation_started_event_id": "f8b773d7-8aef-43b8-9668-aa905c6ad7c0",
+      "id": "185172f0-f471-41de-8669-7563c0ccc3c1",
+      "event_type": "operation_ended",
+      "version_added": 7,
+      "timestamp": "2018-03-01T10:16:19.3318538Z"
+    },
+    {
+      "action_type": null,
+      "actions": [
+        {
+          "action_type": "Wait",
+          "duration": "5.00:00:00",
+          "action_param": null,
+          "wait_until": null
+        }
+      ],
+      "duration": "5.00:00:00",
+      "id": "2b69d06a-1f28-4573-984e-a02e74000c57",
+      "event_type": "template_evaluated",
+      "version_added": 7,
+      "timestamp": "2018-03-01T10:16:19.4100014Z"
+    },
+    {
+      "days_overdue": 0,
+      "days_since_start": 5,
+      "reason": "charge_pending",
+      "related_scheduling_id": "60e8544c-1fb2-4935-9d75-7e7f87413d5e",
+      "related_event_ids": [
+        "0c4c3aa1-609c-4716-9f03-766ab0d71ea6"
+      ],
+      "collection_strategy_id": "ManualReview",
+      "id": "9bb06a06-8547-4047-8f62-05874bfbcd59",
+      "event_type": "capture_evaluated",
+      "version_added": 7,
+      "timestamp": "2018-03-01T10:16:19.4100014Z"
+    },
+    {
+      "evaluation_time": "2018-03-06T10:16:18.8318433Z",
+      "message_id": "892d13ae-d3f1-4782-884d-360f5a5d8555",
+      "id": "751f0710-3ec5-4a60-a78f-3c7267de5d59",
+      "event_type": "capture_evaluation_scheduled",
+      "version_added": 8,
+      "timestamp": "2018-03-01T10:16:20.7694167Z"
+    }
+  ],
+  "account_id": "3035475a-7ea2-48e3-b9ec-6201f4fac9c9",
+  "schedule_id": "0e4e89a0f6bada62953739c7a552d2d1",
+  "created_api_version": "4.5",
+  "last_saved_api_version": "4.5",
+  "test_header": {
+    "contact": "cpbillinv",
+    "retention": "2018-03-08T04:53:18.6842862Z",
+    "scenarios": "invoice-flow-test,invoice-flow-test-fake-order,chargeaggregation-runner"
+  },
+  "IsMutedOrSuspended": false
+}

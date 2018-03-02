@@ -32,6 +32,8 @@
 
         public int? ExpandChildren { get; private set; }
 
+        public string WarningMessage { get; private set; }
+
         public static IList<ConfigRule> GenerateRules(ArrayList arrayList)
         {
             List<ConfigRule> rules = new List<ConfigRule>();
@@ -122,11 +124,18 @@
                 expandChildren = (int)dict["expandChildren"];
             }
 
+            string warningMessage = null;
+            if (dict.ContainsKey("warningMessage"))
+            {
+                warningMessage = (string)dict["warningMessage"];
+            }
+
             return new ConfigRule(keys, values, keyPartials, valuePartials, appliesToParents)
             {
                 ForegroundBrush = foregroundBrush,
                 FontSize = fontSize,
-                ExpandChildren = expandChildren
+                ExpandChildren = expandChildren,
+                WarningMessage = warningMessage
             };
         }
 

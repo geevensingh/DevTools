@@ -1,8 +1,10 @@
 ﻿namespace JsonViewer
 {
     using System;
+    using System.Collections.Generic;
     using System.ComponentModel;
     using System.Diagnostics;
+    using System.Linq;
     using System.Threading.Tasks;
     using System.Windows;
     using System.Windows.Controls;
@@ -103,6 +105,8 @@
             {
                 this.Tree.SelectItem(_rootObject.AllChildren[oldSelectionIndex.Value].ViewObject);
             }
+
+            this.UpdateWarnings();
 
             return true;
         }
@@ -258,7 +262,31 @@
                     {
                         Properties.Settings.Default.MainWindowWarnOnDefaultConfig = false;
                         Properties.Settings.Default.Save();
+                        this.UpdateWarnings();
                     });
+            }
+            else
+            {
+                IEnumerable<ConfigRule> warningRules = Config.This?.Rules?.Where(rule => !string.IsNullOrEmpty(rule.WarningMessage)).Where(x => _rootObject?.AllChildren?.Any(y => y.Rules.Contains(x)) ?? false);
+                IEnumerable<string> warnings = warningRules?.Select(x => x.WarningMessage);
+                if (warnings != null && warnings.Count() > 0)
+                {
+                    string warningMessage = string.Join("\r\n", warnings);
+                    this.SetWarningMessage(
+                        warningMessage,
+                        null,
+                        () =>
+                        {
+                            foreach (ConfigRule rule in Config.This?.Rules?.Where(rule => !string.IsNullOrEmpty(rule.WarningMessage)))
+                            {
+                                foreach (JsonObject jsonObject in _rootObject.AllChildren)
+                                {
+                                    jsonObject.Rules.RemoveAll(y => !string.IsNullOrEmpty(y.WarningMessage));
+                                }
+                            }
+                            this.UpdateWarnings();
+                        });
+                }
             }
         }
 
