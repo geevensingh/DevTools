@@ -146,6 +146,9 @@
                 if (!_colors.ContainsKey(configValue))
                 {
                     string key = configValue.ToString();
+                    string firstChar = key[0].ToString().ToLower();
+                    key = key.Remove(0, 1);
+                    key = key.Insert(0, firstChar);
                     _colors[configValue] = (Color)ColorConverter.ConvertFromString(_rawValues[key] as string);
                 }
 
@@ -170,7 +173,8 @@
                     case ConfigValue.TreeViewSearchResultBackground:
                         return Colors.LightGreen;
                     case ConfigValue.TreeViewSelectedItemParent:
-                        return Color.FromArgb(0x80, Colors.Aquamarine.R, Colors.Aquamarine.G, Colors.Aquamarine.B);
+                        Color selectedColor = this.GetColor(ConfigValue.TreeViewHighlightBrushKey);
+                        return Color.FromArgb(0x80, selectedColor.R, selectedColor.G, selectedColor.B);
                     default:
                         Debug.Assert(false);
                         return Colors.Transparent;
