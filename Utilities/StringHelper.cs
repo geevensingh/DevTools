@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -99,5 +100,19 @@ namespace Utilities
             return sb.ToString();
         }
 
+        public static string GetTrimmedString(string str, string start, string end)
+        {
+            int startIndex = str.IndexOf(start);
+            int endIndex = str.LastIndexOf(end);
+            if (startIndex >= 0 && endIndex >= 0 && endIndex > startIndex)
+            {
+                string trimmedStr = str.Substring(startIndex, endIndex - startIndex + 1);
+                Debug.Assert(trimmedStr.StartsWith(start));
+                Debug.Assert(trimmedStr.EndsWith(end));
+                return trimmedStr;
+            }
+
+            return string.Empty;
+        }
     }
 }

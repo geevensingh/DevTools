@@ -15,27 +15,52 @@
         public static Dictionary<string, object> TryDeserialize(string jsonString)
         {
             jsonString = jsonString.Trim();
-            int startIndex = jsonString.IndexOf("{");
-            int endIndex = jsonString.LastIndexOf("}");
-            if (startIndex < 0 || endIndex < 0 || endIndex < startIndex)
+
+            foreach (string str in new string[] { jsonString, CSEscape.Unescape(jsonString) })
             {
-                return null;
+                Dictionary<string, object> result = TryStrictDeserialize(str);
+                if (result != null)
+                {
+                    return result;
+                }
+
+                result = TryStrictDeserialize(StringHelper.GetTrimmedString(str, "{", "}"));
+                if (result != null)
+                {
+                    return result;
+                }
+
+                result = TryArrayDeserialize(str);
+                if (result != null)
+                {
+                    return result;
+                }
             }
 
-            jsonString = jsonString.Substring(startIndex, endIndex - startIndex + 1);
-            Debug.Assert(jsonString.StartsWith("{"));
-            Debug.Assert(jsonString.EndsWith("}"));
+            return null;
+        }
+
+        private static Dictionary<string, object> TryArrayDeserialize(string jsonString)
+        {
+            string arrayString = StringHelper.GetTrimmedString(jsonString, "[", "]");
+            if (!string.IsNullOrEmpty(arrayString))
+            {
+                arrayString = "{ \"array\": " + arrayString + " }";
+                Dictionary<string, object> result = TryStrictDeserialize(arrayString);
+                if (result != null)
+                {
+                    return result;
+                }
+            }
+
+            return null;
+        }
+
+        private static Dictionary<string, object> TryStrictDeserialize(string jsonString)
+        {
             try
             {
                 return new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(jsonString);
-            }
-            catch (SystemException)
-            {
-            }
-
-            try
-            {
-                return new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(CSEscape.Unescape(jsonString));
             }
             catch (SystemException)
             {
