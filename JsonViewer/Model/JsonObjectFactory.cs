@@ -47,7 +47,6 @@
                     return result;
                 }
 
-
                 if (!firstBraceIsSquare)
                 {
                     result = TryArrayDeserialize(str);
@@ -56,35 +55,6 @@
                         return result;
                     }
                 }
-            }
-
-            return null;
-        }
-
-        private static Dictionary<string, object> TryArrayDeserialize(string jsonString)
-        {
-            string arrayString = StringHelper.GetTrimmedString(jsonString, "[", "]");
-            if (!string.IsNullOrEmpty(arrayString))
-            {
-                arrayString = "{ \"array\": " + arrayString + " }";
-                Dictionary<string, object> result = TryStrictDeserialize(arrayString);
-                if (result != null)
-                {
-                    return result;
-                }
-            }
-
-            return null;
-        }
-
-        private static Dictionary<string, object> TryStrictDeserialize(string jsonString)
-        {
-            try
-            {
-                return new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(jsonString);
-            }
-            catch (SystemException)
-            {
             }
 
             return null;
@@ -155,6 +125,35 @@
         {
             _refreshCancellationTokenSource.Cancel();
             _refreshCancellationTokenSource.Dispose();
+        }
+
+        private static Dictionary<string, object> TryArrayDeserialize(string jsonString)
+        {
+            string arrayString = StringHelper.GetTrimmedString(jsonString, "[", "]");
+            if (!string.IsNullOrEmpty(arrayString))
+            {
+                arrayString = "{ \"array\": " + arrayString + " }";
+                Dictionary<string, object> result = TryStrictDeserialize(arrayString);
+                if (result != null)
+                {
+                    return result;
+                }
+            }
+
+            return null;
+        }
+
+        private static Dictionary<string, object> TryStrictDeserialize(string jsonString)
+        {
+            try
+            {
+                return new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(jsonString);
+            }
+            catch (SystemException)
+            {
+            }
+
+            return null;
         }
     }
 }

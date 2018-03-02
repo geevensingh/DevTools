@@ -17,7 +17,7 @@
             return HasLevel(mainWindow.RootObject, 2);
         }
 
-        internal static bool HasLevel(JsonObject root, int depth)
+        public static bool HasLevel(JsonObject root, int depth)
         {
             if (root == null)
             {

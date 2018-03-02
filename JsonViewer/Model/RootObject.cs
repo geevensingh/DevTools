@@ -8,7 +8,7 @@
     using JsonViewer.View;
     using Utilities;
 
-    internal class RootObject : JsonObject
+    public class RootObject : JsonObject
     {
         private ObservableCollection<TreeViewData> _viewChildren = null;
 

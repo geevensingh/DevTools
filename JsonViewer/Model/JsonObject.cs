@@ -7,7 +7,7 @@
     using System.Text;
     using JsonViewer.View;
 
-    internal class JsonObject : NotifyPropertyChanged
+    public class JsonObject : NotifyPropertyChanged
     {
         private JsonObject _parent = null;
         private List<JsonObject> _children = new List<JsonObject>();
