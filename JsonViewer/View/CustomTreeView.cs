@@ -198,7 +198,7 @@
         private void OnCopyCommandExecuted(object sender, ExecutedRoutedEventArgs e)
         {
             Debug.Assert(sender == this);
-            Clipboard.SetDataObject((this.SelectedItem as TreeViewData)?.PrettyValue);
+            Clipboard.SetText((this.SelectedItem as TreeViewData)?.Value);
         }
 
         private ItemContainerGenerator GetItemContainerGenerator(TreeViewData data)

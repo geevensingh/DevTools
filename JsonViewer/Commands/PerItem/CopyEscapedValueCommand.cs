@@ -13,7 +13,7 @@
 
         public override void Execute(object parameter)
         {
-            Clipboard.SetDataObject(CSEscape.Escape(this.Data.Value));
+            Clipboard.SetText(CSEscape.Escape(this.Data.Value));
         }
     }
 }
