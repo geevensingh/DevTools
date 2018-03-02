@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Linq;
+    using System.Text;
     using JsonViewer.View;
 
     internal class JsonObject : NotifyPropertyChanged
@@ -122,6 +123,8 @@
         public bool CanTreatAsText { get => _dataType == DataType.Json; }
 
         public string ValueString { get => _valueString; }
+
+        public string PrettyValueString { get => this.GetPrettyString(); }
 
         public int TotalChildCount { get => this.Children.Count + this.Children.Sum(x => x.TotalChildCount); }
 
@@ -297,6 +300,68 @@
             }
 
             return str;
+        }
+
+        private string GetPrettyKeySting(int depth)
+        {
+            if (_parent == null || _parent._dataType == DataType.Array || depth == 0)
+            {
+                return string.Empty;
+            }
+
+            return "\"" + _key + "\": ";
+        }
+
+        private string GetWrapString(bool start)
+        {
+            switch (_dataType)
+            {
+                case DataType.Array:
+                    return start ? "[" : "]";
+                case DataType.Json:
+                    return start ? "{" : "}";
+                default:
+                    Debug.Assert(!this.HasChildren);
+                    return string.Empty;
+            }
+        }
+
+        private string GetPrettyString(int depth = 0)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append(Utilities.StringHelper.GeneratePrefix(depth, "  "));
+            sb.Append(this.GetPrettyKeySting(depth));
+
+            if (this.HasChildren)
+            {
+                sb.Append(this.GetWrapString(start: true));
+                sb.Append("\r\n");
+                List<string> childStrings = new List<string>();
+                foreach (JsonObject child in this.Children)
+                {
+                    childStrings.Add(child.GetPrettyString(depth + 1));
+                }
+
+                sb.Append(string.Join(",\r\n", childStrings.ToArray()));
+                sb.Append("\r\n");
+                sb.Append(Utilities.StringHelper.GeneratePrefix(depth, "  "));
+                sb.Append(this.GetWrapString(start: false));
+            }
+            else
+            {
+                if (_originalString == null)
+                {
+                    sb.Append(this.ValueString);
+                }
+                else
+                {
+                    sb.Append("\"");
+                    sb.Append(Utilities.CSEscape.Escape(_originalString));
+                    sb.Append("\"");
+                }
+            }
+
+            return sb.ToString();
         }
     }
 }

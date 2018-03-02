@@ -52,6 +52,7 @@
             this.CollapseAllCommand = new CollapseAllCommand(this);
             this.CopyKeyCommand = new CopyKeyCommand(this);
             this.CopyValueCommand = new CopyValueCommand(this);
+            this.CopyPrettyValueCommand = new CopyPrettyValueCommand(this);
             this.CopyEscapedValueCommand = new CopyEscapedValueCommand(this);
             this.TreatAsJsonCommand = new TreatAsJsonCommand(tree, this);
             this.TreatAsTextCommand = new TreatAsTextCommand(tree, this);
@@ -71,6 +72,8 @@
                 return _jsonObject.ValueString;
             }
         }
+
+        public string PrettyValue { get => _jsonObject.PrettyValueString; }
 
         public string OneLineValue { get => _oneLineValue; }
 
@@ -199,6 +202,8 @@
         public CopyKeyCommand CopyKeyCommand { get; private set; }
 
         public CopyValueCommand CopyValueCommand { get; private set; }
+
+        public CopyPrettyValueCommand CopyPrettyValueCommand { get; private set; }
 
         public CopyEscapedValueCommand CopyEscapedValueCommand { get; private set; }
 

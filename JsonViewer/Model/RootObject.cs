@@ -13,7 +13,7 @@
         private ObservableCollection<TreeViewData> _viewChildren = null;
 
         public RootObject()
-            : base(string.Empty, string.Empty)
+            : base(string.Empty, new Dictionary<string, object>())
         {
         }
 

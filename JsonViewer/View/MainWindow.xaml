@@ -27,42 +27,45 @@
                 <Grid.ContextMenu>
                     <ContextMenu>
                         <MenuItem
-                            x:Name="ContextExpandChildren"
                             Command="{Binding Path=ExpandChildrenCommand}"
                             Header="{Binding Path=ExpandChildrenCommand.Text}"
-                            IsEnabled="{Binding Path=ExpandChildrenCommand.IsEnabled}" />
+                            IsEnabled="{Binding Path=ExpandChildrenCommand.IsEnabled}"
+                            Visibility="{Binding Path=ExpandChildrenCommand.IsVisible}" />
                         <MenuItem
-                            x:Name="ContextExpandAll"
                             Command="{Binding Path=ExpandAllCommand}"
                             Header="{Binding Path=ExpandAllCommand.Text}"
-                            IsEnabled="{Binding Path=ExpandAllCommand.IsEnabled}" />
+                            IsEnabled="{Binding Path=ExpandAllCommand.IsEnabled}"
+                            Visibility="{Binding Path=ExpandAllCommand.IsVisible}" />
                         <MenuItem
-                            x:Name="ContextCollapseAll"
                             Command="{Binding Path=CollapseAllCommand}"
                             Header="{Binding Path=CollapseAllCommand.Text}"
-                            IsEnabled="{Binding Path=CollapseAllCommand.IsEnabled}" />
+                            IsEnabled="{Binding Path=CollapseAllCommand.IsEnabled}"
+                            Visibility="{Binding Path=CollapseAllCommand.IsVisible}" />
                         <MenuItem
-                            x:Name="ContextCopyKey"
                             Command="{Binding Path=CopyKeyCommand}"
                             Header="{Binding Path=CopyKeyCommand.Text}"
-                            IsEnabled="{Binding Path=CopyKeyCommand.IsEnabled}" />
+                            IsEnabled="{Binding Path=CopyKeyCommand.IsEnabled}"
+                            Visibility="{Binding Path=CopyKeyCommand.IsVisible}" />
                         <MenuItem
-                            x:Name="ContextCopyValue"
                             Command="{Binding Path=CopyValueCommand}"
                             Header="{Binding Path=CopyValueCommand.Text}"
-                            IsEnabled="{Binding Path=CopyValueCommand.IsEnabled}" />
+                            IsEnabled="{Binding Path=CopyValueCommand.IsEnabled}"
+                            Visibility="{Binding Path=CopyValueCommand.IsVisible}" />
                         <MenuItem
-                            x:Name="ContextCopyEscapedValue"
+                            Command="{Binding Path=CopyPrettyValueCommand}"
+                            Header="{Binding Path=CopyPrettyValueCommand.Text}"
+                            IsEnabled="{Binding Path=CopyPrettyValueCommand.IsEnabled}"
+                            Visibility="{Binding Path=CopyPrettyValueCommand.IsVisible}" />
+                        <MenuItem
                             Command="{Binding Path=CopyEscapedValueCommand}"
                             Header="{Binding Path=CopyEscapedValueCommand.Text}"
-                            IsEnabled="{Binding Path=CopyEscapedValueCommand.IsEnabled}" />
+                            IsEnabled="{Binding Path=CopyEscapedValueCommand.IsEnabled}"
+                            Visibility="{Binding Path=CopyEscapedValueCommand.IsVisible}" />
                         <MenuItem
-                            x:Name="ContextTreatAsJson"
                             Command="{Binding Path=TreatAsJsonCommand}"
                             Header="{Binding Path=TreatAsJsonCommand.Text}"
                             Visibility="{Binding Path=TreatAsJsonCommand.IsVisible}" />
                         <MenuItem
-                            x:Name="ContextTreatAsText"
                             Command="{Binding Path=TreatAsTextCommand}"
                             Header="{Binding Path=TreatAsTextCommand.Text}"
                             Visibility="{Binding Path=TreatAsTextCommand.IsVisible}" />
