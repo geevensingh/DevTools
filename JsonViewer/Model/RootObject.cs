@@ -19,21 +19,24 @@
 
         public static async Task<RootObject> Create(string jsonString)
         {
-            return await Task.Run(
-                () =>
-                {
-                    System.Web.Script.Serialization.JavaScriptSerializer ser = new System.Web.Script.Serialization.JavaScriptSerializer();
-                    Dictionary<string, object> jsonObj = JsonObjectFactory.TryDeserialize(jsonString);
-                    if (jsonObj == null)
+            using (new WaitCursor())
+            {
+                return await Task.Run(
+                    () =>
                     {
-                        return null;
-                    }
+                        System.Web.Script.Serialization.JavaScriptSerializer ser = new System.Web.Script.Serialization.JavaScriptSerializer();
+                        Dictionary<string, object> jsonObj = JsonObjectFactory.TryDeserialize(jsonString);
+                        if (jsonObj == null)
+                        {
+                            return null;
+                        }
 
-                    RootObject root = new RootObject();
-                    var jsonObjects = new List<JsonObject>();
-                    JsonObjectFactory.Flatten(ref jsonObjects, jsonObj, root);
-                    return root;
-                });
+                        RootObject root = new RootObject();
+                        var jsonObjects = new List<JsonObject>();
+                        JsonObjectFactory.Flatten(ref jsonObjects, jsonObj, root);
+                        return root;
+                    });
+            }
         }
 
         public override void AddChildren(IList<JsonObject> children)
@@ -59,7 +62,7 @@
                 ConfigRule rule = jsonObj.Rules.FirstOrDefault(x => x.ExpandChildren != null);
                 if (rule != null)
                 {
-                    tree.ExpandSubtree(jsonObj.ViewObject, rule.ExpandChildren.Value).Forget();
+                    tree.ExpandSubtree(jsonObj.ViewObject, rule.ExpandChildren.Value);
                 }
             }
         }

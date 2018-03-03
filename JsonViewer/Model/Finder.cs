@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
+    using System.Threading.Tasks;
     using System.Windows.Threading;
     using Utilities;
 
@@ -163,14 +164,14 @@
                 Debug.Assert(hits.Count + misses.Count == _rootObject.AllChildren.Count + 1);
             }
 
-            Action<Guid> updateAction = new Action<Guid>(async (actionId) =>
+            Func<Guid, Task<bool>> updateAction = new Func<Guid, Task<bool>>(async (actionId) =>
             {
                 foreach (JsonObject obj in misses)
                 {
                     obj.IsFindMatch = false;
                     if (!await _action.YieldAndContinue(actionId))
                     {
-                        return;
+                        return false;
                     }
                 }
 
@@ -179,9 +180,10 @@
                     obj.IsFindMatch = true;
                     if (!await _action.YieldAndContinue(actionId))
                     {
-                        return;
+                        return false;
                     }
                 }
+                return true;
             });
 
             _action.BeginInvoke(DispatcherPriority.Background, updateAction);

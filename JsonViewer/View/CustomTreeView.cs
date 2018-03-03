@@ -13,9 +13,12 @@
     {
         private TreeViewData _selected = null;
         private int? _selectedIndex = null;
+        private SingularAction _action;
 
         public CustomTreeView()
         {
+            _action = new SingularAction(this.Dispatcher);
+            _action.PropertyChanged += OnActionPropertyChanged;
             CommandBinding copyCommandBinding = new CommandBinding
             {
                 Command = ApplicationCommands.Copy
@@ -29,7 +32,7 @@
 
         public int? SelectedIndex { get => _selectedIndex; }
 
-        public bool IsWaiting { get => WaitCursor.IsWaiting; }
+        public bool IsWaiting { get => _action.IsRunning; }
 
         public void ExpandAll()
         {
@@ -38,50 +41,37 @@
 
         public void ExpandAll(int depth)
         {
-            foreach (TreeViewData child in this.Items)
+            Func<Guid, Task<bool>> action = new Func<Guid, Task<bool>>(async (actionId) =>
             {
-                this.ExpandSubtree(child, depth).Forget();
-            }
-        }
-
-        public async Task ExpandSubtree(TreeViewData data, int depth)
-        {
-            if (!data.HasChildren || depth <= 0)
-            {
-                return;
-            }
-
-            using (new WaitCursor())
-            {
-                NotifyPropertyChanged.FirePropertyChanged("IsWaiting", this, this.PropertyChanged);
-
-                TreeViewItem item = GetItem(data);
-                Debug.Assert(item != null, "Did you try to collapse the tree while expanding it?");
-                if (item == null)
+                using (new WaitCursor())
                 {
-                    return;
-                }
-
-                await this.Dispatcher.BeginInvoke(
-                    new Action(() =>
+                    foreach (TreeViewData child in this.Items)
                     {
-                        item.IsExpanded = true;
-                        if (depth > 0)
+                        if (!await this.ExpandSubtree(child, depth, actionId) || !await _action.YieldAndContinue(actionId))
                         {
-                            item.UpdateLayout();
+                            return false;
                         }
-                    }), System.Windows.Threading.DispatcherPriority.Background).Task;
-
-                if (depth > 0)
-                {
-                    foreach (TreeViewData child in data.Children)
-                    {
-                        await this.ExpandSubtree(child, depth - 1);
                     }
                 }
-            }
 
-            NotifyPropertyChanged.FirePropertyChanged("IsWaiting", this, this.PropertyChanged);
+                return true;
+            });
+            _action.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, action);
+        }
+
+        public void ExpandSubtree(TreeViewData data, int depth)
+        {
+            Func<Guid, Task<bool>> action = new Func<Guid, Task<bool>>(async (actionId) =>
+            {
+                bool result = false;
+                using (new WaitCursor())
+                {
+                    result = await this.ExpandSubtree(data, depth, actionId);
+                }
+
+                return result;
+            });
+            _action.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, action);
         }
 
         public void CollapseSubtree(TreeViewData data)
@@ -195,16 +185,57 @@
             NotifyPropertyChanged.SetValue(ref _selectedIndex, newSelectedIndex, "SelectedIndex", this, this.PropertyChanged);
         }
 
+        private async Task<bool> ExpandSubtree(TreeViewData data, int depth, Guid actionId)
+        {
+            if (!data.HasChildren || depth <= 0)
+            {
+                return true;
+            }
+
+            TreeViewItem item = GetItem(data);
+            Debug.Assert(item != null, "Did you try to collapse the tree while expanding it?");
+            if (item == null)
+            {
+                return true;
+            }
+
+            item.IsExpanded = true;
+            if (depth > 0)
+            {
+                item.UpdateLayout();
+
+                foreach (TreeViewData child in data.Children)
+                {
+                    await this.ExpandSubtree(child, depth - 1, actionId);
+                    if (!await _action.YieldAndContinue(actionId))
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        private void OnActionPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == "IsRunning")
+            {
+                NotifyPropertyChanged.FirePropertyChanged("IsWaiting", this, this.PropertyChanged);
+            }
+        }
+
         private void OnCopyCommandCanExecute(object sender, CanExecuteRoutedEventArgs e)
         {
             Debug.Assert(sender == this);
-            e.CanExecute = this.SelectedItem as TreeViewData != null;
+            bool? canExecute = (this.SelectedItem as TreeViewData)?.CopyValueCommand?.CanExecute(null);
+            e.CanExecute = canExecute.HasValue && canExecute.Value;
         }
 
         private void OnCopyCommandExecuted(object sender, ExecutedRoutedEventArgs e)
         {
             Debug.Assert(sender == this);
-            Clipboard.SetDataObject((this.SelectedItem as TreeViewData)?.Value);
+            (this.SelectedItem as TreeViewData)?.CopyValueCommand?.Execute(null);
         }
 
         private ItemContainerGenerator GetItemContainerGenerator(TreeViewData data)
