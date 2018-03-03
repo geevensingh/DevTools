@@ -7,6 +7,7 @@
     using JsonViewer.Commands;
     using JsonViewer.Commands.PerWindow;
     using JsonViewer.View;
+    using Utilities;
 
     /// <summary>
     /// Interaction logic for MainWindowToolbar.xaml

@@ -3,6 +3,7 @@
     using System;
     using System.Windows;
     using System.Windows.Input;
+    using Utilities;
 
     public class BaseCommand : NotifyPropertyChanged, ICommand
     {

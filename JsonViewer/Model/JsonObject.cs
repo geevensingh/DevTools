@@ -6,6 +6,7 @@
     using System.Linq;
     using System.Text;
     using JsonViewer.View;
+    using Utilities;
 
     public class JsonObject : NotifyPropertyChanged
     {

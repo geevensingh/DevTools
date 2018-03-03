@@ -4,9 +4,9 @@
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
     using System.Diagnostics;
-    using System.Windows;
     using System.Windows.Media;
     using JsonViewer.Commands.PerItem;
+    using Utilities;
 
     internal class TreeViewData : NotifyPropertyChanged
     {

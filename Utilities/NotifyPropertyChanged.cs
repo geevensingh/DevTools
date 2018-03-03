@@ -1,4 +1,4 @@
-﻿namespace JsonViewer
+﻿namespace Utilities
 {
     using System.ComponentModel;
 

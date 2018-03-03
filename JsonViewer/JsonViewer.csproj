@@ -143,7 +143,6 @@
     </Compile>
     <Compile Include="Model\JsonObject.cs" />
     <Compile Include="Model\JsonObjectFactory.cs" />
-    <Compile Include="NotifyPropertyChanged.cs" />
     <Compile Include="Model\RootObject.cs" />
     <Compile Include="View\StatusBar.xaml.cs">
       <DependentUpon>StatusBar.xaml</DependentUpon>
