@@ -66,6 +66,10 @@
                 {
                     _valueString = "null";
                 }
+                else if (_value is bool)
+                {
+                    _valueString = _value.ToString().ToLower();
+                }
                 else
                 {
                     _valueString = _value.ToString();
