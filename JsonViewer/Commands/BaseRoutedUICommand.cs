@@ -4,11 +4,10 @@
 
     public class BaseRoutedUICommand : RoutedUICommand
     {
-        public BaseRoutedUICommand(BaseCommand baseCommand, KeyGesture keyGesture)
+        public BaseRoutedUICommand(BaseCommand baseCommand)
         {
             this.BaseCommand = baseCommand;
             this.Text = baseCommand.Text;
-            this.InputGestures.Add(keyGesture);
         }
 
         public BaseCommand BaseCommand { get; private set; }

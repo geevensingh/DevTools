@@ -19,6 +19,9 @@
         {
             _text = text;
             _canExecute = canExecute;
+
+            this.RoutedUICommand = new BaseRoutedUICommand(this);
+            this.CommandBinding = new BaseCommandBinding(this.RoutedUICommand);
         }
 
         public event EventHandler CanExecuteChanged;
@@ -45,15 +48,7 @@
 
         protected void AddKeyGesture(KeyGesture keyGesture)
         {
-            if (this.RoutedUICommand == null)
-            {
-                this.RoutedUICommand = new BaseRoutedUICommand(this, keyGesture);
-                this.CommandBinding = new BaseCommandBinding(this.RoutedUICommand);
-            }
-            else
-            {
-                this.RoutedUICommand.InputGestures.Add(keyGesture);
-            }
+            this.RoutedUICommand.InputGestures.Add(keyGesture);
         }
 
         protected void SetCanExecute(bool canExecute)
