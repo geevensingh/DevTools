@@ -18,10 +18,12 @@
         private FindWindow _findWindow = null;
         private int _hitCount = 0;
         private List<JsonObject> _hits = new List<JsonObject>();
+        private Utilities.SingularAction _action = null;
 
         public Finder(MainWindow parentWindow)
         {
             _parentWindow = parentWindow;
+            _action = new Utilities.SingularAction(_parentWindow.Dispatcher);
         }
 
         public bool ShouldSearchKeys
@@ -151,9 +153,6 @@
             }
         }
 
-        private DispatcherOperation _op = null;
-        private Guid _actionId = Guid.NewGuid();
-
         private void Update()
         {
             List<JsonObject> hits = new List<JsonObject>();
@@ -164,19 +163,12 @@
                 Debug.Assert(hits.Count + misses.Count == _rootObject.AllChildren.Count + 1);
             }
 
-            string text = _text;
-            Guid actionId = Guid.NewGuid();
-            Action updateAction = new Action(async () =>
+            Action<Guid> updateAction = new Action<Guid>(async (actionId) =>
             {
-                Debug.WriteLine("Text: " + text);
-                Debug.WriteLine("Hits: " + hits.Count);
-                Debug.WriteLine("Misses: " + misses.Count);
-
                 foreach (JsonObject obj in misses)
                 {
                     obj.IsFindMatch = false;
-                    await Dispatcher.Yield();
-                    if (_actionId != actionId)
+                    if (!await _action.YieldAndContinue(actionId))
                     {
                         return;
                     }
@@ -185,35 +177,14 @@
                 foreach (JsonObject obj in hits)
                 {
                     obj.IsFindMatch = true;
-                    await Dispatcher.Yield();
-                    if (_actionId != actionId)
+                    if (!await _action.YieldAndContinue(actionId))
                     {
                         return;
                     }
                 }
             });
 
-            if (_op != null)
-            {
-                bool inProgress = !_op.Abort();
-                if (inProgress)
-                {
-                    _op.Wait();
-                    Debug.Assert(_op.Status == DispatcherOperationStatus.Completed);
-                }
-                else
-                {
-                    Debug.Assert(_op.Status == DispatcherOperationStatus.Aborted);
-                }
-
-                Debug.Assert(_op.Status != DispatcherOperationStatus.Executing);
-                Debug.Assert(_op.Status != DispatcherOperationStatus.Pending);
-
-                _op = null;
-            }
-
-            _actionId = actionId;
-            _op = _parentWindow.Dispatcher.BeginInvoke(DispatcherPriority.Background, updateAction);
+            _action.BeginInvoke(DispatcherPriority.Background, updateAction);
 
             if (this.SetValue(ref _hitCount, hits.Count, "HitCount"))
             {
