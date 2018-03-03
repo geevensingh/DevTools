@@ -1,8 +1,10 @@
 ﻿namespace JsonViewer
 {
+    using System;
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Windows;
+    using System.Windows.Threading;
 
     public class Finder : NotifyPropertyChanged
     {
@@ -149,13 +151,69 @@
             }
         }
 
+        private DispatcherOperation _op = null;
+        private Guid _actionId = Guid.NewGuid();
+
         private void Update()
         {
             List<JsonObject> hits = new List<JsonObject>();
+            List<JsonObject> misses = new List<JsonObject>();
             if (_rootObject != null)
             {
-                Highlight(_rootObject, ref hits);
+                Highlight(_rootObject, ref hits, ref misses);
+                Debug.Assert(hits.Count + misses.Count == _rootObject.AllChildren.Count + 1);
             }
+
+            string text = _text;
+            Guid actionId = Guid.NewGuid();
+            Action updateAction = new Action(async () =>
+            {
+                Debug.WriteLine("Text: " + text);
+                Debug.WriteLine("Hits: " + hits.Count);
+                Debug.WriteLine("Misses: " + misses.Count);
+
+                foreach (JsonObject obj in misses)
+                {
+                    obj.IsFindMatch = false;
+                    await Dispatcher.Yield();
+                    if (_actionId != actionId)
+                    {
+                        return;
+                    }
+                }
+
+                foreach (JsonObject obj in hits)
+                {
+                    obj.IsFindMatch = true;
+                    await Dispatcher.Yield();
+                    if (_actionId != actionId)
+                    {
+                        return;
+                    }
+                }
+            });
+
+            if (_op != null)
+            {
+                bool inProgress = !_op.Abort();
+                if (inProgress)
+                {
+                    _op.Wait();
+                    Debug.Assert(_op.Status == DispatcherOperationStatus.Completed);
+                }
+                else
+                {
+                    Debug.Assert(_op.Status == DispatcherOperationStatus.Aborted);
+                }
+
+                Debug.Assert(_op.Status != DispatcherOperationStatus.Executing);
+                Debug.Assert(_op.Status != DispatcherOperationStatus.Pending);
+
+                _op = null;
+            }
+
+            _actionId = actionId;
+            _op = _parentWindow.Dispatcher.BeginInvoke(DispatcherPriority.Background, updateAction);
 
             if (this.SetValue(ref _hitCount, hits.Count, "HitCount"))
             {
@@ -176,7 +234,7 @@
             }
         }
 
-        private void Highlight(JsonObject obj, ref List<JsonObject> hits)
+        private void Highlight(JsonObject obj, ref List<JsonObject> hits, ref List<JsonObject> misses)
         {
             bool found = false;
             if (!string.IsNullOrEmpty(_text))
@@ -195,17 +253,16 @@
             {
                 hits.Add(obj);
             }
-
-            if (obj.IsFindMatch != found)
+            else
             {
-                obj.IsFindMatch = found;
+                misses.Add(obj);
             }
 
             if (obj.HasChildren)
             {
                 foreach (JsonObject child in obj.Children)
                 {
-                    this.Highlight(child, ref hits);
+                    this.Highlight(child, ref hits, ref misses);
                 }
             }
         }
