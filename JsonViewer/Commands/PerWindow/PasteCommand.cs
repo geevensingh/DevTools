@@ -2,12 +2,10 @@
 {
     using System;
     using System.Diagnostics;
-    using System.Windows;
     using JsonViewer.Model;
 
     public class PasteCommand : BaseCommand
     {
-        private ClipboardManager _clipboardManager;
         private MainWindow _mainWindow;
 
         public PasteCommand(MainWindow mainWindow)
@@ -15,8 +13,7 @@
         {
             _mainWindow = mainWindow;
             _mainWindow.Raw_TextBox.TextChanged += OnRawTextBoxChanged;
-            _clipboardManager = new ClipboardManager(mainWindow);
-            _clipboardManager.ClipboardChanged += OnClipboardChanged;
+            ClipboardManager.ClipboardChanged += OnClipboardChanged;
             this.Update();
         }
 

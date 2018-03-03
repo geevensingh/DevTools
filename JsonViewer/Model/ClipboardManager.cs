@@ -1,6 +1,7 @@
 ﻿namespace JsonViewer.Model
 {
     using System;
+    using System.Diagnostics;
     using System.Windows;
     using System.Windows.Interop;
 
@@ -8,8 +9,15 @@
     {
         private static readonly IntPtr WndProcSuccess = IntPtr.Zero;
 
-        public ClipboardManager(Window windowSource)
+        private static ClipboardManager _this;
+
+        private static EventHandler _clipboardChanged;
+
+        private ClipboardManager()
         {
+            Window windowSource = App.Current.MainWindow;
+            Debug.Assert(windowSource != null);
+
             HwndSource source = PresentationSource.FromVisual(windowSource) as HwndSource;
             if (source == null)
             {
@@ -27,7 +35,23 @@
             NativeMethods.AddClipboardFormatListener(windowHandle);
         }
 
-        public event EventHandler ClipboardChanged;
+        public static event EventHandler ClipboardChanged
+        {
+            add
+            {
+                if (_this == null)
+                {
+                    _this = new ClipboardManager();
+                }
+
+                _clipboardChanged += value;
+            }
+
+            remove
+            {
+                _clipboardChanged -= value;
+            }
+        }
 
         public static string TryGetText()
         {
@@ -42,16 +66,11 @@
             return string.Empty;
         }
 
-        private void OnClipboardChanged()
-        {
-            ClipboardChanged?.Invoke(this, EventArgs.Empty);
-        }
-
         private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
             if (msg == NativeMethods.WM_CLIPBOARDUPDATE)
             {
-                OnClipboardChanged();
+                _clipboardChanged?.Invoke(null, EventArgs.Empty);
                 handled = true;
             }
 
