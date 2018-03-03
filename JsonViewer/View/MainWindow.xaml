@@ -135,6 +135,12 @@
                     Header="Highlight parents"
                     IsCheckable="True"
                     IsChecked="{Binding ElementName=Toolbar, Path=HighlightParentsToggleCommand.IsChecked, Mode=OneWay}" />
+                <Separator />
+                <MenuItem
+                    Command="{Binding ElementName=Toolbar, Path=AutoPasteToggleCommand.RoutedUICommand}"
+                    Header="{Binding ElementName=Toolbar, Path=AutoPasteToggleCommand.Text}"
+                    IsCheckable="True"
+                    IsChecked="{Binding ElementName=Toolbar, Path=AutoPasteToggleCommand.IsChecked, Mode=OneWay}" />
             </MenuItem>
             <MenuItem x:Name="ExpandToMenuItem" Header="_Expand to" />
         </Menu>
