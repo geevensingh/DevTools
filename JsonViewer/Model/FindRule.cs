@@ -25,7 +25,6 @@
             PartialValues = values;
             ForegroundBrush = Config.This.GetBrush(ConfigValue.TreeViewSearchResultForeground);
             BackgroundBrush = Config.This.GetBrush(ConfigValue.TreeViewSearchResultBackground);
-            FontSize = 18;
             IgnoreCase = ignoreCase;
             AppliesToParents = appliesToParents;
         }

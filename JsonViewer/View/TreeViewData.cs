@@ -238,7 +238,7 @@
                     this.FirePropertyChanged("AllChildren");
                     break;
                 case "FindRule":
-                    this.FirePropertyChanged(new string[] { "TextColor", "FontSize", "BackgroundColor" });
+                    this.FirePropertyChanged(new string[] { "TextColor", "BackgroundColor" });
                     break;
                 default:
                     Debug.Assert(false, "Unknown property change");
