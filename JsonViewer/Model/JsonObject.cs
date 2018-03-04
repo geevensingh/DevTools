@@ -176,10 +176,7 @@
                 FindRule oldRule = _findRule;
                 FindRule newRule = value;
 
-                if (newRule != null && !newRule.Matches(this))
-                {
-                    newRule = null;
-                }
+                Debug.Assert(newRule == null || newRule.Matches(this));
 
                 if (oldRule == null && newRule == null)
                 {
@@ -206,7 +203,7 @@
                     _rules.Add(newRule);
                 }
 
-                this.FirePropertyChanged("FindRule");
+                App.Current.MainWindow.Dispatcher.BeginInvoke(new Action(() => { this.FirePropertyChanged("FindRule"); }), System.Windows.Threading.DispatcherPriority.Background);
             }
         }
 
