@@ -34,7 +34,7 @@
     {
       "keyIs": [ "events" ],
       "expandChildren": 2,
-      "ignoreCase":  false
+      "ignoreCase": false
     },
     {
       "keyContains": [ "account" ],

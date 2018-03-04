@@ -143,7 +143,7 @@
 
         public int OverallIndex { get => this.Root.AllChildren.IndexOf(this); }
 
-        public virtual IList<JsonObject> Children { get => _children; }
+        public IList<JsonObject> Children { get => _children; }
 
         public bool HasChildren { get => this.Children.Count > 0; }
 
@@ -237,46 +237,6 @@
 
                 this.FirePropertyChanged("FindRule");
             }
-        }
-
-        public string GetValueTypeString(bool includeChildCount)
-        {
-            object value = this.TypedValue;
-            if (value == null)
-            {
-                return "null";
-            }
-
-            string type;
-            switch (this.Type)
-            {
-                case JsonObject.DataType.Array:
-                    type = "array[" + (value as System.Collections.ArrayList).Count + "]";
-                    break;
-                case JsonObject.DataType.Json:
-                    type = "json-object{" + (value as Dictionary<string, object>).Keys.Count + "}";
-                    break;
-                case JsonObject.DataType.ParsableString:
-                    type = "parse-able-string";
-                    break;
-                default:
-                    type = Utilities.StringHelper.TrimStart(value.GetType().ToString(), "System.");
-                    break;
-            }
-
-            Debug.Assert(!string.IsNullOrEmpty(type));
-
-            if (includeChildCount && this.HasChildren)
-            {
-                int childCount = this.Children.Count;
-                int totalChildCount = this.TotalChildCount;
-                if (childCount != totalChildCount)
-                {
-                    type += " (tree: " + totalChildCount + ")";
-                }
-            }
-
-            return type;
         }
 
         public virtual void SetChildren(IList<JsonObject> children)
@@ -416,6 +376,46 @@
             }
 
             return str;
+        }
+
+        private string GetValueTypeString(bool includeChildCount)
+        {
+            object value = this.TypedValue;
+            if (value == null)
+            {
+                return "null";
+            }
+
+            string type;
+            switch (this.Type)
+            {
+                case JsonObject.DataType.Array:
+                    type = "array[" + (value as System.Collections.ArrayList).Count + "]";
+                    break;
+                case JsonObject.DataType.Json:
+                    type = "json-object{" + (value as Dictionary<string, object>).Keys.Count + "}";
+                    break;
+                case JsonObject.DataType.ParsableString:
+                    type = "parse-able-string";
+                    break;
+                default:
+                    type = Utilities.StringHelper.TrimStart(value.GetType().ToString(), "System.");
+                    break;
+            }
+
+            Debug.Assert(!string.IsNullOrEmpty(type));
+
+            if (includeChildCount && this.HasChildren)
+            {
+                int childCount = this.Children.Count;
+                int totalChildCount = this.TotalChildCount;
+                if (childCount != totalChildCount)
+                {
+                    type += " (tree: " + totalChildCount + ")";
+                }
+            }
+
+            return type;
         }
 
         private string GetPrettyKeySting(int depth)

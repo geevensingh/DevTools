@@ -105,7 +105,7 @@
             return false;
         }
 
-        private string NormalizeString(string str)
+        public string NormalizeString(string str)
         {
             if (this.IgnoreCase)
             {
