@@ -209,7 +209,8 @@
                     searchKeys: this.ShouldSearchKeys,
                     searchValues: this.ShouldSearchValues,
                     searchValueTypes: this.ShouldSearchValueTypes,
-                    appliesToParents: this.ShouldSearchParentValues);
+                    appliesToParents: this.ShouldSearchParentValues,
+                    exactMatch: false);
 
                 foreach (JsonObject obj in _rootObject.AllChildren)
                 {

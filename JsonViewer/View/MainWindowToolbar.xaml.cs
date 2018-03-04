@@ -23,6 +23,8 @@
         private HideFindCommand _hideFindCommand = null;
         private OpenJsonFileCommand _openJsonFileCommand = null;
         private HighlightParentsToggleCommand _highlightParentsToggleCommand = null;
+        private HighlightSimilarKeysToggleCommand _highlightSimilarKeysToggleCommand = null;
+        private HighlightSimilarValuesToggleCommand _highlightSimilarValuesToggleCommand = null;
         private ExpandAllCommand _expandAllCommand = null;
         private CollapseAllCommand _collapseAllCommand = null;
         private ShowToolbarTextToggleCommand _showToolbarTextToggleCommand = null;
@@ -41,7 +43,7 @@
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        public BaseCommand[] AllCommands { get => new BaseCommand[] { _newWindowCommand, _pickConfigCommand, _reloadCommand, _hideFindCommand, _openJsonFileCommand, _highlightParentsToggleCommand, _expandAllCommand, _collapseAllCommand, _showToolbarTextToggleCommand, _showToolbarIconToggleCommand, _findNextCommand, _findPreviousCommand, _pasteCommand, _autoPasteToggleCommand }; }
+        public BaseCommand[] AllCommands { get => new BaseCommand[] { _newWindowCommand, _pickConfigCommand, _reloadCommand, _hideFindCommand, _openJsonFileCommand, _highlightParentsToggleCommand, _highlightSimilarKeysToggleCommand, _highlightSimilarValuesToggleCommand, _expandAllCommand, _collapseAllCommand, _showToolbarTextToggleCommand, _showToolbarIconToggleCommand, _findNextCommand, _findPreviousCommand, _pasteCommand, _autoPasteToggleCommand }; }
 
         public NewWindowCommand NewWindowCommand { get => _newWindowCommand; }
 
@@ -54,6 +56,10 @@
         public OpenJsonFileCommand OpenJsonFileCommand { get => _openJsonFileCommand; }
 
         public HighlightParentsToggleCommand HighlightParentsToggleCommand { get => _highlightParentsToggleCommand; }
+
+        public HighlightSimilarKeysToggleCommand HighlightSimilarKeysToggleCommand { get => _highlightSimilarKeysToggleCommand; }
+
+        public HighlightSimilarValuesToggleCommand HighlightSimilarValuesToggleCommand { get => _highlightSimilarValuesToggleCommand; }
 
         public ExpandAllCommand ExpandAllCommand { get => _expandAllCommand; }
 
@@ -105,6 +111,8 @@
             NotifyPropertyChanged.SetValue(ref _hideFindCommand, new HideFindCommand(_mainWindow), "HideFindCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _openJsonFileCommand, new OpenJsonFileCommand(_mainWindow), "OpenJsonFileCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _highlightParentsToggleCommand, new HighlightParentsToggleCommand(), "HighlightParentsToggleCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _highlightSimilarKeysToggleCommand, new HighlightSimilarKeysToggleCommand(), "HighlightSimilarKeysToggleCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _highlightSimilarValuesToggleCommand, new HighlightSimilarValuesToggleCommand(), "HighlightSimilarValuesToggleCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _expandAllCommand, new ExpandAllCommand(_mainWindow), "ExpandAllCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _collapseAllCommand, new CollapseAllCommand(_mainWindow), "CollapseAllCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _showToolbarTextToggleCommand, new ShowToolbarTextToggleCommand(), "ShowToolbarTextToggleCommand", this, this.PropertyChanged);

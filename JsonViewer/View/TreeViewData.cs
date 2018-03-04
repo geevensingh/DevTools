@@ -75,7 +75,7 @@
             {
                 if (this._isSelected)
                 {
-                    return Config.This.GetBrush(ConfigValue.TreeViewHighlightTextBrushKey);
+                    return Config.This.GetBrush(ConfigValue.TreeViewSelectedForeground);
                 }
 
                 return Config.This.GetForegroundColor(_jsonObject);
@@ -88,7 +88,7 @@
             {
                 if (this._isSelected)
                 {
-                    return Config.This.GetBrush(ConfigValue.TreeViewHighlightBrushKey);
+                    return Config.This.GetBrush(ConfigValue.TreeViewSelectedBackground);
                 }
 
                 if (_isChildSelected && Properties.Settings.Default.HighlightSelectedParents)

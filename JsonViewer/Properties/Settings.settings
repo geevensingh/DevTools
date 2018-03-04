@@ -20,37 +20,6 @@
     <Setting Name="ConfigPath" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
-    <Setting Name="DefaultConfigJson" Type="System.String" Scope="User">
-      <Value Profile="(Default)">{
-  "treeViewForeground": "DarkGray",
-  "treeViewHighlightBrushKey": "LightYellow",
-  "treeViewHighlightTextBrushKey": "Black",
-  "treeViewInactiveSelectionHighlightBrushKey": "LightYellow",
-  "treeViewInactiveSelectionHighlightTextBrushKey": "Black",
-  "treeViewFontSize": 12,
-  "treeViewSearchResultForeground": "blue",
-  "treeViewSearchResultBackground": "LightGreen",
-  "treeViewHighlights": [
-    {
-      "valueContains": [ "failure", "failed", "error" ],
-      "color": "red",
-      "fontSize": 16,
-      "appliesToParents":  true
-    },
-    {
-      "valueContains": [ "success", "succeeded", "passed" ],
-      "color": "green",
-      "fontSize": 16,
-      "appliesToParents": true
-    },
-    {
-      "valueContains": [ "pending", "warning" ],
-      "color": "DarkOrange",
-      "appliesToParents": true
-    }
-  ]
-}</Value>
-    </Setting>
     <Setting Name="HighlightSelectedParents" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>
@@ -68,6 +37,44 @@
     </Setting>
     <Setting Name="FindSearchValueTypes" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="HighlightSimilarKeys" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="HighlightSimilarValues" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="DefaultConfigJson" Type="System.String" Scope="User">
+      <Value Profile="(Default)">
+                  {
+                  "treeViewForeground": "DarkGray",
+                  "treeViewSelectedBackground": "LightYellow",
+                  "treeViewSelectedForeground": "Black",
+                  "treeViewInactiveSelectionHighlightBrushKey": "LightYellow",
+                  "treeViewInactiveSelectionHighlightTextBrushKey": "Black",
+                  "treeViewFontSize": 12,
+                  "treeViewSearchResultForeground": "blue",
+                  "treeViewSearchResultBackground": "LightGreen",
+                  "treeViewHighlights": [
+                  {
+                  "valueContains": [ "failure", "failed", "error" ],
+                  "color": "red",
+                  "fontSize": 16,
+                  "appliesToParents":  true
+                  },
+                  {
+                  "valueContains": [ "success", "succeeded", "passed" ],
+                  "color": "green",
+                  "fontSize": 16,
+                  "appliesToParents": true
+                  },
+                  {
+                  "valueContains": [ "pending", "warning" ],
+                  "color": "DarkOrange",
+                  "appliesToParents": true
+                  }
+                  ]
+                  }</Value>
     </Setting>
   </Settings>
 </SettingsFile>

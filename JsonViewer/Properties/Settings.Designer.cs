@@ -97,46 +97,6 @@ namespace JsonViewer.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute(@"{
-  ""treeViewForeground"": ""DarkGray"",
-  ""treeViewHighlightBrushKey"": ""LightYellow"",
-  ""treeViewHighlightTextBrushKey"": ""Black"",
-  ""treeViewInactiveSelectionHighlightBrushKey"": ""LightYellow"",
-  ""treeViewInactiveSelectionHighlightTextBrushKey"": ""Black"",
-  ""treeViewFontSize"": 12,
-  ""treeViewSearchResultForeground"": ""blue"",
-  ""treeViewSearchResultBackground"": ""LightGreen"",
-  ""treeViewHighlights"": [
-    {
-      ""valueContains"": [ ""failure"", ""failed"", ""error"" ],
-      ""color"": ""red"",
-      ""fontSize"": 16,
-      ""appliesToParents"":  true
-    },
-    {
-      ""valueContains"": [ ""success"", ""succeeded"", ""passed"" ],
-      ""color"": ""green"",
-      ""fontSize"": 16,
-      ""appliesToParents"": true
-    },
-    {
-      ""valueContains"": [ ""pending"", ""warning"" ],
-      ""color"": ""DarkOrange"",
-      ""appliesToParents"": true
-    }
-  ]
-}")]
-        public string DefaultConfigJson {
-            get {
-                return ((string)(this["DefaultConfigJson"]));
-            }
-            set {
-                this["DefaultConfigJson"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
         public bool HighlightSelectedParents {
             get {
@@ -204,6 +164,71 @@ namespace JsonViewer.Properties {
             }
             set {
                 this["FindSearchValueTypes"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool HighlightSimilarKeys {
+            get {
+                return ((bool)(this["HighlightSimilarKeys"]));
+            }
+            set {
+                this["HighlightSimilarKeys"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool HighlightSimilarValues {
+            get {
+                return ((bool)(this["HighlightSimilarValues"]));
+            }
+            set {
+                this["HighlightSimilarValues"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute(@"
+                  {
+                  ""treeViewForeground"": ""DarkGray"",
+                  ""treeViewSelectedBackground"": ""LightYellow"",
+                  ""treeViewSelectedForeground"": ""Black"",
+                  ""treeViewInactiveSelectionHighlightBrushKey"": ""LightYellow"",
+                  ""treeViewInactiveSelectionHighlightTextBrushKey"": ""Black"",
+                  ""treeViewFontSize"": 12,
+                  ""treeViewSearchResultForeground"": ""blue"",
+                  ""treeViewSearchResultBackground"": ""LightGreen"",
+                  ""treeViewHighlights"": [
+                  {
+                  ""valueContains"": [ ""failure"", ""failed"", ""error"" ],
+                  ""color"": ""red"",
+                  ""fontSize"": 16,
+                  ""appliesToParents"":  true
+                  },
+                  {
+                  ""valueContains"": [ ""success"", ""succeeded"", ""passed"" ],
+                  ""color"": ""green"",
+                  ""fontSize"": 16,
+                  ""appliesToParents"": true
+                  },
+                  {
+                  ""valueContains"": [ ""pending"", ""warning"" ],
+                  ""color"": ""DarkOrange"",
+                  ""appliesToParents"": true
+                  }
+                  ]
+                  }")]
+        public string DefaultConfigJson {
+            get {
+                return ((string)(this["DefaultConfigJson"]));
+            }
+            set {
+                this["DefaultConfigJson"] = value;
             }
         }
     }

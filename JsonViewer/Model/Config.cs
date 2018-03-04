@@ -13,12 +13,14 @@
     {
         TreeViewForeground,
         TreeViewBackground,
-        TreeViewHighlightBrushKey,
-        TreeViewHighlightTextBrushKey,
+        TreeViewSelectedBackground,
+        TreeViewSelectedForeground,
         TreeViewInactiveSelectionHighlightBrushKey,
         TreeViewInactiveSelectionHighlightTextBrushKey,
         TreeViewSearchResultForeground,
         TreeViewSearchResultBackground,
+        TreeViewSimilarForeground,
+        TreeViewSimilarBackground,
         TreeViewSelectedItemParent
     }
 
@@ -163,26 +165,40 @@
                         return Colors.DarkGray;
                     case ConfigValue.TreeViewBackground:
                         return Colors.Transparent;
-                    case ConfigValue.TreeViewHighlightBrushKey:
+                    case ConfigValue.TreeViewSelectedBackground:
                         return Colors.Yellow;
-                    case ConfigValue.TreeViewHighlightTextBrushKey:
+                    case ConfigValue.TreeViewSelectedForeground:
                         return Colors.Black;
                     case ConfigValue.TreeViewInactiveSelectionHighlightBrushKey:
-                        return Colors.LightYellow;
+                        return this.GetColor(ConfigValue.TreeViewSelectedBackground);
                     case ConfigValue.TreeViewInactiveSelectionHighlightTextBrushKey:
-                        return Colors.Black;
+                        return this.GetColor(ConfigValue.TreeViewSelectedForeground);
                     case ConfigValue.TreeViewSearchResultForeground:
                         return Colors.Blue;
                     case ConfigValue.TreeViewSearchResultBackground:
                         return Colors.LightGreen;
+                    case ConfigValue.TreeViewSimilarForeground:
+                        return this.GetColor(ConfigValue.TreeViewSelectedForeground);
+                    case ConfigValue.TreeViewSimilarBackground:
+                        return AdjustAlpha(this.GetColor(ConfigValue.TreeViewSelectedBackground), 0x50);
                     case ConfigValue.TreeViewSelectedItemParent:
-                        Color selectedColor = this.GetColor(ConfigValue.TreeViewHighlightBrushKey);
-                        return Color.FromArgb(0x80, selectedColor.R, selectedColor.G, selectedColor.B);
+                        return AdjustAlpha(this.GetColor(ConfigValue.TreeViewSelectedBackground), 0x50);
                     default:
                         Debug.Assert(false);
                         return Colors.Transparent;
                 }
             }
+        }
+
+        public static Color MixColor(Color one, Color two)
+        {
+            return (one * 0.5f) + (two * 0.5f);
+        }
+
+        public static Color AdjustAlpha(Color color, byte alpha)
+        {
+            Debug.Assert(color.A == 0xff);
+            return Color.FromArgb(alpha, color.R, color.G, color.B);
         }
 
         public Brush GetForegroundColor(JsonObject obj)

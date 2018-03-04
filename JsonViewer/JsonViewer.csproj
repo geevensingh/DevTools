@@ -105,6 +105,8 @@
     <Compile Include="Commands\BaseRoutedUICommand.cs" />
     <Compile Include="Commands\BaseCommand.cs" />
     <Compile Include="Commands\AutoPasteToggleCommand.cs" />
+    <Compile Include="Commands\HighlightSimilarKeysToggleCommand.cs" />
+    <Compile Include="Commands\HighlightSimilarValuesToggleCommand.cs" />
     <Compile Include="Commands\PerItem\CopyPrettyValueCommand.cs" />
     <Compile Include="Commands\PerWindow\CollapseAllCommand.cs" />
     <Compile Include="Commands\PerItem\BaseTreeViewDataCommand.cs" />
@@ -133,6 +135,7 @@
     <Compile Include="Model\ClipboardManager.cs" />
     <Compile Include="Model\FindRule.cs" />
     <Compile Include="Model\ConfigRule.cs" />
+    <Compile Include="SimilarHighlighter.cs" />
     <Compile Include="View\FindMatchNavigator.cs" />
     <Compile Include="View\MainWindowToolbar.xaml.cs">
       <DependentUpon>MainWindowToolbar.xaml</DependentUpon>

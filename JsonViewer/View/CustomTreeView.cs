@@ -143,8 +143,8 @@
 
             Config config = Config.This;
             this.Foreground = config.GetBrush(ConfigValue.TreeViewForeground);
-            this.Resources[SystemColors.HighlightBrushKey] = config.GetBrush(ConfigValue.TreeViewHighlightBrushKey);
-            this.Resources[SystemColors.HighlightTextBrushKey] = config.GetBrush(ConfigValue.TreeViewHighlightTextBrushKey);
+            this.Resources[SystemColors.HighlightBrushKey] = config.GetBrush(ConfigValue.TreeViewSelectedBackground);
+            this.Resources[SystemColors.HighlightTextBrushKey] = config.GetBrush(ConfigValue.TreeViewSelectedForeground);
             this.Resources[SystemColors.InactiveSelectionHighlightBrushKey] = config.GetBrush(ConfigValue.TreeViewInactiveSelectionHighlightBrushKey);
             this.Resources[SystemColors.InactiveSelectionHighlightTextBrushKey] = config.GetBrush(ConfigValue.TreeViewInactiveSelectionHighlightTextBrushKey);
         }

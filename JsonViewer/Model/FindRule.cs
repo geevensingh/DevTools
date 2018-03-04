@@ -1,10 +1,11 @@
 ﻿namespace JsonViewer
 {
     using System.Collections.Generic;
+    using System.Windows.Media;
 
     internal class FindRule : ConfigRule
     {
-        internal FindRule(string text, bool ignoreCase, bool searchKeys, bool searchValues, bool searchValueTypes, bool appliesToParents)
+        internal FindRule(string text, bool ignoreCase, bool searchKeys, bool searchValues, bool searchValueTypes, bool appliesToParents, bool exactMatch)
             : base()
         {
             text = ignoreCase ? text.ToLower() : text;
@@ -27,11 +28,21 @@
                 valueTypes.Add(text);
             }
 
-            PartialKeys = keys;
-            PartialValues = values;
-            PartialValueTypes = valueTypes;
-            ForegroundBrush = Config.This.GetBrush(ConfigValue.TreeViewSearchResultForeground);
-            BackgroundBrush = Config.This.GetBrush(ConfigValue.TreeViewSearchResultBackground);
+            if (exactMatch)
+            {
+                ExactKeys = keys;
+                ExactValues = values;
+                ExactValueTypes = valueTypes;
+            }
+            else
+            {
+                PartialKeys = keys;
+                PartialValues = values;
+                PartialValueTypes = valueTypes;
+            }
+
+            ForegroundBrush = Config.This.GetBrush(exactMatch ? ConfigValue.TreeViewSimilarForeground : ConfigValue.TreeViewSearchResultForeground);
+            BackgroundBrush = Config.This.GetBrush(exactMatch ? ConfigValue.TreeViewSimilarBackground : ConfigValue.TreeViewSearchResultBackground);
             IgnoreCase = ignoreCase;
             AppliesToParents = appliesToParents;
         }

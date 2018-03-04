@@ -22,6 +22,7 @@
         private DataType _dataType = DataType.Other;
         private List<ConfigRule> _rules;
         private FindRule _findRule = null;
+        private FindRule _matchRule = null;
 
         public JsonObject(string key, object value, JsonObject parent)
             : this(key, value)
@@ -229,6 +230,45 @@
                 }
 
                 _findRule = newRule;
+
+                if (newRule != null)
+                {
+                    _rules.Insert(0, newRule);
+                }
+
+                this.FirePropertyChanged("FindRule");
+            }
+        }
+
+        internal FindRule MatchRule
+        {
+            get => _matchRule;
+            set
+            {
+                FindRule oldRule = _matchRule;
+                FindRule newRule = value;
+
+                Debug.Assert(newRule == null || newRule.Matches(this));
+
+                if (oldRule == null && newRule == null)
+                {
+                    return;
+                }
+
+                if (oldRule != null && newRule != null)
+                {
+                    // Even though the old rule and the new rule are different,
+                    // let's treat them as the same and assume that they apply
+                    // the same formatting rules.
+                    return;
+                }
+
+                if (_matchRule != null)
+                {
+                    _rules.Remove(_matchRule);
+                }
+
+                _matchRule = newRule;
 
                 if (newRule != null)
                 {

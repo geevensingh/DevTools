@@ -1,10 +1,8 @@
 ﻿{
   "treeViewForeground": "DarkGray",
   "treeViewBackground": "Transparent",
-  "treeViewHighlightBrushKey": "PaleGoldenrod",
-  "treeViewHighlightTextBrushKey": "Black",
-  "treeViewInactiveSelectionHighlightBrushKey": "LightYellow",
-  "treeViewInactiveSelectionHighlightTextBrushKey": "Black",
+  "treeViewSelectedBackground": "yellow",
+  "treeViewSelectedForeground": "purple",
   "treeViewFontSize": 12,
   "treeViewSearchResultForeground": "blue",
   "treeViewSearchResultBackground": "LightGreen",

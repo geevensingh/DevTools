@@ -43,6 +43,8 @@
 
         internal ClipboardManager ClipboardManager { get; private set; }
 
+        internal SimilarHighlighter SimilarHighlighter { get; private set; }
+
         public void ShowNewWindow()
         {
             this.SaveWindowPosition();
@@ -123,6 +125,8 @@
             base.OnSourceInitialized(e);
 
             this.ClipboardManager = new ClipboardManager(this);
+
+            this.SimilarHighlighter = new SimilarHighlighter(this);
 
             this.Toolbar.PropertyChanged += OnToolbarPropertyChanged;
 

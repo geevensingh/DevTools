@@ -135,6 +135,16 @@
                     Header="Highlight parents"
                     IsCheckable="True"
                     IsChecked="{Binding ElementName=Toolbar, Path=HighlightParentsToggleCommand.IsChecked, Mode=OneWay}" />
+                <MenuItem
+                    Command="{Binding ElementName=Toolbar, Path=HighlightSimilarKeysToggleCommand.RoutedUICommand}"
+                    Header="Highlight similar keys"
+                    IsCheckable="True"
+                    IsChecked="{Binding ElementName=Toolbar, Path=HighlightSimilarKeysToggleCommand.IsChecked, Mode=OneWay}" />
+                <MenuItem
+                    Command="{Binding ElementName=Toolbar, Path=HighlightSimilarValuesToggleCommand.RoutedUICommand}"
+                    Header="Highlight similar values"
+                    IsCheckable="True"
+                    IsChecked="{Binding ElementName=Toolbar, Path=HighlightSimilarValuesToggleCommand.IsChecked, Mode=OneWay}" />
                 <Separator />
                 <MenuItem
                     Command="{Binding ElementName=Toolbar, Path=AutoPasteToggleCommand.RoutedUICommand}"
