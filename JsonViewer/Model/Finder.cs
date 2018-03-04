@@ -35,11 +35,11 @@
                 if (this.SetValue(ref _shouldSearchKeys, value, "ShouldSearchKeys"))
                 {
                     _parentWindow.RunWhenever(
-                        new Action(() =>
+                        () =>
                         {
                             Properties.Settings.Default.FindSearchKeys = value;
                             Properties.Settings.Default.Save();
-                        }));
+                        });
 
                     Update();
                 }
@@ -54,11 +54,11 @@
                 if (this.SetValue(ref _shouldSearchValues, value, "ShouldSearchValues"))
                 {
                     _parentWindow.RunWhenever(
-                        new Action(() =>
+                        () =>
                         {
                             Properties.Settings.Default.FindSearchValues = value;
                             Properties.Settings.Default.Save();
-                        }));
+                        });
 
                     Update();
                 }
@@ -73,11 +73,11 @@
                 if (this.SetValue(ref _shouldSearchParentValues, value, "ShouldSearchParentValues"))
                 {
                     _parentWindow.RunWhenever(
-                        new Action(() =>
+                        () =>
                         {
                             Properties.Settings.Default.FindSearchParentValues = value;
                             Properties.Settings.Default.Save();
-                        }));
+                        });
 
                     Update();
                 }
@@ -92,11 +92,11 @@
                 if (this.SetValue(ref _shouldIgnoreCase, value, "ShouldIgnoreCase"))
                 {
                     _parentWindow.RunWhenever(
-                        new Action(() =>
+                        () =>
                         {
                             Properties.Settings.Default.FindIgnoreCase = value;
                             Properties.Settings.Default.Save();
-                        }));
+                        });
 
                     Update();
                 }
@@ -111,11 +111,11 @@
                 if (this.SetValue(ref _text, value, "Text"))
                 {
                     _parentWindow.RunWhenever(
-                        new Action(() =>
+                        () =>
                         {
                             Properties.Settings.Default.FindText = value;
                             Properties.Settings.Default.Save();
-                        }));
+                        });
 
                     Update();
                 }
