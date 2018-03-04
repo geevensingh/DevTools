@@ -179,6 +179,7 @@
             FindRule newRule = null;
             List<JsonObject> hits = new List<JsonObject>();
             List<JsonObject> misses = new List<JsonObject>();
+            bool newHit = false;
 
             if (_rootObject != null && !string.IsNullOrEmpty(_text))
             {
@@ -195,10 +196,18 @@
                     if (matches)
                     {
                         hits.Add(obj);
+                        if (!newHit && !_hits.Contains(obj))
+                        {
+                            newHit = true;
+                        }
                     }
                     else
                     {
                         misses.Add(obj);
+                        if (!newHit && _hits.Contains(obj))
+                        {
+                            newHit = true;
+                        }
                     }
                 }
             }
@@ -207,23 +216,9 @@
                 misses = _rootObject.AllChildren;
             }
 
-            if (this.SetValue(ref _hitCount, hits.Count, "HitCount"))
+            if (this.SetValue(ref _hitCount, hits.Count, "HitCount") || newHit)
             {
-                // If the hit count changed, then certainly the hits changed.
                 this.SetValue(ref _hits, hits, "Hits");
-            }
-            else
-            {
-                // But if the hit count did NOT change, then we have to look at the lists
-                Debug.Assert(hits.Count == _hits.Count);
-                for (int ii = 0; ii < hits.Count; ii++)
-                {
-                    if (hits[ii] != _hits[ii])
-                    {
-                        this.SetValue(ref _hits, hits, "Hits");
-                        break;
-                    }
-                }
             }
 
             Func<Guid, SingularAction, Task<bool>> updateAction = new Func<Guid, SingularAction, Task<bool>>(async (actionId, action) =>
