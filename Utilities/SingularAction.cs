@@ -52,7 +52,7 @@ namespace Utilities
             _operation = operation;
             Debug.Assert(this.IsRunning);
             this.FirePropertyChanged("IsRunning");
-            _operation.Task.ContinueWith(new Action<Task>(
+            _operation.Task.ContinueWith(
                 (task) =>
                 {
                     Debug.Assert(task.IsCompleted);
@@ -60,7 +60,7 @@ namespace Utilities
                     if (operation.Status == DispatcherOperationStatus.Completed)
                     {
                         Task<bool> subTask = (Task<bool>)operation.Result;
-                        subTask.ContinueWith(new Action<Task<bool>>(
+                        subTask.ContinueWith(
                             (boolTask) =>
                             {
                                 Debug.Assert(boolTask.IsCompleted);
@@ -70,9 +70,9 @@ namespace Utilities
                                     _operation = null;
                                     _dispatcher.InvokeAsync(() => { this.FirePropertyChanged("IsRunning"); });
                                 }
-                            }));
+                            });
                     }
-                }));
+                });
         }
 
         public async Task<bool> YieldAndContinue(Guid actionId)
