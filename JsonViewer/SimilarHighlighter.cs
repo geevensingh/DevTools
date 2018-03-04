@@ -5,16 +5,21 @@
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
+    using System.Windows.Threading;
     using JsonViewer.View;
+    using Utilities;
 
     internal class SimilarHighlighter
     {
+        private SingularAction _action = null;
         private MainWindow _mainWindow;
         private RootObject _rootObject = null;
 
         public SimilarHighlighter(MainWindow mainWindow)
         {
             _mainWindow = mainWindow;
+            _action = new SingularAction(_mainWindow.Dispatcher);
+
             _mainWindow.Tree.SelectedItemChanged += OnSelectedItemChanged;
             _mainWindow.PropertyChanged += OnMainWindowPropertyChanged;
             Properties.Settings.Default.PropertyChanged += OnSettingsPropertyChanged;
@@ -112,17 +117,30 @@
                     exactMatch: true);
             }
 
-            foreach (JsonObject obj in _rootObject.AllChildren)
+            Func<Guid, SingularAction, Task<bool>> updateAction = new Func<Guid, SingularAction, Task<bool>>(async (actionId, action) =>
             {
-                obj.MatchRule = null;
-                foreach (FindRule rule in new FindRule[] { newKeyRule, newValueRule })
+                foreach (JsonObject obj in _rootObject.AllChildren)
                 {
-                    if (rule != null && rule.Matches(obj))
+                    obj.MatchRule = null;
+                    foreach (FindRule rule in new FindRule[] { newKeyRule, newValueRule })
                     {
-                        obj.MatchRule = rule;
+                        if (rule != null && rule.Matches(obj))
+                        {
+                            obj.MatchRule = rule;
+                        }
+                    }
+
+                    if (!await action.YieldAndContinue(actionId))
+                    {
+                        return false;
                     }
                 }
-            }
+
+                return true;
+            });
+
+            _action.BeginInvoke(DispatcherPriority.Background, updateAction);
+
         }
     }
 }
