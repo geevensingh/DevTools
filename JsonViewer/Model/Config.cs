@@ -21,7 +21,8 @@
         TreeViewSearchResultBackground,
         TreeViewSimilarForeground,
         TreeViewSimilarBackground,
-        TreeViewSelectedItemParent
+        TreeViewSelectedItemParentForeground,
+        TreeViewSelectedItemParentBackground,
     }
 
     internal class Config
@@ -181,7 +182,9 @@
                         return this.GetColor(ConfigValue.TreeViewSelectedForeground);
                     case ConfigValue.TreeViewSimilarBackground:
                         return AdjustAlpha(this.GetColor(ConfigValue.TreeViewSelectedBackground), 0x50);
-                    case ConfigValue.TreeViewSelectedItemParent:
+                    case ConfigValue.TreeViewSelectedItemParentForeground:
+                        return this.GetColor(ConfigValue.TreeViewSelectedForeground);
+                    case ConfigValue.TreeViewSelectedItemParentBackground:
                         return AdjustAlpha(this.GetColor(ConfigValue.TreeViewSelectedBackground), 0x50);
                     default:
                         Debug.Assert(false);

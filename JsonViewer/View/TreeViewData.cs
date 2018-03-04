@@ -78,6 +78,11 @@
                     return Config.This.GetBrush(ConfigValue.TreeViewSelectedForeground);
                 }
 
+                if (_isChildSelected && Properties.Settings.Default.HighlightSelectedParents)
+                {
+                    return Config.This.GetBrush(ConfigValue.TreeViewSelectedItemParentForeground);
+                }
+
                 return Config.This.GetForegroundColor(_jsonObject);
             }
         }
@@ -93,7 +98,7 @@
 
                 if (_isChildSelected && Properties.Settings.Default.HighlightSelectedParents)
                 {
-                    return Config.This.GetBrush(ConfigValue.TreeViewSelectedItemParent);
+                    return Config.This.GetBrush(ConfigValue.TreeViewSelectedItemParentBackground);
                 }
 
                 return Config.This.GetBackgroundColor(_jsonObject);
@@ -173,8 +178,7 @@
             switch (e.PropertyName)
             {
                 case "IsFindMatch":
-                    this.FirePropertyChanged("TextColor");
-                    this.FirePropertyChanged("BackgroundColor");
+                    this.FirePropertyChanged(new string[] { "TextColor", "BackgroundColor" });
                     break;
                 case "HasChildren":
                     this.FirePropertyChanged(new string[] { "HasChildren", "ValueType" });
@@ -202,7 +206,7 @@
         {
             if (e.PropertyName == "HighlightSelectedParents" && _isChildSelected)
             {
-                this.FirePropertyChanged("BackgroundColor");
+                this.FirePropertyChanged(new string[] { "TextColor", "BackgroundColor" });
             }
         }
     }

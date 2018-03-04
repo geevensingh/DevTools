@@ -1,8 +1,10 @@
 ﻿{
   "treeViewForeground": "DarkGray",
   "treeViewBackground": "Transparent",
-  "treeViewSelectedBackground": "yellow",
-  "treeViewSelectedForeground": "purple",
+  "treeViewSelectedForeground": "black",
+  "treeViewSelectedBackground": "goldenrod",
+  "treeViewSelectedItemParentForeground": "black",
+  "treeViewSelectedItemParentBackground": "lightgoldenrodyellow",
   "treeViewFontSize": 12,
   "treeViewSearchResultForeground": "blue",
   "treeViewSearchResultBackground": "LightGreen",
