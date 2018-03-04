@@ -34,8 +34,12 @@
             {
                 if (this.SetValue(ref _shouldSearchKeys, value, "ShouldSearchKeys"))
                 {
-                    Properties.Settings.Default.FindSearchKeys = _shouldSearchKeys;
-                    Properties.Settings.Default.Save();
+                    _parentWindow.RunWhenever(
+                        new Action(() =>
+                        {
+                            Properties.Settings.Default.FindSearchKeys = value;
+                            Properties.Settings.Default.Save();
+                        }));
 
                     Update();
                 }
@@ -49,8 +53,12 @@
             {
                 if (this.SetValue(ref _shouldSearchValues, value, "ShouldSearchValues"))
                 {
-                    Properties.Settings.Default.FindSearchValues = _shouldSearchValues;
-                    Properties.Settings.Default.Save();
+                    _parentWindow.RunWhenever(
+                        new Action(() =>
+                        {
+                            Properties.Settings.Default.FindSearchValues = value;
+                            Properties.Settings.Default.Save();
+                        }));
 
                     Update();
                 }
@@ -64,8 +72,12 @@
             {
                 if (this.SetValue(ref _shouldSearchParentValues, value, "ShouldSearchParentValues"))
                 {
-                    Properties.Settings.Default.FindSearchParentValues = _shouldSearchParentValues;
-                    Properties.Settings.Default.Save();
+                    _parentWindow.RunWhenever(
+                        new Action(() =>
+                        {
+                            Properties.Settings.Default.FindSearchParentValues = value;
+                            Properties.Settings.Default.Save();
+                        }));
 
                     Update();
                 }
@@ -79,8 +91,12 @@
             {
                 if (this.SetValue(ref _shouldIgnoreCase, value, "ShouldIgnoreCase"))
                 {
-                    Properties.Settings.Default.FindIgnoreCase = _shouldIgnoreCase;
-                    Properties.Settings.Default.Save();
+                    _parentWindow.RunWhenever(
+                        new Action(() =>
+                        {
+                            Properties.Settings.Default.FindIgnoreCase = value;
+                            Properties.Settings.Default.Save();
+                        }));
 
                     Update();
                 }
@@ -94,13 +110,12 @@
             {
                 if (this.SetValue(ref _text, value, "Text"))
                 {
-                    _parentWindow.Dispatcher.BeginInvoke(
+                    _parentWindow.RunWhenever(
                         new Action(() =>
                         {
                             Properties.Settings.Default.FindText = value;
                             Properties.Settings.Default.Save();
-                        }),
-                        DispatcherPriority.Background);
+                        }));
 
                     Update();
                 }

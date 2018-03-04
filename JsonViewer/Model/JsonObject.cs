@@ -203,7 +203,7 @@
                     _rules.Add(newRule);
                 }
 
-                App.Current.MainWindow.Dispatcher.BeginInvoke(new Action(() => { this.FirePropertyChanged("FindRule"); }), System.Windows.Threading.DispatcherPriority.Background);
+                this.FirePropertyChanged("FindRule");
             }
         }
 

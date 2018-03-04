@@ -111,6 +111,11 @@
             return true;
         }
 
+        public void RunWhenever(Action action)
+        {
+            this.Dispatcher.BeginInvoke(action, System.Windows.Threading.DispatcherPriority.ContextIdle);
+        }
+
         protected override void OnSourceInitialized(EventArgs e)
         {
             base.OnSourceInitialized(e);
