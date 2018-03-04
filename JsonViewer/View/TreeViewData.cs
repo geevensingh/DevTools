@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
     using System.Diagnostics;
+    using System.Linq;
     using System.Windows.Media;
     using JsonViewer.Commands.PerItem;
     using Utilities;
@@ -112,7 +113,7 @@
                     return Config.This.GetBrush(ConfigValue.TreeViewSearchResultForeground);
                 }
 
-                return Config.This.GetHightlightColor(_jsonObject);
+                return Config.This.GetForegroundColor(_jsonObject);
             }
         }
 
@@ -135,7 +136,7 @@
                     return Config.This.GetBrush(ConfigValue.TreeViewSelectedItemParent);
                 }
 
-                return Brushes.Transparent;
+                return Config.This.GetBackgroundColor(_jsonObject);
             }
         }
 
@@ -151,7 +152,7 @@
         {
             get
             {
-                return Config.This.GetHighlightFontSize(_jsonObject);
+                return Config.This.GetFontSize(_jsonObject);
             }
         }
 
@@ -235,6 +236,9 @@
                 case "Children":
                 case "AllChildren":
                     this.FirePropertyChanged("AllChildren");
+                    break;
+                case "FindRule":
+                    this.FirePropertyChanged(new string[] { "TextColor", "FontSize", "BackgroundColor" });
                     break;
                 default:
                     Debug.Assert(false, "Unknown property change");

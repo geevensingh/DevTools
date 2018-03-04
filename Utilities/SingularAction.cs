@@ -21,7 +21,7 @@ namespace Utilities
             _dispatcher = dispatcher;
         }
 
-        public void BeginInvoke(DispatcherPriority priority, Func<Guid, Task<bool>> func)
+        public void BeginInvoke(DispatcherPriority priority, Func<Guid, SingularAction, Task<bool>> func)
         {
             Guid actionId = Guid.NewGuid();
             _actionId = actionId;
@@ -48,7 +48,7 @@ namespace Utilities
             }
 
             Debug.Assert(_operation == null);
-            DispatcherOperation operation = _dispatcher.BeginInvoke(priority, func, actionId);
+            DispatcherOperation operation = _dispatcher.BeginInvoke(priority, func, actionId, this);
             _operation = operation;
             Debug.Assert(this.IsRunning);
             this.FirePropertyChanged("IsRunning");

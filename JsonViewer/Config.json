@@ -1,5 +1,6 @@
 ﻿{
   "treeViewForeground": "DarkGray",
+  "treeViewBackground": "Transparent",
   "treeViewHighlightBrushKey": "PaleGoldenrod",
   "treeViewHighlightTextBrushKey": "Black",
   "treeViewInactiveSelectionHighlightBrushKey": "LightYellow",
@@ -12,7 +13,7 @@
       "valueContains": [ "failure", "failed", "error" ],
       "color": "red",
       "fontSize": 16,
-      "appliesToParents":  true
+      "appliesToParents": true
     },
     {
       "valueContains": [ "success", "succeeded", "passed" ],
@@ -33,7 +34,7 @@
     {
       "keyIs": [ "events" ],
       "expandChildren": 2,
-      "ignoreCase":  false
+      "ignoreCase": false
     },
     {
       "keyContains": [ "account" ],

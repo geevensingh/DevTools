@@ -156,55 +156,61 @@
 
         private void Update()
         {
+            FindRule newRule = null;
             List<JsonObject> hits = new List<JsonObject>();
-            List<JsonObject> misses = new List<JsonObject>();
-            if (_rootObject != null)
+
+            if (_rootObject != null && !string.IsNullOrEmpty(_text))
             {
-                Highlight(_rootObject, ref hits, ref misses);
-                Debug.Assert(hits.Count + misses.Count == _rootObject.AllChildren.Count + 1);
+                newRule = new FindRule(
+                    text: _text,
+                    ignoreCase: this.ShouldIgnoreCase,
+                    searchKeys: this.ShouldSearchKeys,
+                    searchValues: this.ShouldSearchValues,
+                    appliesToParents: this.ShouldSearchParentValues);
+
+                foreach (JsonObject obj in _rootObject.AllChildren)
+                {
+                    if (newRule.Matches(obj))
+                    {
+                        hits.Add(obj);
+                    }
+                }
             }
-
-            Func<Guid, Task<bool>> updateAction = new Func<Guid, Task<bool>>(async (actionId) =>
-            {
-                foreach (JsonObject obj in misses)
-                {
-                    obj.IsFindMatch = false;
-                    if (!await _action.YieldAndContinue(actionId))
-                    {
-                        return false;
-                    }
-                }
-
-                foreach (JsonObject obj in hits)
-                {
-                    obj.IsFindMatch = true;
-                    if (!await _action.YieldAndContinue(actionId))
-                    {
-                        return false;
-                    }
-                }
-                return true;
-            });
-
-            _action.BeginInvoke(DispatcherPriority.Background, updateAction);
 
             if (this.SetValue(ref _hitCount, hits.Count, "HitCount"))
             {
                 // If the hit count changed, then certainly the hits changed.
                 this.SetValue(ref _hits, hits, "Hits");
-                return;
             }
-
-            // But if the hit count did NOT change, then we have to look at the lists
-            Debug.Assert(hits.Count == _hits.Count);
-            for (int ii = 0; ii < hits.Count; ii++)
+            else
             {
-                if (hits[ii] != _hits[ii])
+                // But if the hit count did NOT change, then we have to look at the lists
+                Debug.Assert(hits.Count == _hits.Count);
+                for (int ii = 0; ii < hits.Count; ii++)
                 {
-                    this.SetValue(ref _hits, hits, "Hits");
-                    return;
+                    if (hits[ii] != _hits[ii])
+                    {
+                        this.SetValue(ref _hits, hits, "Hits");
+                        break;
+                    }
                 }
             }
+
+            Func<Guid, SingularAction, Task<bool>> updateAction = new Func<Guid, SingularAction, Task<bool>>(async (actionId, action) =>
+            {
+                foreach (JsonObject obj in _rootObject.AllChildren)
+                {
+                    obj.FindRule = newRule;
+                    if (!await action.YieldAndContinue(actionId))
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+
+            _action.BeginInvoke(DispatcherPriority.Background, updateAction);
         }
 
         private void Highlight(JsonObject obj, ref List<JsonObject> hits, ref List<JsonObject> misses)
