@@ -41,13 +41,13 @@
 
         public void ExpandAll(int depth)
         {
-            Func<Guid, Task<bool>> action = new Func<Guid, Task<bool>>(async (actionId) =>
+            Func<Guid, SingularAction, Task<bool>> func = new Func<Guid, SingularAction, Task<bool>>(async (actionId, action) =>
             {
                 using (new WaitCursor())
                 {
                     foreach (TreeViewData child in this.Items)
                     {
-                        if (!await this.ExpandSubtree(child, depth, actionId) || !await _action.YieldAndContinue(actionId))
+                        if (!await this.ExpandSubtree(child, depth, actionId, action) || !await action.YieldAndContinue(actionId))
                         {
                             return false;
                         }
@@ -56,22 +56,22 @@
 
                 return true;
             });
-            _action.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, action);
+            _action.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, func);
         }
 
         public void ExpandSubtree(TreeViewData data, int depth)
         {
-            Func<Guid, Task<bool>> action = new Func<Guid, Task<bool>>(async (actionId) =>
+            Func<Guid, SingularAction, Task<bool>> func = new Func<Guid, SingularAction, Task<bool>>(async (actionId, action) =>
             {
                 bool result = false;
                 using (new WaitCursor())
                 {
-                    result = await this.ExpandSubtree(data, depth, actionId);
+                    result = await this.ExpandSubtree(data, depth, actionId, action);
                 }
 
                 return result;
             });
-            _action.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, action);
+            _action.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, func);
         }
 
         public void CollapseSubtree(TreeViewData data)
@@ -185,7 +185,7 @@
             NotifyPropertyChanged.SetValue(ref _selectedIndex, newSelectedIndex, "SelectedIndex", this, this.PropertyChanged);
         }
 
-        private async Task<bool> ExpandSubtree(TreeViewData data, int depth, Guid actionId)
+        private async Task<bool> ExpandSubtree(TreeViewData data, int depth, Guid actionId, SingularAction action)
         {
             if (!data.HasChildren || depth <= 0)
             {
@@ -206,8 +206,8 @@
 
                 foreach (TreeViewData child in data.Children)
                 {
-                    await this.ExpandSubtree(child, depth - 1, actionId);
-                    if (!await _action.YieldAndContinue(actionId))
+                    await this.ExpandSubtree(child, depth - 1, actionId, action);
+                    if (!await action.YieldAndContinue(actionId))
                     {
                         return false;
                     }

@@ -12,6 +12,7 @@
     internal enum ConfigValue
     {
         TreeViewForeground,
+        TreeViewBackground,
         TreeViewHighlightBrushKey,
         TreeViewHighlightTextBrushKey,
         TreeViewInactiveSelectionHighlightBrushKey,
@@ -160,6 +161,8 @@
                 {
                     case ConfigValue.TreeViewForeground:
                         return Colors.DarkGray;
+                    case ConfigValue.TreeViewBackground:
+                        return Colors.Transparent;
                     case ConfigValue.TreeViewHighlightBrushKey:
                         return Colors.Yellow;
                     case ConfigValue.TreeViewHighlightTextBrushKey:
@@ -182,7 +185,7 @@
             }
         }
 
-        public Brush GetHightlightColor(JsonObject obj)
+        public Brush GetForegroundColor(JsonObject obj)
         {
             ConfigRule rule = obj.Rules.FirstOrDefault(x => x.ForegroundBrush != null);
             if (rule != null)
@@ -193,7 +196,18 @@
             return this.GetBrush(ConfigValue.TreeViewForeground);
         }
 
-        internal double GetHighlightFontSize(JsonObject obj)
+        public Brush GetBackgroundColor(JsonObject obj)
+        {
+            ConfigRule rule = obj.Rules.FirstOrDefault(x => x.BackgroundBrush != null);
+            if (rule != null)
+            {
+                return rule.BackgroundBrush;
+            }
+
+            return this.GetBrush(ConfigValue.TreeViewBackground);
+        }
+
+        internal double GetFontSize(JsonObject obj)
         {
             ConfigRule rule = obj.Rules.FirstOrDefault(x => x.FontSize.HasValue);
             if (rule != null)

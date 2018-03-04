@@ -20,8 +20,8 @@
         private string _originalString;
         private object _typedValue;
         private DataType _dataType = DataType.Other;
-        private bool _isFindMatch = false;
         private List<ConfigRule> _rules;
+        private FindRule _findRule = null;
 
         public JsonObject(string key, object value, JsonObject parent)
             : this(key, value)
@@ -121,7 +121,7 @@
 
         public DataType Type { get => _dataType; }
 
-        public bool IsFindMatch { get => _isFindMatch; set => this.SetValue(ref _isFindMatch, value, "IsFindMatch"); }
+        public bool IsFindMatch { get => _findRule != null; }
 
         public bool CanTreatAsJson { get => _dataType == DataType.ParsableString; }
 
@@ -167,6 +167,45 @@
         }
 
         internal List<ConfigRule> Rules { get => _rules; }
+
+        internal FindRule FindRule
+        {
+            get => _findRule;
+            set
+            {
+                FindRule oldRule = _findRule;
+                FindRule newRule = value;
+
+                Debug.Assert(newRule == null || newRule.Matches(this));
+
+                if (oldRule == null && newRule == null)
+                {
+                    return;
+                }
+
+                if (oldRule != null && newRule != null)
+                {
+                    // Even though the old rule and the new rule are different,
+                    // let's treat them as the same and assume that they apply
+                    // the same formatting rules.
+                    return;
+                }
+
+                if (_findRule != null)
+                {
+                    _rules.Remove(_findRule);
+                }
+
+                _findRule = newRule;
+
+                if (newRule != null)
+                {
+                    _rules.Add(newRule);
+                }
+
+                App.Current.MainWindow.Dispatcher.BeginInvoke(new Action(() => { this.FirePropertyChanged("FindRule"); }), System.Windows.Threading.DispatcherPriority.Background);
+            }
+        }
 
         public virtual void AddChildren(IList<JsonObject> children)
         {

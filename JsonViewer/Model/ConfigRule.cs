@@ -9,25 +9,42 @@
 
     internal class ConfigRule
     {
-        public IList<string> ExactKeys { get; private set; }
+        protected ConfigRule()
+        {
+            ExactKeys = new List<string>();
+            ExactValues = new List<string>();
+            PartialKeys = new List<string>();
+            PartialValues = new List<string>();
+            AppliesToParents = false;
+            ForegroundBrush = null;
+            BackgroundBrush = null;
+            FontSize = null;
+            ExpandChildren = null;
+            WarningMessage = null;
+            IgnoreCase = false;
+        }
 
-        public IList<string> ExactValues { get; private set; }
+        public IList<string> ExactKeys { get; protected set; }
 
-        public IList<string> PartialKeys { get; private set; }
+        public IList<string> ExactValues { get; protected set; }
 
-        public IList<string> PartialValues { get; private set; }
+        public IList<string> PartialKeys { get; protected set; }
 
-        public bool AppliesToParents { get; private set; }
+        public IList<string> PartialValues { get; protected set; }
 
-        public Brush ForegroundBrush { get; private set; }
+        public bool AppliesToParents { get; protected set; }
 
-        public double? FontSize { get; private set; }
+        public Brush ForegroundBrush { get; protected set; }
 
-        public int? ExpandChildren { get; private set; }
+        public Brush BackgroundBrush { get; protected set; }
 
-        public string WarningMessage { get; private set; }
+        public double? FontSize { get; protected set; }
 
-        public bool IgnoreCase { get; private set; }
+        public int? ExpandChildren { get; protected set; }
+
+        public string WarningMessage { get; protected set; }
+
+        public bool IgnoreCase { get; protected set; }
 
         public static IList<ConfigRule> GenerateRules(ArrayList arrayList)
         {
@@ -113,6 +130,13 @@
                 foregroundBrush = new SolidColorBrush(color);
             }
 
+            Brush backgroundBrush = null;
+            if (dict.ContainsKey("background"))
+            {
+                Color color = (Color)ColorConverter.ConvertFromString((string)dict["background"]);
+                backgroundBrush = new SolidColorBrush(color);
+            }
+
             double? fontSize = null;
             if (dict.ContainsKey("fontSize"))
             {
@@ -145,6 +169,7 @@
                 PartialValues = valuePartials,
                 AppliesToParents = appliesToParents,
                 ForegroundBrush = foregroundBrush,
+                BackgroundBrush = backgroundBrush,
                 FontSize = fontSize,
                 ExpandChildren = expandChildren,
                 WarningMessage = warningMessage,
