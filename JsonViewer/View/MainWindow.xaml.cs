@@ -41,6 +41,8 @@
 
         internal RootObject RootObject { get => _rootObject; }
 
+        internal ClipboardManager ClipboardManager { get; private set; }
+
         public void ShowNewWindow()
         {
             this.SaveWindowPosition();
@@ -119,6 +121,8 @@
         protected override void OnSourceInitialized(EventArgs e)
         {
             base.OnSourceInitialized(e);
+
+            this.ClipboardManager = new ClipboardManager(this);
 
             this.Toolbar.PropertyChanged += OnToolbarPropertyChanged;
 

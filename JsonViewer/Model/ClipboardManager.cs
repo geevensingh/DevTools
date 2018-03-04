@@ -8,50 +8,31 @@
     internal class ClipboardManager
     {
         private static readonly IntPtr WndProcSuccess = IntPtr.Zero;
+        private MainWindow _mainWindow;
 
-        private static ClipboardManager _this;
-
-        private static EventHandler _clipboardChanged;
-
-        private ClipboardManager()
+        public ClipboardManager(MainWindow mainWindow)
         {
-            Window windowSource = App.Current.MainWindow;
-            Debug.Assert(windowSource != null);
+            Debug.Assert(mainWindow != null);
+            _mainWindow = mainWindow;
 
-            HwndSource source = PresentationSource.FromVisual(windowSource) as HwndSource;
+            HwndSource source = PresentationSource.FromVisual(mainWindow) as HwndSource;
             if (source == null)
             {
                 throw new ArgumentException(
                     "Window source MUST be initialized first, such as in the Window's OnSourceInitialized handler.",
-                    nameof(windowSource));
+                    nameof(mainWindow));
             }
 
             source.AddHook(WndProc);
 
             // get window handle for interop
-            IntPtr windowHandle = new WindowInteropHelper(windowSource).Handle;
+            IntPtr windowHandle = new WindowInteropHelper(mainWindow).Handle;
 
             // register for clipboard events
             NativeMethods.AddClipboardFormatListener(windowHandle);
         }
 
-        public static event EventHandler ClipboardChanged
-        {
-            add
-            {
-                if (_this == null)
-                {
-                    _this = new ClipboardManager();
-                }
-
-                _clipboardChanged += value;
-            }
-
-            remove
-            {
-                _clipboardChanged -= value;
-            }
-        }
+        public event EventHandler ClipboardChanged;
 
         public static string TryGetText()
         {
@@ -70,7 +51,7 @@
         {
             if (msg == NativeMethods.WM_CLIPBOARDUPDATE)
             {
-                _clipboardChanged?.Invoke(null, EventArgs.Empty);
+                _mainWindow.RunWhenever(() => { ClipboardChanged?.Invoke(null, EventArgs.Empty); });
                 handled = true;
             }
 

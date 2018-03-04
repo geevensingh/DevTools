@@ -13,7 +13,7 @@
         {
             _mainWindow = mainWindow;
             _mainWindow.Raw_TextBox.TextChanged += OnRawTextBoxChanged;
-            ClipboardManager.ClipboardChanged += OnClipboardChanged;
+            _mainWindow.ClipboardManager.ClipboardChanged += OnClipboardChanged;
             this.Update();
         }
 
