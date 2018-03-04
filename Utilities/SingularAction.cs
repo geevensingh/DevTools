@@ -21,7 +21,7 @@ namespace Utilities
             _dispatcher = dispatcher;
         }
 
-        public void BeginInvoke(DispatcherPriority priority, Func<Guid, Task<bool>> func)
+        public void BeginInvoke(DispatcherPriority priority, Func<Guid, SingularAction, Task<bool>> func)
         {
             Guid actionId = Guid.NewGuid();
             _actionId = actionId;
@@ -48,25 +48,30 @@ namespace Utilities
             }
 
             Debug.Assert(_operation == null);
-            _operation = _dispatcher.BeginInvoke(priority, func, actionId);
+            DispatcherOperation operation = _dispatcher.BeginInvoke(priority, func, actionId, this);
+            _operation = operation;
             Debug.Assert(this.IsRunning);
             this.FirePropertyChanged("IsRunning");
             _operation.Task.ContinueWith(new Action<Task>(
                 (task) =>
                 {
                     Debug.Assert(task.IsCompleted);
-                    Task<bool> subTask = (Task<bool>)_operation.Result;
-                    subTask.ContinueWith(new Action<Task<bool>>(
-                        (boolTask) =>
-                        {
-                            Debug.Assert(boolTask.IsCompleted);
-                            if (!this.IsRunning)
+                    Debug.Assert(operation.Status == DispatcherOperationStatus.Completed || operation.Status == DispatcherOperationStatus.Aborted);
+                    if (operation.Status == DispatcherOperationStatus.Completed)
+                    {
+                        Task<bool> subTask = (Task<bool>)operation.Result;
+                        subTask.ContinueWith(new Action<Task<bool>>(
+                            (boolTask) =>
                             {
-                                _actionId = Guid.Empty;
-                                _operation = null;
-                                _dispatcher.InvokeAsync(() => { this.FirePropertyChanged("IsRunning"); });
-                            }
-                        }));
+                                Debug.Assert(boolTask.IsCompleted);
+                                if (!this.IsRunning && _operation == operation && _actionId == actionId)
+                                {
+                                    _actionId = Guid.Empty;
+                                    _operation = null;
+                                    _dispatcher.InvokeAsync(() => { this.FirePropertyChanged("IsRunning"); });
+                                }
+                            }));
+                    }
                 }));
         }
 

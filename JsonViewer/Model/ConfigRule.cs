@@ -9,30 +9,42 @@
 
     internal class ConfigRule
     {
-        private IList<string> _keys;
-        private IList<string> _values;
-        private IList<string> _keyPartials;
-        private IList<string> _valuePartials;
-        private bool _appliesToParents;
-
-        public ConfigRule(IList<string> keys, IList<string> values, IList<string> keyPartials, IList<string> valuePartials, bool appliesToParents)
+        protected ConfigRule()
         {
-            Debug.Assert(keys.Count + values.Count + keyPartials.Count + valuePartials.Count > 0, "No criteria found.");
-
-            this._keys = keys;
-            this._values = values;
-            this._keyPartials = keyPartials;
-            this._valuePartials = valuePartials;
-            _appliesToParents = appliesToParents;
+            ExactKeys = new List<string>();
+            ExactValues = new List<string>();
+            PartialKeys = new List<string>();
+            PartialValues = new List<string>();
+            AppliesToParents = false;
+            ForegroundBrush = null;
+            BackgroundBrush = null;
+            FontSize = null;
+            ExpandChildren = null;
+            WarningMessage = null;
+            IgnoreCase = false;
         }
 
-        public Brush ForegroundBrush { get; private set; }
+        public IList<string> ExactKeys { get; protected set; }
 
-        public double? FontSize { get; private set; }
+        public IList<string> ExactValues { get; protected set; }
 
-        public int? ExpandChildren { get; private set; }
+        public IList<string> PartialKeys { get; protected set; }
 
-        public string WarningMessage { get; private set; }
+        public IList<string> PartialValues { get; protected set; }
+
+        public bool AppliesToParents { get; protected set; }
+
+        public Brush ForegroundBrush { get; protected set; }
+
+        public Brush BackgroundBrush { get; protected set; }
+
+        public double? FontSize { get; protected set; }
+
+        public int? ExpandChildren { get; protected set; }
+
+        public string WarningMessage { get; protected set; }
+
+        public bool IgnoreCase { get; protected set; }
 
         public static IList<ConfigRule> GenerateRules(ArrayList arrayList)
         {
@@ -48,29 +60,39 @@
 
         public bool Matches(JsonObject obj)
         {
-            string key = obj.Key.ToLower();
-            if (MatchStringToList(key, _keys))
+            string key = obj.Key;
+            if (this.IgnoreCase)
+            {
+                key = key.ToLower();
+            }
+
+            if (MatchStringToList(key, this.ExactKeys))
             {
                 return true;
             }
 
-            if (MatchPartialStringToList(key, _keyPartials))
+            if (MatchPartialStringToList(key, this.PartialKeys))
             {
                 return true;
             }
 
-            if (obj.HasChildren && !_appliesToParents)
+            if (obj.HasChildren && !this.AppliesToParents)
             {
                 return false;
             }
 
-            string valueString = obj.ValueString.ToLower();
-            if (MatchStringToList(valueString, _values))
+            string valueString = obj.ValueString;
+            if (this.IgnoreCase)
+            {
+                valueString = valueString.ToLower();
+            }
+
+            if (MatchStringToList(valueString, this.ExactValues))
             {
                 return true;
             }
 
-            if (MatchPartialStringToList(valueString, _valuePartials))
+            if (MatchPartialStringToList(valueString, this.PartialValues))
             {
                 return true;
             }
@@ -80,30 +102,39 @@
 
         private static bool MatchStringToList(string value, IList<string> values)
         {
-            Debug.Assert(value == value.ToLower());
-            Debug.Assert(values.All(x => x.ToLower() == x));
             return values.Any(x => value == x);
         }
 
         private static bool MatchPartialStringToList(string value, IList<string> values)
         {
-            Debug.Assert(value == value.ToLower());
-            Debug.Assert(values.All(x => x.ToLower() == x));
             return values.Any(x => value.Contains(x));
         }
 
         private static ConfigRule GenerateRule(Dictionary<string, object> dict)
         {
-            IList<string> keys = GetList(dict, "keyIs");
-            IList<string> values = GetList(dict, "valueIs");
-            IList<string> keyPartials = GetList(dict, "keyContains");
-            IList<string> valuePartials = GetList(dict, "valueContains");
+            bool ignoreCase = true;
+            if (dict.ContainsKey("ignoreCase"))
+            {
+                ignoreCase = (bool)dict["ignoreCase"];
+            }
+
+            IList<string> keys = GetList(dict, "keyIs", ignoreCase);
+            IList<string> values = GetList(dict, "valueIs", ignoreCase);
+            IList<string> keyPartials = GetList(dict, "keyContains", ignoreCase);
+            IList<string> valuePartials = GetList(dict, "valueContains", ignoreCase);
 
             Brush foregroundBrush = null;
             if (dict.ContainsKey("color"))
             {
                 Color color = (Color)ColorConverter.ConvertFromString((string)dict["color"]);
                 foregroundBrush = new SolidColorBrush(color);
+            }
+
+            Brush backgroundBrush = null;
+            if (dict.ContainsKey("background"))
+            {
+                Color color = (Color)ColorConverter.ConvertFromString((string)dict["background"]);
+                backgroundBrush = new SolidColorBrush(color);
             }
 
             double? fontSize = null;
@@ -130,16 +161,23 @@
                 warningMessage = (string)dict["warningMessage"];
             }
 
-            return new ConfigRule(keys, values, keyPartials, valuePartials, appliesToParents)
+            return new ConfigRule()
             {
+                ExactKeys = keys,
+                ExactValues = values,
+                PartialKeys = keyPartials,
+                PartialValues = valuePartials,
+                AppliesToParents = appliesToParents,
                 ForegroundBrush = foregroundBrush,
+                BackgroundBrush = backgroundBrush,
                 FontSize = fontSize,
                 ExpandChildren = expandChildren,
-                WarningMessage = warningMessage
+                WarningMessage = warningMessage,
+                IgnoreCase = ignoreCase
             };
         }
 
-        private static IList<string> GetList(Dictionary<string, object> dict, string key)
+        private static IList<string> GetList(Dictionary<string, object> dict, string key, bool ignoreCase)
         {
             List<string> values = new List<string>();
             if (dict.ContainsKey(key))
@@ -147,7 +185,7 @@
                 ArrayList arrayList = (ArrayList)dict[key];
                 foreach (string value in arrayList)
                 {
-                    values.Add(value.ToLower());
+                    values.Add(ignoreCase ? value.ToLower() : value);
                 }
             }
 

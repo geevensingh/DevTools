@@ -131,6 +131,7 @@
     <Compile Include="Commands\PerWindow\ReloadCommand.cs" />
     <Compile Include="Commands\ToggleCommand.cs" />
     <Compile Include="Model\ClipboardManager.cs" />
+    <Compile Include="Model\FindRule.cs" />
     <Compile Include="Model\ConfigRule.cs" />
     <Compile Include="View\FindMatchNavigator.cs" />
     <Compile Include="View\MainWindowToolbar.xaml.cs">
