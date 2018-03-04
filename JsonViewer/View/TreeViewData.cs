@@ -78,11 +78,6 @@
                     return Config.This.GetBrush(ConfigValue.TreeViewHighlightTextBrushKey);
                 }
 
-                if (_jsonObject.IsFindMatch)
-                {
-                    return Config.This.GetBrush(ConfigValue.TreeViewSearchResultForeground);
-                }
-
                 return Config.This.GetForegroundColor(_jsonObject);
             }
         }
@@ -94,11 +89,6 @@
                 if (this._isSelected)
                 {
                     return Config.This.GetBrush(ConfigValue.TreeViewHighlightBrushKey);
-                }
-
-                if (_jsonObject.IsFindMatch)
-                {
-                    return Config.This.GetBrush(ConfigValue.TreeViewSearchResultBackground);
                 }
 
                 if (_isChildSelected && Properties.Settings.Default.HighlightSelectedParents)
