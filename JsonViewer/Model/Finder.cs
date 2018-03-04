@@ -15,6 +15,7 @@
         private bool _shouldSearchKeys = Properties.Settings.Default.FindSearchKeys;
         private bool _shouldSearchValues = Properties.Settings.Default.FindSearchValues;
         private bool _shouldSearchParentValues = Properties.Settings.Default.FindSearchParentValues;
+        private bool _shouldSearchValueTypes = Properties.Settings.Default.FindSearchValueTypes;
         private bool _shouldIgnoreCase = Properties.Settings.Default.FindIgnoreCase;
         private FindWindow _findWindow = null;
         private int _hitCount = 0;
@@ -76,6 +77,25 @@
                         () =>
                         {
                             Properties.Settings.Default.FindSearchParentValues = value;
+                            Properties.Settings.Default.Save();
+                        });
+
+                    Update();
+                }
+            }
+        }
+
+        public bool ShouldSearchValueTypes
+        {
+            get => _shouldSearchValueTypes;
+            set
+            {
+                if (this.SetValue(ref _shouldSearchValueTypes, value, "ShouldSearchValueTypes"))
+                {
+                    _parentWindow.RunWhenever(
+                        () =>
+                        {
+                            Properties.Settings.Default.FindSearchValueTypes = value;
                             Properties.Settings.Default.Save();
                         });
 
@@ -188,6 +208,7 @@
                     ignoreCase: this.ShouldIgnoreCase,
                     searchKeys: this.ShouldSearchKeys,
                     searchValues: this.ShouldSearchValues,
+                    searchValueTypes: this.ShouldSearchValueTypes,
                     appliesToParents: this.ShouldSearchParentValues);
 
                 foreach (JsonObject obj in _rootObject.AllChildren)

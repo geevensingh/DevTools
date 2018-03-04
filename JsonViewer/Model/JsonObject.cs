@@ -34,8 +34,6 @@
             _key = key;
             _originalString = value as string;
             this.Value = value;
-
-            _rules = new List<ConfigRule>(Config.This.Rules.Where(rule => rule.Matches(this)));
         }
 
         public enum DataType
@@ -70,12 +68,42 @@
                 {
                     _valueString = _value.ToString().ToLower();
                 }
+                else if (_typedValue is Guid)
+                {
+                    Debug.Assert(_value is string);
+                    _valueString = _value as string;
+                }
                 else
                 {
                     _valueString = _value.ToString();
                 }
 
                 Debug.Assert(string.IsNullOrEmpty(_value as string) || !string.IsNullOrEmpty(_valueString));
+
+                this.ValueTypeString = this.GetValueTypeString(includeChildCount: true);
+
+                string oneLineValue = this.GetValueTypeString(includeChildCount: false);
+                if (_typedValue != null)
+                {
+                    if (!this.HasChildren)
+                    {
+                        oneLineValue = this.ValueString;
+                    }
+
+                    Type valueType = _typedValue.GetType();
+                    if (valueType == typeof(DateTime))
+                    {
+                        oneLineValue += " (" + Utilities.TimeSpanStringify.PrettyApprox((DateTime)_typedValue - DateTime.Now) + ")";
+                    }
+                    else if (valueType == typeof(TimeSpan))
+                    {
+                        oneLineValue += " (" + Utilities.TimeSpanStringify.PrettyApprox((TimeSpan)_typedValue) + ")";
+                    }
+                }
+
+                this.OneLineValue = oneLineValue;
+
+                _rules = new List<ConfigRule>(Config.This.Rules.Where(rule => rule.Matches(this)));
             }
         }
 
@@ -130,6 +158,10 @@
         public string ValueString { get => _valueString; }
 
         public string PrettyValueString { get => this.GetPrettyString(); }
+
+        public string ValueTypeString { get; private set; }
+
+        public string OneLineValue { get; private set; }
 
         public int TotalChildCount { get => this.Children.Count + this.Children.Sum(x => x.TotalChildCount); }
 
@@ -207,11 +239,51 @@
             }
         }
 
-        public virtual void AddChildren(IList<JsonObject> children)
+        public string GetValueTypeString(bool includeChildCount)
+        {
+            object value = this.TypedValue;
+            if (value == null)
+            {
+                return "null";
+            }
+
+            string type;
+            switch (this.Type)
+            {
+                case JsonObject.DataType.Array:
+                    type = "array[" + (value as System.Collections.ArrayList).Count + "]";
+                    break;
+                case JsonObject.DataType.Json:
+                    type = "json-object{" + (value as Dictionary<string, object>).Keys.Count + "}";
+                    break;
+                case JsonObject.DataType.ParsableString:
+                    type = "parse-able-string";
+                    break;
+                default:
+                    type = Utilities.StringHelper.TrimStart(value.GetType().ToString(), "System.");
+                    break;
+            }
+
+            Debug.Assert(!string.IsNullOrEmpty(type));
+
+            if (includeChildCount && this.HasChildren)
+            {
+                int childCount = this.Children.Count;
+                int totalChildCount = this.TotalChildCount;
+                if (childCount != totalChildCount)
+                {
+                    type += " (tree: " + totalChildCount + ")";
+                }
+            }
+
+            return type;
+        }
+
+        public virtual void SetChildren(IList<JsonObject> children)
         {
             Debug.Assert(_children.Count == 0);
             _children = new List<JsonObject>(children);
-            this.Value = this.Value;
+            this.Value = _value;
             if (_children.Count > 1)
             {
                 this.FireChildrenChanged();
@@ -248,7 +320,7 @@
 
             _dataType = DataType.ParsableString;
             _children.Clear();
-            this.AddChildren(_children);
+            this.SetChildren(_children);
 
             _parent.UpdateChild(this);
         }

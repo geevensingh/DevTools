@@ -39,11 +39,11 @@
             }
         }
 
-        public override void AddChildren(IList<JsonObject> children)
+        public override void SetChildren(IList<JsonObject> children)
         {
             Debug.Assert(_viewChildren == null);
             _viewChildren = null;
-            base.AddChildren(children);
+            base.SetChildren(children);
         }
 
         internal void SetTreeItemsSource(CustomTreeView tree)

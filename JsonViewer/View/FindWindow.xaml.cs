@@ -58,6 +58,7 @@
                 case "ShouldSearchKeys":
                 case "ShouldSearchValues":
                 case "ShouldSearchParentValues":
+                case "ShouldSearchValueTypes":
                 case "ShouldIgnoreCase":
                 case "HasWindow":
                 case "Hits":

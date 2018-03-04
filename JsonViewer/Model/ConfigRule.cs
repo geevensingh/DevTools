@@ -13,8 +13,10 @@
         {
             ExactKeys = new List<string>();
             ExactValues = new List<string>();
+            ExactValueTypes = new List<string>();
             PartialKeys = new List<string>();
             PartialValues = new List<string>();
+            PartialValueTypes = new List<string>();
             AppliesToParents = false;
             ForegroundBrush = null;
             BackgroundBrush = null;
@@ -28,9 +30,13 @@
 
         public IList<string> ExactValues { get; protected set; }
 
+        public IList<string> ExactValueTypes { get; protected set; }
+
         public IList<string> PartialKeys { get; protected set; }
 
         public IList<string> PartialValues { get; protected set; }
+
+        public IList<string> PartialValueTypes { get; protected set; }
 
         public bool AppliesToParents { get; protected set; }
 
@@ -60,12 +66,7 @@
 
         public bool Matches(JsonObject obj)
         {
-            string key = obj.Key;
-            if (this.IgnoreCase)
-            {
-                key = key.ToLower();
-            }
-
+            string key = this.NormalizeString(obj.Key);
             if (MatchStringToList(key, this.ExactKeys))
             {
                 return true;
@@ -76,28 +77,42 @@
                 return true;
             }
 
-            if (obj.HasChildren && !this.AppliesToParents)
-            {
-                return false;
-            }
-
-            string valueString = obj.ValueString;
-            if (this.IgnoreCase)
-            {
-                valueString = valueString.ToLower();
-            }
-
-            if (MatchStringToList(valueString, this.ExactValues))
+            string valueTypeString = this.NormalizeString(obj.ValueTypeString);
+            if (MatchStringToList(valueTypeString, this.ExactValueTypes))
             {
                 return true;
             }
 
-            if (MatchPartialStringToList(valueString, this.PartialValues))
+            if (MatchPartialStringToList(valueTypeString, this.PartialValueTypes))
             {
                 return true;
+            }
+
+            if (!obj.HasChildren || this.AppliesToParents)
+            {
+                string valueString = this.NormalizeString(obj.ValueString);
+                if (MatchStringToList(valueString, this.ExactValues))
+                {
+                    return true;
+                }
+
+                if (MatchPartialStringToList(valueString, this.PartialValues))
+                {
+                    return true;
+                }
             }
 
             return false;
+        }
+
+        private string NormalizeString(string str)
+        {
+            if (this.IgnoreCase)
+            {
+                return str.ToLower();
+            }
+
+            return str;
         }
 
         private static bool MatchStringToList(string value, IList<string> values)
@@ -120,8 +135,10 @@
 
             IList<string> keys = GetList(dict, "keyIs", ignoreCase);
             IList<string> values = GetList(dict, "valueIs", ignoreCase);
+            IList<string> valueTypes = GetList(dict, "valueTypeIs", ignoreCase);
             IList<string> keyPartials = GetList(dict, "keyContains", ignoreCase);
             IList<string> valuePartials = GetList(dict, "valueContains", ignoreCase);
+            IList<string> valueTypePartials = GetList(dict, "valueTypeContains", ignoreCase);
 
             Brush foregroundBrush = null;
             if (dict.ContainsKey("color"))
@@ -165,8 +182,10 @@
             {
                 ExactKeys = keys,
                 ExactValues = values,
+                ExactValueTypes = valueTypes,
                 PartialKeys = keyPartials,
                 PartialValues = valuePartials,
+                PartialValueTypes = valueTypePartials,
                 AppliesToParents = appliesToParents,
                 ForegroundBrush = foregroundBrush,
                 BackgroundBrush = backgroundBrush,

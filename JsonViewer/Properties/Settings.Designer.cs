@@ -194,5 +194,17 @@ namespace JsonViewer.Properties {
                 this["MainWindowWarnOnDefaultConfig"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool FindSearchValueTypes {
+            get {
+                return ((bool)(this["FindSearchValueTypes"]));
+            }
+            set {
+                this["FindSearchValueTypes"] = value;
+            }
+        }
     }
 }

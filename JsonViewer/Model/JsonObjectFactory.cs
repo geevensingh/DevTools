@@ -77,19 +77,18 @@
 
                 if (rawObject != null)
                 {
-                    Type valueType = rawObject.GetType();
-                    if (valueType == typeof(Dictionary<string, object>))
+                    if (rawObject is Dictionary<string, object>)
                     {
                         Flatten(ref items, rawObject as Dictionary<string, object>, data);
                     }
-                    else if (valueType == typeof(System.Collections.ArrayList))
+                    else if (rawObject is System.Collections.ArrayList)
                     {
                         Flatten(ref items, rawObject as System.Collections.ArrayList, data);
                     }
                 }
             }
 
-            parent.AddChildren(children);
+            parent.SetChildren(children);
         }
 
         public static void Flatten(ref List<JsonObject> items, System.Collections.ArrayList arrayList, JsonObject parent)
@@ -107,18 +106,17 @@
                     items.Add(data);
                 }
 
-                Type valueType = rawObject.GetType();
-                if (valueType == typeof(Dictionary<string, object>))
+                if (rawObject is Dictionary<string, object>)
                 {
                     Flatten(ref items, rawObject as Dictionary<string, object>, data);
                 }
-                else if (valueType == typeof(System.Collections.ArrayList))
+                else if (rawObject is System.Collections.ArrayList)
                 {
                     Flatten(ref items, rawObject as System.Collections.ArrayList, data);
                 }
             }
 
-            parent.AddChildren(children);
+            parent.SetChildren(children);
         }
 
         public void Dispose()

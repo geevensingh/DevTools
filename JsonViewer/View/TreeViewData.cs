@@ -13,7 +13,6 @@
     {
         private CustomTreeView _tree = null;
         private JsonObject _jsonObject;
-        private string _oneLineValue = string.Empty;
         private ObservableCollection<TreeViewData> _children = new ObservableCollection<TreeViewData>();
         private bool _isSelected = false;
         private bool _isChildSelected = false;
@@ -24,26 +23,6 @@
             _jsonObject = jsonObject;
             _jsonObject.ViewObject = this;
             _children = new ObservableCollection<TreeViewData>(children);
-
-            _oneLineValue = this.GetValueTypeString(includeChildCount: false);
-            object value = _jsonObject.TypedValue;
-            if (value != null)
-            {
-                if (!_jsonObject.HasChildren)
-                {
-                    _oneLineValue = _jsonObject.ValueString;
-                }
-
-                Type valueType = value.GetType();
-                if (valueType == typeof(DateTime))
-                {
-                    _oneLineValue += " (" + Utilities.TimeSpanStringify.PrettyApprox((DateTime)value - DateTime.Now) + ")";
-                }
-                else if (valueType == typeof(TimeSpan))
-                {
-                    _oneLineValue += " (" + Utilities.TimeSpanStringify.PrettyApprox((TimeSpan)value) + ")";
-                }
-            }
 
             _jsonObject.PropertyChanged += OnDataModelPropertyChanged;
             Properties.Settings.Default.PropertyChanged += OnSettingsPropertyChanged;
@@ -61,22 +40,13 @@
 
         public string KeyName { get => _jsonObject.Key; }
 
-        public string Value
-        {
-            get
-            {
-                if (_jsonObject.TypedValue.GetType() == typeof(Guid))
-                {
-                    return _jsonObject.Value.ToString();
-                }
-
-                return _jsonObject.ValueString;
-            }
-        }
+        public string Value { get => _jsonObject.ValueString; }
 
         public string PrettyValue { get => _jsonObject.PrettyValueString; }
 
-        public string OneLineValue { get => _oneLineValue; }
+        public string OneLineValue { get => _jsonObject.OneLineValue; }
+
+        public string ValueType { get => _jsonObject.ValueTypeString; }
 
         public ObservableCollection<TreeViewData> Children { get => _children; }
 
@@ -137,14 +107,6 @@
                 }
 
                 return Config.This.GetBackgroundColor(_jsonObject);
-            }
-        }
-
-        public string ValueType
-        {
-            get
-            {
-                return this.GetValueTypeString(includeChildCount: true);
             }
         }
 
@@ -252,46 +214,6 @@
             {
                 this.FirePropertyChanged("BackgroundColor");
             }
-        }
-
-        private string GetValueTypeString(bool includeChildCount)
-        {
-            object value = _jsonObject.TypedValue;
-            if (value == null)
-            {
-                return "null";
-            }
-
-            string type;
-            switch (_jsonObject.Type)
-            {
-                case JsonObject.DataType.Array:
-                    type = "array[" + (value as System.Collections.ArrayList).Count + "]";
-                    break;
-                case JsonObject.DataType.Json:
-                    type = "json-object{" + (value as Dictionary<string, object>).Keys.Count + "}";
-                    break;
-                case JsonObject.DataType.ParsableString:
-                    type = "parse-able-string";
-                    break;
-                default:
-                    type = Utilities.StringHelper.TrimStart(value.GetType().ToString(), "System.");
-                    break;
-            }
-
-            Debug.Assert(!string.IsNullOrEmpty(type));
-
-            if (includeChildCount && this.HasChildren)
-            {
-                int childCount = _jsonObject.Children.Count;
-                int totalChildCount = _jsonObject.TotalChildCount;
-                if (childCount != totalChildCount)
-                {
-                    type += " (tree: " + totalChildCount + ")";
-                }
-            }
-
-            return type;
         }
     }
 }

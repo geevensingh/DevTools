@@ -97,5 +97,8 @@
         <CheckBox Margin="5" IsChecked="{Binding Path=ViewModel.ShouldSearchParentValues, Mode=TwoWay}">
             Search parent values
         </CheckBox>
+        <CheckBox Margin="5" IsChecked="{Binding Path=ViewModel.ShouldSearchValueTypes, Mode=TwoWay}">
+            Search value types
+        </CheckBox>
     </StackPanel>
 </Window>
