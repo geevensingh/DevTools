@@ -204,6 +204,14 @@
             {
                 item.UpdateLayout();
 
+                if (this.SelectedItem != null)
+                {
+                    item = this.GetItem((TreeViewData)this.SelectedItem);
+                    Debug.Assert(!double.IsNaN(item.ActualWidth));
+                    Debug.Assert(!double.IsNaN(item.ActualHeight));
+                    item.BringIntoView(new Rect(0, -50, item.ActualWidth, 100 + item.ActualHeight));
+                }
+
                 foreach (TreeViewData child in data.Children)
                 {
                     await this.ExpandSubtree(child, depth - 1, actionId, action);
