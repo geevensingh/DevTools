@@ -286,12 +286,9 @@
                         null,
                         () =>
                         {
-                            foreach (ConfigRule rule in Config.This?.Rules?.Where(rule => !string.IsNullOrEmpty(rule.WarningMessage)))
+                            foreach (JsonObject jsonObject in _rootObject.AllChildren)
                             {
-                                foreach (JsonObject jsonObject in _rootObject.AllChildren)
-                                {
-                                    jsonObject.Rules.RemoveAll(y => !string.IsNullOrEmpty(y.WarningMessage));
-                                }
+                                jsonObject.Rules.RemoveAll(y => !string.IsNullOrEmpty(y.WarningMessage));
                             }
                             this.UpdateWarnings();
                         });
