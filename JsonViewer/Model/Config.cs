@@ -1,5 +1,6 @@
 ﻿namespace JsonViewer
 {
+    using System;
     using System.Collections;
     using System.Collections.Generic;
     using System.Diagnostics;
@@ -179,29 +180,18 @@
                     case ConfigValue.TreeViewSearchResultBackground:
                         return Colors.LightGreen;
                     case ConfigValue.TreeViewSimilarForeground:
-                        return this.GetColor(ConfigValue.TreeViewSelectedForeground);
+                        return this.GetColor(ConfigValue.TreeViewSelectedForeground).Extreme(-1.5f);
                     case ConfigValue.TreeViewSimilarBackground:
-                        return AdjustAlpha(this.GetColor(ConfigValue.TreeViewSelectedBackground), 0x50);
+                        return this.GetColor(ConfigValue.TreeViewSelectedBackground).Extreme(1.5f);
                     case ConfigValue.TreeViewSelectedItemParentForeground:
-                        return this.GetColor(ConfigValue.TreeViewSelectedForeground);
+                        return this.GetColor(ConfigValue.TreeViewSelectedItemParentBackground).GetOposite();
                     case ConfigValue.TreeViewSelectedItemParentBackground:
-                        return AdjustAlpha(this.GetColor(ConfigValue.TreeViewSelectedBackground), 0x50);
+                        return this.GetColor(ConfigValue.TreeViewSelectedBackground).Extreme(1.5f);
                     default:
                         Debug.Assert(false);
                         return Colors.Transparent;
                 }
             }
-        }
-
-        public static Color MixColor(Color one, Color two)
-        {
-            return (one * 0.5f) + (two * 0.5f);
-        }
-
-        public static Color AdjustAlpha(Color color, byte alpha)
-        {
-            Debug.Assert(color.A == 0xff);
-            return Color.FromArgb(alpha, color.R, color.G, color.B);
         }
 
         public Brush GetForegroundColor(JsonObject obj)
