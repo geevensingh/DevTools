@@ -20,12 +20,12 @@
         private FindWindow _findWindow = null;
         private int _hitCount = 0;
         private List<JsonObject> _hits = new List<JsonObject>();
-        private Utilities.SingularAction _action = null;
+        private SingularAction _action = null;
 
         public Finder(MainWindow parentWindow)
         {
             _parentWindow = parentWindow;
-            _action = new Utilities.SingularAction(_parentWindow.Dispatcher);
+            _action = new SingularAction(_parentWindow.Dispatcher);
         }
 
         public bool ShouldSearchKeys
