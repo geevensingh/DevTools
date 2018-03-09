@@ -41,12 +41,18 @@
 
             this.IsDefault = true;
 
-            string filePath = string.Empty;
-            if (File.Exists(Properties.Settings.Default.ConfigPath))
+            string filePath = Properties.Settings.Default.ConfigPath;
+            if (Path.GetFileName(filePath).ToLower() == "config.json" && File.Exists(Path.Combine(Path.GetDirectoryName(filePath), "JsonViewer.exe")))
             {
-                filePath = Properties.Settings.Default.ConfigPath;
+                filePath = null;
             }
-            else if (File.Exists("Config.json"))
+
+            if (!File.Exists(filePath))
+            {
+                filePath = null;
+            }
+
+            if (string.IsNullOrEmpty(filePath) && File.Exists("Config.json"))
             {
                 filePath = "Config.json";
             }
