@@ -140,7 +140,6 @@
             });
 
             _action.BeginInvoke(DispatcherPriority.Background, updateAction);
-
         }
     }
 }

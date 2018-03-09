@@ -26,7 +26,7 @@
       "appliesToParents": true
     },
     {
-      "keyIs": [ "result" ],
+      "keyIs": [ "result", "results" ],
       "color": "DarkRed",
       "fontSize": 16
     },
@@ -47,7 +47,8 @@
     },
     {
       "keyIs": [ "test_header" ],
-      "warningMessage": "Warning: test_header key found!"
+      "warningMessage": "Warning: test_header key found!",
+      "ignoreCase": false
     }
   ]
 }
