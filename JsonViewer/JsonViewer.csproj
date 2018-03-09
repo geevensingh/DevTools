@@ -208,6 +208,7 @@
     <Content Include="Config.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <None Include="Examples Json\616Events.json" />
     <None Include="Examples Json\TestHeader.json" />
     <None Include="Examples Json\Unpretty.json" />
     <None Include="Examples Json\VeryLargeTest.json" />
