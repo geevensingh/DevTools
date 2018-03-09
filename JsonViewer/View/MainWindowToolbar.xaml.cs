@@ -32,6 +32,7 @@
         private FindNextCommand _findNextCommand = null;
         private FindPreviousCommand _findPreviousCommand = null;
         private PasteCommand _pasteCommand = null;
+        private PrettyCopyAllCommand _prettyCopyAllCommand = null;
         private AutoPasteToggleCommand _autoPasteToggleCommand = null;
 
         public MainWindowToolbar()
@@ -74,6 +75,8 @@
         public FindPreviousCommand FindPreviousCommand { get => _findPreviousCommand; }
 
         public PasteCommand PasteCommand { get => _pasteCommand; }
+
+        public PrettyCopyAllCommand PrettyCopyAllCommand { get => _prettyCopyAllCommand; }
 
         public AutoPasteToggleCommand AutoPasteToggleCommand { get => _autoPasteToggleCommand; }
 
@@ -120,6 +123,7 @@
             NotifyPropertyChanged.SetValue(ref _findNextCommand, new FindNextCommand(_mainWindow), "FindNextCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _findPreviousCommand, new FindPreviousCommand(_mainWindow), "FindPreviousCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _pasteCommand, new PasteCommand(_mainWindow), "PasteCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _prettyCopyAllCommand, new PrettyCopyAllCommand(_mainWindow), "PrettyCopyAllCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _autoPasteToggleCommand, new AutoPasteToggleCommand(_pasteCommand), "AutoPasteToggleCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.FirePropertyChanged("CommandsCreated", this, this.PropertyChanged);
 

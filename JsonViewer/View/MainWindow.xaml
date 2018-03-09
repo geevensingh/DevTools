@@ -146,6 +146,8 @@
                     IsCheckable="True"
                     IsChecked="{Binding ElementName=Toolbar, Path=HighlightSimilarValuesToggleCommand.IsChecked, Mode=OneWay}" />
                 <Separator />
+                <MenuItem Command="{Binding ElementName=Toolbar, Path=PrettyCopyAllCommand}" Header="{Binding ElementName=Toolbar, Path=PrettyCopyAllCommand.Text}" />
+                <Separator />
                 <MenuItem
                     Command="{Binding ElementName=Toolbar, Path=AutoPasteToggleCommand.RoutedUICommand}"
                     Header="{Binding ElementName=Toolbar, Path=AutoPasteToggleCommand.Text}"

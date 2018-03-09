@@ -121,6 +121,7 @@
     <Compile Include="Commands\PerWindow\ExpandToLevelCommand.cs" />
     <Compile Include="Commands\PerWindow\ExpandAllCommand.cs" />
     <Compile Include="Commands\PerWindow\FindPreviousCommand.cs" />
+    <Compile Include="Commands\PerWindow\PrettyCopyAllCommand.cs" />
     <Compile Include="Commands\PerWindow\PasteCommand.cs" />
     <Compile Include="Commands\PerWindow\HideFindCommand.cs" />
     <Compile Include="Commands\PerWindow\FindNextCommand.cs" />
