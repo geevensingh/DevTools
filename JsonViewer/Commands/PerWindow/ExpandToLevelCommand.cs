@@ -5,7 +5,6 @@
 
     public class ExpandToLevelCommand : BaseCommand
     {
-        private MainWindow _mainWindow = null;
         private RootObject _rootObject = null;
         private int _depth;
 
@@ -13,25 +12,24 @@
             : base(depth > 0 ? "+" + depth.ToString() : "Nothing")
         {
             _depth = depth;
-            _mainWindow = mainWindow;
-            _mainWindow.PropertyChanged += OnMainWindowPropertyChanged;
-            _mainWindow.Tree.PropertyChanged += OnTreePropertyChanged;
-            this.SetRootObject(_mainWindow.RootObject);
+            this.MainWindow = mainWindow;
+            this.MainWindow.Tree.PropertyChanged += OnTreePropertyChanged;
+            this.SetRootObject(this.MainWindow.RootObject);
         }
 
         public override void Execute(object parameter)
         {
-            _mainWindow.Tree.CollapseAll();
-            _mainWindow.Tree.ExpandAll(_depth);
+            this.MainWindow.Tree.CollapseAll();
+            this.MainWindow.Tree.ExpandAll(_depth);
         }
 
-        private void OnMainWindowPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        protected override void OnMainWindowPropertyChanged(string propertyName)
         {
-            switch (e.PropertyName)
+            switch (propertyName)
             {
                 case "Mode":
                 case "RootObject":
-                    this.SetRootObject(_mainWindow.RootObject);
+                    this.SetRootObject(this.MainWindow.RootObject);
                     break;
             }
         }
@@ -79,8 +77,8 @@
 
         private void Update()
         {
-            Debug.Assert(_mainWindow.RootObject == _rootObject);
-            this.SetCanExecute(_mainWindow.Mode == MainWindow.DisplayMode.TreeView && !_mainWindow.Tree.IsWaiting && CollapseAllCommand.HasLevel(_rootObject, _depth));
+            Debug.Assert(this.MainWindow.RootObject == _rootObject);
+            this.SetCanExecute(this.MainWindow.Mode == MainWindow.DisplayMode.TreeView && !this.MainWindow.Tree.IsWaiting && CollapseAllCommand.HasLevel(_rootObject, _depth));
         }
     }
 }

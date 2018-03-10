@@ -6,16 +6,14 @@
 
     public class PasteCommand : BaseCommand
     {
-        private MainWindow _mainWindow;
-
         public PasteCommand(MainWindow mainWindow)
             : base("Paste")
         {
             this.ForceVisibility = System.Windows.Visibility.Visible;
 
-            _mainWindow = mainWindow;
-            _mainWindow.Raw_TextBox.TextChanged += OnRawTextBoxChanged;
-            _mainWindow.ClipboardManager.ClipboardChanged += OnClipboardChanged;
+            this.MainWindow = mainWindow;
+            this.MainWindow.Raw_TextBox.TextChanged += OnRawTextBoxChanged;
+            this.MainWindow.ClipboardManager.ClipboardChanged += OnClipboardChanged;
             this.Update();
         }
 
@@ -23,8 +21,8 @@
         {
             string jsonString = ClipboardManager.TryGetText();
             Debug.Assert(JsonObjectFactory.TryDeserialize(jsonString) != null);
-            _mainWindow.Raw_TextBox.Text = jsonString;
-            _mainWindow.SetDisplayMode(MainWindow.DisplayMode.TreeView);
+            this.MainWindow.Raw_TextBox.Text = jsonString;
+            this.MainWindow.SetDisplayMode(MainWindow.DisplayMode.TreeView);
             this.Update();
         }
 
@@ -32,7 +30,7 @@
         {
             string jsonString = ClipboardManager.TryGetText();
             this.SetCanExecute(!string.IsNullOrWhiteSpace(jsonString) &&
-                _mainWindow.Raw_TextBox.Text != jsonString &&
+                this.MainWindow.Raw_TextBox.Text != jsonString &&
                 JsonObjectFactory.TryDeserialize(jsonString) != null);
         }
 

@@ -13,13 +13,19 @@
         {
             this.DisplayMode = displayMode;
             this.MainWindow = mainWindow;
-            this.MainWindow.PropertyChanged += OnMainWindowPropertyChanged;
             this.Update();
         }
 
-        private void OnMainWindowPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        private MainWindow.DisplayMode DisplayMode { get; set; }
+
+        public override void Execute(object parameter)
         {
-            switch (e.PropertyName)
+            this.MainWindow.SetDisplayMode(this.DisplayMode);
+        }
+
+        protected override void OnMainWindowPropertyChanged(string propertyName)
+        {
+            switch (propertyName)
             {
                 case "Mode":
                     this.Update();
@@ -27,15 +33,6 @@
                 default:
                     break;
             }
-        }
-
-        private MainWindow MainWindow { get; set; }
-
-        private MainWindow.DisplayMode DisplayMode { get; set; }
-
-        public override void Execute(object parameter)
-        {
-            this.MainWindow.SetDisplayMode(this.DisplayMode);
         }
 
         private void Update()

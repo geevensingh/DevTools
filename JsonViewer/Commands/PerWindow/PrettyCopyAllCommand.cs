@@ -7,35 +7,32 @@
 
     public class PrettyCopyAllCommand : BaseCommand
     {
-        private MainWindow _mainWindow;
-
         public PrettyCopyAllCommand(MainWindow mainWindow)
             : base("Copy pretty value (beta)", false)
         {
-            _mainWindow = mainWindow;
-            _mainWindow.PropertyChanged += OnMainWindowPropertyChanged;
+            this.MainWindow = mainWindow;
             this.Update();
         }
 
         public override void Execute(object parameter)
         {
-            Debug.Assert(_mainWindow.RootObject != null);
-            Clipboard.SetDataObject(_mainWindow.RootObject?.PrettyValueString);
+            Debug.Assert(this.MainWindow.RootObject != null);
+            Clipboard.SetDataObject(this.MainWindow.RootObject?.PrettyValueString);
         }
 
-        private void Update()
+        protected override void OnMainWindowPropertyChanged(string propertyName)
         {
-            this.SetCanExecute(_mainWindow.RootObject != null);
-        }
-
-        private void OnMainWindowPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
-        {
-            switch (e.PropertyName)
+            switch (propertyName)
             {
                 case "RootObject":
                     this.Update();
                     break;
             }
+        }
+
+        private void Update()
+        {
+            this.SetCanExecute(this.MainWindow.RootObject != null);
         }
     }
 }

@@ -6,23 +6,25 @@
 
     public class FindNextCommand : BaseCommand
     {
-        private MainWindow _mainWindow = null;
-
         public FindNextCommand(MainWindow mainWindow)
             : base("Next", true)
         {
-            _mainWindow = mainWindow;
-            _mainWindow.PropertyChanged += OnMainWindowPropertyChanged;
-            _mainWindow.Finder.PropertyChanged += OnFinderPropertyChanged;
+            this.MainWindow = mainWindow;
+            this.MainWindow.Finder.PropertyChanged += OnFinderPropertyChanged;
             this.Update();
 
             this.AddKeyGesture(new KeyGesture(Key.Right, ModifierKeys.Control));
             this.AddKeyGesture(new KeyGesture(Key.Right, ModifierKeys.Alt));
         }
 
-        private void OnMainWindowPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        public override void Execute(object parameter)
         {
-            switch (e.PropertyName)
+            this.MainWindow.Toolbar.FindMatchNavigator.Go(FindMatchNavigator.Direction.Forward);
+        }
+
+        protected override void OnMainWindowPropertyChanged(string propertyName)
+        {
+            switch (propertyName)
             {
                 case "Mode":
                     this.Update();
@@ -30,14 +32,9 @@
             }
         }
 
-        public override void Execute(object parameter)
-        {
-            _mainWindow.Toolbar.FindMatchNavigator.Go(FindMatchNavigator.Direction.Forward);
-        }
-
         private void OnFinderPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            Debug.Assert(sender == _mainWindow.Finder);
+            Debug.Assert(sender == this.MainWindow.Finder);
             switch (e.PropertyName)
             {
                 case "HitCount":
@@ -48,8 +45,7 @@
 
         private void Update()
         {
-
-            this.SetCanExecute(_mainWindow.Mode == MainWindow.DisplayMode.TreeView && _mainWindow.Finder.HitCount > 0);
+            this.SetCanExecute(this.MainWindow.Mode == MainWindow.DisplayMode.TreeView && this.MainWindow.Finder.HitCount > 0);
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿namespace JsonViewer.Commands
 {
     using System;
+    using System.Diagnostics;
     using System.Windows;
     using System.Windows.Input;
     using Utilities;
@@ -9,6 +10,7 @@
     {
         private string _text = string.Empty;
         private bool _canExecute = false;
+        private MainWindow _mainWindow = null;
 
         public BaseCommand(string text)
             : this(text, false)
@@ -49,6 +51,22 @@
 
         protected Visibility? ForceVisibility { get; set; }
 
+        protected MainWindow MainWindow
+        {
+            get
+            {
+                Debug.Assert(_mainWindow != null);
+                return _mainWindow;
+            }
+
+            set
+            {
+                Debug.Assert(_mainWindow == null);
+                _mainWindow = value;
+                _mainWindow.PropertyChanged += (sender, evt) => this.OnMainWindowPropertyChanged(evt.PropertyName);
+            }
+        }
+
         public bool CanExecute(object parameter)
         {
             return _canExecute;
@@ -67,6 +85,10 @@
             {
                 this.CanExecuteChanged?.Invoke(this, new EventArgs());
             }
+        }
+
+        protected virtual void OnMainWindowPropertyChanged(string propertyName)
+        {
         }
 
         private void SetText(string text)

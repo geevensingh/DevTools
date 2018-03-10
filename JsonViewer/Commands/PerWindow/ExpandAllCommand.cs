@@ -2,26 +2,34 @@
 {
     public class ExpandAllCommand : BaseCommand
     {
-        private MainWindow _mainWindow = null;
-
         public ExpandAllCommand(MainWindow mainWindow)
             : base("Expand all")
         {
-            _mainWindow = mainWindow;
-            _mainWindow.PropertyChanged += OnMainWindowPropertyChanged;
+            this.MainWindow = mainWindow;
 
-            _mainWindow.Tree.PropertyChanged += OnTreePropertyChanged;
+            this.MainWindow.Tree.PropertyChanged += OnTreePropertyChanged;
             Update();
         }
 
         public override void Execute(object parameter)
         {
-            _mainWindow.Tree.ExpandAll();
+            this.MainWindow.Tree.ExpandAll();
+        }
+
+        protected override void OnMainWindowPropertyChanged(string propertyName)
+        {
+            switch (propertyName)
+            {
+                case "Mode":
+                case "RootObject":
+                    this.Update();
+                    break;
+            }
         }
 
         private void Update()
         {
-            this.SetCanExecute(_mainWindow.Mode == MainWindow.DisplayMode.TreeView && !_mainWindow.Tree.IsWaiting && CollapseAllCommand.HasMultipleLevels(_mainWindow));
+            this.SetCanExecute(this.MainWindow.Mode == MainWindow.DisplayMode.TreeView && !this.MainWindow.Tree.IsWaiting && CollapseAllCommand.HasMultipleLevels(this.MainWindow));
         }
 
         private void OnTreePropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -29,17 +37,6 @@
             switch (e.PropertyName)
             {
                 case "IsWaiting":
-                    this.Update();
-                    break;
-            }
-        }
-
-        private void OnMainWindowPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
-        {
-            switch (e.PropertyName)
-            {
-                case "Mode":
-                case "RootObject":
                     this.Update();
                     break;
             }

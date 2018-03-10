@@ -8,28 +8,25 @@
             : base("Highlight parents", Properties.Settings.Default.HighlightSelectedParents)
         {
             this.MainWindow = mainWindow;
-            this.MainWindow.PropertyChanged += OnMainWindowPropertyChanged;
             Properties.Settings.Default.PropertyChanged += OnSettingsPropertyChanged;
 
             this.AddKeyGesture(new KeyGesture(Key.H, ModifierKeys.Control));
         }
 
-        private void OnMainWindowPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        public override void Execute(object parameter)
         {
-            switch (e.PropertyName)
+            Properties.Settings.Default.HighlightSelectedParents = !Properties.Settings.Default.HighlightSelectedParents;
+            Properties.Settings.Default.Save();
+        }
+
+        protected override void OnMainWindowPropertyChanged(string propertyName)
+        {
+            switch (propertyName)
             {
                 case "Mode":
                     this.SetCanExecute(this.MainWindow.Mode == MainWindow.DisplayMode.TreeView);
                     break;
             }
-        }
-
-        private MainWindow MainWindow;
-
-        public override void Execute(object parameter)
-        {
-            Properties.Settings.Default.HighlightSelectedParents = !Properties.Settings.Default.HighlightSelectedParents;
-            Properties.Settings.Default.Save();
         }
 
         private void OnSettingsPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
