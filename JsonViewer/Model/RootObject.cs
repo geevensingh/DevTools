@@ -59,10 +59,10 @@
 
             foreach (JsonObject jsonObj in this.AllChildren)
             {
-                ConfigRule rule = jsonObj.Rules.FirstOrDefault(x => x.ExpandChildren != null);
-                if (rule != null)
+                int? depth = jsonObj.Rules.Max(x => x.ExpandChildren);
+                if (depth.HasValue)
                 {
-                    tree.ExpandSubtree(jsonObj.ViewObject, rule.ExpandChildren.Value);
+                    tree.ExpandSubtree(jsonObj.ViewObject, depth.Value);
                 }
             }
         }
