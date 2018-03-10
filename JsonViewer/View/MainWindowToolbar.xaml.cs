@@ -33,7 +33,10 @@
         private FindPreviousCommand _findPreviousCommand = null;
         private PasteCommand _pasteCommand = null;
         private PrettyCopyAllCommand _prettyCopyAllCommand = null;
+        private PrettyTextCommand _prettyTextCommand = null;
         private AutoPasteToggleCommand _autoPasteToggleCommand = null;
+        private SwitchModeCommand _showTextModeCommand = null;
+        private SwitchModeCommand _showTreeModeCommand = null;
 
         public MainWindowToolbar()
         {
@@ -44,7 +47,7 @@
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        public BaseCommand[] AllCommands { get => new BaseCommand[] { _newWindowCommand, _pickConfigCommand, _reloadCommand, _hideFindCommand, _openJsonFileCommand, _highlightParentsToggleCommand, _highlightSimilarKeysToggleCommand, _highlightSimilarValuesToggleCommand, _expandAllCommand, _collapseAllCommand, _showToolbarTextToggleCommand, _showToolbarIconToggleCommand, _findNextCommand, _findPreviousCommand, _pasteCommand, _autoPasteToggleCommand }; }
+        public BaseCommand[] AllCommands { get => new BaseCommand[] { _newWindowCommand, _pickConfigCommand, _reloadCommand, _hideFindCommand, _openJsonFileCommand, _highlightParentsToggleCommand, _highlightSimilarKeysToggleCommand, _highlightSimilarValuesToggleCommand, _expandAllCommand, _collapseAllCommand, _showToolbarTextToggleCommand, _showToolbarIconToggleCommand, _findNextCommand, _findPreviousCommand, _pasteCommand, _prettyCopyAllCommand, _prettyTextCommand, _autoPasteToggleCommand, _showTextModeCommand, _showTreeModeCommand }; }
 
         public NewWindowCommand NewWindowCommand { get => _newWindowCommand; }
 
@@ -78,7 +81,13 @@
 
         public PrettyCopyAllCommand PrettyCopyAllCommand { get => _prettyCopyAllCommand; }
 
+        public PrettyTextCommand PrettyTextCommand { get => _prettyTextCommand; }
+
         public AutoPasteToggleCommand AutoPasteToggleCommand { get => _autoPasteToggleCommand; }
+
+        public SwitchModeCommand ShowTextModeCommand { get => _showTextModeCommand; }
+
+        public SwitchModeCommand ShowTreeModeCommand { get => _showTreeModeCommand; }
 
         public bool ShowToolbarText { get => Properties.Settings.Default.MainWindowToolbarTextVisible; }
 
@@ -113,9 +122,9 @@
             NotifyPropertyChanged.SetValue(ref _reloadCommand, new ReloadCommand(_mainWindow), "ReloadCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _hideFindCommand, new HideFindCommand(_mainWindow), "HideFindCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _openJsonFileCommand, new OpenJsonFileCommand(_mainWindow), "OpenJsonFileCommand", this, this.PropertyChanged);
-            NotifyPropertyChanged.SetValue(ref _highlightParentsToggleCommand, new HighlightParentsToggleCommand(), "HighlightParentsToggleCommand", this, this.PropertyChanged);
-            NotifyPropertyChanged.SetValue(ref _highlightSimilarKeysToggleCommand, new HighlightSimilarKeysToggleCommand(), "HighlightSimilarKeysToggleCommand", this, this.PropertyChanged);
-            NotifyPropertyChanged.SetValue(ref _highlightSimilarValuesToggleCommand, new HighlightSimilarValuesToggleCommand(), "HighlightSimilarValuesToggleCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _highlightParentsToggleCommand, new HighlightParentsToggleCommand(_mainWindow), "HighlightParentsToggleCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _highlightSimilarKeysToggleCommand, new HighlightSimilarKeysToggleCommand(_mainWindow), "HighlightSimilarKeysToggleCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _highlightSimilarValuesToggleCommand, new HighlightSimilarValuesToggleCommand(_mainWindow), "HighlightSimilarValuesToggleCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _expandAllCommand, new ExpandAllCommand(_mainWindow), "ExpandAllCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _collapseAllCommand, new CollapseAllCommand(_mainWindow), "CollapseAllCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _showToolbarTextToggleCommand, new ShowToolbarTextToggleCommand(), "ShowToolbarTextToggleCommand", this, this.PropertyChanged);
@@ -124,7 +133,10 @@
             NotifyPropertyChanged.SetValue(ref _findPreviousCommand, new FindPreviousCommand(_mainWindow), "FindPreviousCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _pasteCommand, new PasteCommand(_mainWindow), "PasteCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _prettyCopyAllCommand, new PrettyCopyAllCommand(_mainWindow), "PrettyCopyAllCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _prettyTextCommand, new PrettyTextCommand(_mainWindow), "PrettyTextCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _autoPasteToggleCommand, new AutoPasteToggleCommand(_pasteCommand), "AutoPasteToggleCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _showTextModeCommand, new SwitchModeCommand(_mainWindow, "Show text", MainWindow.DisplayMode.RawText), "ShowTextModeCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _showTreeModeCommand, new SwitchModeCommand(_mainWindow, "Show tree", MainWindow.DisplayMode.TreeView), "ShowTreeModeCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.FirePropertyChanged("CommandsCreated", this, this.PropertyChanged);
 
             NotifyPropertyChanged.SetValue(ref _findMatchNavigator, new FindMatchNavigator(_mainWindow), "FindMatchNavigator", this, this.PropertyChanged);

@@ -49,7 +49,7 @@
 
         private void Update()
         {
-            this.SetCanExecute(!_mainWindow.Tree.IsWaiting && HasMultipleLevels(_mainWindow));
+            this.SetCanExecute(_mainWindow.Mode == MainWindow.DisplayMode.TreeView && !_mainWindow.Tree.IsWaiting && HasMultipleLevels(_mainWindow));
         }
 
         private void OnTreePropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -66,6 +66,7 @@
         {
             switch (e.PropertyName)
             {
+                case "Mode":
                 case "RootObject":
                     this.Update();
                     break;

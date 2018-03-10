@@ -37,6 +37,14 @@
 
         public event PropertyChangedEventHandler PropertyChanged;
 
+        public enum DisplayMode
+        {
+            RawText,
+            TreeView
+        }
+
+        public DisplayMode Mode { get; private set; }
+
         public Finder Finder { get => _finder; }
 
         internal RootObject RootObject { get => _rootObject; }
@@ -115,6 +123,30 @@
             return true;
         }
 
+        public void SetDisplayMode(DisplayMode newMode)
+        {
+            if (newMode != this.Mode)
+            {
+                switch (newMode)
+                {
+                    case DisplayMode.RawText:
+                        this.Raw_TextBox.Visibility = Visibility.Visible;
+                        this.Tree.Visibility = Visibility.Collapsed;
+                        break;
+                    case DisplayMode.TreeView:
+                        this.Raw_TextBox.Visibility = Visibility.Collapsed;
+                        this.Tree.Visibility = Visibility.Visible;
+                        break;
+                    default:
+                        Debug.Assert(false);
+                        break;
+                }
+
+                this.Mode = newMode;
+                NotifyPropertyChanged.FirePropertyChanged("Mode", this, this.PropertyChanged);
+            }
+        }
+
         public void RunWhenever(Action action)
         {
             this.Dispatcher.BeginInvoke(action, System.Windows.Threading.DispatcherPriority.ContextIdle);
@@ -178,6 +210,7 @@
             }
 
             this.Raw_TextBox.Text = initialText;
+            this.SetDisplayMode(string.IsNullOrEmpty(initialText) ? DisplayMode.RawText : DisplayMode.TreeView);
         }
 
         private void OnToolbarPropertyChanged(object sender, PropertyChangedEventArgs e)

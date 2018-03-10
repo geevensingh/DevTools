@@ -1,6 +1,6 @@
 ﻿namespace JsonViewer.Commands
 {
-    public class ToggleCommand : BaseCommand
+    public abstract class ToggleCommand : BaseCommand
     {
         private bool _isChecked = false;
 

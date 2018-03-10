@@ -125,6 +125,7 @@
     <Compile Include="Commands\PerWindow\PasteCommand.cs" />
     <Compile Include="Commands\PerWindow\HideFindCommand.cs" />
     <Compile Include="Commands\PerWindow\FindNextCommand.cs" />
+    <Compile Include="Commands\PrettyTextCommand.cs" />
     <Compile Include="Commands\ShowToolbarTextToggleCommand.cs" />
     <Compile Include="Commands\ShowToolbarIconToggleCommand.cs" />
     <Compile Include="Commands\HighlightParentsToggleCommand.cs" />
@@ -132,6 +133,7 @@
     <Compile Include="Commands\PerWindow\OpenJsonFileCommand.cs" />
     <Compile Include="Commands\PerWindow\PickConfigCommand.cs" />
     <Compile Include="Commands\PerWindow\ReloadCommand.cs" />
+    <Compile Include="Commands\SwitchModeCommand.cs" />
     <Compile Include="Commands\ToggleCommand.cs" />
     <Compile Include="Model\ClipboardManager.cs" />
     <Compile Include="Model\FindRule.cs" />
@@ -198,6 +200,7 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
+    <Resource Include="Resources\text.png" />
     <Resource Include="Resources\open_file.png" />
     <Resource Include="Resources\left.png" />
     <Resource Include="Resources\right.png" />

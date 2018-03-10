@@ -12,11 +12,22 @@
             : base("Previous", true)
         {
             _mainWindow = mainWindow;
+            _mainWindow.PropertyChanged += OnMainWindowPropertyChanged;
             _mainWindow.Finder.PropertyChanged += OnFinderPropertyChanged;
-            this.SetCanExecute(_mainWindow.Finder.HitCount > 0);
+            this.Update();
 
             this.AddKeyGesture(new KeyGesture(Key.Left, ModifierKeys.Control));
             this.AddKeyGesture(new KeyGesture(Key.Left, ModifierKeys.Alt));
+        }
+
+        private void OnMainWindowPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            switch (e.PropertyName)
+            {
+                case "Mode":
+                    this.Update();
+                    break;
+            }
         }
 
         public override void Execute(object parameter)
@@ -30,9 +41,14 @@
             switch (e.PropertyName)
             {
                 case "HitCount":
-                    this.SetCanExecute(_mainWindow.Finder.HitCount > 0);
+                    this.Update();
                     break;
             }
+        }
+
+        private void Update()
+        {
+            this.SetCanExecute(_mainWindow.Mode == MainWindow.DisplayMode.TreeView && _mainWindow.Finder.HitCount > 0);
         }
     }
 }

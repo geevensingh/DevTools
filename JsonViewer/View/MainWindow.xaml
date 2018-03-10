@@ -197,21 +197,15 @@
         </Grid>
         <view:StatusBar DataContext="{Binding ElementName=mainWindow}" DockPanel.Dock="Bottom" />
         <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="auto" />
-                <ColumnDefinition Width="5*" />
-            </Grid.ColumnDefinitions>
             <TextBox
                 x:Name="Raw_TextBox"
-                Grid.Column="0"
-                Grid.ColumnSpan="2"
                 AcceptsReturn="True"
                 AcceptsTab="False"
                 AutoWordSelection="True"
                 HorizontalScrollBarVisibility="Auto"
                 TextChanged="Raw_TextBox_TextChanged"
-                VerticalScrollBarVisibility="Auto">
+                VerticalScrollBarVisibility="Auto"
+                Visibility="Collapsed">
                 <TextBox.Style>
                     <Style xmlns:sys="clr-namespace:System;assembly=mscorlib" TargetType="TextBox">
                         <Style.Resources>
@@ -239,19 +233,13 @@
                     </Style>
                 </TextBox.Style>
             </TextBox>
-            <GridSplitter
-                Grid.Column="1"
-                Width="5"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Stretch"
-                Background="Blue" />
             <view:CustomTreeView
                 x:Name="Tree"
-                Grid.Column="2"
                 HorizontalAlignment="Stretch"
                 HorizontalContentAlignment="Stretch"
                 ItemTemplate="{StaticResource myTaskTemplate}"
-                ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                Visibility="Collapsed">
                 <view:CustomTreeView.InputBindings>
                     <KeyBinding
                         Key="Left"

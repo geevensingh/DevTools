@@ -29,6 +29,7 @@
         {
             switch (e.PropertyName)
             {
+                case "Mode":
                 case "RootObject":
                     this.SetRootObject(_mainWindow.RootObject);
                     break;
@@ -79,7 +80,7 @@
         private void Update()
         {
             Debug.Assert(_mainWindow.RootObject == _rootObject);
-            this.SetCanExecute(!_mainWindow.Tree.IsWaiting && CollapseAllCommand.HasLevel(_rootObject, _depth));
+            this.SetCanExecute(_mainWindow.Mode == MainWindow.DisplayMode.TreeView && !_mainWindow.Tree.IsWaiting && CollapseAllCommand.HasLevel(_rootObject, _depth));
         }
     }
 }

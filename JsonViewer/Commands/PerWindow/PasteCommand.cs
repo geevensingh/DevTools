@@ -11,6 +11,8 @@
         public PasteCommand(MainWindow mainWindow)
             : base("Paste")
         {
+            this.ForceVisibility = System.Windows.Visibility.Visible;
+
             _mainWindow = mainWindow;
             _mainWindow.Raw_TextBox.TextChanged += OnRawTextBoxChanged;
             _mainWindow.ClipboardManager.ClipboardChanged += OnClipboardChanged;
@@ -22,6 +24,7 @@
             string jsonString = ClipboardManager.TryGetText();
             Debug.Assert(JsonObjectFactory.TryDeserialize(jsonString) != null);
             _mainWindow.Raw_TextBox.Text = jsonString;
+            _mainWindow.SetDisplayMode(MainWindow.DisplayMode.TreeView);
             this.Update();
         }
 
