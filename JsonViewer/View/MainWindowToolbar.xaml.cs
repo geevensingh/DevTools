@@ -17,24 +17,25 @@
         private MainWindow _mainWindow = null;
 
         private FindMatchNavigator _findMatchNavigator = null;
-        private NewWindowCommand _newWindowCommand = null;
-        private PickConfigCommand _pickConfigCommand = null;
-        private ReloadCommand _reloadCommand = null;
+
+        private AutoPasteToggleCommand _autoPasteToggleCommand = null;
+        private CollapseAllCommand _collapseAllCommand = null;
+        private ExpandAllCommand _expandAllCommand = null;
+        private FindNextCommand _findNextCommand = null;
+        private FindPreviousCommand _findPreviousCommand = null;
         private HideFindCommand _hideFindCommand = null;
-        private OpenJsonFileCommand _openJsonFileCommand = null;
         private HighlightParentsToggleCommand _highlightParentsToggleCommand = null;
         private HighlightSimilarKeysToggleCommand _highlightSimilarKeysToggleCommand = null;
         private HighlightSimilarValuesToggleCommand _highlightSimilarValuesToggleCommand = null;
-        private ExpandAllCommand _expandAllCommand = null;
-        private CollapseAllCommand _collapseAllCommand = null;
-        private ShowToolbarTextToggleCommand _showToolbarTextToggleCommand = null;
-        private ShowToolbarIconToggleCommand _showToolbarIconToggleCommand = null;
-        private FindNextCommand _findNextCommand = null;
-        private FindPreviousCommand _findPreviousCommand = null;
+        private NewWindowCommand _newWindowCommand = null;
+        private OpenJsonFileCommand _openJsonFileCommand = null;
         private PasteCommand _pasteCommand = null;
+        private PickConfigCommand _pickConfigCommand = null;
         private PrettyCopyAllCommand _prettyCopyAllCommand = null;
         private PrettyTextCommand _prettyTextCommand = null;
-        private AutoPasteToggleCommand _autoPasteToggleCommand = null;
+        private ReloadCommand _reloadCommand = null;
+        private ShowToolbarIconToggleCommand _showToolbarIconToggleCommand = null;
+        private ShowToolbarTextToggleCommand _showToolbarTextToggleCommand = null;
         private SwitchModeCommand _showTextModeCommand = null;
         private SwitchModeCommand _showTreeModeCommand = null;
 
@@ -47,7 +48,7 @@
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        public BaseCommand[] AllCommands { get => new BaseCommand[] { _newWindowCommand, _pickConfigCommand, _reloadCommand, _hideFindCommand, _openJsonFileCommand, _highlightParentsToggleCommand, _highlightSimilarKeysToggleCommand, _highlightSimilarValuesToggleCommand, _expandAllCommand, _collapseAllCommand, _showToolbarTextToggleCommand, _showToolbarIconToggleCommand, _findNextCommand, _findPreviousCommand, _pasteCommand, _prettyCopyAllCommand, _prettyTextCommand, _autoPasteToggleCommand, _showTextModeCommand, _showTreeModeCommand }; }
+        public BaseCommand[] AllCommands { get => new BaseCommand[] { _autoPasteToggleCommand, _collapseAllCommand, _expandAllCommand, _findNextCommand, _findPreviousCommand, _hideFindCommand, _highlightParentsToggleCommand, _highlightSimilarKeysToggleCommand, _highlightSimilarValuesToggleCommand, _newWindowCommand, _openJsonFileCommand, _pasteCommand, _pickConfigCommand, _prettyCopyAllCommand, _prettyTextCommand, _reloadCommand, _showTextModeCommand, _showToolbarIconToggleCommand, _showToolbarTextToggleCommand, _showTreeModeCommand }; }
 
         public NewWindowCommand NewWindowCommand { get => _newWindowCommand; }
 
