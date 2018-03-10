@@ -348,66 +348,6 @@
             this.FirePropertyChanged(new string[] { "AllChildren", "Children", "HasChildren", "ValueString", "TotalChildCount" });
         }
 
-        private void EnsureValues()
-        {
-            if (_valuesInitialized)
-            {
-                return;
-            }
-
-            _valuesInitialized = true;
-            _typedValue = GetTypedValue(this.Value, out _dataType);
-
-            if (this.Type == DataType.Array || this.Type == DataType.Json)
-            {
-                System.Web.Script.Serialization.JavaScriptSerializer ser = new System.Web.Script.Serialization.JavaScriptSerializer();
-                _valueString = ser.Serialize(this.Value);
-            }
-            else if (this.Value == null)
-            {
-                _valueString = "null";
-            }
-            else if (this.Value is bool)
-            {
-                _valueString = this.Value.ToString().ToLower();
-            }
-            else if (this.TypedValue is Guid)
-            {
-                Debug.Assert(this.Value is string);
-                _valueString = this.Value as string;
-            }
-            else
-            {
-                _valueString = this.Value.ToString();
-            }
-
-            Debug.Assert(string.IsNullOrEmpty(this.Value as string) || !string.IsNullOrEmpty(_valueString));
-
-            _valueTypeString = this.GetValueTypeString(includeChildCount: true);
-
-            string oneLineValue = this.GetValueTypeString(includeChildCount: false);
-            if (this.TypedValue != null)
-            {
-                if (!this.HasChildren)
-                {
-                    oneLineValue = this.ValueString;
-                }
-
-                if (this.TypedValue is DateTime)
-                {
-                    oneLineValue += " (" + Utilities.TimeSpanStringify.PrettyApprox((DateTime)this.TypedValue - DateTime.Now) + ")";
-                }
-                else if (this.TypedValue is TimeSpan)
-                {
-                    oneLineValue += " (" + Utilities.TimeSpanStringify.PrettyApprox((TimeSpan)this.TypedValue) + ")";
-                }
-            }
-
-            _oneLineValue = oneLineValue;
-
-            _rules = new List<ConfigRule>(Config.This.Rules.Where(rule => rule.Matches(this)));
-        }
-
         private static object GetTypedValue(object value, out DataType dataType)
         {
             dataType = DataType.Other;
@@ -475,6 +415,66 @@
             }
 
             return str;
+        }
+
+        private void EnsureValues()
+        {
+            if (_valuesInitialized)
+            {
+                return;
+            }
+
+            _valuesInitialized = true;
+            _typedValue = GetTypedValue(this.Value, out _dataType);
+
+            if (this.Type == DataType.Array || this.Type == DataType.Json)
+            {
+                System.Web.Script.Serialization.JavaScriptSerializer ser = new System.Web.Script.Serialization.JavaScriptSerializer();
+                _valueString = ser.Serialize(this.Value);
+            }
+            else if (this.Value == null)
+            {
+                _valueString = "null";
+            }
+            else if (this.Value is bool)
+            {
+                _valueString = this.Value.ToString().ToLower();
+            }
+            else if (this.TypedValue is Guid)
+            {
+                Debug.Assert(this.Value is string);
+                _valueString = this.Value as string;
+            }
+            else
+            {
+                _valueString = this.Value.ToString();
+            }
+
+            Debug.Assert(string.IsNullOrEmpty(this.Value as string) || !string.IsNullOrEmpty(_valueString));
+
+            _valueTypeString = this.GetValueTypeString(includeChildCount: true);
+
+            string oneLineValue = this.GetValueTypeString(includeChildCount: false);
+            if (this.TypedValue != null)
+            {
+                if (!this.HasChildren)
+                {
+                    oneLineValue = this.ValueString;
+                }
+
+                if (this.TypedValue is DateTime)
+                {
+                    oneLineValue += " (" + Utilities.TimeSpanStringify.PrettyApprox((DateTime)this.TypedValue - DateTime.Now) + ")";
+                }
+                else if (this.TypedValue is TimeSpan)
+                {
+                    oneLineValue += " (" + Utilities.TimeSpanStringify.PrettyApprox((TimeSpan)this.TypedValue) + ")";
+                }
+            }
+
+            _oneLineValue = oneLineValue;
+
+            _rules = new List<ConfigRule>(Config.This.Rules.Where(rule => rule.Matches(this)));
         }
 
         private string GetValueTypeString(bool includeChildCount)
