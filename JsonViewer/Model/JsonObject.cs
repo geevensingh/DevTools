@@ -23,6 +23,9 @@
         private List<ConfigRule> _rules;
         private FindRule _findRule = null;
         private FindRule _matchRule = null;
+        private bool _valuesInitialized = false;
+        private string _valueTypeString;
+        private string _oneLineValue;
 
         public JsonObject(string key, object value, JsonObject parent)
             : this(key, value)
@@ -54,61 +57,17 @@
             private set
             {
                 _value = value;
-                _typedValue = GetTypedValue(_value, out _dataType);
-
-                if (_dataType == DataType.Array || _dataType == DataType.Json)
-                {
-                    System.Web.Script.Serialization.JavaScriptSerializer ser = new System.Web.Script.Serialization.JavaScriptSerializer();
-                    _valueString = ser.Serialize(_value);
-                }
-                else if (_value == null)
-                {
-                    _valueString = "null";
-                }
-                else if (_value is bool)
-                {
-                    _valueString = _value.ToString().ToLower();
-                }
-                else if (_typedValue is Guid)
-                {
-                    Debug.Assert(_value is string);
-                    _valueString = _value as string;
-                }
-                else
-                {
-                    _valueString = _value.ToString();
-                }
-
-                Debug.Assert(string.IsNullOrEmpty(_value as string) || !string.IsNullOrEmpty(_valueString));
-
-                this.ValueTypeString = this.GetValueTypeString(includeChildCount: true);
-
-                string oneLineValue = this.GetValueTypeString(includeChildCount: false);
-                if (_typedValue != null)
-                {
-                    if (!this.HasChildren)
-                    {
-                        oneLineValue = this.ValueString;
-                    }
-
-                    Type valueType = _typedValue.GetType();
-                    if (valueType == typeof(DateTime))
-                    {
-                        oneLineValue += " (" + Utilities.TimeSpanStringify.PrettyApprox((DateTime)_typedValue - DateTime.Now) + ")";
-                    }
-                    else if (valueType == typeof(TimeSpan))
-                    {
-                        oneLineValue += " (" + Utilities.TimeSpanStringify.PrettyApprox((TimeSpan)_typedValue) + ")";
-                    }
-                }
-
-                this.OneLineValue = oneLineValue;
-
-                _rules = new List<ConfigRule>(Config.This.Rules.Where(rule => rule.Matches(this)));
             }
         }
 
-        public object TypedValue { get => _typedValue; }
+        public object TypedValue
+        {
+            get
+            {
+                this.EnsureValues();
+                return _typedValue;
+            }
+        }
 
         public JsonObject Parent { get => _parent; }
 
@@ -148,21 +107,49 @@
 
         public bool HasChildren { get => this.Children.Count > 0; }
 
-        public DataType Type { get => _dataType; }
+        public DataType Type
+        {
+            get
+            {
+                this.EnsureValues();
+                return _dataType;
+            }
+        }
 
         public bool IsFindMatch { get => _findRule != null; }
 
-        public bool CanTreatAsJson { get => _dataType == DataType.ParsableString; }
+        public bool CanTreatAsJson { get => this.Type == DataType.ParsableString; }
 
-        public bool CanTreatAsText { get => _dataType == DataType.Json; }
+        public bool CanTreatAsText { get => this.Type == DataType.Json; }
 
-        public string ValueString { get => _valueString; }
+        public string ValueString
+        {
+            get
+            {
+                this.EnsureValues();
+                return _valueString;
+            }
+        }
 
         public string PrettyValueString { get => this.GetPrettyString(); }
 
-        public string ValueTypeString { get; private set; }
+        public string ValueTypeString
+        {
+            get
+            {
+                this.EnsureValues();
+                return _valueTypeString;
+            }
+        }
 
-        public string OneLineValue { get; private set; }
+        public string OneLineValue
+        {
+            get
+            {
+                this.EnsureValues();
+                return _oneLineValue;
+            }
+        }
 
         public int TotalChildCount { get => this.Children.Count + this.Children.Sum(x => x.TotalChildCount); }
 
@@ -199,13 +186,22 @@
             }
         }
 
-        internal List<ConfigRule> Rules { get => _rules; }
+        internal List<ConfigRule> Rules
+        {
+            get
+            {
+                this.EnsureValues();
+                return _rules;
+            }
+        }
 
         internal FindRule FindRule
         {
             get => _findRule;
             set
             {
+                this.EnsureValues();
+
                 FindRule oldRule = _findRule;
                 FindRule newRule = value;
 
@@ -245,6 +241,8 @@
             get => _matchRule;
             set
             {
+                this.EnsureValues();
+
                 FindRule oldRule = _matchRule;
                 FindRule newRule = value;
 
@@ -350,6 +348,66 @@
             this.FirePropertyChanged(new string[] { "AllChildren", "Children", "HasChildren", "ValueString", "TotalChildCount" });
         }
 
+        private void EnsureValues()
+        {
+            if (_valuesInitialized)
+            {
+                return;
+            }
+
+            _valuesInitialized = true;
+            _typedValue = GetTypedValue(this.Value, out _dataType);
+
+            if (this.Type == DataType.Array || this.Type == DataType.Json)
+            {
+                System.Web.Script.Serialization.JavaScriptSerializer ser = new System.Web.Script.Serialization.JavaScriptSerializer();
+                _valueString = ser.Serialize(this.Value);
+            }
+            else if (this.Value == null)
+            {
+                _valueString = "null";
+            }
+            else if (this.Value is bool)
+            {
+                _valueString = this.Value.ToString().ToLower();
+            }
+            else if (this.TypedValue is Guid)
+            {
+                Debug.Assert(this.Value is string);
+                _valueString = this.Value as string;
+            }
+            else
+            {
+                _valueString = this.Value.ToString();
+            }
+
+            Debug.Assert(string.IsNullOrEmpty(this.Value as string) || !string.IsNullOrEmpty(_valueString));
+
+            _valueTypeString = this.GetValueTypeString(includeChildCount: true);
+
+            string oneLineValue = this.GetValueTypeString(includeChildCount: false);
+            if (this.TypedValue != null)
+            {
+                if (!this.HasChildren)
+                {
+                    oneLineValue = this.ValueString;
+                }
+
+                if (this.TypedValue is DateTime)
+                {
+                    oneLineValue += " (" + Utilities.TimeSpanStringify.PrettyApprox((DateTime)this.TypedValue - DateTime.Now) + ")";
+                }
+                else if (this.TypedValue is TimeSpan)
+                {
+                    oneLineValue += " (" + Utilities.TimeSpanStringify.PrettyApprox((TimeSpan)this.TypedValue) + ")";
+                }
+            }
+
+            _oneLineValue = oneLineValue;
+
+            _rules = new List<ConfigRule>(Config.This.Rules.Where(rule => rule.Matches(this)));
+        }
+
         private static object GetTypedValue(object value, out DataType dataType)
         {
             dataType = DataType.Other;
@@ -399,13 +457,14 @@
                 return dateTimeValue;
             }
 
-            try
+            if (Uri.TryCreate(str, UriKind.Absolute, out Uri absoluteUri))
             {
-                Uri uri = new Uri(str);
-                return uri;
+                return absoluteUri;
             }
-            catch (UriFormatException)
+
+            if (Uri.TryCreate(str, UriKind.Relative, out Uri relativeUri))
             {
+                return relativeUri;
             }
 
             Dictionary<string, object> jsonObj = JsonObjectFactory.TryDeserialize(str);
@@ -460,7 +519,7 @@
 
         private string GetPrettyKeySting(int depth)
         {
-            if (_parent == null || _parent._dataType == DataType.Array || depth == 0)
+            if (_parent == null || _parent.Type == DataType.Array || depth == 0)
             {
                 return string.Empty;
             }
@@ -470,7 +529,7 @@
 
         private string GetWrapString(bool start)
         {
-            switch (_dataType)
+            switch (this.Type)
             {
                 case DataType.Array:
                     return start ? "[" : "]";
