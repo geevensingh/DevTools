@@ -139,7 +139,7 @@
     <Compile Include="Model\ConfigRuleMatcher.cs" />
     <Compile Include="Model\FindRule.cs" />
     <Compile Include="Model\ConfigRule.cs" />
-    <Compile Include="SimilarHighlighter.cs" />
+    <Compile Include="Model\SimilarHighlighter.cs" />
     <Compile Include="View\FindMatchNavigator.cs" />
     <Compile Include="View\MainWindowToolbar.xaml.cs">
       <DependentUpon>MainWindowToolbar.xaml</DependentUpon>

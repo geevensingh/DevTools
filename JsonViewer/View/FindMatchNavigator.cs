@@ -2,6 +2,7 @@
 {
     using System.Diagnostics;
     using System.Windows;
+    using JsonViewer.Model;
     using Utilities;
 
     public class FindMatchNavigator : NotifyPropertyChanged

@@ -1,5 +1,6 @@
 ﻿namespace JsonViewer.Commands.PerItem
 {
+    using JsonViewer.Model;
     using JsonViewer.View;
 
     internal class TreatAsJsonCommand : BaseTreeViewDataCommand

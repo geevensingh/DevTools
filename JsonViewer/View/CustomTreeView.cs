@@ -7,6 +7,7 @@
     using System.Windows;
     using System.Windows.Controls;
     using System.Windows.Input;
+    using JsonViewer.Model;
     using Utilities;
 
     internal class CustomTreeView : TreeView, INotifyPropertyChanged
