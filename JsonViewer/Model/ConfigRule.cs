@@ -9,6 +9,8 @@
 
     internal class ConfigRule
     {
+        private ConfigRuleMatcher _matcher = null;
+
         protected ConfigRule()
         {
             ExactKeys = new List<string>();
@@ -66,63 +68,12 @@
 
         public bool Matches(JsonObject obj)
         {
-            string key = this.NormalizeString(obj.Key);
-            if (MatchStringToList(key, this.ExactKeys))
+            if (_matcher == null)
             {
-                return true;
+                _matcher = new ConfigRuleMatcher(this);
             }
 
-            if (MatchPartialStringToList(key, this.PartialKeys))
-            {
-                return true;
-            }
-
-            string valueTypeString = this.NormalizeString(obj.ValueTypeString);
-            if (MatchStringToList(valueTypeString, this.ExactValueTypes))
-            {
-                return true;
-            }
-
-            if (MatchPartialStringToList(valueTypeString, this.PartialValueTypes))
-            {
-                return true;
-            }
-
-            if (!obj.HasChildren || this.AppliesToParents)
-            {
-                string valueString = this.NormalizeString(obj.ValueString);
-                if (MatchStringToList(valueString, this.ExactValues))
-                {
-                    return true;
-                }
-
-                if (MatchPartialStringToList(valueString, this.PartialValues))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        public string NormalizeString(string str)
-        {
-            if (this.IgnoreCase)
-            {
-                return str.ToLower();
-            }
-
-            return str;
-        }
-
-        private static bool MatchStringToList(string value, IList<string> values)
-        {
-            return values.Any(x => value == x);
-        }
-
-        private static bool MatchPartialStringToList(string value, IList<string> values)
-        {
-            return values.Any(x => value.Contains(x));
+            return _matcher.Matches(obj);
         }
 
         private static ConfigRule GenerateRule(Dictionary<string, object> dict)
