@@ -72,7 +72,7 @@
                     <BitmapImage x:Key="Image" UriSource="..\Resources\curly_braces.png" />
                 </Button.Resources>
             </Button>
-            <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
+            <!--<Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />-->
             <Button
                 Command="{Binding ElementName=Root, Path=OpenJsonFileCommand}"
                 DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}"
@@ -84,7 +84,50 @@
                     <BitmapImage x:Key="Image" UriSource="..\Resources\open_file.png" />
                 </Button.Resources>
             </Button>
-            <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
+            <!--<Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />-->
+            <Button
+                Command="{Binding ElementName=Root, Path=NewWindowCommand}"
+                DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}"
+                IsEnabled="{Binding Path=IsEnabled}"
+                Style="{StaticResource MyButtonStyle}"
+                ToolTip="{Binding Path=Text}"
+                Visibility="{Binding Path=IsVisible}">
+                <Button.Resources>
+                    <BitmapImage x:Key="Image" UriSource="..\Resources\window.png" />
+                </Button.Resources>
+            </Button>
+            <Button
+                Command="{Binding ElementName=Root, Path=PasteCommand}"
+                DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}"
+                IsEnabled="{Binding Path=IsEnabled}"
+                Style="{StaticResource MyButtonStyle}"
+                ToolTip="{Binding Path=Text}"
+                Visibility="{Binding Path=IsVisible}">
+                <Button.Resources>
+                    <BitmapImage x:Key="Image" UriSource="..\Resources\clipboard.png" />
+                </Button.Resources>
+            </Button>
+        </ToolBar>
+        <ToolBar
+            Band="1"
+            BandIndex="2"
+            Visibility="{Binding Path=TextModeVisibility}">
+            <Button
+                Command="{Binding ElementName=Root, Path=PrettyTextCommand}"
+                DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}"
+                IsEnabled="{Binding Path=IsEnabled}"
+                Style="{StaticResource MyButtonStyle}"
+                ToolTip="{Binding Path=Text}"
+                Visibility="{Binding Path=IsVisible}">
+                <Button.Resources>
+                    <BitmapImage x:Key="Image" UriSource="..\Resources\curly_braces.png" />
+                </Button.Resources>
+            </Button>
+        </ToolBar>
+        <ToolBar
+            Band="1"
+            BandIndex="3"
+            Visibility="{Binding Path=TreeModeVisibility}">
             <Button
                 Command="{Binding ElementName=Root, Path=ExpandAllCommand}"
                 DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}"
@@ -107,7 +150,7 @@
                     <BitmapImage x:Key="Image" UriSource="..\Resources\collapse_all.png" />
                 </Button.Resources>
             </Button>
-            <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
+            <!--<Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />-->
             <CheckBox
                 Command="{Binding ElementName=Root, Path=HighlightParentsToggleCommand}"
                 DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}"
@@ -127,41 +170,6 @@
                         Visibility="{Binding ElementName=Root, Path=ToolbarTextVisibility}" />
                 </StackPanel>
             </CheckBox>
-            <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
-            <Button
-                Command="{Binding ElementName=Root, Path=NewWindowCommand}"
-                DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}"
-                IsEnabled="{Binding Path=IsEnabled}"
-                Style="{StaticResource MyButtonStyle}"
-                ToolTip="{Binding Path=Text}"
-                Visibility="{Binding Path=IsVisible}">
-                <Button.Resources>
-                    <BitmapImage x:Key="Image" UriSource="..\Resources\window.png" />
-                </Button.Resources>
-            </Button>
-            <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
-            <Button
-                Command="{Binding ElementName=Root, Path=PrettyTextCommand}"
-                DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}"
-                IsEnabled="{Binding Path=IsEnabled}"
-                Style="{StaticResource MyButtonStyle}"
-                ToolTip="{Binding Path=Text}"
-                Visibility="{Binding Path=IsVisible}">
-                <Button.Resources>
-                    <BitmapImage x:Key="Image" UriSource="..\Resources\curly_braces.png" />
-                </Button.Resources>
-            </Button>
-            <Button
-                Command="{Binding ElementName=Root, Path=PasteCommand}"
-                DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}"
-                IsEnabled="{Binding Path=IsEnabled}"
-                Style="{StaticResource MyButtonStyle}"
-                ToolTip="{Binding Path=Text}"
-                Visibility="{Binding Path=IsVisible}">
-                <Button.Resources>
-                    <BitmapImage x:Key="Image" UriSource="..\Resources\clipboard.png" />
-                </Button.Resources>
-            </Button>
             <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
             <TextBlock
                 Margin="5,0"

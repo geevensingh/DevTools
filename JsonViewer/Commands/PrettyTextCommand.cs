@@ -26,7 +26,6 @@
         {
             switch (propertyName)
             {
-                case "Mode":
                 case "RootObject":
                     this.Update();
                     break;
@@ -35,7 +34,7 @@
 
         private void Update()
         {
-            this.SetCanExecute(this.MainWindow.RootObject != null && this.MainWindow.Mode == MainWindow.DisplayMode.RawText);
+            this.SetCanExecute(this.MainWindow.RootObject != null);
         }
     }
 }

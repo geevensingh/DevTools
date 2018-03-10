@@ -2,10 +2,9 @@
 {
     public class HighlightSimilarKeysToggleCommand : ToggleCommand
     {
-        public HighlightSimilarKeysToggleCommand(MainWindow mainWindow)
+        public HighlightSimilarKeysToggleCommand()
             : base("Highlight similar keys", Properties.Settings.Default.HighlightSimilarKeys)
         {
-            this.MainWindow = mainWindow;
             Properties.Settings.Default.PropertyChanged += OnSettingsPropertyChanged;
         }
 
@@ -13,16 +12,6 @@
         {
             Properties.Settings.Default.HighlightSimilarKeys = !Properties.Settings.Default.HighlightSimilarKeys;
             Properties.Settings.Default.Save();
-        }
-
-        protected override void OnMainWindowPropertyChanged(string propertyName)
-        {
-            switch (propertyName)
-            {
-                case "Mode":
-                    this.SetCanExecute(this.MainWindow.Mode == MainWindow.DisplayMode.TreeView);
-                    break;
-            }
         }
 
         private void OnSettingsPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)

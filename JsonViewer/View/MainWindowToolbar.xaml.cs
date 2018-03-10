@@ -99,6 +99,10 @@
 
         public FindMatchNavigator FindMatchNavigator { get => _findMatchNavigator; }
 
+        public Visibility TextModeVisibility { get => (_mainWindow != null && _mainWindow.Mode == MainWindow.DisplayMode.RawText) ? Visibility.Visible : Visibility.Collapsed; }
+
+        public Visibility TreeModeVisibility { get => (_mainWindow != null && _mainWindow.Mode == MainWindow.DisplayMode.TreeView) ? Visibility.Visible : Visibility.Collapsed; }
+
         private void OnSettingsPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             switch (e.PropertyName)
@@ -116,15 +120,16 @@
         {
             _mainWindow = (MainWindow)this.DataContext;
             Debug.Assert(_mainWindow != null);
+            NotifyPropertyChanged.FirePropertyChanged(new string[] { "TextModeVisibility", "TreeModeVisibility" }, this, this.PropertyChanged);
 
             NotifyPropertyChanged.SetValue(ref _newWindowCommand, new NewWindowCommand(_mainWindow), "NewWindowCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _pickConfigCommand, new PickConfigCommand(_mainWindow), "PickConfigCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _reloadCommand, new ReloadCommand(_mainWindow), "ReloadCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _hideFindCommand, new HideFindCommand(_mainWindow), "HideFindCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _openJsonFileCommand, new OpenJsonFileCommand(_mainWindow), "OpenJsonFileCommand", this, this.PropertyChanged);
-            NotifyPropertyChanged.SetValue(ref _highlightParentsToggleCommand, new HighlightParentsToggleCommand(_mainWindow), "HighlightParentsToggleCommand", this, this.PropertyChanged);
-            NotifyPropertyChanged.SetValue(ref _highlightSimilarKeysToggleCommand, new HighlightSimilarKeysToggleCommand(_mainWindow), "HighlightSimilarKeysToggleCommand", this, this.PropertyChanged);
-            NotifyPropertyChanged.SetValue(ref _highlightSimilarValuesToggleCommand, new HighlightSimilarValuesToggleCommand(_mainWindow), "HighlightSimilarValuesToggleCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _highlightParentsToggleCommand, new HighlightParentsToggleCommand(), "HighlightParentsToggleCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _highlightSimilarKeysToggleCommand, new HighlightSimilarKeysToggleCommand(), "HighlightSimilarKeysToggleCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _highlightSimilarValuesToggleCommand, new HighlightSimilarValuesToggleCommand(), "HighlightSimilarValuesToggleCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _expandAllCommand, new ExpandAllCommand(_mainWindow), "ExpandAllCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _collapseAllCommand, new CollapseAllCommand(_mainWindow), "CollapseAllCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _showToolbarTextToggleCommand, new ShowToolbarTextToggleCommand(), "ShowToolbarTextToggleCommand", this, this.PropertyChanged);
@@ -141,8 +146,21 @@
 
             NotifyPropertyChanged.SetValue(ref _findMatchNavigator, new FindMatchNavigator(_mainWindow), "FindMatchNavigator", this, this.PropertyChanged);
 
+            _mainWindow.PropertyChanged += OnMainWindowPropertyChanged;
             _mainWindow.Finder.PropertyChanged += OnFinderPropertyChanged;
             FindTextBox.Text = _mainWindow.Finder.Text;
+        }
+
+        private void OnMainWindowPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            switch (e.PropertyName)
+            {
+                case "Mode":
+                    NotifyPropertyChanged.FirePropertyChanged(new string[] { "TextModeVisibility", "TreeModeVisibility" }, this, this.PropertyChanged);
+                    break;
+                default:
+                    break;
+            }
         }
 
         private void OnFinderPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)

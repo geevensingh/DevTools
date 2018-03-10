@@ -1,5 +1,7 @@
 ﻿namespace JsonViewer.Commands.PerWindow
 {
+    using System.Windows;
+
     public class ExpandAllCommand : BaseCommand
     {
         public ExpandAllCommand(MainWindow mainWindow)
@@ -20,7 +22,6 @@
         {
             switch (propertyName)
             {
-                case "Mode":
                 case "RootObject":
                     this.Update();
                     break;
@@ -29,7 +30,7 @@
 
         private void Update()
         {
-            this.SetCanExecute(this.MainWindow.Mode == MainWindow.DisplayMode.TreeView && !this.MainWindow.Tree.IsWaiting && CollapseAllCommand.HasMultipleLevels(this.MainWindow));
+            this.SetCanExecute(!this.MainWindow.Tree.IsWaiting && CollapseAllCommand.HasMultipleLevels(this.MainWindow));
         }
 
         private void OnTreePropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)

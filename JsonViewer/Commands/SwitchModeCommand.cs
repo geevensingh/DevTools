@@ -30,8 +30,6 @@
                 case "Mode":
                     this.Update();
                     break;
-                default:
-                    break;
             }
         }
 

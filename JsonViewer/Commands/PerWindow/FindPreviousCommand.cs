@@ -22,16 +22,6 @@
             this.MainWindow.Toolbar.FindMatchNavigator.Go(FindMatchNavigator.Direction.Backward);
         }
 
-        protected override void OnMainWindowPropertyChanged(string propertyName)
-        {
-            switch (propertyName)
-            {
-                case "Mode":
-                    this.Update();
-                    break;
-            }
-        }
-
         private void OnFinderPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
             Debug.Assert(sender == this.MainWindow.Finder);
@@ -45,7 +35,7 @@
 
         private void Update()
         {
-            this.SetCanExecute(this.MainWindow.Mode == MainWindow.DisplayMode.TreeView && this.MainWindow.Finder.HitCount > 0);
+            this.SetCanExecute(this.MainWindow.Finder.HitCount > 0);
         }
     }
 }
