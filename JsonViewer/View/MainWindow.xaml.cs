@@ -25,6 +25,7 @@
         private RootObject _rootObject = null;
         private WarningBannerActionHandler _warningBannerAction;
         private WarningBannerActionHandler _warningBannerDismiss;
+        private string _lastText = string.Empty;
 
         public MainWindow()
         {
@@ -246,7 +247,6 @@
             }
         }
 
-        private string _lastText = string.Empty;
         private async void Raw_TextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             Debug.Assert(sender.Equals(this.Raw_TextBox));

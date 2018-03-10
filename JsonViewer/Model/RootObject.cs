@@ -10,6 +10,7 @@
 
     public class RootObject : JsonObject
     {
+        private static SingularAction _expandByRules = null;
         private ObservableCollection<TreeViewData> _viewChildren = null;
 
         public RootObject()
@@ -43,8 +44,6 @@
             _viewChildren = null;
             base.SetChildren(children);
         }
-
-        private static SingularAction _expandByRules = null;
 
         internal void SetTreeItemsSource(CustomTreeView tree)
         {
