@@ -80,10 +80,7 @@
                     return this.Key;
                 }
 
-                List<string> list = new List<string>();
-                list.Add(_parent.Path);
-                list.Add(this.Key);
-                return string.Join("\\", list.ToArray());
+                return string.Join("\\", new string[] { _parent.Path, this.Key });
             }
         }
 
