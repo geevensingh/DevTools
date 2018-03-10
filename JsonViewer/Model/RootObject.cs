@@ -17,20 +17,18 @@
         {
         }
 
-        public static async Task<RootObject> Create(string jsonString)
+        public static async Task<RootObject> Create(Dictionary<string, object> jsonObj)
         {
+            if (jsonObj == null)
+            {
+                return null;
+            }
+
             using (new WaitCursor())
             {
                 return await Task.Run(
                     () =>
                     {
-                        System.Web.Script.Serialization.JavaScriptSerializer ser = new System.Web.Script.Serialization.JavaScriptSerializer();
-                        Dictionary<string, object> jsonObj = JsonObjectFactory.TryDeserialize(jsonString);
-                        if (jsonObj == null)
-                        {
-                            return null;
-                        }
-
                         RootObject root = new RootObject();
                         var jsonObjects = new List<JsonObject>();
                         JsonObjectFactory.Flatten(ref jsonObjects, jsonObj, root);

@@ -80,14 +80,19 @@
             }
         }
 
-        public async Task<bool> ReloadAsync()
+        public Task<bool> ReloadAsync()
         {
             if (string.IsNullOrWhiteSpace(this.Raw_TextBox.Text))
             {
-                return false;
+                return Task.FromResult(false);
             }
 
-            RootObject rootObject = await RootObject.Create(this.Raw_TextBox.Text);
+            return this.ReloadAsync(JsonObjectFactory.TryDeserialize(this.Raw_TextBox.Text));
+        }
+
+        public async Task<bool> ReloadAsync(Dictionary<string, object> dictionary)
+        {
+            RootObject rootObject = await RootObject.Create(dictionary);
             if (rootObject == null)
             {
                 this.SetErrorMessage("Unable to parse given string");
@@ -241,20 +246,17 @@
             }
         }
 
+        private string _lastText = string.Empty;
         private async void Raw_TextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             Debug.Assert(sender.Equals(this.Raw_TextBox));
-            bool succeeded = await this.ReloadAsync();
-            if (!succeeded)
+            string newText = this.Raw_TextBox.Text;
+            Dictionary<string, object> dictionary = JsonObjectFactory.TryDeserialize(newText);
+            string newNormalizedText = new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(dictionary);
+            if (newNormalizedText != _lastText)
             {
-                // Fix json copied from iScope scripts
-                string text = this.Raw_TextBox.Text.Trim();
-                if (text.StartsWith("\"") && text.EndsWith("\""))
-                {
-                    text = text.Trim(new char[] { '"' });
-                    text = text.Replace("\"\"", "\"");
-                    this.Raw_TextBox.Text = text;
-                }
+                _lastText = newNormalizedText;
+                await this.ReloadAsync(dictionary);
             }
         }
 
