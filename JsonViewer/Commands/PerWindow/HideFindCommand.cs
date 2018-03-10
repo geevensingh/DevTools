@@ -3,6 +3,7 @@
     using System.Diagnostics;
     using System.Windows.Input;
     using JsonViewer.Model;
+    using JsonViewer.View;
 
     public class HideFindCommand : BaseCommand
     {

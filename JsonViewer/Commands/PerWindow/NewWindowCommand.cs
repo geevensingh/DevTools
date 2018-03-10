@@ -1,6 +1,7 @@
 ﻿namespace JsonViewer.Commands.PerWindow
 {
     using System.Windows.Input;
+    using JsonViewer.View;
 
     public class NewWindowCommand : BaseCommand
     {

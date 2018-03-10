@@ -1,6 +1,7 @@
 ﻿namespace JsonViewer.Commands
 {
     using System.Diagnostics;
+    using JsonViewer.View;
 
     public class PrettyTextCommand : BaseCommand
     {

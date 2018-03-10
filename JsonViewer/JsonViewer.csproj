@@ -159,7 +159,7 @@
     <Compile Include="View\StretchingTreeViewItem.cs" />
     <Compile Include="View\TreeViewData.cs" />
     <Compile Include="View\TreeViewDataFactory.cs" />
-    <Compile Include="View\NativeMethods.cs" />
+    <Compile Include="NativeMethods.cs" />
     <Compile Include="View\WaitCursor.cs" />
     <Compile Include="View\WindowPlacementSerializer.cs" />
     <Page Include="View\MainWindowToolbar.xaml">

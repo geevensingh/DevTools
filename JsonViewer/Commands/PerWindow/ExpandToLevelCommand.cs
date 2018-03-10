@@ -2,6 +2,7 @@
 {
     using System.Diagnostics;
     using JsonViewer.Model;
+    using JsonViewer.View;
 
     public class ExpandToLevelCommand : BaseCommand
     {

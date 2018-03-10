@@ -1,6 +1,7 @@
 ﻿namespace JsonViewer.Commands.PerWindow
 {
     using System.Windows.Input;
+    using JsonViewer.View;
     using Microsoft.Win32;
 
     public class OpenJsonFileCommand : BaseCommand

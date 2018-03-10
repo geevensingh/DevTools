@@ -4,6 +4,7 @@
     using System.Diagnostics;
     using System.Windows;
     using System.Windows.Input;
+    using JsonViewer.View;
     using Utilities;
 
     public abstract class BaseCommand : NotifyPropertyChanged, ICommand

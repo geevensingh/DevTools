@@ -1,5 +1,7 @@
 ﻿namespace JsonViewer.Commands.PerWindow
 {
+    using JsonViewer.View;
+
     public class CollapseAllCommand : BaseCommand
     {
         public CollapseAllCommand(MainWindow mainWindow)

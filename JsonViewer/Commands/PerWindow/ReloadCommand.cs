@@ -2,6 +2,7 @@
 {
     using System.Windows.Input;
     using JsonViewer.Model;
+    using JsonViewer.View;
     using Utilities;
 
     public class ReloadCommand : BaseCommand

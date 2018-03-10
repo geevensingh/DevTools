@@ -2,6 +2,7 @@
 {
     using System.Diagnostics;
     using System.Windows;
+    using JsonViewer.View;
 
     public class PrettyCopyAllCommand : BaseCommand
     {

@@ -5,6 +5,7 @@
     using System.Diagnostics;
     using System.Threading.Tasks;
     using System.Windows.Threading;
+    using JsonViewer.View;
     using Utilities;
 
     public class Finder : NotifyPropertyChanged

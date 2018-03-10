@@ -1,5 +1,7 @@
 ﻿namespace JsonViewer.Commands.PerWindow
 {
+    using JsonViewer.View;
+
     public class ExpandAllCommand : BaseCommand
     {
         public ExpandAllCommand(MainWindow mainWindow)

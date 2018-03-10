@@ -1,5 +1,7 @@
 ﻿namespace JsonViewer.Commands
 {
+    using JsonViewer.View;
+
     public class SwitchModeCommand : BaseCommand
     {
         public SwitchModeCommand(MainWindow mainWindow, string text, MainWindow.DisplayMode displayMode)
