@@ -1,11 +1,5 @@
 ﻿namespace JsonViewer.Commands
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
-
     public class SwitchModeCommand : BaseCommand
     {
         public SwitchModeCommand(MainWindow mainWindow, string text, MainWindow.DisplayMode displayMode)

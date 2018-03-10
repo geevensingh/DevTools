@@ -1,10 +1,8 @@
 ﻿namespace JsonViewer.View
 {
-    using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
     using System.Diagnostics;
-    using System.Linq;
     using System.Windows.Media;
     using JsonViewer.Commands.PerItem;
     using Utilities;

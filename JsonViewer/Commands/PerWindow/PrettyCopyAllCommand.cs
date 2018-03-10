@@ -1,9 +1,7 @@
 ﻿namespace JsonViewer.Commands.PerWindow
 {
-    using System;
     using System.Diagnostics;
     using System.Windows;
-    using JsonViewer.Model;
 
     public class PrettyCopyAllCommand : BaseCommand
     {

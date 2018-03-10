@@ -1,8 +1,6 @@
 ﻿namespace JsonViewer.Commands
 {
-    using System.Windows.Input;
     using JsonViewer.Commands.PerWindow;
-    using JsonViewer.Model;
 
     public class AutoPasteToggleCommand : ToggleCommand
     {

@@ -1,6 +1,5 @@
 ﻿namespace JsonViewer.Commands.PerWindow
 {
-    using System;
     using System.Diagnostics;
 
     public class ExpandToLevelCommand : BaseCommand
