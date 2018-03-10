@@ -52,7 +52,7 @@
             {
                 case "SelectedIndex":
                     TreeViewData newSelectedData = (TreeViewData)_mainWindow.Tree.SelectedItem;
-                    if (newSelectedData != null && newSelectedData.JsonObject.IsFindMatch)
+                    if (newSelectedData != null && _mainWindow.Finder.Hits.Contains(newSelectedData.JsonObject))
                     {
                         _currentHitIndex = _mainWindow.Finder.Hits.IndexOf(newSelectedData.JsonObject);
                     }
@@ -89,7 +89,7 @@
             if (currentIndex.HasValue)
             {
                 JsonObject currentObj = _mainWindow.RootObject.AllChildren[currentIndex.Value];
-                if (currentObj.IsFindMatch)
+                if (finder.Hits.Contains(currentObj))
                 {
                     int indexOfCurrentObj = finder.Hits.IndexOf(currentObj);
                     _currentHitIndex = indexOfCurrentObj == -1 ? (int?)null : indexOfCurrentObj;
