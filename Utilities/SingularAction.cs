@@ -14,12 +14,14 @@ namespace Utilities
         private Dispatcher _dispatcher;
         private DispatcherOperation _operation = null;
 
-        public Guid ActionId { get => _actionId; }
-
         public SingularAction(Dispatcher dispatcher)
         {
             _dispatcher = dispatcher;
         }
+
+        public Guid ActionId { get => _actionId; }
+
+        public Dispatcher Dispatcher { get => _dispatcher; }
 
         public void BeginInvoke(DispatcherPriority priority, Func<Guid, SingularAction, Task<bool>> func)
         {

@@ -134,7 +134,7 @@
 
         public TreeViewItem GetItem(TreeViewData data)
         {
-            return GetItemContainerGenerator(data.Parent).ContainerFromItem(data) as TreeViewItem;
+            return GetItemContainerGenerator(data.Parent)?.ContainerFromItem(data) as TreeViewItem;
         }
 
         protected override void OnInitialized(EventArgs e)
@@ -193,7 +193,6 @@
             }
 
             TreeViewItem item = GetItem(data);
-            Debug.Assert(item != null, "Did you try to collapse the tree while expanding it?");
             if (item == null)
             {
                 return true;
@@ -255,7 +254,7 @@
 
             ItemContainerGenerator generator = GetItemContainerGenerator(data.Parent);
             TreeViewItem treeViewItem = generator.ContainerFromItem(data) as TreeViewItem;
-            return treeViewItem.ItemContainerGenerator;
+            return treeViewItem?.ItemContainerGenerator;
         }
 
         private void CollapseSubtree(ItemContainerGenerator parentContainerGenerator, TreeViewData data)

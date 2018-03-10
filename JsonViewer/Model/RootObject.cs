@@ -46,6 +46,8 @@
             base.SetChildren(children);
         }
 
+        private static SingularAction _expandByRules = null;
+
         internal void SetTreeItemsSource(CustomTreeView tree)
         {
             if (_viewChildren == null)
@@ -57,14 +59,32 @@
             Debug.Assert(_viewChildren.Count == 0 || _viewChildren[0].Tree == tree);
             tree.ItemsSource = _viewChildren;
 
-            foreach (JsonObject jsonObj in this.AllChildren)
+            if (_expandByRules == null)
             {
-                int? depth = jsonObj.Rules.Max(x => x.ExpandChildren);
-                if (depth.HasValue)
-                {
-                    tree.ExpandSubtree(jsonObj.ViewObject, depth.Value);
-                }
+                _expandByRules = new SingularAction(tree.Dispatcher);
             }
+
+            Debug.Assert(_expandByRules.Dispatcher == tree.Dispatcher);
+
+            _expandByRules.BeginInvoke(
+                System.Windows.Threading.DispatcherPriority.Background,
+                async (actionId, action) =>
+                {
+                    foreach (JsonObject jsonObj in this.AllChildren)
+                    {
+                        int? depth = jsonObj.Rules.Max(x => x.ExpandChildren);
+                        if (depth.HasValue)
+                        {
+                            tree.ExpandSubtree(jsonObj.ViewObject, depth.Value);
+                        }
+                        if (!await action.YieldAndContinue(actionId))
+                        {
+                            return false;
+                        }
+                    }
+
+                    return true;
+                });
         }
 
         protected override void UpdateChild(JsonObject child)
