@@ -116,8 +116,6 @@
             }
         }
 
-        public bool IsFindMatch { get => _findRule != null; }
-
         public bool CanTreatAsJson { get => this.Type == DataType.ParsableString; }
 
         public bool CanTreatAsText { get => this.Type == DataType.Json; }

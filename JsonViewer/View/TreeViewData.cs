@@ -177,9 +177,6 @@
         {
             switch (e.PropertyName)
             {
-                case "IsFindMatch":
-                    this.FirePropertyChanged(new string[] { "TextColor", "BackgroundColor" });
-                    break;
                 case "HasChildren":
                     this.FirePropertyChanged(new string[] { "HasChildren", "ValueType" });
                     break;
