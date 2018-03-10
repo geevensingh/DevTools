@@ -77,7 +77,7 @@
         private void Update()
         {
             Debug.Assert(this.MainWindow.RootObject == _rootObject);
-            this.SetCanExecute(!this.MainWindow.Tree.IsWaiting && CollapseAllCommand.HasLevel(_rootObject, _depth));
+            this.SetCanExecute(!this.MainWindow.Tree.IsWaiting && this.MainWindow.RootObject != null && _rootObject.HasLevel(_depth));
         }
     }
 }

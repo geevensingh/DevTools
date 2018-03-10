@@ -288,6 +288,24 @@
             }
         }
 
+        public bool HasLevel(int depth)
+        {
+            if (depth == 0)
+            {
+                return true;
+            }
+
+            foreach (JsonObject child in this.Children)
+            {
+                if (child.HasLevel(depth - 1))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         public void TreatAsJson()
         {
             Debug.Assert(this.CanTreatAsJson);

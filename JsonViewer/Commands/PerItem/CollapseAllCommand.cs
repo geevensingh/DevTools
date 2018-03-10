@@ -1,7 +1,5 @@
 ﻿namespace JsonViewer.Commands.PerItem
 {
-    using System.ComponentModel;
-    using System.Windows;
     using JsonViewer.View;
 
     internal class CollapseAllCommand : BaseTreeViewDataCommand

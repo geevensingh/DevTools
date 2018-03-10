@@ -1,7 +1,5 @@
 ﻿namespace JsonViewer.Commands.PerWindow
 {
-    using System.Windows;
-
     public class CollapseAllCommand : BaseCommand
     {
         public CollapseAllCommand(MainWindow mainWindow)
@@ -11,34 +9,6 @@
 
             this.MainWindow.Tree.PropertyChanged += OnTreePropertyChanged;
             this.Update();
-        }
-
-        public static bool HasMultipleLevels(MainWindow mainWindow)
-        {
-            return HasLevel(mainWindow.RootObject, 2);
-        }
-
-        public static bool HasLevel(JsonObject root, int depth)
-        {
-            if (root == null)
-            {
-                return false;
-            }
-
-            if (depth == 0)
-            {
-                return true;
-            }
-
-            foreach (JsonObject child in root.Children)
-            {
-                if (HasLevel(child, depth - 1))
-                {
-                    return true;
-                }
-            }
-
-            return false;
         }
 
         public override void Execute(object parameter)
@@ -58,7 +28,7 @@
 
         private void Update()
         {
-            this.SetCanExecute(!this.MainWindow.Tree.IsWaiting && HasMultipleLevels(this.MainWindow));
+            this.SetCanExecute(!this.MainWindow.Tree.IsWaiting && this.MainWindow.RootObject != null && this.MainWindow.RootObject.HasLevel(2));
         }
 
         private void OnTreePropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
