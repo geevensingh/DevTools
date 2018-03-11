@@ -1,7 +1,6 @@
-﻿namespace JsonViewer
+﻿namespace JsonViewer.Model
 {
     using System.Collections.Generic;
-    using System.Windows.Media;
 
     internal class FindRule : ConfigRule
     {

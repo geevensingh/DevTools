@@ -2,6 +2,7 @@
 {
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
+    using JsonViewer.Model;
 
     internal static class TreeViewDataFactory
     {

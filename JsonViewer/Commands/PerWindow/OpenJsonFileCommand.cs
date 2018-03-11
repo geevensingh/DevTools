@@ -1,21 +1,15 @@
 ﻿namespace JsonViewer.Commands.PerWindow
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
     using System.Windows.Input;
+    using JsonViewer.View;
     using Microsoft.Win32;
 
     public class OpenJsonFileCommand : BaseCommand
     {
-        private MainWindow _mainWindow = null;
-
         public OpenJsonFileCommand(MainWindow mainWindow)
             : base("Open Json file", true)
         {
-            _mainWindow = mainWindow;
+            this.MainWindow = mainWindow;
 
             this.AddKeyGesture(new KeyGesture(Key.O, ModifierKeys.Control));
         }
@@ -38,12 +32,12 @@
 
         public override void Execute(object parameter)
         {
-            string filePath = OpenJsonFileCommand.PickJsonFile(_mainWindow, "Pick Json content file");
+            string filePath = OpenJsonFileCommand.PickJsonFile(this.MainWindow, "Pick Json content file");
             if (!string.IsNullOrEmpty(filePath))
             {
                 try
                 {
-                    _mainWindow.Raw_TextBox.Text = System.IO.File.ReadAllText(filePath);
+                    this.MainWindow.Raw_TextBox.Text = System.IO.File.ReadAllText(filePath);
                 }
                 catch
                 {

@@ -1,22 +1,21 @@
 ﻿namespace JsonViewer.Commands.PerWindow
 {
     using System.Windows.Input;
+    using JsonViewer.View;
 
     public class NewWindowCommand : BaseCommand
     {
-        private MainWindow _mainWindow = null;
-
         public NewWindowCommand(MainWindow mainWindow)
             : base("New window", true)
         {
-            _mainWindow = mainWindow;
+            this.MainWindow = mainWindow;
 
             this.AddKeyGesture(new KeyGesture(Key.N, ModifierKeys.Control));
         }
 
         public override void Execute(object parameter)
         {
-            _mainWindow.ShowNewWindow();
+            this.MainWindow.ShowNewWindow();
         }
     }
 }

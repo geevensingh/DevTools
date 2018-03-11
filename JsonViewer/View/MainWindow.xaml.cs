@@ -1,4 +1,4 @@
-﻿namespace JsonViewer
+﻿namespace JsonViewer.View
 {
     using System;
     using System.Collections.Generic;
@@ -25,6 +25,7 @@
         private RootObject _rootObject = null;
         private WarningBannerActionHandler _warningBannerAction;
         private WarningBannerActionHandler _warningBannerDismiss;
+        private string _lastText = string.Empty;
 
         public MainWindow()
         {
@@ -36,6 +37,14 @@
         private delegate void WarningBannerActionHandler();
 
         public event PropertyChangedEventHandler PropertyChanged;
+
+        public enum DisplayMode
+        {
+            RawText,
+            TreeView
+        }
+
+        public DisplayMode Mode { get; private set; }
 
         public Finder Finder { get => _finder; }
 
@@ -72,14 +81,19 @@
             }
         }
 
-        public async Task<bool> ReloadAsync()
+        public Task<bool> ReloadAsync()
         {
             if (string.IsNullOrWhiteSpace(this.Raw_TextBox.Text))
             {
-                return false;
+                return Task.FromResult(false);
             }
 
-            RootObject rootObject = await RootObject.Create(this.Raw_TextBox.Text);
+            return this.ReloadAsync(JsonObjectFactory.TryDeserialize(this.Raw_TextBox.Text));
+        }
+
+        public async Task<bool> ReloadAsync(Dictionary<string, object> dictionary)
+        {
+            RootObject rootObject = await RootObject.Create(dictionary);
             if (rootObject == null)
             {
                 this.SetErrorMessage("Unable to parse given string");
@@ -113,6 +127,30 @@
             this.UpdateWarnings();
 
             return true;
+        }
+
+        public void SetDisplayMode(DisplayMode newMode)
+        {
+            if (newMode != this.Mode)
+            {
+                switch (newMode)
+                {
+                    case DisplayMode.RawText:
+                        this.Raw_TextBox.Visibility = Visibility.Visible;
+                        this.Tree.Visibility = Visibility.Collapsed;
+                        break;
+                    case DisplayMode.TreeView:
+                        this.Raw_TextBox.Visibility = Visibility.Collapsed;
+                        this.Tree.Visibility = Visibility.Visible;
+                        break;
+                    default:
+                        Debug.Assert(false);
+                        break;
+                }
+
+                this.Mode = newMode;
+                NotifyPropertyChanged.FirePropertyChanged("Mode", this, this.PropertyChanged);
+            }
         }
 
         public void RunWhenever(Action action)
@@ -178,6 +216,7 @@
             }
 
             this.Raw_TextBox.Text = initialText;
+            this.SetDisplayMode(string.IsNullOrEmpty(initialText) ? DisplayMode.RawText : DisplayMode.TreeView);
         }
 
         private void OnToolbarPropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -211,17 +250,13 @@
         private async void Raw_TextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             Debug.Assert(sender.Equals(this.Raw_TextBox));
-            bool succeeded = await this.ReloadAsync();
-            if (!succeeded)
+            string newText = this.Raw_TextBox.Text;
+            Dictionary<string, object> dictionary = JsonObjectFactory.TryDeserialize(newText);
+            string newNormalizedText = new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(dictionary);
+            if (newNormalizedText != _lastText)
             {
-                // Fix json copied from iScope scripts
-                string text = this.Raw_TextBox.Text.Trim();
-                if (text.StartsWith("\"") && text.EndsWith("\""))
-                {
-                    text = text.Trim(new char[] { '"' });
-                    text = text.Replace("\"\"", "\"");
-                    this.Raw_TextBox.Text = text;
-                }
+                _lastText = newNormalizedText;
+                await this.ReloadAsync(dictionary);
             }
         }
 

@@ -1,4 +1,4 @@
-﻿namespace JsonViewer
+﻿namespace JsonViewer.View
 {
     using System.Windows;
     using System.Windows.Controls;

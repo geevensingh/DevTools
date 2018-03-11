@@ -5,6 +5,7 @@
     using System.Diagnostics;
     using System.Windows;
     using System.Windows.Controls;
+    using JsonViewer.Model;
     using Utilities;
 
     /// <summary>

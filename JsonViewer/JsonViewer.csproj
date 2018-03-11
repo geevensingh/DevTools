@@ -32,7 +32,7 @@
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>publish.htm</WebPage>
     <ApplicationRevision>32</ApplicationRevision>
-    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <ApplicationVersion>1.1.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -125,6 +125,7 @@
     <Compile Include="Commands\PerWindow\PasteCommand.cs" />
     <Compile Include="Commands\PerWindow\HideFindCommand.cs" />
     <Compile Include="Commands\PerWindow\FindNextCommand.cs" />
+    <Compile Include="Commands\PrettyTextCommand.cs" />
     <Compile Include="Commands\ShowToolbarTextToggleCommand.cs" />
     <Compile Include="Commands\ShowToolbarIconToggleCommand.cs" />
     <Compile Include="Commands\HighlightParentsToggleCommand.cs" />
@@ -132,11 +133,13 @@
     <Compile Include="Commands\PerWindow\OpenJsonFileCommand.cs" />
     <Compile Include="Commands\PerWindow\PickConfigCommand.cs" />
     <Compile Include="Commands\PerWindow\ReloadCommand.cs" />
+    <Compile Include="Commands\SwitchModeCommand.cs" />
     <Compile Include="Commands\ToggleCommand.cs" />
     <Compile Include="Model\ClipboardManager.cs" />
+    <Compile Include="Model\ConfigRuleMatcher.cs" />
     <Compile Include="Model\FindRule.cs" />
     <Compile Include="Model\ConfigRule.cs" />
-    <Compile Include="SimilarHighlighter.cs" />
+    <Compile Include="Model\SimilarHighlighter.cs" />
     <Compile Include="View\FindMatchNavigator.cs" />
     <Compile Include="View\MainWindowToolbar.xaml.cs">
       <DependentUpon>MainWindowToolbar.xaml</DependentUpon>
@@ -156,7 +159,7 @@
     <Compile Include="View\StretchingTreeViewItem.cs" />
     <Compile Include="View\TreeViewData.cs" />
     <Compile Include="View\TreeViewDataFactory.cs" />
-    <Compile Include="View\NativeMethods.cs" />
+    <Compile Include="NativeMethods.cs" />
     <Compile Include="View\WaitCursor.cs" />
     <Compile Include="View\WindowPlacementSerializer.cs" />
     <Page Include="View\MainWindowToolbar.xaml">
@@ -198,6 +201,7 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
+    <Resource Include="Resources\text.png" />
     <Resource Include="Resources\open_file.png" />
     <Resource Include="Resources\left.png" />
     <Resource Include="Resources\right.png" />

@@ -1,12 +1,11 @@
 ﻿namespace JsonViewer.View
 {
-    using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
     using System.Diagnostics;
-    using System.Linq;
     using System.Windows.Media;
     using JsonViewer.Commands.PerItem;
+    using JsonViewer.Model;
     using Utilities;
 
     internal class TreeViewData : NotifyPropertyChanged
@@ -177,9 +176,6 @@
         {
             switch (e.PropertyName)
             {
-                case "IsFindMatch":
-                    this.FirePropertyChanged(new string[] { "TextColor", "BackgroundColor" });
-                    break;
                 case "HasChildren":
                     this.FirePropertyChanged(new string[] { "HasChildren", "ValueType" });
                     break;

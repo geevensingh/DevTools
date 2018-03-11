@@ -1,13 +1,12 @@
-﻿namespace JsonViewer.Commands.PerWindow
+﻿namespace JsonViewer.Commands
 {
     using System.Diagnostics;
-    using System.Windows;
     using JsonViewer.View;
 
-    public class PrettyCopyAllCommand : BaseCommand
+    public class PrettyTextCommand : BaseCommand
     {
-        public PrettyCopyAllCommand(MainWindow mainWindow)
-            : base("Copy pretty value (beta)", false)
+        public PrettyTextCommand(MainWindow mainWindow)
+            : base("Pretty-ify text")
         {
             this.MainWindow = mainWindow;
             this.Update();
@@ -16,7 +15,7 @@
         public override void Execute(object parameter)
         {
             Debug.Assert(this.MainWindow.RootObject != null);
-            Clipboard.SetDataObject(this.MainWindow.RootObject?.PrettyValueString);
+            this.MainWindow.Raw_TextBox.Text = this.MainWindow.RootObject?.PrettyValueString;
         }
 
         protected override void OnMainWindowPropertyChanged(string propertyName)

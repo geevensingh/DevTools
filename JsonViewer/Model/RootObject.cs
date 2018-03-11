@@ -1,4 +1,4 @@
-﻿namespace JsonViewer
+﻿namespace JsonViewer.Model
 {
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
@@ -10,6 +10,7 @@
 
     public class RootObject : JsonObject
     {
+        private static SingularAction _expandByRules = null;
         private ObservableCollection<TreeViewData> _viewChildren = null;
 
         public RootObject()
@@ -17,20 +18,18 @@
         {
         }
 
-        public static async Task<RootObject> Create(string jsonString)
+        public static async Task<RootObject> Create(Dictionary<string, object> jsonObj)
         {
+            if (jsonObj == null)
+            {
+                return null;
+            }
+
             using (new WaitCursor())
             {
                 return await Task.Run(
                     () =>
                     {
-                        System.Web.Script.Serialization.JavaScriptSerializer ser = new System.Web.Script.Serialization.JavaScriptSerializer();
-                        Dictionary<string, object> jsonObj = JsonObjectFactory.TryDeserialize(jsonString);
-                        if (jsonObj == null)
-                        {
-                            return null;
-                        }
-
                         RootObject root = new RootObject();
                         var jsonObjects = new List<JsonObject>();
                         JsonObjectFactory.Flatten(ref jsonObjects, jsonObj, root);
@@ -57,14 +56,32 @@
             Debug.Assert(_viewChildren.Count == 0 || _viewChildren[0].Tree == tree);
             tree.ItemsSource = _viewChildren;
 
-            foreach (JsonObject jsonObj in this.AllChildren)
+            if (_expandByRules == null)
             {
-                ConfigRule rule = jsonObj.Rules.FirstOrDefault(x => x.ExpandChildren != null);
-                if (rule != null)
-                {
-                    tree.ExpandSubtree(jsonObj.ViewObject, rule.ExpandChildren.Value);
-                }
+                _expandByRules = new SingularAction(tree.Dispatcher);
             }
+
+            Debug.Assert(_expandByRules.Dispatcher == tree.Dispatcher);
+
+            _expandByRules.BeginInvoke(
+                System.Windows.Threading.DispatcherPriority.Background,
+                async (actionId, action) =>
+                {
+                    foreach (JsonObject jsonObj in this.AllChildren)
+                    {
+                        int? depth = jsonObj.Rules.Max(x => x.ExpandChildren);
+                        if (depth.HasValue)
+                        {
+                            tree.ExpandSubtree(jsonObj.ViewObject, depth.Value);
+                        }
+                        if (!await action.YieldAndContinue(actionId))
+                        {
+                            return false;
+                        }
+                    }
+
+                    return true;
+                });
         }
 
         protected override void UpdateChild(JsonObject child)

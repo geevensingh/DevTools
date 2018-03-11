@@ -1,4 +1,4 @@
-﻿namespace JsonViewer
+﻿namespace JsonViewer.View
 {
     using System.ComponentModel;
     using System.Diagnostics;
@@ -6,6 +6,7 @@
     using System.Windows.Controls;
     using System.Windows.Input;
     using JsonViewer.Commands.PerWindow;
+    using JsonViewer.Model;
     using JsonViewer.View;
     using Utilities;
 

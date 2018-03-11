@@ -7,13 +7,7 @@
 #pragma warning disable SA1401 // Fields must be private
 
     using System;
-    using System.IO;
     using System.Runtime.InteropServices;
-    using System.Text;
-    using System.Windows;
-    using System.Windows.Interop;
-    using System.Xml;
-    using System.Xml.Serialization;
 
     public static class NativeMethods
     {

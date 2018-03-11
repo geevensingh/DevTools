@@ -6,14 +6,12 @@
 
     public class FindNextCommand : BaseCommand
     {
-        private MainWindow _mainWindow = null;
-
         public FindNextCommand(MainWindow mainWindow)
             : base("Next", true)
         {
-            _mainWindow = mainWindow;
-            _mainWindow.Finder.PropertyChanged += OnFinderPropertyChanged;
-            this.SetCanExecute(_mainWindow.Finder.HitCount > 0);
+            this.MainWindow = mainWindow;
+            this.MainWindow.Finder.PropertyChanged += OnFinderPropertyChanged;
+            this.Update();
 
             this.AddKeyGesture(new KeyGesture(Key.Right, ModifierKeys.Control));
             this.AddKeyGesture(new KeyGesture(Key.Right, ModifierKeys.Alt));
@@ -21,18 +19,23 @@
 
         public override void Execute(object parameter)
         {
-            _mainWindow.Toolbar.FindMatchNavigator.Go(FindMatchNavigator.Direction.Forward);
+            this.MainWindow.Toolbar.FindMatchNavigator.Go(FindMatchNavigator.Direction.Forward);
         }
 
         private void OnFinderPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            Debug.Assert(sender == _mainWindow.Finder);
+            Debug.Assert(sender == this.MainWindow.Finder);
             switch (e.PropertyName)
             {
                 case "HitCount":
-                    this.SetCanExecute(_mainWindow.Finder.HitCount > 0);
+                    this.Update();
                     break;
             }
+        }
+
+        private void Update()
+        {
+            this.SetCanExecute(this.MainWindow.Finder.HitCount > 0);
         }
     }
 }

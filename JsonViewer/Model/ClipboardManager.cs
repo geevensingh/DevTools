@@ -4,6 +4,7 @@
     using System.Diagnostics;
     using System.Windows;
     using System.Windows.Interop;
+    using JsonViewer.View;
 
     internal class ClipboardManager
     {

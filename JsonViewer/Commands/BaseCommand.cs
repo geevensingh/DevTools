@@ -1,14 +1,17 @@
 ﻿namespace JsonViewer.Commands
 {
     using System;
+    using System.Diagnostics;
     using System.Windows;
     using System.Windows.Input;
+    using JsonViewer.View;
     using Utilities;
 
-    public class BaseCommand : NotifyPropertyChanged, ICommand
+    public abstract class BaseCommand : NotifyPropertyChanged, ICommand
     {
         private string _text = string.Empty;
         private bool _canExecute = false;
+        private MainWindow _mainWindow = null;
 
         public BaseCommand(string text)
             : this(text, false)
@@ -34,17 +37,43 @@
 
         public bool IsEnabled { get => this.CanExecute(null); }
 
-        public Visibility IsVisible { get => this.IsEnabled ? Visibility.Visible : Visibility.Collapsed; }
+        public Visibility IsVisible
+        {
+            get
+            {
+                if (this.ForceVisibility.HasValue)
+                {
+                    return this.ForceVisibility.Value;
+                }
+
+                return this.IsEnabled ? Visibility.Visible : Visibility.Collapsed;
+            }
+        }
+
+        protected Visibility? ForceVisibility { get; set; }
+
+        protected MainWindow MainWindow
+        {
+            get
+            {
+                Debug.Assert(_mainWindow != null);
+                return _mainWindow;
+            }
+
+            set
+            {
+                Debug.Assert(_mainWindow == null);
+                _mainWindow = value;
+                _mainWindow.PropertyChanged += (sender, evt) => this.OnMainWindowPropertyChanged(evt.PropertyName);
+            }
+        }
 
         public bool CanExecute(object parameter)
         {
             return _canExecute;
         }
 
-        public virtual void Execute(object parameter)
-        {
-            throw new NotImplementedException();
-        }
+        public abstract void Execute(object parameter);
 
         protected void AddKeyGesture(KeyGesture keyGesture)
         {
@@ -57,6 +86,10 @@
             {
                 this.CanExecuteChanged?.Invoke(this, new EventArgs());
             }
+        }
+
+        protected virtual void OnMainWindowPropertyChanged(string propertyName)
+        {
         }
 
         private void SetText(string text)
