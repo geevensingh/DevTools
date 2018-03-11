@@ -208,10 +208,6 @@
         </Grid>
         <local:StatusBar DataContext="{Binding ElementName=mainWindow}" DockPanel.Dock="Bottom" />
         <Grid>
-            <!--<ListView
-                x:Name="RulesList"
-                ItemTemplate="{StaticResource RulesListTemplate}"
-                ItemsSource="{Binding Path=Rules, Mode=OneWay}" />-->
             <DataGrid
                 x:Name="RulesList"
                 AutoGeneratingColumn="RulesList_AutoGeneratingColumn"
