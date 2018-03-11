@@ -57,6 +57,7 @@
             private set
             {
                 _value = value;
+                _valuesInitialized = false;
             }
         }
 
@@ -308,7 +309,9 @@
             Dictionary<string, object> dict = JsonObjectFactory.TryDeserialize(this.Value as string);
             Debug.Assert(dict != null);
             this.Value = dict;
-            _dataType = DataType.Json;
+            this.EnsureValues();
+            Debug.Assert(_dataType == DataType.Json);
+
             JsonObjectFactory.Flatten(ref _children, dict, this);
             this.FireChildrenChanged();
 
@@ -329,9 +332,12 @@
                 this.Value = _originalString;
             }
 
-            _dataType = DataType.ParsableString;
+            this.EnsureValues();
+            Debug.Assert(_dataType == DataType.ParsableString);
+
             _children.Clear();
             this.SetChildren(_children);
+            this.FireChildrenChanged();
 
             _parent.UpdateChild(this);
         }
@@ -410,14 +416,9 @@
                 return dateTimeValue;
             }
 
-            if (Uri.TryCreate(str, UriKind.Absolute, out Uri absoluteUri))
+            if (Uri.TryCreate(str, UriKind.Absolute, out Uri uri))
             {
-                return absoluteUri;
-            }
-
-            if (Uri.TryCreate(str, UriKind.Relative, out Uri relativeUri))
-            {
-                return relativeUri;
+                return uri;
             }
 
             Dictionary<string, object> jsonObj = JsonObjectFactory.TryDeserialize(str);
