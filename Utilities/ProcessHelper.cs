@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace Utilities
 {
-    public class ProcessHelper
+    public class ProcessHelper : IDisposable
     {
         public ProcessHelper(string fileName, string arguments)
         {
@@ -175,6 +175,20 @@ namespace Utilities
             }
             _outputMutex.ReleaseMutex();
             return result.ToArray();
+        }
+
+        public void Dispose()
+        {
+            this.Dispose(true);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _outputMutex.Dispose();
+                _outputMutex = null;
+            }
         }
 
         public int ExitCode { get => _exitCode; }
