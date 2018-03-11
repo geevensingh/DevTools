@@ -7,8 +7,8 @@
         public CollapseAllCommand(MainWindow mainWindow)
             : base("Collapse all")
         {
+            this.ForceVisibility = System.Windows.Visibility.Visible;
             this.MainWindow = mainWindow;
-
             this.MainWindow.Tree.PropertyChanged += OnTreePropertyChanged;
             this.Update();
         }
