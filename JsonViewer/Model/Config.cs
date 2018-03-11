@@ -84,6 +84,17 @@
 
         public bool IsDefault { get; private set; }
 
+        public string DefaultForegroundString { get => _rawValues["treeViewForeground"] as string; }
+
+        public string DefaultBackgroundString { get => _rawValues["treeViewBackground"] as string; }
+
+        public Brush DefaultForegroundBrush { get => this.GetBrush(ConfigValue.TreeViewForeground); }
+
+        public Brush DefaultBackgroundBrush { get => this.GetBrush(ConfigValue.TreeViewBackground); }
+
+        public double DefaultFontSize { get => _rawValues["treeViewFontSize"] as double? ?? 12.0; }
+
+
         internal static Config This
         {
             get
@@ -207,7 +218,7 @@
                 return rule.ForegroundBrush;
             }
 
-            return this.GetBrush(ConfigValue.TreeViewForeground);
+            return this.DefaultForegroundBrush;
         }
 
         public Brush GetBackgroundColor(JsonObject obj)
@@ -218,7 +229,7 @@
                 return rule.BackgroundBrush;
             }
 
-            return this.GetBrush(ConfigValue.TreeViewBackground);
+            return this.DefaultBackgroundBrush;
         }
 
         internal double GetFontSize(JsonObject obj)
@@ -229,12 +240,7 @@
                 return rule.FontSize.Value;
             }
 
-            if (_rawValues.ContainsKey("treeViewFontSize"))
-            {
-                return (double)_rawValues["treeViewFontSize"];
-            }
-
-            return 12.0;
+            return this.DefaultFontSize;
         }
     }
 }

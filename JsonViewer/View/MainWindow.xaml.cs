@@ -398,5 +398,22 @@
             Debug.Assert(this._warningBannerAction != null);
             this._warningBannerAction?.Invoke();
         }
+
+        private void RulesList_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
+        {
+            switch (e.PropertyName)
+            {
+                case "Background":
+                case "Foreground":
+                case "BackgroundString":
+                case "ForegroundString":
+                case "ColorString":
+                case "FontSize":
+                    e.Cancel = true;
+                    return;
+            }
+
+            e.Column.DisplayIndex = RuleView.GetIndex(e.PropertyName);
+        }
     }
 }

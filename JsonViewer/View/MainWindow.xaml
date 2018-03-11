@@ -13,8 +13,17 @@
     Loaded="OnLoaded"
     mc:Ignorable="d">
     <Window.Resources>
+        <DataTemplate x:Key="ColorCellTemplate">
+            <TextBlock
+                Background="{Binding Path=Background}"
+                FontSize="{Binding Path=FontSize}"
+                Foreground="{Binding Path=Foreground}"
+                Text="{Binding Path=ColorString}" />
+        </DataTemplate>
         <DataTemplate x:Key="RulesListTemplate">
-            <TextBlock Text="{Binding Path=Description}" />
+            <StackPanel Background="{Binding Path=Background}" Orientation="Horizontal">
+                <TextBlock Margin="5" Text="{Binding Path=MatchString}" />
+            </StackPanel>
         </DataTemplate>
         <HierarchicalDataTemplate
             x:Key="TreeViewItemTemplate"
@@ -199,10 +208,18 @@
         </Grid>
         <local:StatusBar DataContext="{Binding ElementName=mainWindow}" DockPanel.Dock="Bottom" />
         <Grid>
-            <ListView
+            <!--<ListView
                 x:Name="RulesList"
                 ItemTemplate="{StaticResource RulesListTemplate}"
-                ItemsSource="{Binding Path=Rules, Mode=OneWay}" />
+                ItemsSource="{Binding Path=Rules, Mode=OneWay}" />-->
+            <DataGrid
+                x:Name="RulesList"
+                AutoGeneratingColumn="RulesList_AutoGeneratingColumn"
+                ItemsSource="{Binding Path=Rules, Mode=OneWay}">
+                <DataGrid.Columns>
+                    <DataGridTemplateColumn CellTemplate="{StaticResource ColorCellTemplate}" Header="Color" />
+                </DataGrid.Columns>
+            </DataGrid>
             <TextBox
                 x:Name="Raw_TextBox"
                 AcceptsReturn="True"

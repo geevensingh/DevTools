@@ -18,6 +18,8 @@
             PartialValues = new List<string>();
             PartialValueTypes = new List<string>();
             AppliesToParents = false;
+            ForegroundString = null;
+            BackgroundString = null;
             ForegroundBrush = null;
             BackgroundBrush = null;
             FontSize = null;
@@ -39,6 +41,10 @@
         public IList<string> PartialValueTypes { get; protected set; }
 
         public bool AppliesToParents { get; protected set; }
+
+        public string ForegroundString { get; protected set; }
+
+        public string BackgroundString { get; protected set; }
 
         public Brush ForegroundBrush { get; protected set; }
 
@@ -90,16 +96,21 @@
             IList<string> valueTypePartials = GetList(dict, "valueTypeContains", ignoreCase);
 
             Brush foregroundBrush = null;
+            string foregroundString = null;
             if (dict.ContainsKey("color"))
             {
-                Color color = (Color)ColorConverter.ConvertFromString((string)dict["color"]);
+
+                foregroundString = (string)dict["color"];
+                Color color = (Color)ColorConverter.ConvertFromString(foregroundString);
                 foregroundBrush = new SolidColorBrush(color);
             }
 
             Brush backgroundBrush = null;
+            string backgroundString = null;
             if (dict.ContainsKey("background"))
             {
-                Color color = (Color)ColorConverter.ConvertFromString((string)dict["background"]);
+                backgroundString = (string)dict["background"];
+                Color color = (Color)ColorConverter.ConvertFromString(backgroundString);
                 backgroundBrush = new SolidColorBrush(color);
             }
 
@@ -136,6 +147,8 @@
                 PartialValues = valuePartials,
                 PartialValueTypes = valueTypePartials,
                 AppliesToParents = appliesToParents,
+                ForegroundString = foregroundString,
+                BackgroundString = backgroundString,
                 ForegroundBrush = foregroundBrush,
                 BackgroundBrush = backgroundBrush,
                 FontSize = fontSize,

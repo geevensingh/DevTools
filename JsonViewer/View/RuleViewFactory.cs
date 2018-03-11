@@ -12,13 +12,14 @@
     {
         public static ObservableCollection<RuleView> CreateCollection()
         {
-            List<RuleView> rules = new List<RuleView>();
-            foreach (ConfigRule rule in Config.This.Rules)
+            List<RuleView> ruleViews = new List<RuleView>();
+            IList<ConfigRule> rules = Config.This.Rules;
+            for (int ii = 0; ii < rules.Count; ii++)
             {
-                rules.Add(new RuleView(rule));
+                ruleViews.Add(new RuleView(rules[ii], ii));
             }
 
-            return new ObservableCollection<RuleView>(rules);
+            return new ObservableCollection<RuleView>(ruleViews);
         }
     }
 }
