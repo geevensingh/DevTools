@@ -27,8 +27,7 @@
     },
     {
       "keyIs": [ "result", "results" ],
-      "color": "red",
-      "background":  "Black",
+      "color": "DarkRed",
       "fontSize": 16
     },
     {

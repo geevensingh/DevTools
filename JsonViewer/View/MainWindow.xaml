@@ -138,6 +138,7 @@
             <MenuItem Header="_View">
                 <MenuItem Command="{Binding ElementName=Toolbar, Path=ShowTextModeCommand.RoutedUICommand}" Header="{Binding ElementName=Toolbar, Path=ShowTextModeCommand.Text}" />
                 <MenuItem Command="{Binding ElementName=Toolbar, Path=ShowTreeModeCommand.RoutedUICommand}" Header="{Binding ElementName=Toolbar, Path=ShowTreeModeCommand.Text}" />
+                <MenuItem Command="{Binding ElementName=Toolbar, Path=ShowRulesModeCommand.RoutedUICommand}" Header="{Binding ElementName=Toolbar, Path=ShowRulesModeCommand.Text}" />
                 <Separator />
                 <MenuItem
                     Command="{Binding ElementName=Toolbar, Path=ShowToolbarTextToggleCommand}"
