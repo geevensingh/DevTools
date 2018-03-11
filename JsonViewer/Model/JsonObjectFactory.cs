@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Threading;
     using System.Web.Script.Serialization;
     using Utilities;
@@ -10,7 +11,34 @@
     {
         private CancellationTokenSource _refreshCancellationTokenSource = new CancellationTokenSource();
 
-        public static Dictionary<string, object> TryDeserialize(string jsonString)
+        public class DeserializeResult
+        {
+            private Dictionary<string, object> _dictionary;
+            private string _preJsonText = string.Empty;
+            private string _postJsonText = string.Empty;
+
+            public DeserializeResult(Dictionary<string, object> dictionary)
+            {
+                _dictionary = dictionary;
+            }
+
+            public DeserializeResult(Dictionary<string, object> dictionary, string preJsonText, string postJsonText)
+            {
+                _dictionary = dictionary;
+                _preJsonText = preJsonText;
+                _postJsonText = postJsonText;
+            }
+
+            public Dictionary<string, object> Dictionary { get => _dictionary; }
+
+            public string PreJsonText { get => _preJsonText; }
+
+            public string PostJsonText { get => _postJsonText; }
+
+            public bool HasExtraText { get => !string.IsNullOrEmpty(this.PreJsonText) || !string.IsNullOrEmpty(this.PostJsonText); }
+        }
+
+        public static DeserializeResult TryDeserialize(string jsonString)
         {
             jsonString = jsonString.Trim();
 
@@ -24,22 +52,23 @@
 
             foreach (string str in new string[] { jsonString, CSEscape.Unescape(jsonString) })
             {
-                Dictionary<string, object> result = TryStrictDeserialize(str);
-                if (result != null)
+                Dictionary<string, object> dictionary = TryStrictDeserialize(str);
+                if (dictionary != null)
                 {
-                    return result;
+                    return new DeserializeResult(dictionary);
                 }
 
+                DeserializeResult result = null;
                 if (firstBraceIsSquare)
                 {
-                    result = TryArrayDeserialize(str);
+                    result = TryTrimmedDeserialize(str, "[", "]", "{{ \"array\": {0} }}");
                     if (result != null)
                     {
                         return result;
                     }
                 }
 
-                result = TryStrictDeserialize(StringHelper.GetTrimmedString(str, "{", "}"));
+                result = TryTrimmedDeserialize(str, "{", "}", "{0}");
                 if (result != null)
                 {
                     return result;
@@ -47,7 +76,7 @@
 
                 if (!firstBraceIsSquare)
                 {
-                    result = TryArrayDeserialize(str);
+                    result = TryTrimmedDeserialize(str, "[", "]", "{{ \"array\": {0} }}");
                     if (result != null)
                     {
                         return result;
@@ -123,20 +152,24 @@
             _refreshCancellationTokenSource.Dispose();
         }
 
-        private static Dictionary<string, object> TryArrayDeserialize(string jsonString)
+        private static DeserializeResult TryTrimmedDeserialize(string jsonString, string start, string end, string format)
         {
-            string arrayString = StringHelper.GetTrimmedString(jsonString, "[", "]");
-            if (!string.IsNullOrEmpty(arrayString))
+            IList<string> parts = StringHelper.SplitString(jsonString, start, end);
+            if (parts == null)
             {
-                arrayString = "{ \"array\": " + arrayString + " }";
-                Dictionary<string, object> result = TryStrictDeserialize(arrayString);
-                if (result != null)
-                {
-                    return result;
-                }
+                return null;
             }
 
-            return null;
+            Debug.Assert(parts.Count == 3);
+            Debug.Assert(!string.IsNullOrEmpty(parts[1]));
+            string trimmedString = string.Format(format, parts[1]);
+            Dictionary<string, object> result = TryStrictDeserialize(trimmedString);
+            if (result == null)
+            {
+                return null;
+            }
+
+            return new DeserializeResult(result, parts[0].Trim(), parts[2].Trim());
         }
 
         private static Dictionary<string, object> TryStrictDeserialize(string jsonString)

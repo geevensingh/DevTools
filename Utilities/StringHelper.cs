@@ -99,20 +99,33 @@ namespace Utilities
             }
             return sb.ToString();
         }
-
         public static string GetTrimmedString(string str, string start, string end)
+        {
+            IList<string> parts = SplitString(str, start, end);
+            if (parts == null)
+            {
+                return string.Empty;
+            }
+
+            Debug.Assert(parts.Count == 3);
+            return parts[1];
+        }
+
+        public static IList<string> SplitString(string str, string start, string end)
         {
             int startIndex = str.IndexOf(start);
             int endIndex = str.LastIndexOf(end);
-            if (startIndex >= 0 && endIndex >= 0 && endIndex > startIndex)
+            if (startIndex >= 0 && endIndex >= 0 && endIndex > startIndex && startIndex < str.Length && endIndex < str.Length)
             {
+                string preString = str.Substring(0, startIndex);
                 string trimmedStr = str.Substring(startIndex, endIndex - startIndex + 1);
+                string postString = str.Substring(endIndex + 1);
                 Debug.Assert(trimmedStr.StartsWith(start));
                 Debug.Assert(trimmedStr.EndsWith(end));
-                return trimmedStr;
+                return new List<string>(new string[] { preString, trimmedStr, postString });
             }
 
-            return string.Empty;
+            return null;
         }
     }
 }

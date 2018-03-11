@@ -280,7 +280,7 @@
             this.Value = _value;
             if (_children.Count > 1)
             {
-                this.FireChildrenChanged();
+                this.FireChildrenChanged(true);
             }
         }
 
@@ -306,14 +306,35 @@
         {
             Debug.Assert(this.CanTreatAsJson);
 
-            Dictionary<string, object> dict = JsonObjectFactory.TryDeserialize(this.Value as string);
-            Debug.Assert(dict != null);
+            JsonObjectFactory.DeserializeResult deserializeResult = JsonObjectFactory.TryDeserialize(this.Value as string);
+            Debug.Assert(deserializeResult != null);
+
+            Dictionary<string, object> dict = deserializeResult.Dictionary;
+            if (deserializeResult.HasExtraText)
+            {
+                dict = new Dictionary<string, object>();
+                if (!string.IsNullOrEmpty(deserializeResult.PreJsonText))
+                {
+                    dict["Pre-JSON text"] = deserializeResult.PreJsonText;
+                }
+
+                foreach (string key in deserializeResult.Dictionary.Keys)
+                {
+                    dict[key] = deserializeResult.Dictionary[key];
+                }
+
+                if (!string.IsNullOrEmpty(deserializeResult.PostJsonText))
+                {
+                    dict["Post-JSON text"] = deserializeResult.PostJsonText;
+                }
+            }
+
             this.Value = dict;
             this.EnsureValues();
             Debug.Assert(_dataType == DataType.Json);
 
             JsonObjectFactory.Flatten(ref _children, dict, this);
-            this.FireChildrenChanged();
+            this.FireChildrenChanged(true);
 
             _parent.UpdateChild(this);
         }
@@ -337,7 +358,7 @@
 
             _children.Clear();
             this.SetChildren(_children);
-            this.FireChildrenChanged();
+            this.FireChildrenChanged(true);
 
             _parent.UpdateChild(this);
         }
@@ -360,11 +381,18 @@
             _viewObject.Children.Insert(index, child.ResetView());
         }
 
-        protected virtual void FireChildrenChanged()
+        protected virtual void FireChildrenChanged(bool direct)
         {
             _allChildren = null;
-            _parent?.FireChildrenChanged();
-            this.FirePropertyChanged(new string[] { "AllChildren", "Children", "HasChildren", "ValueString", "TotalChildCount" });
+            _parent?.FireChildrenChanged(false);
+            if (direct)
+            {
+                this.FirePropertyChanged(new string[] { "AllChildren", "Children", "HasChildren", "ValueString", "TotalChildCount" });
+            }
+            else
+            {
+                this.FirePropertyChanged(new string[] { "AllChildren", "TotalChildCount" });
+            }
         }
 
         private static object GetTypedValue(object value, out DataType dataType)
@@ -421,11 +449,11 @@
                 return uri;
             }
 
-            Dictionary<string, object> jsonObj = JsonObjectFactory.TryDeserialize(str);
+            Dictionary<string, object> jsonObj = JsonObjectFactory.TryDeserialize(str)?.Dictionary;
             if (jsonObj != null)
             {
                 dataType = DataType.ParsableString;
-                return jsonObj;
+                return str;
             }
 
             return str;

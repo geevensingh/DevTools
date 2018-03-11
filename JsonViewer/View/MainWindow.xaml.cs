@@ -88,7 +88,7 @@
                 return Task.FromResult(false);
             }
 
-            return this.ReloadAsync(JsonObjectFactory.TryDeserialize(this.Raw_TextBox.Text));
+            return this.ReloadAsync(JsonObjectFactory.TryDeserialize(this.Raw_TextBox.Text)?.Dictionary);
         }
 
         public async Task<bool> ReloadAsync(Dictionary<string, object> dictionary)
@@ -108,8 +108,15 @@
                 this.Tree.GetItem(treeViewData).IsSelected = false;
             }
 
+
+            if (_rootObject != null)
+            {
+                _rootObject.PropertyChanged -= OnRootObjectPropertyChanged;
+            }
+
             _rootObject = rootObject;
             NotifyPropertyChanged.FirePropertyChanged("RootObject", this, this.PropertyChanged);
+            _rootObject.PropertyChanged += OnRootObjectPropertyChanged;
 
             _finder.SetObjects(rootObject);
             _rootObject.SetTreeItemsSource(this.Tree);
@@ -127,6 +134,16 @@
             this.UpdateWarnings();
 
             return true;
+        }
+
+        private void OnRootObjectPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            switch (e.PropertyName)
+            {
+                case "AllChildren":
+                    this.UpdateWarnings();
+                    break;
+            }
         }
 
         public void SetDisplayMode(DisplayMode newMode)
@@ -251,7 +268,7 @@
         {
             Debug.Assert(sender.Equals(this.Raw_TextBox));
             string newText = this.Raw_TextBox.Text;
-            Dictionary<string, object> dictionary = JsonObjectFactory.TryDeserialize(newText);
+            Dictionary<string, object> dictionary = JsonObjectFactory.TryDeserialize(newText)?.Dictionary;
             string newNormalizedText = new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(dictionary);
             if (newNormalizedText != _lastText)
             {
