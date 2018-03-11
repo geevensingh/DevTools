@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.ObjectModel;
     using System.ComponentModel;
     using System.Diagnostics;
     using System.Linq;
@@ -26,6 +27,7 @@
         private WarningBannerActionHandler _warningBannerAction;
         private WarningBannerActionHandler _warningBannerDismiss;
         private string _lastText = string.Empty;
+        private ObservableCollection<RuleView> _rules;
 
         public MainWindow()
         {
@@ -41,12 +43,15 @@
         public enum DisplayMode
         {
             RawText,
-            TreeView
+            TreeView,
+            Rules
         }
 
         public DisplayMode Mode { get; private set; }
 
         public Finder Finder { get => _finder; }
+
+        public ObservableCollection<RuleView> Rules { get => _rules; }
 
         internal RootObject RootObject { get => _rootObject; }
 
@@ -73,12 +78,18 @@
 
             if (succeeded)
             {
+                this.UpdateRules();
                 this.ReloadAsync().Forget();
             }
             else
             {
                 MessageBox.Show(this, "Unable to load config: " + filePath, "Error!", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        private void UpdateRules()
+        {
+            NotifyPropertyChanged.SetValue(ref _rules, RuleViewFactory.CreateCollection(), "Rules", this, this.PropertyChanged);
         }
 
         public Task<bool> ReloadAsync()
@@ -150,15 +161,19 @@
         {
             if (newMode != this.Mode)
             {
+                this.Raw_TextBox.Visibility = Visibility.Collapsed;
+                this.Tree.Visibility = Visibility.Collapsed;
+                this.RulesList.Visibility = Visibility.Collapsed;
                 switch (newMode)
                 {
                     case DisplayMode.RawText:
                         this.Raw_TextBox.Visibility = Visibility.Visible;
-                        this.Tree.Visibility = Visibility.Collapsed;
                         break;
                     case DisplayMode.TreeView:
-                        this.Raw_TextBox.Visibility = Visibility.Collapsed;
                         this.Tree.Visibility = Visibility.Visible;
+                        break;
+                    case DisplayMode.Rules:
+                        this.RulesList.Visibility = Visibility.Visible;
                         break;
                     default:
                         Debug.Assert(false);
@@ -184,6 +199,8 @@
             this.SimilarHighlighter = new SimilarHighlighter(this);
 
             this.Toolbar.PropertyChanged += OnToolbarPropertyChanged;
+
+            this.UpdateRules();
 
             WindowPlacementSerializer.SetPlacement(this, Properties.Settings.Default.MainWindowPlacement, _initialOffset);
             if (_initialOffset.HasValue)

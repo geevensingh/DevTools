@@ -13,8 +13,11 @@
     Loaded="OnLoaded"
     mc:Ignorable="d">
     <Window.Resources>
+        <DataTemplate x:Key="RulesListTemplate">
+            <TextBlock Text="{Binding Path=Description}" />
+        </DataTemplate>
         <HierarchicalDataTemplate
-            x:Key="myTaskTemplate"
+            x:Key="TreeViewItemTemplate"
             DataType="local:TreeViewData"
             ItemsSource="{Binding Path=Children}">
             <Grid HorizontalAlignment="Stretch" Background="{Binding Path=BackgroundColor}">
@@ -196,6 +199,10 @@
         </Grid>
         <local:StatusBar DataContext="{Binding ElementName=mainWindow}" DockPanel.Dock="Bottom" />
         <Grid>
+            <ListView
+                x:Name="RulesList"
+                ItemTemplate="{StaticResource RulesListTemplate}"
+                ItemsSource="{Binding Path=Rules, Mode=OneWay}" />
             <TextBox
                 x:Name="Raw_TextBox"
                 AcceptsReturn="True"
@@ -236,7 +243,7 @@
                 x:Name="Tree"
                 HorizontalAlignment="Stretch"
                 HorizontalContentAlignment="Stretch"
-                ItemTemplate="{StaticResource myTaskTemplate}"
+                ItemTemplate="{StaticResource TreeViewItemTemplate}"
                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                 Visibility="Collapsed">
                 <local:CustomTreeView.InputBindings>
