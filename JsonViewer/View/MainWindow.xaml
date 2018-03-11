@@ -125,10 +125,19 @@
                 <Separator />
                 <MenuItem Click="CheckForUpdates" Header="Check for _updates" />
             </MenuItem>
-            <MenuItem Header="_View">
-                <MenuItem Command="{Binding ElementName=Toolbar, Path=NewWindowCommand.RoutedUICommand}" Header="_New window" />
+            <MenuItem Header="_Edit">
+                <MenuItem Command="{Binding ElementName=Toolbar, Path=PrettyCopyAllCommand.RoutedUICommand}" Header="{Binding ElementName=Toolbar, Path=PrettyCopyAllCommand.Text}" />
+                <MenuItem Command="{Binding ElementName=Toolbar, Path=PasteCommand.RoutedUICommand}" Header="{Binding ElementName=Toolbar, Path=PasteCommand.Text}" />
                 <Separator />
-                <MenuItem Command="ApplicationCommands.Find" Header="_Find window" />
+                <MenuItem
+                    Command="{Binding ElementName=Toolbar, Path=AutoPasteToggleCommand.RoutedUICommand}"
+                    Header="{Binding ElementName=Toolbar, Path=AutoPasteToggleCommand.Text}"
+                    IsCheckable="True"
+                    IsChecked="{Binding ElementName=Toolbar, Path=AutoPasteToggleCommand.IsChecked, Mode=OneWay}" />
+            </MenuItem>
+            <MenuItem Header="_View">
+                <MenuItem Command="{Binding ElementName=Toolbar, Path=ShowTextModeCommand.RoutedUICommand}" Header="{Binding ElementName=Toolbar, Path=ShowTextModeCommand.Text}" />
+                <MenuItem Command="{Binding ElementName=Toolbar, Path=ShowTreeModeCommand.RoutedUICommand}" Header="{Binding ElementName=Toolbar, Path=ShowTreeModeCommand.Text}" />
                 <Separator />
                 <MenuItem
                     Command="{Binding ElementName=Toolbar, Path=ShowToolbarTextToggleCommand}"
@@ -156,14 +165,11 @@
                     Header="Highlight similar values"
                     IsCheckable="True"
                     IsChecked="{Binding ElementName=Toolbar, Path=HighlightSimilarValuesToggleCommand.IsChecked, Mode=OneWay}" />
+            </MenuItem>
+            <MenuItem Header="Windows">
+                <MenuItem Command="{Binding ElementName=Toolbar, Path=NewWindowCommand.RoutedUICommand}" Header="_New window" />
                 <Separator />
-                <MenuItem Command="{Binding ElementName=Toolbar, Path=PrettyCopyAllCommand}" Header="{Binding ElementName=Toolbar, Path=PrettyCopyAllCommand.Text}" />
-                <Separator />
-                <MenuItem
-                    Command="{Binding ElementName=Toolbar, Path=AutoPasteToggleCommand.RoutedUICommand}"
-                    Header="{Binding ElementName=Toolbar, Path=AutoPasteToggleCommand.Text}"
-                    IsCheckable="True"
-                    IsChecked="{Binding ElementName=Toolbar, Path=AutoPasteToggleCommand.IsChecked, Mode=OneWay}" />
+                <MenuItem Command="ApplicationCommands.Find" Header="_Find window" />
             </MenuItem>
             <MenuItem x:Name="ExpandToMenuItem" Header="_Expand to" />
         </Menu>
