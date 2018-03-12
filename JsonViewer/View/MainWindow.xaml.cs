@@ -267,16 +267,6 @@
             }
         }
 
-        private void OnRootObjectPropertyChanged(object sender, PropertyChangedEventArgs e)
-        {
-            switch (e.PropertyName)
-            {
-                case "AllChildren":
-                    this.UpdateWarnings();
-                    break;
-            }
-        }
-
         private void SetErrorMessage(string message)
         {
             if (string.IsNullOrEmpty(message))
