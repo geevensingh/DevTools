@@ -273,6 +273,11 @@
                     <DataGridTextColumn Binding="{Binding Path=FontSize}" Header="Font size" />
                     <DataGridTextColumn Binding="{Binding Path=ExpandChildren}" Header="Expand children" />
                     <DataGridTextColumn Binding="{Binding Path=WarningMessage}" Header="Warning message" />
+
+                    <DataGridCheckBoxColumn
+                        Binding="{Binding Path=IsDirty, Mode=OneWay}"
+                        Header="Has changed"
+                        IsReadOnly="True" />
                 </DataGrid.Columns>
             </DataGrid>
             <TextBox
