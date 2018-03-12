@@ -403,5 +403,19 @@
         {
             //((RuleView)e.NewItem).Index = 20;
         }
+
+        private void OnSetForegroundButtonClicked(object sender, RoutedEventArgs e)
+        {
+            Button button = (Button)sender;
+            RuleView ruleView = (RuleView)button.DataContext;
+            ruleView.SetForeground();
+        }
+
+        private void OnSetBackgroundButtonClicked(object sender, RoutedEventArgs e)
+        {
+            Button button = (Button)sender;
+            RuleView ruleView = (RuleView)button.DataContext;
+            ruleView.SetBackground();
+        }
     }
 }

@@ -26,6 +26,8 @@
             this.Index = index;
         }
 
+        public ConfigRule Rule { get => _rule; }
+
         public int Index { get; set; }
 
         public string MatchString
@@ -70,7 +72,7 @@
 
         public string FontSize
         {
-            get => _rule.FontSize.ToString();
+            get => _rule.FontSize.HasValue ? _rule.FontSize.ToString() : string.Empty;
             set
             {
                 double? newValue = _rule.FontSize;
@@ -103,13 +105,27 @@
             }
         }
 
-        public int? ExpandChildren
+        public string ExpandChildren
         {
-            get => _rule.ExpandChildren;
+            get => _rule.ExpandChildren.ToString();
             set
             {
-                _rule.ExpandChildren = value;
-                this.SetValue(ref _isDirty, true, "IsDirty");
+                int? newValue = _rule.ExpandChildren;
+                if (string.IsNullOrEmpty(value))
+                {
+                    newValue = null;
+                }
+
+                if (int.TryParse(value, out int intTemp) && intTemp > 0)
+                {
+                    newValue = intTemp;
+                }
+
+                if (newValue != _rule.ExpandChildren)
+                {
+                    _rule.ExpandChildren = newValue;
+                    this.SetValue(ref _isDirty, true, "IsDirty");
+                }
             }
         }
 
@@ -123,7 +139,13 @@
             }
         }
 
+        public string SetForegroundText { get => _rule.ForegroundBrush == null ? "Set foreground" : "Clear foreground"; }
+
+        public string SetBackgroundText { get => _rule.BackgroundBrush == null ? "Set background" : "Clear background"; }
+
         public Brush Background { get => _rule.BackgroundBrush ?? Config.This.DefaultBackgroundBrush; }
+
+        public Brush BackgroundOrDefaultForeground { get => _rule.BackgroundBrush ?? Config.This.DefaultForegroundBrush; }
 
         public Brush Foreground { get => _rule.ForegroundBrush ?? Config.This.DefaultForegroundBrush; }
 
@@ -182,6 +204,24 @@
             }
 
             return string.Join(" or ", list.ToArray());
+        }
+
+        internal void SetForeground()
+        {
+            if (string.IsNullOrEmpty(_rule.ForegroundString))
+            {
+                // launch color picker
+            }
+            else
+            {
+                _rule.ForegroundString = string.Empty;
+            }
+
+            this.FirePropertyChanged(new string[] { "SetForegroundText", "Foreground", "ColorString" });
+        }
+
+        internal void SetBackground()
+        {
         }
     }
 }

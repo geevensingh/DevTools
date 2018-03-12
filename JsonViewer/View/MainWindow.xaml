@@ -228,6 +228,24 @@
                         Foreground="{Binding Path=Foreground}"
                         Text="{Binding Path=ColorString}" />
                 </DataTemplate>
+                <DataTemplate x:Key="ColorCellEditingTemplate">
+                    <StackPanel Background="White" Orientation="Horizontal">
+                        <Button
+                            Margin="5,0"
+                            Background="Transparent"
+                            Click="OnSetForegroundButtonClicked"
+                            Content="{Binding Path=SetForegroundText}"
+                            FontSize="16"
+                            Foreground="{Binding Path=Foreground}" />
+                        <Button
+                            Margin="5,0"
+                            Background="Transparent"
+                            Click="OnSetBackgroundButtonClicked"
+                            Content="{Binding Path=SetBackgroundText}"
+                            FontSize="16"
+                            Foreground="{Binding Path=BackgroundOrDefaultForeground}" />
+                    </StackPanel>
+                </DataTemplate>
             </Grid.Resources>
             <DataGrid
                 x:Name="RulesList"
@@ -240,7 +258,10 @@
                 SelectionMode="Single"
                 SelectionUnit="FullRow">
                 <DataGrid.Columns>
-                    <DataGridTextColumn Binding="{Binding Path=Index}" Header="Order" />
+                    <DataGridTextColumn
+                        Binding="{Binding Path=Index}"
+                        Header="Order"
+                        IsReadOnly="True" />
                     <!--  how matches are made  -->
                     <DataGridTextColumn Binding="{Binding Path=MatchString}" Header="Match string" />
                     <DataGridComboBoxColumn
@@ -255,7 +276,10 @@
                     <DataGridCheckBoxColumn Binding="{Binding Path=AppliesToParents}" Header="Applies to parents" />
 
                     <!--  what happens when a match is made  -->
-                    <DataGridTemplateColumn CellTemplate="{StaticResource ColorCellTemplate}" Header="Color" />
+                    <DataGridTemplateColumn
+                        CellEditingTemplate="{StaticResource ColorCellEditingTemplate}"
+                        CellTemplate="{StaticResource ColorCellTemplate}"
+                        Header="Color" />
                     <DataGridTextColumn Binding="{Binding Path=FontSize}" Header="Font size" />
                     <DataGridTextColumn Binding="{Binding Path=ExpandChildren}" Header="Expand children" />
                     <DataGridTextColumn Binding="{Binding Path=WarningMessage}" Header="Warning message" />
