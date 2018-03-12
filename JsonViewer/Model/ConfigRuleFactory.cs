@@ -34,7 +34,6 @@
             string foregroundString = null;
             if (dict.ContainsKey("color"))
             {
-
                 foregroundString = (string)dict["color"];
             }
 
