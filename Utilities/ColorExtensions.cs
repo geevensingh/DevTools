@@ -1,10 +1,37 @@
 ﻿namespace Utilities
 {
     using System;
+    using System.Collections.Generic;
     using System.Diagnostics;
+    using System.Linq;
 
     public static class ColorExtensions
     {
+        private static ILookup<int, System.Drawing.Color> _nameLookup = null;
+        public static IEnumerable<System.Drawing.Color> GetNameLookup(System.Drawing.Color color)
+        {
+            if (_nameLookup == null)
+            {
+                _nameLookup = Enum.GetValues(typeof(System.Drawing.KnownColor))
+               .Cast<System.Drawing.KnownColor>()
+               .Select(System.Drawing.Color.FromKnownColor)
+               .ToLookup(c => c.ToArgb());
+            }
+
+            return _nameLookup[color.ToArgb()];
+        }
+
+        public static string GetName(this System.Windows.Media.Color color)
+        {
+            foreach (System.Drawing.Color namedColor in GetNameLookup(color.Convert()))
+            {
+                Debug.Assert((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(namedColor.Name) == color);
+                return namedColor.Name;
+            }
+
+            return color.ToString();
+        }
+
         public static System.Windows.Media.Color AdjustAlpha(this System.Windows.Media.Color color, byte alpha)
         {
             Debug.Assert(color.A == 0xff);

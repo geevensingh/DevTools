@@ -149,6 +149,28 @@
 
         public Brush Foreground { get => _rule.ForegroundBrush ?? Config.This.DefaultForegroundBrush; }
 
+        public Color ForegroundColor
+        {
+            get => (Color)ColorConverter.ConvertFromString(_rule.ForegroundString);
+            set
+            {
+                _rule.ForegroundString = value.GetName();
+                this.FirePropertyChanged(new string[] { "SetForegroundText", "Foreground", "ColorString" });
+                this.SetValue(ref _isDirty, true, "IsDirty");
+            }
+        }
+
+        public Color BackgroundColor
+        {
+            get => (Color)ColorConverter.ConvertFromString(_rule.BackgroundString);
+            set
+            {
+                _rule.BackgroundString = value.GetName();
+                this.FirePropertyChanged(new string[] { "SetBackgroundText", "Background", "ColorString" });
+                this.SetValue(ref _isDirty, true, "IsDirty");
+            }
+        }
+
         public string ColorString
         {
             get
@@ -210,7 +232,6 @@
         {
             if (string.IsNullOrEmpty(_rule.ForegroundString))
             {
-                // launch color picker
             }
             else
             {

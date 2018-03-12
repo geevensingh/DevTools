@@ -6,6 +6,7 @@
     xmlns:local="clr-namespace:JsonViewer.View"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:model="clr-namespace:JsonViewer.Model"
+    xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
     x:Name="mainWindow"
     Title="Json Viewer"
     Width="1200"
@@ -229,21 +230,10 @@
                         Text="{Binding Path=ColorString}" />
                 </DataTemplate>
                 <DataTemplate x:Key="ColorCellEditingTemplate">
-                    <StackPanel Background="White" Orientation="Horizontal">
-                        <Button
-                            Margin="5,0"
-                            Background="Transparent"
-                            Click="OnSetForegroundButtonClicked"
-                            Content="{Binding Path=SetForegroundText}"
-                            FontSize="16"
-                            Foreground="{Binding Path=Foreground}" />
-                        <Button
-                            Margin="5,0"
-                            Background="Transparent"
-                            Click="OnSetBackgroundButtonClicked"
-                            Content="{Binding Path=SetBackgroundText}"
-                            FontSize="16"
-                            Foreground="{Binding Path=BackgroundOrDefaultForeground}" />
+                    <StackPanel Orientation="Horizontal">
+                        <xctk:ColorPicker DisplayColorAndName="True" SelectedColor="{Binding Path=ForegroundColor}" />
+                        <TextBlock Margin="5,0">on</TextBlock>
+                        <xctk:ColorPicker DisplayColorAndName="True" SelectedColor="{Binding Path=BackgroundColor}" />
                     </StackPanel>
                 </DataTemplate>
             </Grid.Resources>
