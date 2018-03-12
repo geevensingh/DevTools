@@ -108,7 +108,6 @@
                 this.Tree.GetItem(treeViewData).IsSelected = false;
             }
 
-
             if (_rootObject != null)
             {
                 _rootObject.PropertyChanged -= OnRootObjectPropertyChanged;
@@ -134,16 +133,6 @@
             this.UpdateWarnings();
 
             return true;
-        }
-
-        private void OnRootObjectPropertyChanged(object sender, PropertyChangedEventArgs e)
-        {
-            switch (e.PropertyName)
-            {
-                case "AllChildren":
-                    this.UpdateWarnings();
-                    break;
-            }
         }
 
         public void SetDisplayMode(DisplayMode newMode)
@@ -248,6 +237,16 @@
                         this.CommandBindings.Add(commandBinding);
                     }
                 }
+            }
+        }
+
+        private void OnRootObjectPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            switch (e.PropertyName)
+            {
+                case "AllChildren":
+                    this.UpdateWarnings();
+                    break;
             }
         }
 

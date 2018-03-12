@@ -306,7 +306,7 @@
         {
             Debug.Assert(this.CanTreatAsJson);
 
-            JsonObjectFactory.DeserializeResult deserializeResult = JsonObjectFactory.TryDeserialize(this.Value as string);
+            DeserializeResult deserializeResult = JsonObjectFactory.TryDeserialize(this.Value as string);
             Debug.Assert(deserializeResult != null);
 
             Dictionary<string, object> dict = deserializeResult.Dictionary;
