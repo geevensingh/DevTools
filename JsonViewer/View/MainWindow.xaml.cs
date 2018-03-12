@@ -87,11 +87,6 @@
             }
         }
 
-        private void UpdateRules()
-        {
-            NotifyPropertyChanged.SetValue(ref _rules, RuleViewFactory.CreateCollection(), "Rules", this, this.PropertyChanged);
-        }
-
         public Task<bool> ReloadAsync()
         {
             if (string.IsNullOrWhiteSpace(this.Raw_TextBox.Text))
@@ -145,16 +140,6 @@
             this.UpdateWarnings();
 
             return true;
-        }
-
-        private void OnRootObjectPropertyChanged(object sender, PropertyChangedEventArgs e)
-        {
-            switch (e.PropertyName)
-            {
-                case "AllChildren":
-                    this.UpdateWarnings();
-                    break;
-            }
         }
 
         public void SetDisplayMode(DisplayMode newMode)
@@ -265,6 +250,21 @@
                         this.CommandBindings.Add(commandBinding);
                     }
                 }
+            }
+        }
+
+        private void UpdateRules()
+        {
+            NotifyPropertyChanged.SetValue(ref _rules, RuleViewFactory.CreateCollection(), "Rules", this, this.PropertyChanged);
+        }
+
+        private void OnRootObjectPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            switch (e.PropertyName)
+            {
+                case "AllChildren":
+                    this.UpdateWarnings();
+                    break;
             }
         }
 
