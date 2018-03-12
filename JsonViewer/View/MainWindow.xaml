@@ -230,15 +230,15 @@
                 </DataTemplate>
             </Grid.Resources>
             <DataGrid
-                SelectionMode="Single"
-                SelectionUnit="FullRow"
                 x:Name="RulesList"
                 AutoGenerateColumns="False"
                 CanUserAddRows="True"
                 CanUserDeleteRows="True"
                 CanUserReorderColumns="False"
                 InitializingNewItem="RulesList_InitializingNewItem"
-                ItemsSource="{Binding Path=Rules, Mode=TwoWay}">
+                ItemsSource="{Binding Path=Rules, Mode=TwoWay}"
+                SelectionMode="Single"
+                SelectionUnit="FullRow">
                 <DataGrid.Columns>
                     <DataGridTextColumn Binding="{Binding Path=Index}" Header="Order" />
                     <!--  how matches are made  -->
@@ -257,6 +257,8 @@
                     <!--  what happens when a match is made  -->
                     <DataGridTemplateColumn CellTemplate="{StaticResource ColorCellTemplate}" Header="Color" />
                     <DataGridTextColumn Binding="{Binding Path=FontSize}" Header="Font size" />
+                    <DataGridTextColumn Binding="{Binding Path=ExpandChildren}" Header="Expand children" />
+                    <DataGridTextColumn Binding="{Binding Path=WarningMessage}" Header="Warning message" />
                 </DataGrid.Columns>
             </DataGrid>
             <TextBox

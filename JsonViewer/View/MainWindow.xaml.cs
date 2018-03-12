@@ -399,38 +399,9 @@
             this._warningBannerAction?.Invoke();
         }
 
-        private void RulesList_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
-        {
-            switch (e.PropertyName)
-            {
-                case "Background":
-                case "Foreground":
-                case "BackgroundString":
-                case "ForegroundString":
-                case "ColorString":
-                    e.Cancel = true;
-                    return;
-                case "MatchString":
-                    e.Column.Header = "Match String";
-                    break;
-                case "Color":
-                    e.Column.DisplayIndex = 2;
-                    break;
-                //case "FontSize":
-                //    e.
-            }
-
-            //e.Column.DisplayIndex = RuleView.GetIndex(e.PropertyName);
-        }
-
-        private void DataGridTextColumn_Error(object sender, ValidationErrorEventArgs e)
-        {
-
-        }
-
         private void RulesList_InitializingNewItem(object sender, InitializingNewItemEventArgs e)
         {
-            ((RuleView)e.NewItem).Index = 20;
+            //((RuleView)e.NewItem).Index = 20;
         }
     }
 }
