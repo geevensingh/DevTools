@@ -114,7 +114,6 @@
                 this.Tree.GetItem(treeViewData).IsSelected = false;
             }
 
-
             if (_rootObject != null)
             {
                 _rootObject.PropertyChanged -= OnRootObjectPropertyChanged;
@@ -256,6 +255,16 @@
         private void UpdateRules()
         {
             NotifyPropertyChanged.SetValue(ref _rules, RuleViewFactory.CreateCollection(), "Rules", this, this.PropertyChanged);
+        }
+
+        private void OnRootObjectPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            switch (e.PropertyName)
+            {
+                case "AllChildren":
+                    this.UpdateWarnings();
+                    break;
+            }
         }
 
         private void OnRootObjectPropertyChanged(object sender, PropertyChangedEventArgs e)
