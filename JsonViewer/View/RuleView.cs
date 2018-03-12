@@ -139,34 +139,28 @@
             }
         }
 
-        public string SetForegroundText { get => _rule.ForegroundBrush == null ? "Set foreground" : "Clear foreground"; }
+        public Brush BackgroundBrush { get => _rule.BackgroundBrush ?? Config.This.DefaultBackgroundBrush; }
 
-        public string SetBackgroundText { get => _rule.BackgroundBrush == null ? "Set background" : "Clear background"; }
-
-        public Brush Background { get => _rule.BackgroundBrush ?? Config.This.DefaultBackgroundBrush; }
-
-        public Brush BackgroundOrDefaultForeground { get => _rule.BackgroundBrush ?? Config.This.DefaultForegroundBrush; }
-
-        public Brush Foreground { get => _rule.ForegroundBrush ?? Config.This.DefaultForegroundBrush; }
+        public Brush ForegroundBrush { get => _rule.ForegroundBrush ?? Config.This.DefaultForegroundBrush; }
 
         public Color ForegroundColor
         {
-            get => (Color)ColorConverter.ConvertFromString(_rule.ForegroundString);
+            get => string.IsNullOrEmpty(_rule.ForegroundString) ? Colors.Transparent : (Color)ColorConverter.ConvertFromString(_rule.ForegroundString);
             set
             {
                 _rule.ForegroundString = value.GetName();
-                this.FirePropertyChanged(new string[] { "SetForegroundText", "Foreground", "ColorString" });
+                this.FirePropertyChanged(new string[] { "Foreground", "ColorString" });
                 this.SetValue(ref _isDirty, true, "IsDirty");
             }
         }
 
         public Color BackgroundColor
         {
-            get => (Color)ColorConverter.ConvertFromString(_rule.BackgroundString);
+            get => string.IsNullOrEmpty(_rule.BackgroundString) ? Colors.Transparent : (Color)ColorConverter.ConvertFromString(_rule.BackgroundString);
             set
             {
                 _rule.BackgroundString = value.GetName();
-                this.FirePropertyChanged(new string[] { "SetBackgroundText", "Background", "ColorString" });
+                this.FirePropertyChanged(new string[] { "Background", "ColorString" });
                 this.SetValue(ref _isDirty, true, "IsDirty");
             }
         }
@@ -226,23 +220,6 @@
             }
 
             return string.Join(" or ", list.ToArray());
-        }
-
-        internal void SetForeground()
-        {
-            if (string.IsNullOrEmpty(_rule.ForegroundString))
-            {
-            }
-            else
-            {
-                _rule.ForegroundString = string.Empty;
-            }
-
-            this.FirePropertyChanged(new string[] { "SetForegroundText", "Foreground", "ColorString" });
-        }
-
-        internal void SetBackground()
-        {
         }
     }
 }

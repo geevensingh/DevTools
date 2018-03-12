@@ -224,9 +224,9 @@
                 </ObjectDataProvider>
                 <DataTemplate x:Key="ColorCellTemplate">
                     <TextBlock
-                        Background="{Binding Path=Background}"
+                        Background="{Binding Path=BackgroundBrush}"
                         FontSize="{Binding Path=FontSize}"
-                        Foreground="{Binding Path=Foreground}"
+                        Foreground="{Binding Path=ForegroundBrush}"
                         Text="{Binding Path=ColorString}" />
                 </DataTemplate>
                 <DataTemplate x:Key="ColorCellEditingTemplate">
