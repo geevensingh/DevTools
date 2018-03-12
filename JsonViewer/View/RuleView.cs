@@ -30,6 +30,8 @@
 
         public int Index { get; set; }
 
+        public bool IsDirty { get => _isDirty; }
+
         public string MatchString
         {
             get => _rule.String;
@@ -148,9 +150,18 @@
             get => string.IsNullOrEmpty(_rule.ForegroundString) ? Colors.Transparent : (Color)ColorConverter.ConvertFromString(_rule.ForegroundString);
             set
             {
-                _rule.ForegroundString = value.GetName();
-                this.FirePropertyChanged(new string[] { "Foreground", "ColorString" });
-                this.SetValue(ref _isDirty, true, "IsDirty");
+                string valueName = value.GetName();
+                if (valueName.ToLower() == "transparent")
+                {
+                    valueName = null;
+                }
+
+                if (_rule.ForegroundString?.ToLower() != valueName?.ToLower())
+                {
+                    _rule.ForegroundString = value.GetName();
+                    this.FirePropertyChanged(new string[] { "Foreground", "ColorString" });
+                    this.SetValue(ref _isDirty, true, "IsDirty");
+                }
             }
         }
 
@@ -159,9 +170,18 @@
             get => string.IsNullOrEmpty(_rule.BackgroundString) ? Colors.Transparent : (Color)ColorConverter.ConvertFromString(_rule.BackgroundString);
             set
             {
-                _rule.BackgroundString = value.GetName();
-                this.FirePropertyChanged(new string[] { "Background", "ColorString" });
-                this.SetValue(ref _isDirty, true, "IsDirty");
+                string valueName = value.GetName();
+                if (valueName.ToLower() == "transparent")
+                {
+                    valueName = null;
+                }
+
+                if (_rule.BackgroundString?.ToLower() != valueName?.ToLower())
+                {
+                    _rule.BackgroundString = valueName;
+                    this.FirePropertyChanged(new string[] { "Background", "ColorString" });
+                    this.SetValue(ref _isDirty, true, "IsDirty");
+                }
             }
         }
 
