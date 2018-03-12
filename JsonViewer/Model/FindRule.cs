@@ -8,11 +8,13 @@
     internal class FindRule : IRule
     {
         private List<ConfigRule> _rules = new List<ConfigRule>();
+        private Brush _foregroundBrush;
+        private Brush _backgroundBrush;
 
         internal FindRule(string text, bool ignoreCase, bool searchKeys, bool searchValues, bool searchValueTypes, bool appliesToParents, MatchTypeEnum matchType)
         {
-            string foregroundString = Config.This.GetColor(matchType == MatchTypeEnum.Exact ? ConfigValue.TreeViewSimilarForeground : ConfigValue.TreeViewSearchResultForeground).GetName();
-            string backgroundString = Config.This.GetColor(matchType == MatchTypeEnum.Exact ? ConfigValue.TreeViewSimilarBackground : ConfigValue.TreeViewSearchResultBackground).GetName();
+            _foregroundBrush = Config.This.GetBrush(matchType == MatchTypeEnum.Exact ? ConfigValue.TreeViewSimilarForeground : ConfigValue.TreeViewSearchResultForeground);
+            _backgroundBrush = Config.This.GetBrush(matchType == MatchTypeEnum.Exact ? ConfigValue.TreeViewSimilarBackground : ConfigValue.TreeViewSearchResultBackground);
 
             void AddRule(MatchFieldEnum matchField)
             {
@@ -21,9 +23,7 @@
                     String = text,
                     MatchField = matchField,
                     MatchType = matchType,
-                    IgnoreCase = ignoreCase,
-                    ForegroundString = foregroundString,
-                    BackgroundString = backgroundString
+                    IgnoreCase = ignoreCase
                 });
             }
 
@@ -43,9 +43,9 @@
             }
         }
 
-        public Brush ForegroundBrush => _rules[0].ForegroundBrush;
+        public Brush ForegroundBrush => _foregroundBrush;
 
-        public Brush BackgroundBrush => _rules[0].BackgroundBrush;
+        public Brush BackgroundBrush => _backgroundBrush;
 
         public double? FontSize => null;
 
@@ -55,7 +55,7 @@
 
         public bool Matches(JsonObject obj)
         {
-            return _rules.FirstOrDefault(x => x.Matches(obj)) != null;
+            return _rules.Any(x => x.Matches(obj));
         }
     }
 }
