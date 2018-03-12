@@ -1,11 +1,7 @@
 ﻿namespace JsonViewer.Model
 {
-    using System;
-    using System.Collections;
-    using System.Collections.Generic;
     using System.Diagnostics;
     using System.Windows.Media;
-    using Utilities;
 
     public enum MatchTypeEnum
     {
@@ -20,7 +16,7 @@
         Value
     }
 
-    public class ConfigRule
+    public class ConfigRule : IRule
     {
         private ConfigRuleMatcher _matcher = null;
 

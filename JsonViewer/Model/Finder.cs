@@ -211,7 +211,7 @@
                     searchValues: this.ShouldSearchValues,
                     searchValueTypes: this.ShouldSearchValueTypes,
                     appliesToParents: this.ShouldSearchParentValues,
-                    exactMatch: false);
+                    matchType: MatchTypeEnum.Partial);
 
                 foreach (JsonObject obj in _rootObject.AllChildren)
                 {

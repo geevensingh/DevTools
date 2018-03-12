@@ -20,7 +20,7 @@
         private string _originalString;
         private object _typedValue;
         private DataType _dataType = DataType.Other;
-        private List<ConfigRule> _rules;
+        private List<IRule> _rules;
         private FindRule _findRule = null;
         private FindRule _matchRule = null;
         private bool _valuesInitialized = false;
@@ -182,7 +182,7 @@
             }
         }
 
-        internal List<ConfigRule> Rules
+        internal List<IRule> Rules
         {
             get
             {
@@ -516,7 +516,7 @@
 
             _oneLineValue = oneLineValue;
 
-            _rules = new List<ConfigRule>(Config.This.Rules.Where(rule => rule.Matches(this)));
+            _rules = new List<IRule>(Config.This.Rules.Where(rule => rule.Matches(this)));
         }
 
         private string GetValueTypeString(bool includeChildCount)

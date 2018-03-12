@@ -25,8 +25,14 @@
         {
             foreach (System.Drawing.Color namedColor in GetNameLookup(color.Convert()))
             {
-                Debug.Assert((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(namedColor.Name) == color);
-                return namedColor.Name;
+                try
+                {
+                    if ((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(namedColor.Name) == color)
+                    {
+                        return namedColor.Name;
+                    }
+                }
+                catch { }
             }
 
             return color.ToString();

@@ -1,49 +1,61 @@
 ﻿namespace JsonViewer.Model
 {
     using System.Collections.Generic;
+    using System.Linq;
+    using System.Windows.Media;
+    using Utilities;
 
-    internal class FindRule : ConfigRule
+    internal class FindRule : IRule
     {
-        internal FindRule(string text, bool ignoreCase, bool searchKeys, bool searchValues, bool searchValueTypes, bool appliesToParents, bool exactMatch)
-            : base()
+        private List<ConfigRule> _rules = new List<ConfigRule>();
+
+        internal FindRule(string text, bool ignoreCase, bool searchKeys, bool searchValues, bool searchValueTypes, bool appliesToParents, MatchTypeEnum matchType)
         {
-            //text = ignoreCase ? text.ToLower() : text;
+            string foregroundString = Config.This.GetColor(matchType == MatchTypeEnum.Exact ? ConfigValue.TreeViewSimilarForeground : ConfigValue.TreeViewSearchResultForeground).GetName();
+            string backgroundString = Config.This.GetColor(matchType == MatchTypeEnum.Exact ? ConfigValue.TreeViewSimilarBackground : ConfigValue.TreeViewSearchResultBackground).GetName();
 
-            //List<string> keys = new List<string>();
-            //if (searchKeys)
-            //{
-            //    keys.Add(text);
-            //}
+            void AddRule(MatchFieldEnum matchField)
+            {
+                _rules.Add(new ConfigRule()
+                {
+                    String = text,
+                    MatchField = matchField,
+                    MatchType = matchType,
+                    IgnoreCase = ignoreCase,
+                    ForegroundString = foregroundString,
+                    BackgroundString = backgroundString
+                });
+            }
 
-            //List<string> values = new List<string>();
-            //if (searchValues)
-            //{
-            //    values.Add(text);
-            //}
+            if (searchKeys)
+            {
+                AddRule(MatchFieldEnum.Key);
+            }
 
-            //List<string> valueTypes = new List<string>();
-            //if (searchValueTypes)
-            //{
-            //    valueTypes.Add(text);
-            //}
+            if (searchValues)
+            {
+                AddRule(MatchFieldEnum.Value);
+            }
 
-            //if (exactMatch)
-            //{
-            //    ExactKeys = keys;
-            //    ExactValues = values;
-            //    ExactValueTypes = valueTypes;
-            //}
-            //else
-            //{
-            //    PartialKeys = keys;
-            //    PartialValues = values;
-            //    PartialValueTypes = valueTypes;
-            //}
+            if (searchValueTypes)
+            {
+                AddRule(MatchFieldEnum.Type);
+            }
+        }
 
-            //ForegroundBrush = Config.This.GetBrush(exactMatch ? ConfigValue.TreeViewSimilarForeground : ConfigValue.TreeViewSearchResultForeground);
-            //BackgroundBrush = Config.This.GetBrush(exactMatch ? ConfigValue.TreeViewSimilarBackground : ConfigValue.TreeViewSearchResultBackground);
-            //IgnoreCase = ignoreCase;
-            //AppliesToParents = appliesToParents;
+        public Brush ForegroundBrush => _rules[0].ForegroundBrush;
+
+        public Brush BackgroundBrush => _rules[0].BackgroundBrush;
+
+        public double? FontSize => null;
+
+        public string WarningMessage => string.Empty;
+
+        public int? ExpandChildren => null;
+
+        public bool Matches(JsonObject obj)
+        {
+            return _rules.FirstOrDefault(x => x.Matches(obj)) != null;
         }
     }
 }

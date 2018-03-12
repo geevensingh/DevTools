@@ -94,7 +94,6 @@
 
         public double DefaultFontSize { get => _rawValues["treeViewFontSize"] as double? ?? 12.0; }
 
-
         internal static Config This
         {
             get
@@ -212,7 +211,7 @@
 
         public Brush GetForegroundColor(JsonObject obj)
         {
-            ConfigRule rule = obj.Rules.FirstOrDefault(x => x.ForegroundBrush != null);
+            IRule rule = obj.Rules.FirstOrDefault(x => x.ForegroundBrush != null);
             if (rule != null)
             {
                 return rule.ForegroundBrush;
@@ -223,7 +222,7 @@
 
         public Brush GetBackgroundColor(JsonObject obj)
         {
-            ConfigRule rule = obj.Rules.FirstOrDefault(x => x.BackgroundBrush != null);
+            IRule rule = obj.Rules.FirstOrDefault(x => x.BackgroundBrush != null);
             if (rule != null)
             {
                 return rule.BackgroundBrush;
@@ -234,7 +233,7 @@
 
         internal double GetFontSize(JsonObject obj)
         {
-            ConfigRule rule = obj.Rules.FirstOrDefault(x => x.FontSize.HasValue);
+            IRule rule = obj.Rules.FirstOrDefault(x => x.FontSize.HasValue);
             if (rule != null)
             {
                 return rule.FontSize.Value;
