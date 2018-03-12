@@ -79,7 +79,7 @@
                 _rawValues["treeViewFontSize"] = Converters.ToDouble(_rawValues["treeViewFontSize"]).Value;
             }
 
-            _rules = ConfigRule.GenerateRules((ArrayList)_rawValues["treeViewHighlights"]);
+            _rules = ConfigRuleFactory.GenerateRules((ArrayList)_rawValues["treeViewHighlights"]);
         }
 
         public bool IsDefault { get; private set; }

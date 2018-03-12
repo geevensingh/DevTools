@@ -43,6 +43,7 @@
     {
       "keyIs": [ "event_type", "state" ],
       "color": "blue",
+      "background":  "lightgray",
       "fontSize": 16
     },
     {

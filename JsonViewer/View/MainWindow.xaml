@@ -5,6 +5,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:JsonViewer.View"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:model="clr-namespace:JsonViewer.Model"
     x:Name="mainWindow"
     Title="Json Viewer"
     Width="1200"
@@ -13,18 +14,6 @@
     Loaded="OnLoaded"
     mc:Ignorable="d">
     <Window.Resources>
-        <DataTemplate x:Key="ColorCellTemplate">
-            <TextBlock
-                Background="{Binding Path=Background}"
-                FontSize="{Binding Path=FontSize}"
-                Foreground="{Binding Path=Foreground}"
-                Text="{Binding Path=ColorString}" />
-        </DataTemplate>
-        <DataTemplate x:Key="RulesListTemplate">
-            <StackPanel Background="{Binding Path=Background}" Orientation="Horizontal">
-                <TextBlock Margin="5" Text="{Binding Path=MatchString}" />
-            </StackPanel>
-        </DataTemplate>
         <HierarchicalDataTemplate
             x:Key="TreeViewItemTemplate"
             DataType="local:TreeViewData"
@@ -215,12 +204,59 @@
         </Grid>
         <local:StatusBar DataContext="{Binding ElementName=mainWindow}" DockPanel.Dock="Bottom" />
         <Grid>
+            <Grid.Resources>
+                <ObjectDataProvider
+                    x:Key="odpMatchType"
+                    MethodName="GetValues"
+                    ObjectType="{x:Type model:MatchTypeEnum}">
+                    <ObjectDataProvider.MethodParameters>
+                        <x:Type Type="model:MatchTypeEnum" />
+                    </ObjectDataProvider.MethodParameters>
+                </ObjectDataProvider>
+                <ObjectDataProvider
+                    x:Key="odpMatchField"
+                    MethodName="GetValues"
+                    ObjectType="{x:Type model:MatchFieldEnum}">
+                    <ObjectDataProvider.MethodParameters>
+                        <x:Type Type="model:MatchFieldEnum" />
+                    </ObjectDataProvider.MethodParameters>
+                </ObjectDataProvider>
+                <DataTemplate x:Key="ColorCellTemplate">
+                    <TextBlock
+                        Background="{Binding Path=Background}"
+                        FontSize="{Binding Path=FontSize}"
+                        Foreground="{Binding Path=Foreground}"
+                        Text="{Binding Path=ColorString}" />
+                </DataTemplate>
+            </Grid.Resources>
             <DataGrid
+                SelectionMode="Single"
+                SelectionUnit="FullRow"
                 x:Name="RulesList"
-                AutoGeneratingColumn="RulesList_AutoGeneratingColumn"
-                ItemsSource="{Binding Path=Rules, Mode=OneWay}">
+                AutoGenerateColumns="False"
+                CanUserAddRows="True"
+                CanUserDeleteRows="True"
+                CanUserReorderColumns="False"
+                InitializingNewItem="RulesList_InitializingNewItem"
+                ItemsSource="{Binding Path=Rules, Mode=TwoWay}">
                 <DataGrid.Columns>
+                    <DataGridTextColumn Binding="{Binding Path=Index}" Header="Order" />
+                    <!--  how matches are made  -->
+                    <DataGridTextColumn Binding="{Binding Path=MatchString}" Header="Match string" />
+                    <DataGridComboBoxColumn
+                        Header="Match type"
+                        ItemsSource="{Binding Source={StaticResource odpMatchType}}"
+                        SelectedItemBinding="{Binding Path=MatchType}" />
+                    <DataGridComboBoxColumn
+                        Header="Match field"
+                        ItemsSource="{Binding Source={StaticResource odpMatchField}}"
+                        SelectedItemBinding="{Binding Path=MatchField}" />
+                    <DataGridCheckBoxColumn Binding="{Binding Path=IgnoreCase}" Header="Ignore Case" />
+                    <DataGridCheckBoxColumn Binding="{Binding Path=AppliesToParents}" Header="Applies to parents" />
+
+                    <!--  what happens when a match is made  -->
                     <DataGridTemplateColumn CellTemplate="{StaticResource ColorCellTemplate}" Header="Color" />
+                    <DataGridTextColumn Binding="{Binding Path=FontSize}" Header="Font size" />
                 </DataGrid.Columns>
             </DataGrid>
             <TextBox

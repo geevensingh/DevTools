@@ -51,7 +51,7 @@
 
         public Finder Finder { get => _finder; }
 
-        public ObservableCollection<RuleView> Rules { get => _rules; }
+        public ObservableCollection<RuleView> Rules { get => _rules; set => _rules = value; }
 
         internal RootObject RootObject { get => _rootObject; }
 
@@ -408,12 +408,29 @@
                 case "BackgroundString":
                 case "ForegroundString":
                 case "ColorString":
-                case "FontSize":
                     e.Cancel = true;
                     return;
+                case "MatchString":
+                    e.Column.Header = "Match String";
+                    break;
+                case "Color":
+                    e.Column.DisplayIndex = 2;
+                    break;
+                //case "FontSize":
+                //    e.
             }
 
-            e.Column.DisplayIndex = RuleView.GetIndex(e.PropertyName);
+            //e.Column.DisplayIndex = RuleView.GetIndex(e.PropertyName);
+        }
+
+        private void DataGridTextColumn_Error(object sender, ValidationErrorEventArgs e)
+        {
+
+        }
+
+        private void RulesList_InitializingNewItem(object sender, InitializingNewItemEventArgs e)
+        {
+            ((RuleView)e.NewItem).Index = 20;
         }
     }
 }

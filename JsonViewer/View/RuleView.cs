@@ -13,6 +13,12 @@
     public class RuleView : NotifyPropertyChanged
     {
         private ConfigRule _rule;
+        private bool _isDirty = false;
+
+        public RuleView()
+        {
+            _rule = new ConfigRule();
+        }
 
         internal RuleView(ConfigRule rule, int index)
         {
@@ -20,75 +26,119 @@
             this.Index = index;
         }
 
-        public int Index { get; private set; }
+        public int Index { get; set; }
 
-        public string KeyMatchString
+        public string MatchString
         {
-            get
+            get => _rule.String;
+            set
             {
-                return DescribeMatch("Key ", _rule.ExactKeys, _rule.PartialKeys);
+                _rule.String = value;
+                this.SetValue(ref _isDirty, true, "IsDirty");
             }
         }
 
-        public string ValueTypeMatchString
+        public MatchTypeEnum MatchType
         {
-            get
+            get => _rule.MatchType;
+            set
             {
-                return DescribeMatch("Value type ", _rule.ExactValueTypes, _rule.PartialValueTypes);
+                _rule.MatchType = value;
+                this.SetValue(ref _isDirty, true, "IsDirty");
             }
         }
 
-        public string ValueMatchString
+        public MatchFieldEnum MatchField
         {
-            get
+            get => _rule.MatchField;
+            set
             {
-                return DescribeMatch("Value ", _rule.ExactValues, _rule.PartialValues);
+                _rule.MatchField = value;
+                this.SetValue(ref _isDirty, true, "IsDirty");
             }
         }
 
-        public bool IgnoreCase { get => _rule.IgnoreCase; }
+        public bool IgnoreCase
+        {
+            get => _rule.IgnoreCase;
+            set
+            {
+                _rule.IgnoreCase = value;
+                this.SetValue(ref _isDirty, true, "IsDirty");
+            }
+        }
 
-        public bool AppliesToParents { get => _rule.AppliesToParents; }
+        public string FontSize
+        {
+            get => _rule.FontSize.ToString();
+            set
+            {
+                double? newValue = _rule.FontSize;
+                if (string.IsNullOrEmpty(value))
+                {
+                    newValue = null;
+                }
 
-        public double? ExpandChildren { get => _rule.ExpandChildren; }
+                if (double.TryParse(value, out double doubleTemp) && doubleTemp >= 4 && doubleTemp <= 48)
+                {
+                    newValue = doubleTemp;
+                }
+
+                if (newValue != _rule.FontSize)
+                {
+                    _rule.FontSize = newValue;
+                    this.FirePropertyChanged("FontSize");
+                    this.SetValue(ref _isDirty, true, "IsDirty");
+                }
+            }
+        }
+
+        public bool AppliesToParents
+        {
+            get => _rule.AppliesToParents;
+            set
+            {
+                _rule.AppliesToParents = value;
+                this.SetValue(ref _isDirty, true, "IsDirty");
+            }
+        }
+
+        public int? ExpandChildren
+        {
+            get => _rule.ExpandChildren;
+            set
+            {
+                _rule.ExpandChildren = value;
+                this.SetValue(ref _isDirty, true, "IsDirty");
+            }
+        }
 
         public string WarningMessage
         {
-            get
+            get => _rule.WarningMessage;
+            set
             {
-                return _rule.WarningMessage;
+                _rule.WarningMessage = value;
+                this.SetValue(ref _isDirty, true, "IsDirty");
             }
         }
 
-        public Brush Background
-        {
-            get
-            {
-                return _rule.BackgroundBrush ?? Config.This.DefaultBackgroundBrush;
-            }
-        }
+        public Brush Background { get => _rule.BackgroundBrush ?? Config.This.DefaultBackgroundBrush; }
 
-        public Brush Foreground
-        {
-            get
-            {
-                return _rule.ForegroundBrush ?? Config.This.DefaultForegroundBrush;
-            }
-        }
-
-        public string BackgroundString { get => _rule.BackgroundString ?? Config.This.DefaultBackgroundString; }
-
-        public string ForegroundString { get => _rule.ForegroundString ?? Config.This.DefaultForegroundString; }
+        public Brush Foreground { get => _rule.ForegroundBrush ?? Config.This.DefaultForegroundBrush; }
 
         public string ColorString
         {
             get
             {
-                return this.ForegroundString + " on " + this.BackgroundString;
+                if (string.IsNullOrEmpty(_rule.ForegroundString) && string.IsNullOrEmpty(_rule.BackgroundString))
+                {
+                    return string.Empty;
+                }
+
+                return (_rule.ForegroundString ?? "default") + " on " + (_rule.BackgroundString ?? "default");
             }
         }
-
-        public double FontSize { get => _rule.FontSize ?? Config.This.DefaultFontSize; }
 
         public static int GetIndex(string columnName)
         {
@@ -96,11 +146,11 @@
             {
                 case "Index":
                     return 0;
-                case "KeyMatchString":
+                case "MatchString":
                     return 1;
-                case "ValueTypeMatchString":
+                case "MatchType":
                     return 2;
-                case "ValueMatchString":
+                case "MatchField":
                     return 3;
                 case "IgnoreCase":
                     return 4;
@@ -108,10 +158,12 @@
                     return 5;
                 case "Color":
                     return 6;
-                case "ExpandChildren":
+                case "FontSize":
                     return 7;
-                case "WarningMessage":
+                case "ExpandChildren":
                     return 8;
+                case "WarningMessage":
+                    return 9;
                 default:
                     Debug.Fail("Unknown column name: " + columnName);
                     return -1;
