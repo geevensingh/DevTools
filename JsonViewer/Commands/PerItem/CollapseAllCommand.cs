@@ -11,6 +11,7 @@
 
         public override void Execute(object parameter)
         {
+            this.Data.Tree.SelectItem(this.Data);
             this.Data.Tree.CollapseSubtree(this.Data);
         }
 
