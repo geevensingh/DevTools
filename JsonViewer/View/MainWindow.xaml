@@ -209,8 +209,7 @@
                 AutoWordSelection="True"
                 HorizontalScrollBarVisibility="Auto"
                 TextChanged="Raw_TextBox_TextChanged"
-                VerticalScrollBarVisibility="Auto"
-                Visibility="Collapsed">
+                VerticalScrollBarVisibility="Auto">
                 <TextBox.Style>
                     <Style xmlns:sys="clr-namespace:System;assembly=mscorlib" TargetType="TextBox">
                         <Style.Resources>
