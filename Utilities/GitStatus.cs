@@ -184,11 +184,13 @@ namespace Utilities
         {
             get
             {
-                List<string> strings = new List<string>();
-                strings.Add("[");
-                strings.Add("+" + StagedAdded);
-                strings.Add("~" + StagedModified);
-                strings.Add("-" + StagedDeleted);
+                List<string> strings = new List<string>
+                {
+                    "[",
+                    "+" + StagedAdded,
+                    "~" + StagedModified,
+                    "-" + StagedDeleted
+                };
                 if (StagedCritical > 0)
                 {
                     strings.Add("#" + StagedCritical);
@@ -219,10 +221,12 @@ namespace Utilities
                 List<string> strings = new List<string>();
                 if (Staged != 0)
                 {
-                    List<string> subStrings = new List<string>();
-                    subStrings.Add("+" + StagedAdded);
-                    subStrings.Add("~" + StagedModified);
-                    subStrings.Add("-" + StagedDeleted);
+                    List<string> subStrings = new List<string>
+                    {
+                        "+" + StagedAdded,
+                        "~" + StagedModified,
+                        "-" + StagedDeleted
+                    };
                     if (StagedCritical > 0)
                     {
                         subStrings.Add("#" + StagedCritical);
@@ -231,10 +235,12 @@ namespace Utilities
                 }
                 if (Unstaged != 0)
                 {
-                    List<string> subStrings = new List<string>();
-                    subStrings.Add("+" + UnstagedAdded);
-                    subStrings.Add("~" + UnstagedModified);
-                    subStrings.Add("-" + UnstagedDeleted);
+                    List<string> subStrings = new List<string>
+                    {
+                        "+" + UnstagedAdded,
+                        "~" + UnstagedModified,
+                        "-" + UnstagedDeleted
+                    };
                     if (UnstagedCritical > 0)
                     {
                         subStrings.Add("#" + UnstagedCritical);
