@@ -31,7 +31,7 @@
     <PublisherName>Geeven Singh</PublisherName>
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>publish.htm</WebPage>
-    <ApplicationRevision>32</ApplicationRevision>
+    <ApplicationRevision>36</ApplicationRevision>
     <ApplicationVersion>1.1.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
@@ -221,6 +221,7 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <None Include="Examples Json\616Events.json" />
+    <None Include="Examples Json\NestedEvents.json" />
     <None Include="Examples Json\TestHeader.json" />
     <None Include="Examples Json\Unpretty.json" />
     <None Include="Examples Json\VeryLargeTest.json" />

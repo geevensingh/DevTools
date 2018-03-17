@@ -148,21 +148,26 @@
                 this.Raw_TextBox.Visibility = Visibility.Collapsed;
                 this.Tree.Visibility = Visibility.Collapsed;
                 this.RulesList.Visibility = Visibility.Collapsed;
+                Control newControl = null;
                 switch (newMode)
                 {
                     case DisplayMode.RawText:
-                        this.Raw_TextBox.Visibility = Visibility.Visible;
+                        newControl = this.Raw_TextBox;
                         break;
                     case DisplayMode.TreeView:
-                        this.Tree.Visibility = Visibility.Visible;
+                        newControl = this.Tree;
                         break;
                     case DisplayMode.Rules:
-                        this.RulesList.Visibility = Visibility.Visible;
+                        newControl = this.RulesList;
                         break;
                     default:
                         Debug.Assert(false);
                         break;
                 }
+
+                Debug.Assert(newControl != null);
+                newControl.Visibility = Visibility.Visible;
+                newControl.Focus();
 
                 this.Mode = newMode;
                 NotifyPropertyChanged.FirePropertyChanged("Mode", this, this.PropertyChanged);

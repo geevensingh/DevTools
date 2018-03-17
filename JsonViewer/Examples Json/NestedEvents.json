@@ -1,0 +1,166 @@
+﻿{
+  "format": "PurchaseRecord.8",
+  "partitionKey": "9123998745541583996",
+  "rowKey": "06c168d5-cb3e-45d0-88d2-68e3aa621816",
+  "rawData": {
+    "id": "fKQdn4T0nn7VaMEGPsvQRYjSaOOqYhgW1",
+    "events": [
+      {
+        "request": {
+          "externalReference": {
+            "id": "2c0fcf94-1cd2-42ea-a96a-617579b21e12",
+            "url": "https://reservations-internal.azure.net/internal/reservationorders/2c0fcf94-1cd2-42ea-a96a-617579b21e12?api-version=2017-11-01"
+          },
+          "purchaseOrderNumber": "2c0fcf94-1cd2-42ea-a96a-617579b21e12",
+          "soldToIpAddress": "****",
+          "client": {
+            "marketplaceCountry": "LB"
+          },
+          "payment": {
+            "isRecurring": true
+          },
+          "sessionId": "2c0fcf94-1cd2-42ea-a96a-617579b21e12",
+          "quoteId": "496f8da0f0da",
+          "riskToken": "MjA7RbrVneQ9P_PBv0A90PSn5YWONN0ORaJ5yGErA1PhQLyE7EmpWL8I152gMCe6F-Roumpkyxx4f_MS6oqegGKMvY4LJsgkG8jd5RQipvZ8J8XByWGXkQ-EIRZbngviS4sa8J3jZ95niDm3EXB_AQsJ"
+        },
+        "purchaser": {
+          "accountId": "pcn:A8912B76",
+          "profileId": "4cc52fed-842b-597c-e814-f28393b9ce94",
+          "projectUrl": "/projects/ac7171f1-e274-4009-ab26-64214040f739",
+          "pricingScopeUrl": "/pricingscopes/64898557-d908-4eca-a345-802b4d1b2b2a"
+        },
+        "billingGroup": {
+          "customerId": "5203c748-9679-4bba-b35f-da2f2eac87c5",
+          "id": "13d2b9db-2bfc-4471-a4ae-e9f125a68e47",
+          "isOnline": false
+        },
+        "soldToAddressId": {
+          "accountId": "pcn:A8912B76",
+          "id": "5cb0bb19-bb73-56cf-e54d-e3a549ade2b0"
+        },
+        "lineItems": [
+          {
+            "id": {
+              "id": "423c4b67-a23d-4b5b-87cd-9143bf2b01dd",
+              "low": 0,
+              "high": 0
+            },
+            "externalReference": {
+              "id": "2c0fcf94-1cd2-42ea-a96a-617579b21e12",
+              "url": "https://reservations-internal.azure.net/internal/reservationorders/2c0fcf94-1cd2-42ea-a96a-617579b21e12?api-version=2017-11-01"
+            },
+            "availabilityUrl": "bigCat/DZH318Z0BQ4K/00BJ/DZH318Z096PM?market=LB&languages=en&catalogId=4",
+            "pricingUrl": "bigCat?market=LB&languages=en&catalogId=4",
+            "unitPrice": 501.0
+          }
+        ],
+        "selfUrl": "/purchase-records/fKQdn4T0nn7VaMEGPsvQRYjSaOOqYhgW1",
+        "partitionKey": "9123998745541583996",
+        "currency": "USD",
+        "commitmentAction": {
+          "sessionId": "2c0fcf94-1cd2-42ea-a96a-617579b21e12",
+          "captureId": "b1b8467d-2790-434e-9ae1-026c9f95a02a",
+          "captureSelfUrl": "95a36568-d02d-4dd3-ae83-ab4f7189975a/captures/b1b8467d-2790-434e-9ae1-026c9f95a02a",
+          "billingCaptureDetails": {
+            "state": "success"
+          },
+          "updateCaptureResultTrackingId": "00000000-0000-0000-0000-000000000000",
+          "billingGroupInstruction": {
+            "customerId": "5203c748-9679-4bba-b35f-da2f2eac87c5",
+            "id": "13d2b9db-2bfc-4471-a4ae-e9f125a68e47",
+            "isOnline": false
+          },
+          "paymentContext": {
+            "isRecurring": true
+          },
+          "soldToIpAddress": "193.227.178.211",
+          "riskToken": "MjA7RbrVneQ9P_PBv0A90PSn5YWONN0ORaJ5yGErA1PhQLyE7EmpWL8I152gMCe6F-Roumpkyxx4f_MS6oqegGKMvY4LJsgkG8jd5RQipvZ8J8XByWGXkQ-EIRZbngviS4sa8J3jZ95niDm3EXB_AQsJ",
+          "type": "capture",
+          "state": "successful",
+          "trackingId": "5bf86a65-ac8f-4770-97ca-d1604025f895",
+          "jarvisCustomerId": "95a36568-d02d-4dd3-ae83-ab4f7189975a",
+          "billingRecordId": "acff372f-b7c6-4f85-980f-b955d041a28b"
+        },
+        "fulfillAction": {
+          "state": "successful",
+          "createTrackingId": "abfa3b07-6210-4a25-b982-43d0b51199c0",
+          "fulfillTrackingId": "761f88d0-5659-4aaa-b249-719d3b12362d",
+          "purchaseRecordId": "fKQdn4T0nn7VaMEGPsvQRYjSaOOqYhgW1",
+          "purchaseRecordUrl": "/purchase-records/fKQdn4T0nn7VaMEGPsvQRYjSaOOqYhgW1",
+          "language": "en",
+          "market": "LB",
+          "catalogId": "4",
+          "purchaserProjectId": "ac7171f1-e274-4009-ab26-64214040f739",
+          "lineItems": [
+            {
+              "id": {
+                "id": "423c4b67-a23d-4b5b-87cd-9143bf2b01dd",
+                "low": 0,
+                "high": 0
+              },
+              "recipientProjectId": "ac7171f1-e274-4009-ab26-64214040f739",
+              "productId": "DZH318Z0BQ4K",
+              "skuId": "00BJ",
+              "availabilityId": "DZH318Z096PM",
+              "sessionId": "2c0fcf94-1cd2-42ea-a96a-617579b21e12",
+              "purchaserAccountId": "95a36568-d02d-4dd3-ae83-ab4f7189975a",
+              "balanceId": "4d426551-80fd-4827-bff2-10f06566aad8"
+            }
+          ],
+          "pollingAttemptCount": 2,
+          "pollingStartTime": "2018-01-18T07:27:34.2298195Z",
+          "fulfillmentRecordUrl": "/identities/prj:ac7171f1-e274-4009-ab26-64214040f739/fulfillments/abfa3b07-6210-4a25-b982-43d0b51199c0",
+          "fulfillmentRecordId": "abfa3b07-6210-4a25-b982-43d0b51199c0"
+        },
+        "billingTotal": 501.0,
+        "location": "https://purchase.cp.microsoft.com/purchase-records/fKQdn4T0nn7VaMEGPsvQRYjSaOOqYhgW1",
+        "eventType": "creationStarted",
+        "timestamp": "2018-01-18T07:33:13.2559413Z",
+        "id": "29f31de1-56b4-4812-ac54-08cfe6d5724b",
+        "versionAdded": 1
+      },
+      {
+        "billingRecordId": "acff372f-b7c6-4f85-980f-b955d041a28b",
+        "url": "/95a36568-d02d-4dd3-ae83-ab4f7189975a/billing-records/acff372f-b7c6-4f85-980f-b955d041a28b",
+        "triggeringEventId": "29f31de1-56b4-4812-ac54-08cfe6d5724b",
+        "eventType": "billingRecordCreated",
+        "timestamp": "2018-01-18T07:33:13.2559413Z",
+        "id": "fe76861c-5daf-4ca5-a9ef-e5fe2a94ef56",
+        "versionAdded": 1
+      },
+      {
+        "captureId": "b1b8467d-2790-434e-9ae1-026c9f95a02a",
+        "url": "95a36568-d02d-4dd3-ae83-ab4f7189975a/captures/b1b8467d-2790-434e-9ae1-026c9f95a02a",
+        "triggeringEventId": "29f31de1-56b4-4812-ac54-08cfe6d5724b",
+        "eventType": "billingCaptureCreated",
+        "timestamp": "2018-01-18T07:33:13.2559413Z",
+        "id": "5ce3e9c5-10fa-4a84-81af-374778595d2b",
+        "versionAdded": 1
+      },
+      {
+        "fulfillmentRecordId": "abfa3b07-6210-4a25-b982-43d0b51199c0",
+        "url": "/identities/prj:ac7171f1-e274-4009-ab26-64214040f739/fulfillments/abfa3b07-6210-4a25-b982-43d0b51199c0",
+        "triggeringEventId": "29f31de1-56b4-4812-ac54-08cfe6d5724b",
+        "eventType": "fulfillmentRecordCreated",
+        "timestamp": "2018-01-18T07:33:13.2559413Z",
+        "id": "0e3faed2-e6ea-4c81-8c14-4c2752e03b45",
+        "versionAdded": 1
+      },
+      {
+        "startedEventId": "29f31de1-56b4-4812-ac54-08cfe6d5724b",
+        "result": "Success",
+        "billingTotal": 501.0,
+        "eventType": "creationCompleted",
+        "timestamp": "2018-01-18T07:33:13.2559413Z",
+        "id": "d34245b5-cb1a-46ca-9260-fee6dd2594f0",
+        "versionAdded": 1
+      }
+    ],
+    "producerId": "AzureCommercialExperience",
+    "billingCaptureDetailsById": {
+      "b1b8467d-2790-434e-9ae1-026c9f95a02a": {
+        "state": "success"
+      }
+    }
+  }
+}

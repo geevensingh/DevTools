@@ -72,6 +72,7 @@
                         int? depth = jsonObj.Rules.Max(x => x.ExpandChildren);
                         if (depth.HasValue)
                         {
+                            tree.ExpandToItem(jsonObj.ViewObject);
                             tree.ExpandSubtree(jsonObj.ViewObject, depth.Value);
                         }
                         if (!await action.YieldAndContinue(actionId))
