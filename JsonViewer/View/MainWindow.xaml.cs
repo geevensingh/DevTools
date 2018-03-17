@@ -27,7 +27,7 @@
         private WarningBannerActionHandler _warningBannerAction;
         private WarningBannerActionHandler _warningBannerDismiss;
         private string _lastText = string.Empty;
-        private ObservableCollection<RuleView> _rules;
+        private RuleSet _ruleSet = new RuleSet();
 
         public MainWindow()
         {
@@ -51,7 +51,7 @@
 
         public Finder Finder { get => _finder; }
 
-        public ObservableCollection<RuleView> Rules { get => _rules; set => _rules = value; }
+        public RuleSet RuleSet { get => _ruleSet; }
 
         internal RootObject RootObject { get => _rootObject; }
 
@@ -78,7 +78,7 @@
 
             if (succeeded)
             {
-                this.UpdateRules();
+                _ruleSet.Refresh();
                 this.ReloadAsync().Forget();
             }
             else
@@ -189,7 +189,7 @@
 
             this.Toolbar.PropertyChanged += OnToolbarPropertyChanged;
 
-            this.UpdateRules();
+            _ruleSet.Refresh();
 
             WindowPlacementSerializer.SetPlacement(this, Properties.Settings.Default.MainWindowPlacement, _initialOffset);
             if (_initialOffset.HasValue)
@@ -257,11 +257,6 @@
             }
         }
 
-        private void UpdateRules()
-        {
-            NotifyPropertyChanged.SetValue(ref _rules, RuleViewFactory.CreateCollection(), "Rules", this, this.PropertyChanged);
-        }
-
         private void OnRootObjectPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             switch (e.PropertyName)
@@ -315,6 +310,7 @@
                 case "ConfigPath":
                     this.SetWarningMessage(
                         "Your default config file has changed.  Would you like to reload?",
+                        null,
                         () =>
                         {
                             this.Toolbar.ReloadCommand.Execute(null);
@@ -339,6 +335,7 @@
             {
                 this.SetWarningMessage(
                     "Currently using the default configuration.  Do you want to pick a better configuration?",
+                    null,
                     () =>
                     {
                         this.Toolbar.PickConfigCommand.Execute(null);
@@ -357,9 +354,11 @@
                 IEnumerable<string> warnings = warningRules?.Select(x => x.WarningMessage);
                 if (warnings != null && warnings.Count() > 0)
                 {
+                    double? fontSize = warningRules.Max((rule) => rule.FontSize);
                     string warningMessage = string.Join("\r\n", warnings);
                     this.SetWarningMessage(
                         warningMessage,
+                        fontSize,
                         null,
                         () =>
                         {
@@ -380,11 +379,17 @@
             this._warningBannerDismiss = null;
         }
 
-        private void SetWarningMessage(string message, WarningBannerActionHandler onAction, WarningBannerActionHandler onDismiss)
+        private void SetWarningMessage(string message, double? fontSize, WarningBannerActionHandler onAction, WarningBannerActionHandler onDismiss)
         {
             Debug.Assert(!string.IsNullOrEmpty(message));
 
+            if (!fontSize.HasValue)
+            {
+                fontSize = Config.This.DefaultFontSize;
+            }
+
             this.WarningBanner.Visibility = Visibility.Visible;
+            this.WarningBannerActionLink.FontSize = fontSize.Value * 1.5;
             this.WarningBannerActionLink.Inlines.Clear();
             this.WarningBannerActionLink.Inlines.Add(new System.Windows.Documents.Run(message));
             this._warningBannerAction = onAction;
@@ -405,7 +410,19 @@
 
         private void RulesList_InitializingNewItem(object sender, InitializingNewItemEventArgs e)
         {
-            //((RuleView)e.NewItem).Index = 20;
+            _ruleSet.AddNewRule(e);
+        }
+
+        private bool _isEditCommitting = false;
+        private void RulesList_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
+        {
+            string columnHeader = e.Column.Header as string;
+            if (!_isEditCommitting && (columnHeader == "Color" || columnHeader == "Font size"))
+            {
+                _isEditCommitting = true;
+                ((DataGrid)sender).CommitEdit(DataGridEditingUnit.Row, true);
+                _isEditCommitting = false;
+            }
         }
     }
 }

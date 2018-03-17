@@ -145,6 +145,7 @@
     <Compile Include="Model\FindRule.cs" />
     <Compile Include="Model\ConfigRule.cs" />
     <Compile Include="Model\IRule.cs" />
+    <Compile Include="Model\RuleSet.cs" />
     <Compile Include="Model\SimilarHighlighter.cs" />
     <Compile Include="View\FindMatchNavigator.cs" />
     <Compile Include="View\MainWindowToolbar.xaml.cs">

@@ -244,9 +244,10 @@
                 CanUserDeleteRows="True"
                 CanUserReorderColumns="False"
                 InitializingNewItem="RulesList_InitializingNewItem"
-                ItemsSource="{Binding Path=Rules, Mode=TwoWay}"
+                ItemsSource="{Binding Path=RuleSet.Rules, Mode=TwoWay}"
                 SelectionMode="Single"
-                SelectionUnit="FullRow">
+                CellEditEnding="RulesList_CellEditEnding"
+                SelectionUnit="Cell">
                 <DataGrid.Columns>
                     <DataGridTextColumn
                         Binding="{Binding Path=Index}"

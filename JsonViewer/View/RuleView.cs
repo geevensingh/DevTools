@@ -14,21 +14,40 @@
     {
         private ConfigRule _rule;
         private bool _isDirty = false;
+        private int _index = -1;
 
         public RuleView()
         {
             _rule = new ConfigRule();
         }
 
-        internal RuleView(ConfigRule rule, int index)
+        internal RuleView(ConfigRule rule, int index, RuleSet ruleSet)
         {
             _rule = rule;
-            this.Index = index;
+            this.UpdateIndex(index);
+            this.RuleSet = ruleSet;
         }
 
         public ConfigRule Rule { get => _rule; }
 
-        public int Index { get; set; }
+        public int Index
+        {
+            get => _index;
+            set
+            {
+                if (_index != value)
+                {
+                    this.RuleSet.SetIndex(this, value);
+                    _index = value;
+                    this.FirePropertyChanged("Index");
+                }
+            }
+        }
+
+        internal void UpdateIndex(int newIndex)
+        {
+            _index = newIndex;
+        }
 
         public bool IsDirty { get => _isDirty; }
 
@@ -159,7 +178,7 @@
                 if (_rule.ForegroundString?.ToLower() != valueName?.ToLower())
                 {
                     _rule.ForegroundString = value.GetName();
-                    this.FirePropertyChanged(new string[] { "Foreground", "ColorString" });
+                    this.FirePropertyChanged(new string[] { "Foreground", "ForegroundBrush", "ColorString" });
                     this.SetValue(ref _isDirty, true, "IsDirty");
                 }
             }
@@ -179,7 +198,7 @@
                 if (_rule.BackgroundString?.ToLower() != valueName?.ToLower())
                 {
                     _rule.BackgroundString = valueName;
-                    this.FirePropertyChanged(new string[] { "Background", "ColorString" });
+                    this.FirePropertyChanged(new string[] { "Background", "BackgroundBrush", "ColorString" });
                     this.SetValue(ref _isDirty, true, "IsDirty");
                 }
             }
@@ -197,6 +216,8 @@
                 return (_rule.ForegroundString ?? "default") + " on " + (_rule.BackgroundString ?? "default");
             }
         }
+
+        public RuleSet RuleSet { get; internal set; }
 
         public static int GetIndex(string columnName)
         {
