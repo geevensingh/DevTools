@@ -166,16 +166,18 @@
 
                 List<string> exceptionMessages = new List<string>();
 
-                JsonSerializerSettings jsonSerializerSettings = new JsonSerializerSettings();
-                jsonSerializerSettings.Error = new EventHandler<Newtonsoft.Json.Serialization.ErrorEventArgs>(
+                JsonSerializerSettings jsonSerializerSettings = new JsonSerializerSettings
+                {
+                    Error = new EventHandler<Newtonsoft.Json.Serialization.ErrorEventArgs>(
                     (obj, args) =>
                     {
                         exceptionMessages.Add(args.ErrorContext.Error.ToString());
                         args.ErrorContext.Handled = true;
-                    });
-                jsonSerializerSettings.CheckAdditionalContent = true;
-                jsonSerializerSettings.MaxDepth = 100;
-                jsonSerializerSettings.MissingMemberHandling = MissingMemberHandling.Error;
+                    }),
+                    CheckAdditionalContent = true,
+                    MaxDepth = 100,
+                    MissingMemberHandling = MissingMemberHandling.Error
+                };
 
                 string errorMessage = string.Empty;
                 try

@@ -142,7 +142,6 @@
     <Compile Include="Commands\SwitchModeCommand.cs" />
     <Compile Include="Commands\ToggleCommand.cs" />
     <Compile Include="Model\ClipboardManager.cs" />
-    <Compile Include="Model\ConfigRuleFactory.cs" />
     <Compile Include="Model\ConfigRuleMatcher.cs" />
     <Compile Include="Model\DeserializeResult.cs" />
     <Compile Include="Model\FindRule.cs" />

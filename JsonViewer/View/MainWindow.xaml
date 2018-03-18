@@ -170,7 +170,6 @@
             DataContext="{Binding ElementName=mainWindow}"
             DockPanel.Dock="Top" />
         <TextBlock
-            x:Name="UnsavedRulesBanner"
             Margin="5"
             Background="Yellow"
             DataContext="{Binding Path=RuleSet}"
