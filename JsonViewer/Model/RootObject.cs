@@ -56,6 +56,11 @@
             Debug.Assert(_viewChildren.Count == 0 || _viewChildren[0].Tree == tree);
             tree.ItemsSource = _viewChildren;
 
+            this.ApplyExpandRule(tree);
+        }
+
+        internal void ApplyExpandRule(CustomTreeView tree)
+        {
             if (_expandByRules == null)
             {
                 _expandByRules = new SingularAction(tree.Dispatcher);

@@ -421,6 +421,9 @@
         private void SaveRuleChanges_Click(object sender, RoutedEventArgs e)
         {
             this.RuleSet.Save();
+            this.RootObject?.FlushRules();
+            this.RootObject?.ApplyExpandRule(this.Tree);
+            this.UpdateWarnings();
         }
 
         private void DiscardRuleChanges_Click(object sender, RoutedEventArgs e)

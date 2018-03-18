@@ -21,12 +21,12 @@
 
         internal RuleView(ConfigRule rule, int index, RuleSet ruleSet)
         {
-            _rule = rule;
+            _rule = rule.Clone();
             this.UpdateIndex(index);
             this.RuleSet = ruleSet;
         }
 
-        public ConfigRule Rule { get => _rule; }
+        public ConfigRule Rule { get => _rule.Clone(); }
 
         public int Index
         {

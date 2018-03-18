@@ -236,21 +236,44 @@
                 </ObjectDataProvider>
                 <DataTemplate x:Key="ColorCellTemplate">
                     <TextBlock
+                        Margin="5,2"
                         Background="{Binding Path=BackgroundBrush}"
                         FontSize="{Binding Path=FontSize}"
                         Foreground="{Binding Path=ForegroundBrush}"
                         Text="{Binding Path=ColorString}" />
                 </DataTemplate>
                 <DataTemplate x:Key="ColorCellEditingTemplate">
-                    <StackPanel Orientation="Horizontal">
+                    <StackPanel Margin="5,2" Orientation="Horizontal">
                         <xctk:ColorPicker DisplayColorAndName="True" SelectedColor="{Binding Path=ForegroundColor}" />
                         <TextBlock Margin="5,0">on</TextBlock>
                         <xctk:ColorPicker DisplayColorAndName="True" SelectedColor="{Binding Path=BackgroundColor}" />
                     </StackPanel>
                 </DataTemplate>
+                <Style x:Key="TextBlockCellStyle" TargetType="{x:Type TextBlock}">
+                    <Setter Property="Margin" Value="5,2" />
+                </Style>
+                <Style x:Key="CheckBoxCellStyle" TargetType="{x:Type CheckBox}">
+                    <Setter Property="Margin" Value="5,2" />
+                </Style>
+                <Style x:Key="ComboBoxCellStyle" TargetType="{x:Type ComboBox}">
+                    <Setter Property="Margin" Value="5,2" />
+                </Style>
+                <Style TargetType="{x:Type DataGridCell}">
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="{x:Type DataGridCell}">
+                                <Grid Background="{TemplateBinding Background}">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Grid>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
             </Grid.Resources>
             <DataGrid
                 x:Name="RulesList"
+                HorizontalContentAlignment="Center"
+                VerticalContentAlignment="Center"
                 AutoGenerateColumns="False"
                 CanUserAddRows="True"
                 CanUserDeleteRows="True"
@@ -258,38 +281,63 @@
                 CanUserResizeRows="False"
                 CanUserSortColumns="True"
                 CellEditEnding="RulesList_CellEditEnding"
+                FontSize="14"
                 ItemsSource="{Binding Path=RuleSet.Rules, Mode=TwoWay}"
                 SelectionMode="Single"
                 SelectionUnit="FullRow"
                 Visibility="Collapsed">
                 <DataGrid.Columns>
-                    <DataGridTextColumn Binding="{Binding Path=Index}" Header="Order" />
+                    <DataGridTextColumn
+                        Binding="{Binding Path=Index}"
+                        ElementStyle="{StaticResource TextBlockCellStyle}"
+                        Header="Order" />
                     <!--  how matches are made  -->
-                    <DataGridTextColumn Binding="{Binding Path=MatchString}" Header="Match string" />
+                    <DataGridTextColumn
+                        Binding="{Binding Path=MatchString}"
+                        ElementStyle="{StaticResource TextBlockCellStyle}"
+                        Header="Match string" />
                     <DataGridComboBoxColumn
+                        ElementStyle="{StaticResource ComboBoxCellStyle}"
                         Header="Match type"
                         ItemsSource="{Binding Source={StaticResource odpMatchType}}"
                         SelectedItemBinding="{Binding Path=MatchType}" />
                     <DataGridComboBoxColumn
+                        ElementStyle="{StaticResource ComboBoxCellStyle}"
                         Header="Match field"
                         ItemsSource="{Binding Source={StaticResource odpMatchField}}"
                         SelectedItemBinding="{Binding Path=MatchField}" />
-                    <DataGridCheckBoxColumn Binding="{Binding Path=IgnoreCase}" Header="Ignore Case" />
-                    <DataGridCheckBoxColumn Binding="{Binding Path=AppliesToParents}" Header="Applies to parents" />
+                    <DataGridCheckBoxColumn
+                        Binding="{Binding Path=IgnoreCase}"
+                        ElementStyle="{StaticResource CheckBoxCellStyle}"
+                        Header="Ignore Case" />
+                    <DataGridCheckBoxColumn
+                        Binding="{Binding Path=AppliesToParents}"
+                        ElementStyle="{StaticResource CheckBoxCellStyle}"
+                        Header="Applies to parents" />
 
                     <!--  what happens when a match is made  -->
                     <DataGridTemplateColumn
                         CellEditingTemplate="{StaticResource ColorCellEditingTemplate}"
                         CellTemplate="{StaticResource ColorCellTemplate}"
                         Header="Color" />
-                    <DataGridTextColumn Binding="{Binding Path=FontSize}" Header="Font size" />
-                    <DataGridTextColumn Binding="{Binding Path=ExpandChildren}" Header="Expand children" />
-                    <DataGridTextColumn Binding="{Binding Path=WarningMessage}" Header="Warning message" />
+                    <DataGridTextColumn
+                        Binding="{Binding Path=FontSize}"
+                        ElementStyle="{StaticResource TextBlockCellStyle}"
+                        Header="Font size" />
+                    <DataGridTextColumn
+                        Binding="{Binding Path=ExpandChildren}"
+                        ElementStyle="{StaticResource TextBlockCellStyle}"
+                        Header="Expand children" />
+                    <DataGridTextColumn
+                        Binding="{Binding Path=WarningMessage}"
+                        ElementStyle="{StaticResource TextBlockCellStyle}"
+                        Header="Warning message" />
 
-                    <DataGridCheckBoxColumn
+                    <!--<DataGridCheckBoxColumn
                         Binding="{Binding Path=IsDirty, Mode=OneWay}"
                         Header="Has changed"
-                        IsReadOnly="True" />
+                        ElementStyle="{StaticResource CheckBoxCellStyle}"
+                        IsReadOnly="True" />-->
                 </DataGrid.Columns>
             </DataGrid>
             <TextBox

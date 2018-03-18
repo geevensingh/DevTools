@@ -200,7 +200,6 @@
             FindRule newRule = null;
             List<JsonObject> hits = new List<JsonObject>();
             List<JsonObject> misses = new List<JsonObject>();
-            bool newHit = false;
 
             if (_rootObject != null && !string.IsNullOrEmpty(_text))
             {
@@ -219,18 +218,10 @@
                     if (matches)
                     {
                         hits.Add(obj);
-                        if (!newHit && !_hits.Contains(obj))
-                        {
-                            newHit = true;
-                        }
                     }
                     else
                     {
                         misses.Add(obj);
-                        if (!newHit && _hits.Contains(obj))
-                        {
-                            newHit = true;
-                        }
                     }
                 }
             }
@@ -239,10 +230,8 @@
                 misses = _rootObject.AllChildren;
             }
 
-            if (this.SetValue(ref _hitCount, hits.Count, "HitCount") || newHit)
-            {
-                this.SetValue(ref _hits, hits, "Hits");
-            }
+            this.SetValue(ref _hitCount, hits.Count, "HitCount");
+            this.SetValueList(ref _hits, hits, "Hits");
 
             Func<Guid, SingularAction, Task<bool>> updateAction = new Func<Guid, SingularAction, Task<bool>>(async (actionId, action) =>
             {
