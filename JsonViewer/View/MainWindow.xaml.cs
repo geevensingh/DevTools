@@ -424,5 +424,15 @@
                 _isEditCommitting = false;
             }
         }
+
+        private void SaveRuleChanges_Click(object sender, RoutedEventArgs e)
+        {
+            this.RuleSet.Save();
+        }
+
+        private void DiscardRuleChanges_Click(object sender, RoutedEventArgs e)
+        {
+            this.RuleSet.Discard();
+        }
     }
 }

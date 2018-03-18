@@ -101,6 +101,7 @@
                     Text="{Binding Path=ValueType}" />
             </Grid>
         </HierarchicalDataTemplate>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibility" />
     </Window.Resources>
     <Window.CommandBindings>
         <CommandBinding Command="ApplicationCommands.Find" Executed="CommandBinding_Find" />
@@ -168,6 +169,18 @@
             x:Name="Toolbar"
             DataContext="{Binding ElementName=mainWindow}"
             DockPanel.Dock="Top" />
+        <TextBlock
+            x:Name="UnsavedRulesBanner"
+            Margin="5"
+            Background="Yellow"
+            DataContext="{Binding Path=RuleSet}"
+            DockPanel.Dock="Top"
+            Visibility="{Binding Path=IsDirty, Mode=OneWay, Converter={StaticResource BooleanToVisibility}}">
+            <Run>You have unsaved rule changes.</Run>
+            <Hyperlink Click="SaveRuleChanges_Click">Save them</Hyperlink>
+            <Run>|</Run>
+            <Hyperlink Click="DiscardRuleChanges_Click">Discard them</Hyperlink>
+        </TextBlock>
         <TextBlock
             x:Name="ErrorBanner"
             Margin="5"
@@ -243,11 +256,13 @@
                 CanUserAddRows="True"
                 CanUserDeleteRows="True"
                 CanUserReorderColumns="False"
+                CanUserResizeRows="False"
+                CanUserSortColumns="True"
+                CellEditEnding="RulesList_CellEditEnding"
                 InitializingNewItem="RulesList_InitializingNewItem"
                 ItemsSource="{Binding Path=RuleSet.Rules, Mode=TwoWay}"
                 SelectionMode="Single"
-                CellEditEnding="RulesList_CellEditEnding"
-                SelectionUnit="Cell">
+                SelectionUnit="FullRow">
                 <DataGrid.Columns>
                     <DataGridTextColumn
                         Binding="{Binding Path=Index}"

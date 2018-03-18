@@ -1,5 +1,6 @@
 ﻿namespace JsonViewer.Model
 {
+    using System;
     using System.Collections;
     using System.Collections.Generic;
     using System.Diagnostics;
@@ -79,7 +80,7 @@
                 _rawValues["treeViewFontSize"] = Converters.ToDouble(_rawValues["treeViewFontSize"]).Value;
             }
 
-            _rules = ConfigRuleFactory.GenerateRules((ArrayList)_rawValues["treeViewHighlights"]);
+            this.ReloadRules();
         }
 
         public bool IsDefault { get; private set; }
@@ -147,6 +148,11 @@
 
             Properties.Settings.Default.Save();
             return true;
+        }
+
+        internal void ReloadRules()
+        {
+            _rules = ConfigRuleFactory.GenerateRules((ArrayList)_rawValues["treeViewHighlights"]);
         }
 
         public Brush GetBrush(ConfigValue configValue)

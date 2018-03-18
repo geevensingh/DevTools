@@ -46,10 +46,14 @@
 
         internal void UpdateIndex(int newIndex)
         {
-            _index = newIndex;
+            this.SetValue(ref _index, newIndex, "Index");
         }
 
-        public bool IsDirty { get => _isDirty; }
+        public bool IsDirty
+        {
+            get => _isDirty;
+            set => this.SetValue(ref _isDirty, value, "IsDirty");
+        }
 
         public string MatchString
         {
@@ -102,9 +106,9 @@
                     newValue = null;
                 }
 
-                if (double.TryParse(value, out double doubleTemp) && doubleTemp >= 4 && doubleTemp <= 48)
+                if (double.TryParse(value, out double doubleTemp))
                 {
-                    newValue = doubleTemp;
+                    newValue = Math.Max(4, Math.Min(48, doubleTemp));
                 }
 
                 if (newValue != _rule.FontSize)
