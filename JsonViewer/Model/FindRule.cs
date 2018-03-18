@@ -23,7 +23,8 @@
                     String = text,
                     MatchField = matchField,
                     MatchType = matchType,
-                    IgnoreCase = ignoreCase
+                    IgnoreCase = ignoreCase,
+                    AppliesToParents = appliesToParents
                 });
             }
 
