@@ -2,7 +2,6 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.Collections.ObjectModel;
     using System.ComponentModel;
     using System.Diagnostics;
     using System.Linq;
@@ -13,7 +12,6 @@
     using JsonViewer.Commands;
     using JsonViewer.Commands.PerWindow;
     using JsonViewer.Model;
-    using JsonViewer.View;
     using Utilities;
 
     /// <summary>
@@ -28,6 +26,7 @@
         private WarningBannerActionHandler _warningBannerDismiss;
         private string _lastText = string.Empty;
         private RuleSet _ruleSet = new RuleSet();
+        private bool _isEditCommitting = false;
 
         public MainWindow()
         {
@@ -408,12 +407,6 @@
             this._warningBannerAction?.Invoke();
         }
 
-        private void RulesList_InitializingNewItem(object sender, InitializingNewItemEventArgs e)
-        {
-            _ruleSet.AddNewRule(e);
-        }
-
-        private bool _isEditCommitting = false;
         private void RulesList_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
         {
             string columnHeader = e.Column.Header as string;

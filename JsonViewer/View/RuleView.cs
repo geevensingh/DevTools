@@ -4,8 +4,6 @@
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
     using System.Windows.Media;
     using JsonViewer.Model;
     using Utilities;
@@ -37,16 +35,9 @@
             {
                 if (_index != value)
                 {
-                    this.RuleSet.SetIndex(this, value);
-                    _index = value;
-                    this.FirePropertyChanged("Index");
+                    this.UpdateIndex(this.RuleSet.SetIndex(this, value));
                 }
             }
-        }
-
-        internal void UpdateIndex(int newIndex)
-        {
-            this.SetValue(ref _index, newIndex, "Index");
         }
 
         public bool IsDirty
@@ -164,9 +155,9 @@
             }
         }
 
-        public Brush BackgroundBrush { get => _rule.BackgroundBrush ?? Config.This.DefaultBackgroundBrush; }
+        public Brush BackgroundBrush { get => _rule.BackgroundBrush ?? Config.This.GetBrush(ConfigValue.DefaultBackground); }
 
-        public Brush ForegroundBrush { get => _rule.ForegroundBrush ?? Config.This.DefaultForegroundBrush; }
+        public Brush ForegroundBrush { get => _rule.ForegroundBrush ?? Config.This.GetBrush(ConfigValue.DefaultForeground); }
 
         public Color ForegroundColor
         {
@@ -223,48 +214,9 @@
 
         public RuleSet RuleSet { get; internal set; }
 
-        public static int GetIndex(string columnName)
+        internal void UpdateIndex(int newIndex)
         {
-            switch (columnName)
-            {
-                case "Index":
-                    return 0;
-                case "MatchString":
-                    return 1;
-                case "MatchType":
-                    return 2;
-                case "MatchField":
-                    return 3;
-                case "IgnoreCase":
-                    return 4;
-                case "AppliesToParents":
-                    return 5;
-                case "Color":
-                    return 6;
-                case "FontSize":
-                    return 7;
-                case "ExpandChildren":
-                    return 8;
-                case "WarningMessage":
-                    return 9;
-                default:
-                    Debug.Fail("Unknown column name: " + columnName);
-                    return -1;
-            }
-        }
-
-        private static string DescribeMatch(string prefix, IList<string> exact, IList<string> partial)
-        {
-            List<string> list = new List<string>();
-            list.AddRange(exact.Select(x => "\"" + x + "\""));
-            list.AddRange(partial.Select(x => "\"*" + x + "*\""));
-
-            if (list.Count == 0)
-            {
-                return string.Empty;
-            }
-
-            return string.Join(" or ", list.ToArray());
+            this.SetValue(ref _index, newIndex, "Index");
         }
     }
 }

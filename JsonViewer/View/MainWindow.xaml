@@ -259,15 +259,12 @@
                 CanUserResizeRows="False"
                 CanUserSortColumns="True"
                 CellEditEnding="RulesList_CellEditEnding"
-                InitializingNewItem="RulesList_InitializingNewItem"
                 ItemsSource="{Binding Path=RuleSet.Rules, Mode=TwoWay}"
                 SelectionMode="Single"
-                SelectionUnit="FullRow">
+                SelectionUnit="FullRow"
+                Visibility="Collapsed">
                 <DataGrid.Columns>
-                    <DataGridTextColumn
-                        Binding="{Binding Path=Index}"
-                        Header="Order"
-                        IsReadOnly="True" />
+                    <DataGridTextColumn Binding="{Binding Path=Index}" Header="Order" />
                     <!--  how matches are made  -->
                     <DataGridTextColumn Binding="{Binding Path=MatchString}" Header="Match string" />
                     <DataGridComboBoxColumn

@@ -13,8 +13,8 @@
 
         internal FindRule(string text, bool ignoreCase, bool searchKeys, bool searchValues, bool searchValueTypes, bool appliesToParents, MatchTypeEnum matchType)
         {
-            _foregroundBrush = Config.This.GetBrush(matchType == MatchTypeEnum.Exact ? ConfigValue.TreeViewSimilarForeground : ConfigValue.TreeViewSearchResultForeground);
-            _backgroundBrush = Config.This.GetBrush(matchType == MatchTypeEnum.Exact ? ConfigValue.TreeViewSimilarBackground : ConfigValue.TreeViewSearchResultBackground);
+            _foregroundBrush = Config.This.GetBrush(matchType == MatchTypeEnum.Exact ? ConfigValue.SimilarNodeForeground : ConfigValue.SearchResultForeground);
+            _backgroundBrush = Config.This.GetBrush(matchType == MatchTypeEnum.Exact ? ConfigValue.SimilarNodeBackground : ConfigValue.SearchResultBackground);
 
             void AddRule(MatchFieldEnum matchField)
             {

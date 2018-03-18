@@ -2,6 +2,8 @@
 {
     using System.Diagnostics;
     using System.Windows.Media;
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Converters;
 
     public enum MatchTypeEnum
     {
@@ -16,6 +18,7 @@
         Value
     }
 
+    [JsonObject(MemberSerialization.OptIn)]
     public class ConfigRule : IRule
     {
         private ConfigRuleMatcher _matcher = null;
@@ -37,14 +40,21 @@
             IgnoreCase = false;
         }
 
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string String { get; set; }
 
+        [JsonProperty]
+        [JsonConverter(typeof(StringEnumConverter))]
         public MatchTypeEnum MatchType { get; set; }
 
+        [JsonProperty]
+        [JsonConverter(typeof(StringEnumConverter))]
         public MatchFieldEnum MatchField { get; set; }
 
+        [JsonProperty]
         public bool AppliesToParents { get; set; }
 
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string ForegroundString
         {
             get => _foregroundString;
@@ -55,6 +65,7 @@
             }
         }
 
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string BackgroundString
         {
             get => _backgroundString;
@@ -93,16 +104,20 @@
             }
         }
 
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public double? FontSize
         {
             get => _fontSize;
             set => _fontSize = value;
         }
 
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public int? ExpandChildren { get; set; }
 
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string WarningMessage { get; set; }
 
+        [JsonProperty]
         public bool IgnoreCase { get; set; }
 
         public bool Matches(JsonObject obj)

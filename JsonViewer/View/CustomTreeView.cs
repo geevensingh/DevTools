@@ -143,11 +143,9 @@
             base.OnInitialized(e);
 
             Config config = Config.This;
-            this.Foreground = config.GetBrush(ConfigValue.TreeViewForeground);
-            this.Resources[SystemColors.HighlightBrushKey] = config.GetBrush(ConfigValue.TreeViewSelectedBackground);
-            this.Resources[SystemColors.HighlightTextBrushKey] = config.GetBrush(ConfigValue.TreeViewSelectedForeground);
-            this.Resources[SystemColors.InactiveSelectionHighlightBrushKey] = config.GetBrush(ConfigValue.TreeViewInactiveSelectionHighlightBrushKey);
-            this.Resources[SystemColors.InactiveSelectionHighlightTextBrushKey] = config.GetBrush(ConfigValue.TreeViewInactiveSelectionHighlightTextBrushKey);
+            this.Foreground = config.GetBrush(ConfigValue.DefaultForeground);
+            this.Resources[SystemColors.HighlightBrushKey] = config.GetBrush(ConfigValue.SelectedBackground);
+            this.Resources[SystemColors.HighlightTextBrushKey] = config.GetBrush(ConfigValue.SelectedForeground);
         }
 
         protected override DependencyObject GetContainerForItemOverride()
