@@ -40,11 +40,6 @@
             IgnoreCase = false;
         }
 
-        public ConfigRule Clone()
-        {
-            return (ConfigRule)this.MemberwiseClone();
-        }
-
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string String { get; set; }
 
@@ -124,6 +119,11 @@
 
         [JsonProperty]
         public bool IgnoreCase { get; set; }
+
+        public ConfigRule Clone()
+        {
+            return (ConfigRule)this.MemberwiseClone();
+        }
 
         public bool Matches(JsonObject obj)
         {

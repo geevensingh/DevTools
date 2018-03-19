@@ -16,6 +16,9 @@
         private ObservableCollection<TreeViewData> _children = new ObservableCollection<TreeViewData>();
         private bool _isSelected = false;
         private bool _isChildSelected = false;
+        private bool _rulesChangeFontSize = false;
+        private bool _rulesChangeForeground = false;
+        private bool _rulesChangeBackground = false;
 
         internal TreeViewData(CustomTreeView tree, JsonObject jsonObject, IList<TreeViewData> children)
         {
@@ -172,10 +175,6 @@
         internal JsonObject JsonObject { get => _jsonObject; }
 
         internal CustomTreeView Tree { get => _tree; }
-
-        bool _rulesChangeFontSize = false;
-        bool _rulesChangeForeground = false;
-        bool _rulesChangeBackground = false;
 
         private void OnDataModelPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
