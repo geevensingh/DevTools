@@ -12,7 +12,6 @@
     using JsonViewer.Commands;
     using JsonViewer.Commands.PerWindow;
     using JsonViewer.Model;
-    using JsonViewer.View;
     using Utilities;
 
     /// <summary>
@@ -26,6 +25,8 @@
         private WarningBannerActionHandler _warningBannerAction;
         private WarningBannerActionHandler _warningBannerDismiss;
         private string _lastText = string.Empty;
+        private RuleSet _ruleSet = new RuleSet();
+        private bool _isEditCommitting = false;
 
         public MainWindow()
         {
@@ -41,12 +42,15 @@
         public enum DisplayMode
         {
             RawText,
-            TreeView
+            TreeView,
+            Rules
         }
 
         public DisplayMode Mode { get; private set; }
 
         public Finder Finder { get => _finder; }
+
+        public RuleSet RuleSet { get => _ruleSet; }
 
         internal RootObject RootObject { get => _rootObject; }
 
@@ -73,6 +77,7 @@
 
             if (succeeded)
             {
+                _ruleSet.Refresh();
                 this.ReloadAsync().Forget();
             }
             else
@@ -141,6 +146,7 @@
             {
                 this.Raw_TextBox.Visibility = Visibility.Collapsed;
                 this.Tree.Visibility = Visibility.Collapsed;
+                this.RulesList.Visibility = Visibility.Collapsed;
                 Control newControl = null;
                 switch (newMode)
                 {
@@ -149,6 +155,9 @@
                         break;
                     case DisplayMode.TreeView:
                         newControl = this.Tree;
+                        break;
+                    case DisplayMode.Rules:
+                        newControl = this.RulesList;
                         break;
                     default:
                         Debug.Assert(false);
@@ -178,6 +187,8 @@
             this.SimilarHighlighter = new SimilarHighlighter(this);
 
             this.Toolbar.PropertyChanged += OnToolbarPropertyChanged;
+
+            _ruleSet.Refresh();
 
             WindowPlacementSerializer.SetPlacement(this, Properties.Settings.Default.MainWindowPlacement, _initialOffset);
             if (_initialOffset.HasValue)
@@ -298,6 +309,7 @@
                 case "ConfigPath":
                     this.SetWarningMessage(
                         "Your default config file has changed.  Would you like to reload?",
+                        null,
                         () =>
                         {
                             this.Toolbar.ReloadCommand.Execute(null);
@@ -322,6 +334,7 @@
             {
                 this.SetWarningMessage(
                     "Currently using the default configuration.  Do you want to pick a better configuration?",
+                    null,
                     () =>
                     {
                         this.Toolbar.PickConfigCommand.Execute(null);
@@ -340,9 +353,11 @@
                 IEnumerable<string> warnings = warningRules?.Select(x => x.WarningMessage);
                 if (warnings != null && warnings.Count() > 0)
                 {
+                    double? fontSize = warningRules.Max((rule) => rule.FontSize);
                     string warningMessage = string.Join("\r\n", warnings);
                     this.SetWarningMessage(
                         warningMessage,
+                        fontSize,
                         null,
                         () =>
                         {
@@ -363,11 +378,17 @@
             this._warningBannerDismiss = null;
         }
 
-        private void SetWarningMessage(string message, WarningBannerActionHandler onAction, WarningBannerActionHandler onDismiss)
+        private void SetWarningMessage(string message, double? fontSize, WarningBannerActionHandler onAction, WarningBannerActionHandler onDismiss)
         {
             Debug.Assert(!string.IsNullOrEmpty(message));
 
+            if (!fontSize.HasValue)
+            {
+                fontSize = Config.This.DefaultFontSize;
+            }
+
             this.WarningBanner.Visibility = Visibility.Visible;
+            this.WarningBannerActionLink.FontSize = fontSize.Value * 1.5;
             this.WarningBannerActionLink.Inlines.Clear();
             this.WarningBannerActionLink.Inlines.Add(new System.Windows.Documents.Run(message));
             this._warningBannerAction = onAction;
@@ -384,6 +405,30 @@
         {
             Debug.Assert(this._warningBannerAction != null);
             this._warningBannerAction?.Invoke();
+        }
+
+        private void RulesList_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
+        {
+            string columnHeader = e.Column.Header as string;
+            if (!_isEditCommitting && (columnHeader == "Color" || columnHeader == "Font size"))
+            {
+                _isEditCommitting = true;
+                ((DataGrid)sender).CommitEdit(DataGridEditingUnit.Row, true);
+                _isEditCommitting = false;
+            }
+        }
+
+        private void SaveRuleChanges_Click(object sender, RoutedEventArgs e)
+        {
+            this.RuleSet.Save();
+            this.RootObject?.FlushRules();
+            this.RootObject?.ApplyExpandRule(this.Tree);
+            this.UpdateWarnings();
+        }
+
+        private void DiscardRuleChanges_Click(object sender, RoutedEventArgs e)
+        {
+            this.RuleSet.Discard();
         }
     }
 }

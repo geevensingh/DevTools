@@ -1,54 +1,153 @@
 ﻿{
-  "treeViewForeground": "#404040",
-  "treeViewBackground": "Transparent",
-  "treeViewSelectedForeground": "black",
-  "treeViewSelectedBackground": "lightblue",
-  "treeViewSelectedItemParentBackground": "lightgoldenrodyellow",
-  "treeViewFontSize": 12,
-  "treeViewSearchResultForeground": "blue",
-  "treeViewSearchResultBackground": "LightGreen",
-  "treeViewHighlights": [
+  "DefaultForeground": "#404040",
+  "DefaultBackground": "Transparent",
+  "DefaultFontSize": 12.0,
+  "SelectedForeground": "Black",
+  "SelectedBackground": "Yellow",
+  "SimilarNodeBackground": "LightBlue",
+  "SelectedParentBackground": "LightGoldenrodYellow",
+  "SearchResultForeground": "Blue",
+  "SearchResultBackground": "LightGreen",
+  "Rules": [
     {
-      "valueContains": [ "failure", "failed", "error" ],
-      "color": "red",
-      "fontSize": 16,
-      "appliesToParents": true
+      "String": "failure",
+      "MatchType": "Partial",
+      "MatchField": "Value",
+      "AppliesToParents": true,
+      "ForegroundString": "red",
+      "FontSize": 16.0,
+      "IgnoreCase": true
     },
     {
-      "valueContains": [ "success", "succeeded", "passed" ],
-      "color": "green",
-      "fontSize": 16,
-      "appliesToParents": true
+      "String": "failed",
+      "MatchType": "Partial",
+      "MatchField": "Value",
+      "AppliesToParents": true,
+      "ForegroundString": "red",
+      "FontSize": 16.0,
+      "IgnoreCase": true
     },
     {
-      "valueContains": [ "pending", "warning" ],
-      "color": "DarkOrange",
-      "appliesToParents": true
+      "String": "error",
+      "MatchType": "Partial",
+      "MatchField": "Value",
+      "AppliesToParents": true,
+      "ForegroundString": "red",
+      "FontSize": 16.0,
+      "IgnoreCase": true
     },
     {
-      "keyIs": [ "result", "results" ],
-      "color": "DarkRed",
-      "fontSize": 16
+      "String": "success",
+      "MatchType": "Partial",
+      "MatchField": "Value",
+      "AppliesToParents": true,
+      "ForegroundString": "green",
+      "FontSize": 16.0,
+      "IgnoreCase": true
     },
     {
-      "keyIs": [ "events" ],
-      "expandChildren": 2,
-      "ignoreCase": false
+      "String": "succeeded",
+      "MatchType": "Partial",
+      "MatchField": "Value",
+      "AppliesToParents": true,
+      "ForegroundString": "green",
+      "FontSize": 16.0,
+      "IgnoreCase": true
     },
     {
-      "keyContains": [ "account" ],
-      "keyIs": [ "expiration" ],
-      "color": "green"
+      "String": "passed",
+      "MatchType": "Partial",
+      "MatchField": "Value",
+      "AppliesToParents": true,
+      "ForegroundString": "green",
+      "FontSize": 16.0,
+      "IgnoreCase": true
     },
     {
-      "keyIs": [ "event_type", "state" ],
-      "color": "blue",
-      "fontSize": 16
+      "String": "pending",
+      "MatchType": "Partial",
+      "MatchField": "Value",
+      "AppliesToParents": true,
+      "ForegroundString": "DarkOrange",
+      "IgnoreCase": true
     },
     {
-      "keyIs": [ "test_header" ],
-      "warningMessage": "Warning: test_header key found!",
-      "ignoreCase": false
+      "String": "warning",
+      "MatchType": "Partial",
+      "MatchField": "Value",
+      "AppliesToParents": true,
+      "ForegroundString": "DarkOrange",
+      "IgnoreCase": true
+    },
+    {
+      "String": "result",
+      "MatchType": "Exact",
+      "MatchField": "Key",
+      "AppliesToParents": false,
+      "ForegroundString": "DarkRed",
+      "FontSize": 16.0,
+      "IgnoreCase": true
+    },
+    {
+      "String": "results",
+      "MatchType": "Exact",
+      "MatchField": "Key",
+      "AppliesToParents": false,
+      "ForegroundString": "DarkRed",
+      "FontSize": 16.0,
+      "IgnoreCase": true
+    },
+    {
+      "String": "events",
+      "MatchType": "Exact",
+      "MatchField": "Key",
+      "AppliesToParents": false,
+      "ExpandChildren": 2,
+      "IgnoreCase": false
+    },
+    {
+      "String": "expiration",
+      "MatchType": "Exact",
+      "MatchField": "Key",
+      "AppliesToParents": false,
+      "ForegroundString": "green",
+      "IgnoreCase": true
+    },
+    {
+      "String": "account",
+      "MatchType": "Partial",
+      "MatchField": "Key",
+      "AppliesToParents": false,
+      "ForegroundString": "green",
+      "IgnoreCase": true
+    },
+    {
+      "String": "event_type",
+      "MatchType": "Exact",
+      "MatchField": "Key",
+      "AppliesToParents": false,
+      "ForegroundString": "blue",
+      "BackgroundString": "lightgray",
+      "FontSize": 16.0,
+      "IgnoreCase": true
+    },
+    {
+      "String": "state",
+      "MatchType": "Exact",
+      "MatchField": "Key",
+      "AppliesToParents": false,
+      "ForegroundString": "blue",
+      "BackgroundString": "lightgray",
+      "FontSize": 16.0,
+      "IgnoreCase": true
+    },
+    {
+      "String": "test_header",
+      "MatchType": "Exact",
+      "MatchField": "Key",
+      "AppliesToParents": false,
+      "WarningMessage": "Warning: test_header key found!",
+      "IgnoreCase": false
     }
   ]
 }

@@ -1,68 +1,129 @@
 ﻿namespace JsonViewer.Model
 {
-    using System.Collections;
-    using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Windows.Media;
-    using Utilities;
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Converters;
 
-    internal class ConfigRule
+    public enum MatchTypeEnum
+    {
+        Exact,
+        Partial
+    }
+
+    public enum MatchFieldEnum
+    {
+        Key,
+        Type,
+        Value
+    }
+
+    [JsonObject(MemberSerialization.OptIn)]
+    public class ConfigRule : IRule
     {
         private ConfigRuleMatcher _matcher = null;
 
-        protected ConfigRule()
+        private string _foregroundString = string.Empty;
+        private Brush _foregroundBrush = null;
+        private string _backgroundString = string.Empty;
+        private Brush _backgroundBrush = null;
+        private double? _fontSize = null;
+
+        public ConfigRule()
         {
-            ExactKeys = new List<string>();
-            ExactValues = new List<string>();
-            ExactValueTypes = new List<string>();
-            PartialKeys = new List<string>();
-            PartialValues = new List<string>();
-            PartialValueTypes = new List<string>();
+            this.String = string.Empty;
             AppliesToParents = false;
-            ForegroundBrush = null;
-            BackgroundBrush = null;
-            FontSize = null;
+            ForegroundString = null;
+            BackgroundString = null;
             ExpandChildren = null;
             WarningMessage = null;
             IgnoreCase = false;
         }
 
-        public IList<string> ExactKeys { get; protected set; }
-
-        public IList<string> ExactValues { get; protected set; }
-
-        public IList<string> ExactValueTypes { get; protected set; }
-
-        public IList<string> PartialKeys { get; protected set; }
-
-        public IList<string> PartialValues { get; protected set; }
-
-        public IList<string> PartialValueTypes { get; protected set; }
-
-        public bool AppliesToParents { get; protected set; }
-
-        public Brush ForegroundBrush { get; protected set; }
-
-        public Brush BackgroundBrush { get; protected set; }
-
-        public double? FontSize { get; protected set; }
-
-        public int? ExpandChildren { get; protected set; }
-
-        public string WarningMessage { get; protected set; }
-
-        public bool IgnoreCase { get; protected set; }
-
-        public static IList<ConfigRule> GenerateRules(ArrayList arrayList)
+        public ConfigRule Clone()
         {
-            List<ConfigRule> rules = new List<ConfigRule>();
-            foreach (Dictionary<string, object> dict in arrayList)
-            {
-                ConfigRule baseRule = GenerateRule(dict);
-                rules.Add(baseRule);
-            }
-
-            return rules;
+            return (ConfigRule)this.MemberwiseClone();
         }
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string String { get; set; }
+
+        [JsonProperty]
+        [JsonConverter(typeof(StringEnumConverter))]
+        public MatchTypeEnum MatchType { get; set; }
+
+        [JsonProperty]
+        [JsonConverter(typeof(StringEnumConverter))]
+        public MatchFieldEnum MatchField { get; set; }
+
+        [JsonProperty]
+        public bool AppliesToParents { get; set; }
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string ForegroundString
+        {
+            get => _foregroundString;
+            set
+            {
+                _foregroundString = value;
+                _foregroundBrush = null;
+            }
+        }
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string BackgroundString
+        {
+            get => _backgroundString;
+            set
+            {
+                _backgroundString = value;
+                _backgroundBrush = null;
+            }
+        }
+
+        public Brush ForegroundBrush
+        {
+            get
+            {
+                if (_foregroundBrush == null && !string.IsNullOrEmpty(this.ForegroundString))
+                {
+                    _foregroundBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(this.ForegroundString));
+                    Debug.Assert(_foregroundBrush != null);
+                }
+
+                return _foregroundBrush;
+            }
+        }
+
+        public Brush BackgroundBrush
+        {
+            get
+            {
+                if (_backgroundBrush == null && !string.IsNullOrEmpty(this.BackgroundString))
+                {
+                    _backgroundBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(this.BackgroundString));
+                    Debug.Assert(_backgroundBrush != null);
+                }
+
+                return _backgroundBrush;
+            }
+        }
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public double? FontSize
+        {
+            get => _fontSize;
+            set => _fontSize = value;
+        }
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public int? ExpandChildren { get; set; }
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string WarningMessage { get; set; }
+
+        [JsonProperty]
+        public bool IgnoreCase { get; set; }
 
         public bool Matches(JsonObject obj)
         {
@@ -72,92 +133,6 @@
             }
 
             return _matcher.Matches(obj);
-        }
-
-        private static ConfigRule GenerateRule(Dictionary<string, object> dict)
-        {
-            bool ignoreCase = true;
-            if (dict.ContainsKey("ignoreCase"))
-            {
-                ignoreCase = (bool)dict["ignoreCase"];
-            }
-
-            IList<string> keys = GetList(dict, "keyIs", ignoreCase);
-            IList<string> values = GetList(dict, "valueIs", ignoreCase);
-            IList<string> valueTypes = GetList(dict, "valueTypeIs", ignoreCase);
-            IList<string> keyPartials = GetList(dict, "keyContains", ignoreCase);
-            IList<string> valuePartials = GetList(dict, "valueContains", ignoreCase);
-            IList<string> valueTypePartials = GetList(dict, "valueTypeContains", ignoreCase);
-
-            Brush foregroundBrush = null;
-            if (dict.ContainsKey("color"))
-            {
-                Color color = (Color)ColorConverter.ConvertFromString((string)dict["color"]);
-                foregroundBrush = new SolidColorBrush(color);
-            }
-
-            Brush backgroundBrush = null;
-            if (dict.ContainsKey("background"))
-            {
-                Color color = (Color)ColorConverter.ConvertFromString((string)dict["background"]);
-                backgroundBrush = new SolidColorBrush(color);
-            }
-
-            double? fontSize = null;
-            if (dict.ContainsKey("fontSize"))
-            {
-                fontSize = Converters.ToDouble(dict["fontSize"]);
-            }
-
-            bool appliesToParents = false;
-            if (dict.ContainsKey("appliesToParents"))
-            {
-                appliesToParents = (bool)dict["appliesToParents"];
-            }
-
-            int? expandChildren = null;
-            if (dict.ContainsKey("expandChildren"))
-            {
-                expandChildren = (int)dict["expandChildren"];
-            }
-
-            string warningMessage = null;
-            if (dict.ContainsKey("warningMessage"))
-            {
-                warningMessage = (string)dict["warningMessage"];
-            }
-
-            return new ConfigRule()
-            {
-                ExactKeys = keys,
-                ExactValues = values,
-                ExactValueTypes = valueTypes,
-                PartialKeys = keyPartials,
-                PartialValues = valuePartials,
-                PartialValueTypes = valueTypePartials,
-                AppliesToParents = appliesToParents,
-                ForegroundBrush = foregroundBrush,
-                BackgroundBrush = backgroundBrush,
-                FontSize = fontSize,
-                ExpandChildren = expandChildren,
-                WarningMessage = warningMessage,
-                IgnoreCase = ignoreCase
-            };
-        }
-
-        private static IList<string> GetList(Dictionary<string, object> dict, string key, bool ignoreCase)
-        {
-            List<string> values = new List<string>();
-            if (dict.ContainsKey(key))
-            {
-                ArrayList arrayList = (ArrayList)dict[key];
-                foreach (string value in arrayList)
-                {
-                    values.Add(ignoreCase ? value.ToLower() : value);
-                }
-            }
-
-            return values;
         }
     }
 }

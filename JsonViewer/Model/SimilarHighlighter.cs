@@ -100,7 +100,7 @@
                     searchValues: false,
                     searchValueTypes: false,
                     appliesToParents: false,
-                    exactMatch: true);
+                    matchType: MatchTypeEnum.Exact);
             }
 
             if (selectedObject != null && Properties.Settings.Default.HighlightSimilarValues)
@@ -112,7 +112,7 @@
                     searchValues: true,
                     searchValueTypes: false,
                     appliesToParents: false,
-                    exactMatch: true);
+                    matchType: MatchTypeEnum.Exact);
             }
 
             Func<Guid, SingularAction, Task<bool>> updateAction = new Func<Guid, SingularAction, Task<bool>>(async (actionId, action) =>

@@ -1,5 +1,6 @@
 ﻿namespace Utilities
 {
+    using System.Collections.Generic;
     using System.ComponentModel;
 
     public class NotifyPropertyChanged : INotifyPropertyChanged
@@ -65,6 +66,54 @@
         protected void FirePropertyChanged(string[] propertyNames)
         {
             NotifyPropertyChanged.FirePropertyChanged(propertyNames, this, this.PropertyChanged);
+        }
+
+        protected bool SetValueList<T>(ref List<T> memberList, List<T> newList, string propertyName)
+        {
+            if (AreListsSame(memberList, newList))
+            {
+                return false;
+            }
+
+            memberList = newList;
+            this.FirePropertyChanged(propertyName);
+            return true;
+        }
+
+        private bool AreListsSame<T>(List<T> first, List<T> second)
+        {
+            if (first.Count != second.Count)
+            {
+                return false;
+            }
+
+            for (int ii = 0; ii < first.Count; ii++)
+            {
+                T firstItem = first[ii];
+                T secondItem = second[ii];
+
+                if (firstItem == null && secondItem == null)
+                {
+                    continue;
+                }
+
+                if (firstItem == null && secondItem != null)
+                {
+                    return false;
+                }
+
+                if (secondItem != null && firstItem == null)
+                {
+                    return false;
+                }
+
+                if (!firstItem.Equals(secondItem))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
     }
 }

@@ -20,7 +20,7 @@
         private string _originalString;
         private object _typedValue;
         private DataType _dataType = DataType.Other;
-        private List<ConfigRule> _rules;
+        private List<IRule> _rules = new List<IRule>();
         private FindRule _findRule = null;
         private FindRule _matchRule = null;
         private bool _valuesInitialized = false;
@@ -182,7 +182,7 @@
             }
         }
 
-        internal List<ConfigRule> Rules
+        internal List<IRule> Rules
         {
             get
             {
@@ -363,6 +363,15 @@
             _parent.UpdateChild(this);
         }
 
+        public void FlushRules()
+        {
+            this.ApplyRules();
+            foreach (JsonObject child in this.Children)
+            {
+                child.FlushRules();
+            }
+        }
+
         internal TreeViewData ResetView()
         {
             CustomTreeView tree = _viewObject.Tree;
@@ -516,7 +525,59 @@
 
             _oneLineValue = oneLineValue;
 
-            _rules = new List<ConfigRule>(Config.This.Rules.Where(rule => rule.Matches(this)));
+            this.ApplyRules();
+        }
+
+        private void ApplyRules()
+        {
+            List<IRule> newRules = new List<IRule>(Config.This.Rules.Where(rule => rule.Matches(this)));
+            if (_findRule != null)
+            {
+                newRules.Insert(0, _findRule);
+            }
+
+            if (_matchRule != null)
+            {
+                newRules.Add(_matchRule);
+            }
+
+            this.SetValueList(ref _rules, newRules, "Rules");
+        }
+
+        private bool AreListsEqual<T>(IList<T> first, IList<T> second)
+        {
+            if (first.Count != second.Count)
+            {
+                return false;
+            }
+
+            for (int ii = 0; ii < first.Count; ii++)
+            {
+                T firstItem = first[ii];
+                T secondItem = second[ii];
+
+                if (firstItem == null && secondItem == null)
+                {
+                    continue;
+                }
+
+                if (firstItem == null && secondItem != null)
+                {
+                    return false;
+                }
+
+                if (secondItem != null && firstItem == null)
+                {
+                    return false;
+                }
+
+                if (!firstItem.Equals(secondItem))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private string GetValueTypeString(bool includeChildCount)

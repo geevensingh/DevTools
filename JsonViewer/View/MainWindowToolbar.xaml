@@ -71,6 +71,17 @@
                     <BitmapImage x:Key="Image" UriSource="..\Resources\curly_braces.png" />
                 </Button.Resources>
             </Button>
+            <Button
+                Command="{Binding ElementName=Root, Path=ShowRulesModeCommand}"
+                DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}"
+                IsEnabled="{Binding Path=IsEnabled}"
+                Style="{StaticResource MyButtonStyle}"
+                ToolTip="{Binding Path=Text}"
+                Visibility="{Binding Path=IsVisible}">
+                <Button.Resources>
+                    <BitmapImage x:Key="Image" UriSource="..\Resources\settings.png" />
+                </Button.Resources>
+            </Button>
             <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
             <Button
                 Command="{Binding ElementName=Root, Path=OpenJsonFileCommand}"

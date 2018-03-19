@@ -3,6 +3,7 @@
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
     using System.Diagnostics;
+    using System.Linq;
     using System.Windows.Media;
     using JsonViewer.Commands.PerItem;
     using JsonViewer.Model;
@@ -74,12 +75,12 @@
             {
                 if (this._isSelected)
                 {
-                    return Config.This.GetBrush(ConfigValue.TreeViewSelectedForeground);
+                    return Config.This.GetBrush(ConfigValue.SelectedForeground);
                 }
 
                 if (_isChildSelected && Properties.Settings.Default.HighlightSelectedParents)
                 {
-                    return Config.This.GetBrush(ConfigValue.TreeViewSelectedItemParentForeground);
+                    return Config.This.GetBrush(ConfigValue.SelectedParentForeground);
                 }
 
                 return Config.This.GetForegroundColor(_jsonObject);
@@ -92,12 +93,12 @@
             {
                 if (this._isSelected)
                 {
-                    return Config.This.GetBrush(ConfigValue.TreeViewSelectedBackground);
+                    return Config.This.GetBrush(ConfigValue.SelectedBackground);
                 }
 
                 if (_isChildSelected && Properties.Settings.Default.HighlightSelectedParents)
                 {
-                    return Config.This.GetBrush(ConfigValue.TreeViewSelectedItemParentBackground);
+                    return Config.This.GetBrush(ConfigValue.SelectedParentBackground);
                 }
 
                 return Config.This.GetBackgroundColor(_jsonObject);
@@ -172,6 +173,10 @@
 
         internal CustomTreeView Tree { get => _tree; }
 
+        bool _rulesChangeFontSize = false;
+        bool _rulesChangeForeground = false;
+        bool _rulesChangeBackground = false;
+
         private void OnDataModelPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
             switch (e.PropertyName)
@@ -191,6 +196,11 @@
                     break;
                 case "FindRule":
                     this.FirePropertyChanged(new string[] { "TextColor", "BackgroundColor" });
+                    break;
+                case "Rules":
+                    this.SetValue(ref _rulesChangeFontSize, this.JsonObject.Rules.Any((rule) => rule.FontSize.HasValue), "FontSize");
+                    this.SetValue(ref _rulesChangeForeground, this.JsonObject.Rules.Any((rule) => rule.ForegroundBrush != null), "TextColor");
+                    this.SetValue(ref _rulesChangeBackground, this.JsonObject.Rules.Any((rule) => rule.BackgroundBrush != null), "BackgroundColor");
                     break;
                 default:
                     Debug.Assert(false, "Unknown property change");
