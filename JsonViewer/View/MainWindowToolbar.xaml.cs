@@ -183,5 +183,13 @@
         {
             _mainWindow.Finder.Text = FindTextBox.Text;
         }
+
+        private void MenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (int.TryParse(((MenuItem)e.Source).CommandParameter as string, out int depth))
+            {
+                new ExpandToLevelCommand(_mainWindow, depth).Execute(null);
+            }
+        }
     }
 }
