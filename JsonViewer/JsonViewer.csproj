@@ -48,6 +48,8 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <RunCodeAnalysis>false</RunCodeAnalysis>
+    <SignManifests>false</SignManifests>
+    <SignAssembly>false</SignAssembly>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -58,30 +60,16 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <RunCodeAnalysis>true</RunCodeAnalysis>
-  </PropertyGroup>
-  <PropertyGroup>
-    <ManifestCertificateThumbprint>C4359A10D7D3B54169390A4B14D41DB044D98F4C</ManifestCertificateThumbprint>
-  </PropertyGroup>
-  <PropertyGroup>
-    <ManifestKeyFile>Resources\JsonViewer_TemporaryKey.pfx</ManifestKeyFile>
-  </PropertyGroup>
-  <PropertyGroup>
-    <GenerateManifests>true</GenerateManifests>
-  </PropertyGroup>
-  <PropertyGroup>
     <SignManifests>true</SignManifests>
-  </PropertyGroup>
-  <PropertyGroup>
-    <ApplicationIcon>Resources\json_light_64.ico</ApplicationIcon>
-  </PropertyGroup>
-  <PropertyGroup>
-    <StartupObject>JsonViewer.App</StartupObject>
-  </PropertyGroup>
-  <PropertyGroup>
     <SignAssembly>true</SignAssembly>
   </PropertyGroup>
   <PropertyGroup>
+    <ApplicationIcon>Resources\json_light_64.ico</ApplicationIcon>
     <AssemblyOriginatorKeyFile>Resources\JsonViewer_TemporaryKey.pfx</AssemblyOriginatorKeyFile>
+    <GenerateManifests>true</GenerateManifests>
+    <ManifestCertificateThumbprint>C4359A10D7D3B54169390A4B14D41DB044D98F4C</ManifestCertificateThumbprint>
+    <ManifestKeyFile>Resources\JsonViewer_TemporaryKey.pfx</ManifestKeyFile>
+    <StartupObject>JsonViewer.App</StartupObject>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Newtonsoft.Json, Version=11.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
@@ -301,16 +289,6 @@
     </FileAssociation>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <PropertyGroup>
-    <PostBuildEvent>if $(ConfigurationName) == Release (
-  copy "$(TargetPath)" D:\Tools
-)</PostBuildEvent>
-  </PropertyGroup>
-  <ProjectExtensions>
-    <VisualStudio>
-      <UserProperties Config_1json__JSONSchema="" />
-    </VisualStudio>
-  </ProjectExtensions>
   <!-- The following makes sure we dont try to publish a configuration that defines the DEBUG constant -->
   <Target Name="BeforePublish">
     <Error Condition="'$(DebugSymbols)' == 'true'" Text="You attempted to publish a configuration that defines the DEBUG constant!" />
