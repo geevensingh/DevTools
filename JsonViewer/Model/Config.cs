@@ -228,7 +228,10 @@
 
             try
             {
-                Config temp = JsonConvert.DeserializeObject<Config>(File.ReadAllText(fileName), jsonSerializerSettings);
+                if (JsonConvert.DeserializeObject<Config>(File.ReadAllText(fileName), jsonSerializerSettings) == null)
+                {
+                    return false;
+                }
             }
             catch
             {
