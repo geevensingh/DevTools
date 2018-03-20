@@ -66,12 +66,14 @@
         }
 
         [JsonIgnore]
-        public string FilePath {
+        public string FilePath
+        {
             get => _filePath;
             private set
             {
                 _filePath = value;
                 Properties.Settings.Default.ConfigPath = _filePath;
+                Properties.Settings.Default.Save();
             }
         }
 
@@ -182,9 +184,10 @@
         {
             _this = null;
 
-
             string filePath = Properties.Settings.Default.ConfigPath;
-            if (Path.GetFileName(filePath).ToLower() == "config.json" && File.Exists(Path.Combine(Path.GetDirectoryName(filePath), "JsonViewer.exe")))
+            if (Path.GetFileName(filePath).ToLower() == "config.json" &&
+                File.Exists(Path.Combine(Path.GetDirectoryName(filePath), "JsonViewer.exe")) &&
+                filePath.ToLower().Contains(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData).ToLower()))
             {
                 filePath = null;
             }
