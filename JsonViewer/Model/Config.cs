@@ -293,6 +293,40 @@
             return false;
         }
 
+        public bool Save()
+        {
+            string filePath = this.FilePath;
+            if (string.IsNullOrEmpty(filePath))
+            {
+                SaveFileDialog saveFileDialog = new SaveFileDialog
+                {
+                    Title = "Save config file",
+                    Filter = "Json files (*.json)|*.json|All files (*.*)|*.*"
+                };
+                bool? saveFileDialogResult = saveFileDialog.ShowDialog();
+                if (saveFileDialogResult.HasValue && saveFileDialogResult.Value)
+                {
+                    filePath = saveFileDialog.FileName;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(filePath))
+            {
+                try
+                {
+                    string jsonString = JsonConvert.SerializeObject(Config.This);
+                    File.WriteAllText(filePath, jsonString, System.Text.Encoding.UTF8);
+                    this.FilePath = filePath;
+                    return true;
+                }
+                catch
+                {
+                }
+            }
+
+            return false;
+        }
+
         public Brush GetBrush(ConfigValue configValue)
         {
             if (!_brushes.ContainsKey(configValue))
