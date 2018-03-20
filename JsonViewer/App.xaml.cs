@@ -113,7 +113,7 @@
 
             _args = new List<string>(e?.Args);
 
-            if (_args.Count > 0)
+            if (_args.Count == 1)
             {
                 string launchFilePath = _args[0];
                 try
