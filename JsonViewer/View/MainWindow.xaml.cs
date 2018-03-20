@@ -77,7 +77,6 @@
 
             if (succeeded)
             {
-                _ruleSet.Refresh();
                 this.ReloadAsync().Forget();
             }
             else
@@ -88,6 +87,8 @@
 
         public Task<bool> ReloadAsync()
         {
+            _ruleSet.Refresh();
+
             if (string.IsNullOrWhiteSpace(this.Raw_TextBox.Text))
             {
                 return Task.FromResult(false);
