@@ -110,64 +110,6 @@
 
         public IList<ConfigRule> Rules { get => _rules; set => this.SetValue(ref _rules, value, "Rules"); }
 
-        public bool Save(string filePath)
-        {
-            if (string.IsNullOrEmpty(filePath))
-            {
-                SaveFileDialog saveFileDialog = new SaveFileDialog
-                {
-                    Title = "Save config file",
-                    Filter = "Json files (*.json)|*.json|All files (*.*)|*.*"
-                };
-                bool? saveFileDialogResult = saveFileDialog.ShowDialog();
-                if (saveFileDialogResult.HasValue && saveFileDialogResult.Value)
-                {
-                    filePath = saveFileDialog.FileName;
-                }
-            }
-
-            if (!string.IsNullOrEmpty(filePath))
-            {
-                try
-                {
-                    string jsonString = JsonConvert.SerializeObject(Config.This);
-                    File.WriteAllText(filePath, jsonString, System.Text.Encoding.UTF8);
-                    this.FilePath = filePath;
-                    return true;
-                }
-                catch
-                {
-                }
-            }
-
-            return false;
-        }
-
-        private static string GetDefaultConfigPath()
-        {
-            string appDataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), @"JsonViewer");
-            string newConfig = Path.Combine(appDataDirectory, @"Config.json");
-            if (File.Exists(newConfig))
-            {
-                return newConfig;
-            }
-
-            try
-            {
-                if (File.Exists("Config.json"))
-                {
-                    Directory.CreateDirectory(appDataDirectory);
-                    File.Copy("Config.json", newConfig);
-                    return newConfig;
-                }
-            }
-            catch
-            {
-            }
-
-            return string.Empty;
-        }
-
         public static void Reload()
         {
             _this = null;
@@ -315,6 +257,39 @@
             return false;
         }
 
+        public bool Save(string filePath)
+        {
+            if (string.IsNullOrEmpty(filePath))
+            {
+                SaveFileDialog saveFileDialog = new SaveFileDialog
+                {
+                    Title = "Save config file",
+                    Filter = "Json files (*.json)|*.json|All files (*.*)|*.*"
+                };
+                bool? saveFileDialogResult = saveFileDialog.ShowDialog();
+                if (saveFileDialogResult.HasValue && saveFileDialogResult.Value)
+                {
+                    filePath = saveFileDialog.FileName;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(filePath))
+            {
+                try
+                {
+                    string jsonString = JsonConvert.SerializeObject(Config.This);
+                    File.WriteAllText(filePath, jsonString, System.Text.Encoding.UTF8);
+                    this.FilePath = filePath;
+                    return true;
+                }
+                catch
+                {
+                }
+            }
+
+            return false;
+        }
+
         public Brush GetBrush(ConfigValue configValue)
         {
             if (!_brushes.ContainsKey(configValue))
@@ -403,6 +378,31 @@
             }
 
             return this.DefaultFontSize;
+        }
+
+        private static string GetDefaultConfigPath()
+        {
+            string appDataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), @"JsonViewer");
+            string newConfig = Path.Combine(appDataDirectory, @"Config.json");
+            if (File.Exists(newConfig))
+            {
+                return newConfig;
+            }
+
+            try
+            {
+                if (File.Exists("Config.json"))
+                {
+                    Directory.CreateDirectory(appDataDirectory);
+                    File.Copy("Config.json", newConfig);
+                    return newConfig;
+                }
+            }
+            catch
+            {
+            }
+
+            return string.Empty;
         }
 
         private string GetRawValue(string key, string fallback)
