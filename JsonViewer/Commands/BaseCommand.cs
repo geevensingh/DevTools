@@ -56,7 +56,6 @@
         {
             get
             {
-                Debug.Assert(_mainWindow != null);
                 return _mainWindow;
             }
 
