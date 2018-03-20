@@ -15,31 +15,6 @@
 
         <Style x:Key="MyButtonStyle" TargetType="Button">
             <Setter Property="Opacity" Value="1" />
-            <Setter Property="Margin" Value="2" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="{x:Type Button}">
-                        <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                            <Image
-                                Height="{StaticResource ImageHeight}"
-                                Opacity="{TemplateBinding Opacity}"
-                                Source="{DynamicResource Image}"
-                                Visibility="{Binding ElementName=Root, Path=ToolbarIconVisibility}" />
-                            <TextBlock
-                                Margin="5,0"
-                                VerticalAlignment="Center"
-                                Text="{Binding Path=Text}"
-                                Visibility="{Binding ElementName=Root, Path=ToolbarTextVisibility}" />
-                            <ContentPresenter
-                                x:Name="MyContentPresenter"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"
-                                Content="{TemplateBinding Content}" />
-                        </StackPanel>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-
             <Style.Triggers>
                 <Trigger Property="IsEnabled" Value="False">
                     <Setter Property="Opacity" Value="0.25" />
@@ -53,23 +28,43 @@
                 Command="{Binding ElementName=Root, Path=ShowTextModeCommand}"
                 DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}"
                 IsEnabled="{Binding Path=IsEnabled}"
-                Style="{StaticResource MyButtonStyle}"
                 ToolTip="{Binding Path=Text}"
                 Visibility="{Binding Path=IsVisible}">
                 <Button.Resources>
                     <BitmapImage x:Key="Image" UriSource="..\Resources\text.png" />
                 </Button.Resources>
+                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                    <Image
+                        Height="{StaticResource ImageHeight}"
+                        Source="{DynamicResource Image}"
+                        Visibility="{Binding ElementName=Root, Path=ToolbarIconVisibility}" />
+                    <TextBlock
+                        Margin="5,0"
+                        VerticalAlignment="Center"
+                        Text="{Binding Path=Text}"
+                        Visibility="{Binding ElementName=Root, Path=ToolbarTextVisibility}" />
+                </StackPanel>
             </Button>
             <Button
                 Command="{Binding ElementName=Root, Path=ShowTreeModeCommand}"
                 DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}"
                 IsEnabled="{Binding Path=IsEnabled}"
-                Style="{StaticResource MyButtonStyle}"
                 ToolTip="{Binding Path=Text}"
                 Visibility="{Binding Path=IsVisible}">
                 <Button.Resources>
                     <BitmapImage x:Key="Image" UriSource="..\Resources\curly_braces.png" />
                 </Button.Resources>
+                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                    <Image
+                        Height="{StaticResource ImageHeight}"
+                        Source="{DynamicResource Image}"
+                        Visibility="{Binding ElementName=Root, Path=ToolbarIconVisibility}" />
+                    <TextBlock
+                        Margin="5,0"
+                        VerticalAlignment="Center"
+                        Text="{Binding Path=Text}"
+                        Visibility="{Binding ElementName=Root, Path=ToolbarTextVisibility}" />
+                </StackPanel>
             </Button>
             <Button
                 Command="{Binding ElementName=Root, Path=ShowRulesModeCommand}"
@@ -81,6 +76,17 @@
                 <Button.Resources>
                     <BitmapImage x:Key="Image" UriSource="..\Resources\settings.png" />
                 </Button.Resources>
+                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                    <Image
+                        Height="{StaticResource ImageHeight}"
+                        Source="{DynamicResource Image}"
+                        Visibility="{Binding ElementName=Root, Path=ToolbarIconVisibility}" />
+                    <TextBlock
+                        Margin="5,0"
+                        VerticalAlignment="Center"
+                        Text="{Binding Path=Text}"
+                        Visibility="{Binding ElementName=Root, Path=ToolbarTextVisibility}" />
+                </StackPanel>
             </Button>
             <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
             <Button
@@ -93,6 +99,17 @@
                 <Button.Resources>
                     <BitmapImage x:Key="Image" UriSource="..\Resources\open_file.png" />
                 </Button.Resources>
+                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                    <Image
+                        Height="{StaticResource ImageHeight}"
+                        Source="{DynamicResource Image}"
+                        Visibility="{Binding ElementName=Root, Path=ToolbarIconVisibility}" />
+                    <TextBlock
+                        Margin="5,0"
+                        VerticalAlignment="Center"
+                        Text="{Binding Path=Text}"
+                        Visibility="{Binding ElementName=Root, Path=ToolbarTextVisibility}" />
+                </StackPanel>
             </Button>
             <Button
                 Command="{Binding ElementName=Root, Path=NewWindowCommand}"
@@ -104,6 +121,18 @@
                 <Button.Resources>
                     <BitmapImage x:Key="Image" UriSource="..\Resources\window.png" />
                 </Button.Resources>
+                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                    <Image
+                        Height="{StaticResource ImageHeight}"
+                        Source="{DynamicResource Image}"
+                        Visibility="{Binding ElementName=Root, Path=ToolbarIconVisibility}" />
+                    <TextBlock
+                        Margin="5,0"
+                        VerticalAlignment="Center"
+                        Text="{Binding Path=Text}"
+                        Visibility="{Binding ElementName=Root, Path=ToolbarTextVisibility}" />
+                </StackPanel>
+
             </Button>
             <Button
                 Command="{Binding ElementName=Root, Path=PasteCommand}"
@@ -115,6 +144,18 @@
                 <Button.Resources>
                     <BitmapImage x:Key="Image" UriSource="..\Resources\clipboard.png" />
                 </Button.Resources>
+                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                    <Image
+                        Height="{StaticResource ImageHeight}"
+                        Source="{DynamicResource Image}"
+                        Visibility="{Binding ElementName=Root, Path=ToolbarIconVisibility}" />
+                    <TextBlock
+                        Margin="5,0"
+                        VerticalAlignment="Center"
+                        Text="{Binding Path=Text}"
+                        Visibility="{Binding ElementName=Root, Path=ToolbarTextVisibility}" />
+                </StackPanel>
+
             </Button>
         </ToolBar>
         <ToolBar
@@ -131,6 +172,18 @@
                 <Button.Resources>
                     <BitmapImage x:Key="Image" UriSource="..\Resources\curly_braces.png" />
                 </Button.Resources>
+                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                    <Image
+                        Height="{StaticResource ImageHeight}"
+                        Source="{DynamicResource Image}"
+                        Visibility="{Binding ElementName=Root, Path=ToolbarIconVisibility}" />
+                    <TextBlock
+                        Margin="5,0"
+                        VerticalAlignment="Center"
+                        Text="{Binding Path=Text}"
+                        Visibility="{Binding ElementName=Root, Path=ToolbarTextVisibility}" />
+                </StackPanel>
+
             </Button>
         </ToolBar>
         <ToolBar
@@ -147,6 +200,18 @@
                 <Button.Resources>
                     <BitmapImage x:Key="Image" UriSource="..\Resources\expand_all.png" />
                 </Button.Resources>
+                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                    <Image
+                        Height="{StaticResource ImageHeight}"
+                        Source="{DynamicResource Image}"
+                        Visibility="{Binding ElementName=Root, Path=ToolbarIconVisibility}" />
+                    <TextBlock
+                        Margin="5,0"
+                        VerticalAlignment="Center"
+                        Text="{Binding Path=Text}"
+                        Visibility="{Binding ElementName=Root, Path=ToolbarTextVisibility}" />
+                </StackPanel>
+
             </Button>
             <Button
                 Command="{Binding ElementName=Root, Path=CollapseAllCommand}"
@@ -158,6 +223,18 @@
                 <Button.Resources>
                     <BitmapImage x:Key="Image" UriSource="..\Resources\collapse_all.png" />
                 </Button.Resources>
+                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                    <Image
+                        Height="{StaticResource ImageHeight}"
+                        Source="{DynamicResource Image}"
+                        Visibility="{Binding ElementName=Root, Path=ToolbarIconVisibility}" />
+                    <TextBlock
+                        Margin="5,0"
+                        VerticalAlignment="Center"
+                        Text="{Binding Path=Text}"
+                        Visibility="{Binding ElementName=Root, Path=ToolbarTextVisibility}" />
+                </StackPanel>
+
             </Button>
             <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
             <CheckBox
@@ -213,6 +290,18 @@
                 <Button.Resources>
                     <BitmapImage x:Key="Image" UriSource="..\Resources\left.png" />
                 </Button.Resources>
+                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                    <Image
+                        Height="{StaticResource ImageHeight}"
+                        Source="{DynamicResource Image}"
+                        Visibility="{Binding ElementName=Root, Path=ToolbarIconVisibility}" />
+                    <TextBlock
+                        Margin="5,0"
+                        VerticalAlignment="Center"
+                        Text="{Binding Path=Text}"
+                        Visibility="{Binding ElementName=Root, Path=ToolbarTextVisibility}" />
+                </StackPanel>
+
             </Button>
             <Button
                 Command="{Binding ElementName=Root, Path=FindNextCommand}"
@@ -224,6 +313,18 @@
                 <Button.Resources>
                     <BitmapImage x:Key="Image" UriSource="..\Resources\right.png" />
                 </Button.Resources>
+                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                    <Image
+                        Height="{StaticResource ImageHeight}"
+                        Source="{DynamicResource Image}"
+                        Visibility="{Binding ElementName=Root, Path=ToolbarIconVisibility}" />
+                    <TextBlock
+                        Margin="5,0"
+                        VerticalAlignment="Center"
+                        Text="{Binding Path=Text}"
+                        Visibility="{Binding ElementName=Root, Path=ToolbarTextVisibility}" />
+                </StackPanel>
+
             </Button>
         </ToolBar>
     </ToolBarTray>
