@@ -8,6 +8,7 @@
         public PrettyTextCommand(MainWindow mainWindow)
             : base("Pretty-ify text")
         {
+            this.ForceVisibility = System.Windows.Visibility.Visible;
             this.MainWindow = mainWindow;
             this.Update();
         }
