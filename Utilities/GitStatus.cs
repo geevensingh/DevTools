@@ -5,7 +5,11 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
 
+#if DEBUG
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Utilities-Tests")]
+#else
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Utilities-Tests, PublicKey=0024000004800000940000000602000000240000525341310004000001000100b50ab4b77063d5fb555fe3470a3a9bdd3e3e29a5d6e21c5fc17216c0e5573f962fd2c269ba3145d8fb14f82c7d490f5fbd839f321f208b163629951cd5fb7bf92e7310342e3640cb06b058b7e55ada585348ea1bcf9856a5b84123fc6540ba5a235c5637b1ab71326e189017606861a79a9ca31a7626c346a9f515df96d310cb")]
+#endif
 namespace Utilities
 {
     public class GitStatus
