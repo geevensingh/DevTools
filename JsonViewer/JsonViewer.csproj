@@ -142,7 +142,7 @@
     <Compile Include="Model\FindRule.cs" />
     <Compile Include="Model\ConfigRule.cs" />
     <Compile Include="Model\IRule.cs" />
-    <Compile Include="Model\RuleSet.cs" />
+    <Compile Include="Model\EditableRuleSet.cs" />
     <Compile Include="Model\SimilarHighlighter.cs" />
     <Compile Include="View\FindMatchNavigator.cs" />
     <Compile Include="View\MainWindowToolbar.xaml.cs">
@@ -158,8 +158,8 @@
     <Compile Include="Model\JsonObjectFactory.cs" />
     <Compile Include="Model\RootObject.cs" />
     <Compile Include="View\ErrorMessage.cs" />
-    <Compile Include="View\RuleView.cs" />
-    <Compile Include="View\RuleViewFactory.cs" />
+    <Compile Include="View\EditableRuleView.cs" />
+    <Compile Include="View\EditableRuleViewFactory.cs" />
     <Compile Include="View\StatusBar.xaml.cs">
       <DependentUpon>StatusBar.xaml</DependentUpon>
     </Compile>

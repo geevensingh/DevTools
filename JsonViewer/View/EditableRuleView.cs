@@ -8,18 +8,18 @@
     using JsonViewer.Model;
     using Utilities;
 
-    public class RuleView : NotifyPropertyChanged
+    public class EditableRuleView : NotifyPropertyChanged
     {
         private ConfigRule _rule;
         private bool _isDirty = false;
         private int _index = -1;
 
-        public RuleView()
+        public EditableRuleView()
         {
             _rule = new ConfigRule();
         }
 
-        internal RuleView(ConfigRule rule, int index, RuleSet ruleSet)
+        internal EditableRuleView(ConfigRule rule, int index, EditableRuleSet ruleSet)
         {
             _rule = rule.Clone();
             this.UpdateIndex(index);
@@ -212,7 +212,7 @@
             }
         }
 
-        public RuleSet RuleSet { get; internal set; }
+        public EditableRuleSet RuleSet { get; internal set; }
 
         internal void UpdateIndex(int newIndex)
         {

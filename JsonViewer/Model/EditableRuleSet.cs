@@ -9,22 +9,22 @@
     using JsonViewer.View;
     using Utilities;
 
-    public class RuleSet : NotifyPropertyChanged
+    public class EditableRuleSet : NotifyPropertyChanged
     {
-        private ObservableCollection<RuleView> _rules;
+        private ObservableCollection<EditableRuleView> _rules;
         private bool _isDirty = false;
 
-        public RuleSet()
+        public EditableRuleSet()
         {
         }
 
-        public ObservableCollection<RuleView> Rules
+        public ObservableCollection<EditableRuleView> Rules
         {
             get
             {
                 if (_rules == null)
                 {
-                    this.SetRules(RuleViewFactory.CreateCollection(this));
+                    this.SetRules(EditableRuleViewFactory.CreateCollection(this));
                 }
 
                 return _rules;
@@ -43,7 +43,7 @@
             this.SetRules(null);
         }
 
-        internal void AddNewRule(RuleView newRuleView)
+        internal void AddNewRule(EditableRuleView newRuleView)
         {
             newRuleView.RuleSet = this;
             newRuleView.Index = _rules.Max((rule) => rule.Index) + 1;
@@ -51,7 +51,7 @@
             this.SetValue(ref _isDirty, true, "IsDirty");
         }
 
-        internal int SetIndex(RuleView ruleView, int newIndex)
+        internal int SetIndex(EditableRuleView ruleView, int newIndex)
         {
             if (newIndex < 0)
             {
@@ -79,7 +79,7 @@
         internal void Save()
         {
             List<ConfigRule> configRules = new List<ConfigRule>();
-            foreach (RuleView ruleView in this.Rules)
+            foreach (EditableRuleView ruleView in this.Rules)
             {
                 configRules.Add(ruleView.Rule);
             }
@@ -88,7 +88,7 @@
 
             if (Config.This.Save(Config.This.FilePath))
             {
-                foreach (RuleView ruleView in this.Rules)
+                foreach (EditableRuleView ruleView in this.Rules)
                 {
                     ruleView.IsDirty = false;
                 }
@@ -101,7 +101,7 @@
         {
             this.SetValue(ref _isDirty, false, "IsDirty");
             Config.Reload();
-            this.SetRules(RuleViewFactory.CreateCollection(this));
+            this.SetRules(EditableRuleViewFactory.CreateCollection(this));
             this.FirePropertyChanged("IsDirty");
         }
 
@@ -110,7 +110,7 @@
             switch (e.Action)
             {
                 case NotifyCollectionChangedAction.Remove:
-                    foreach (RuleView ruleView in e.OldItems)
+                    foreach (EditableRuleView ruleView in e.OldItems)
                     {
                         ruleView.Index = -1;
                         this.SetValue(ref _isDirty, true, "IsDirty");
@@ -124,7 +124,7 @@
                     break;
                 case NotifyCollectionChangedAction.Add:
                     Debug.Assert(e.NewItems.Count == 1);
-                    RuleView newRuleView = (RuleView)e.NewItems[0];
+                    EditableRuleView newRuleView = (EditableRuleView)e.NewItems[0];
                     newRuleView.RuleSet = this;
                     newRuleView.UpdateIndex(e.NewStartingIndex);
                     this.SetValue(ref _isDirty, true, "IsDirty");
@@ -137,7 +137,7 @@
             }
         }
 
-        private void SetRules(ObservableCollection<RuleView> rules)
+        private void SetRules(ObservableCollection<EditableRuleView> rules)
         {
             if (rules == _rules)
             {
@@ -147,7 +147,7 @@
             if (_rules != null)
             {
                 _rules.CollectionChanged -= OnRulesCollectionChanged;
-                foreach (RuleView ruleView in _rules)
+                foreach (EditableRuleView ruleView in _rules)
                 {
                     ruleView.PropertyChanged -= OnRulePropertyChanged;
                 }
@@ -156,7 +156,7 @@
             if (rules != null)
             {
                 rules.CollectionChanged += OnRulesCollectionChanged;
-                foreach (RuleView ruleView in rules)
+                foreach (EditableRuleView ruleView in rules)
                 {
                     ruleView.PropertyChanged += OnRulePropertyChanged;
                 }

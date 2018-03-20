@@ -25,7 +25,7 @@
         private WarningBannerActionHandler _warningBannerAction;
         private WarningBannerActionHandler _warningBannerDismiss;
         private string _lastText = string.Empty;
-        private RuleSet _ruleSet = new RuleSet();
+        private EditableRuleSet _ruleSet = new EditableRuleSet();
         private bool _isEditCommitting = false;
 
         public MainWindow()
@@ -50,7 +50,7 @@
 
         public Finder Finder { get => _finder; }
 
-        public RuleSet RuleSet { get => _ruleSet; }
+        public EditableRuleSet RuleSet { get => _ruleSet; }
 
         internal RootObject RootObject { get => _rootObject; }
 
