@@ -5,6 +5,7 @@
     using System.Deployment.Application;
     using System.IO;
     using System.Windows;
+    using JsonViewer.View;
 
     /// <summary>
     /// Interaction logic for App.xaml
@@ -38,17 +39,17 @@
             }
             catch (DeploymentDownloadException dde)
             {
-                MessageBox.Show("The new version of the application cannot be downloaded at this time. \n\nPlease check your network connection, or try again later. Error: " + dde.Message, "Error!", MessageBoxButton.OK, MessageBoxImage.Error);
+                ErrorMessage.Show("The new version of the application cannot be downloaded at this time. \n\nPlease check your network connection, or try again later. Error: " + dde.Message);
                 return;
             }
             catch (InvalidDeploymentException ide)
             {
-                MessageBox.Show("Cannot check for a new version of the application. The ClickOnce deployment is corrupt. Please redeploy the application and try again. Error: " + ide.Message, "Error!", MessageBoxButton.OK, MessageBoxImage.Error);
+                ErrorMessage.Show("Cannot check for a new version of the application. The ClickOnce deployment is corrupt. Please redeploy the application and try again. Error: " + ide.Message);
                 return;
             }
             catch (InvalidOperationException ioe)
             {
-                MessageBox.Show("This application cannot be updated. It is likely not a ClickOnce application. Error: " + ioe.Message, "Error!", MessageBoxButton.OK, MessageBoxImage.Error);
+                ErrorMessage.Show("This application cannot be updated. It is likely not a ClickOnce application. Error: " + ioe.Message);
                 return;
             }
 
@@ -88,7 +89,7 @@
                 }
                 catch (DeploymentDownloadException dde)
                 {
-                    MessageBox.Show("Cannot install the latest version of the application. \n\nPlease check your network connection, or try again later. Error: " + dde, "Error!", MessageBoxButton.OK, MessageBoxImage.Error);
+                    ErrorMessage.Show("Cannot install the latest version of the application. \n\nPlease check your network connection, or try again later. Error: " + dde);
                     return;
                 }
 
@@ -115,9 +116,14 @@
             if (_args.Count > 0)
             {
                 string launchFilePath = _args[0];
-                if (File.Exists(launchFilePath))
+                try
                 {
                     _initialText = File.ReadAllText(launchFilePath);
+                    Commands.PerWindow.OpenJsonFileCommand.LastFile = launchFilePath;
+                }
+                catch
+                {
+                    ErrorMessage.Show("Unable to load the following path: \r\n" + launchFilePath);
                 }
             }
         }

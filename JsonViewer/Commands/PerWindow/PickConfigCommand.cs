@@ -1,6 +1,8 @@
 ﻿namespace JsonViewer.Commands.PerWindow
 {
+    using System.IO;
     using System.Windows.Input;
+    using JsonViewer.Model;
     using JsonViewer.View;
 
     public class PickConfigCommand : BaseCommand
@@ -15,11 +17,22 @@
 
         public override void Execute(object parameter)
         {
-            string filePath = OpenJsonFileCommand.PickJsonFile(this.MainWindow, "Pick config file");
+            string filePath = OpenJsonFileCommand.PickJsonFile(this.MainWindow, "Pick config file", this.GetInitialDirectory());
             if (!string.IsNullOrEmpty(filePath))
             {
                 this.MainWindow.LoadConfig(filePath);
             }
+        }
+
+        private string GetInitialDirectory()
+        {
+            string lastPath = Path.GetFullPath(Config.FilePath);
+            if (string.IsNullOrEmpty(lastPath))
+            {
+                return string.Empty;
+            }
+
+            return Path.GetDirectoryName(lastPath);
         }
     }
 }

@@ -46,6 +46,9 @@
         }
 
         [JsonIgnore]
+        public static string FilePath { get => _filePath; }
+
+        [JsonIgnore]
         public static Config This
         {
             get
