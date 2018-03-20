@@ -26,13 +26,9 @@
 
         private string GetInitialDirectory()
         {
-            string lastPath = Path.GetFullPath(Config.FilePath);
-            if (string.IsNullOrEmpty(lastPath))
-            {
-                return string.Empty;
-            }
-
-            return Path.GetDirectoryName(lastPath);
+            string configPath = Config.This.FilePath;
+            string configDirectory = string.IsNullOrEmpty(configPath) ? string.Empty : Path.GetFullPath(configPath);
+            return string.IsNullOrEmpty(configDirectory) ? string.Empty : Path.GetDirectoryName(configDirectory);
         }
     }
 }
