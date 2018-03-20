@@ -333,7 +333,7 @@
             if (Config.This.IsDefault && Properties.Settings.Default.MainWindowWarnOnDefaultConfig)
             {
                 this.SetWarningMessage(
-                    "Currently using the default configuration.  Do you want to pick a better configuration?",
+                    "Unable to find your configuration file.  Do you want to pick a configuration file?",
                     null,
                     () =>
                     {
