@@ -144,6 +144,7 @@
 
             Config config = Config.This;
             this.Foreground = config.GetBrush(ConfigValue.DefaultForeground);
+            this.Background = config.GetBrush(ConfigValue.DefaultBackground);
             this.Resources[SystemColors.HighlightBrushKey] = config.GetBrush(ConfigValue.SelectedBackground);
             this.Resources[SystemColors.HighlightTextBrushKey] = config.GetBrush(ConfigValue.SelectedForeground);
         }
