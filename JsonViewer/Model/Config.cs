@@ -40,8 +40,6 @@
 
         private Config()
         {
-            Debug.Assert(_this == null);
-            _this = this;
         }
 
         [JsonIgnore]
@@ -66,16 +64,7 @@
         }
 
         [JsonIgnore]
-        public string FilePath
-        {
-            get => _filePath;
-            private set
-            {
-                _filePath = value;
-                Properties.Settings.Default.ConfigPath = _filePath;
-                Properties.Settings.Default.Save();
-            }
-        }
+        public string FilePath { get => _filePath; private set => _filePath = value; }
 
         public string DefaultForeground { get => this.GetRawValue("DefaultForeground", "Black"); set => this.SetRawValue("DefaultForeground", value); }
 
@@ -121,9 +110,8 @@
 
         public IList<ConfigRule> Rules { get => _rules; set => this.SetValue(ref _rules, value, "Rules"); }
 
-        public bool Save()
+        public bool Save(string filePath)
         {
-            string filePath = this.FilePath;
             if (string.IsNullOrEmpty(filePath))
             {
                 SaveFileDialog saveFileDialog = new SaveFileDialog
@@ -197,6 +185,29 @@
                 filePath = null;
             }
 
+            _this = LoadConfig(filePath);
+
+            if (_this == null)
+            {
+                MessageBoxResult dr = MessageBox.Show("Unable to load your config.  Do you want to use the default?", "Default config?", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                if (dr == MessageBoxResult.Yes)
+                {
+                    Properties.Settings.Default.ConfigPath = string.Empty;
+                    Properties.Settings.Default.Save();
+                    Reload();
+                    Debug.Assert(_this != null);
+                }
+                else
+                {
+                    _this = new Config();
+                }
+            }
+
+            Debug.Assert(_this != null);
+        }
+
+        public static Config LoadConfig(string filePath)
+        {
             if (string.IsNullOrEmpty(filePath))
             {
                 filePath = GetDefaultConfigPath();
@@ -206,7 +217,6 @@
             sb.Append("Error processing config:\r\n");
 
             List<string> exceptionMessages = new List<string>();
-
             JsonSerializerSettings jsonSerializerSettings = new JsonSerializerSettings
             {
                 Error = new EventHandler<Newtonsoft.Json.Serialization.ErrorEventArgs>(
@@ -223,29 +233,34 @@
             string errorMessage = string.Empty;
             try
             {
-                _this = JsonConvert.DeserializeObject<Config>(File.ReadAllText(filePath), jsonSerializerSettings);
-                _this.FilePath = filePath;
+                Config temp = JsonConvert.DeserializeObject<Config>(File.ReadAllText(filePath), jsonSerializerSettings);
 
                 if (exceptionMessages.Count > 0)
                 {
                     errorMessage = "Exceptions hit while processing config:\r\n\r\n";
                     errorMessage += string.Join("\r\n\r\n-------------------------\r\n\r\n", exceptionMessages.ToArray());
                 }
+                else
+                {
+                    temp.FilePath = filePath;
+                    return temp;
+                }
             }
             catch
             {
-                _this = null;
-                _this = new Config();
                 if (!string.IsNullOrEmpty(filePath))
                 {
                     errorMessage = "Unable to process the config file :\r\n" + filePath;
                 }
             }
 
+            Debug.Assert(!string.IsNullOrEmpty(errorMessage));
             if (!string.IsNullOrEmpty(errorMessage))
             {
                 MessageBox.Show(errorMessage, "Error!", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+
+            return null;
         }
 
         public static bool SetPath(string fileName)
@@ -255,12 +270,30 @@
                 return false;
             }
 
-            JavaScriptSerializer ser = new JavaScriptSerializer();
+            List<string> exceptionMessages = new List<string>();
+            JsonSerializerSettings jsonSerializerSettings = new JsonSerializerSettings
+            {
+                Error = new EventHandler<Newtonsoft.Json.Serialization.ErrorEventArgs>(
+                (obj, args) =>
+                {
+                    exceptionMessages.Add(args.ErrorContext.Error.ToString());
+                    args.ErrorContext.Handled = true;
+                }),
+                CheckAdditionalContent = true,
+                MaxDepth = 100,
+                MissingMemberHandling = MissingMemberHandling.Error
+            };
+
             try
             {
-                ser.Deserialize<Dictionary<string, object>>(File.ReadAllText(fileName));
+                Config temp = JsonConvert.DeserializeObject<Config>(File.ReadAllText(fileName), jsonSerializerSettings);
             }
             catch
+            {
+                return false;
+            }
+
+            if (exceptionMessages.Count > 0)
             {
                 return false;
             }
@@ -270,15 +303,16 @@
             {
                 Properties.Settings.Default.ConfigPath = fileName;
                 Reload();
+                Properties.Settings.Default.Save();
+                return true;
             }
             catch
             {
-                Properties.Settings.Default.ConfigPath = oldConfigPath;
-                return false;
             }
 
+            Properties.Settings.Default.ConfigPath = oldConfigPath;
             Properties.Settings.Default.Save();
-            return true;
+            return false;
         }
 
         public Brush GetBrush(ConfigValue configValue)

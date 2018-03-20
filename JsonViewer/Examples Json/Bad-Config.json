@@ -1,0 +1,54 @@
+﻿{
+  "treeViewForeground": "#404040",
+  "treeViewBackground": "Transparent",
+  "treeViewSelectedForeground": "black",
+  "treeViewSelectedBackground": "lightblue",
+  "treeViewSelectedItemParentBackground": "lightgoldenrodyellow",
+  "treeViewFontSize": 12,
+  "treeViewSearchResultForeground": "blue",
+  "treeViewSearchResultBackground": "LightGreen",
+  "treeViewHighlights": [
+    {
+      "valueContains": [ "failure", "failed", "error" ],
+      "color": "red",
+      "fontSize": 16,
+      "appliesToParents": true
+    },
+    {
+      "valueContains": [ "success", "succeeded", "passed" ],
+      "color": "green",
+      "fontSize": 16,
+      "appliesToParents": true
+    },
+    {
+      "valueContains": [ "pending", "warning" ],
+      "color": "DarkOrange",
+      "appliesToParents": true
+    },
+    {
+      "keyIs": [ "result", "results" ],
+      "color": "DarkRed",
+      "fontSize": 16
+    },
+    {
+      "keyIs": [ "events" ],
+      "expandChildren": 2,
+      "ignoreCase": false
+    },
+    {
+      "keyContains": [ "account" ],
+      "keyIs": [ "expiration" ],
+      "color": "green"
+    },
+    {
+      "keyIs": [ "event_type", "state" ],
+      "color": "blue",
+      "fontSize": 16
+    },
+    {
+      "keyIs": [ "test_header" ],
+      "warningMessage": "Warning: test_header key found!",
+      "ignoreCase": false
+    }
+  ]
+}

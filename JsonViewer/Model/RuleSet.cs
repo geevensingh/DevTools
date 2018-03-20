@@ -86,7 +86,7 @@
 
             Config.This.Rules = configRules;
 
-            if (Config.This.Save())
+            if (Config.This.Save(Config.This.FilePath))
             {
                 foreach (RuleView ruleView in this.Rules)
                 {
