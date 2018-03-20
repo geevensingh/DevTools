@@ -31,22 +31,18 @@
     internal class Config : NotifyPropertyChanged
     {
         private static Config _this = null;
-        private static string _filePath = null;
 
         private Dictionary<string, object> _rawValues = new Dictionary<string, object>();
         private Dictionary<ConfigValue, Color> _colors = new Dictionary<ConfigValue, Color>();
         private Dictionary<ConfigValue, Brush> _brushes = new Dictionary<ConfigValue, Brush>();
         private IList<ConfigRule> _rules = new List<ConfigRule>();
+        private string _filePath = null;
 
         private Config()
         {
             Debug.Assert(_this == null);
             _this = this;
-            this.IsDefault = true;
         }
-
-        [JsonIgnore]
-        public static string FilePath { get => _filePath; }
 
         [JsonIgnore]
         public static Config This
@@ -64,7 +60,20 @@
         }
 
         [JsonIgnore]
-        public bool IsDefault { get; private set; }
+        public bool IsDefault
+        {
+            get => string.IsNullOrEmpty(this.FilePath);
+        }
+
+        [JsonIgnore]
+        public string FilePath {
+            get => _filePath;
+            private set
+            {
+                _filePath = value;
+                Properties.Settings.Default.ConfigPath = _filePath;
+            }
+        }
 
         public string DefaultForeground { get => this.GetRawValue("DefaultForeground", "Black"); set => this.SetRawValue("DefaultForeground", value); }
 
@@ -110,9 +119,10 @@
 
         public IList<ConfigRule> Rules { get => _rules; set => this.SetValue(ref _rules, value, "Rules"); }
 
-        public static bool Save()
+        public bool Save()
         {
-            if (string.IsNullOrEmpty(_filePath))
+            string filePath = this.FilePath;
+            if (string.IsNullOrEmpty(filePath))
             {
                 SaveFileDialog saveFileDialog = new SaveFileDialog
                 {
@@ -122,16 +132,17 @@
                 bool? saveFileDialogResult = saveFileDialog.ShowDialog();
                 if (saveFileDialogResult.HasValue && saveFileDialogResult.Value)
                 {
-                    _filePath = saveFileDialog.FileName;
+                    filePath = saveFileDialog.FileName;
                 }
             }
 
-            if (!string.IsNullOrEmpty(_filePath))
+            if (!string.IsNullOrEmpty(filePath))
             {
                 try
                 {
                     string jsonString = JsonConvert.SerializeObject(Config.This);
-                    File.WriteAllText(_filePath, jsonString, System.Text.Encoding.UTF8);
+                    File.WriteAllText(filePath, jsonString, System.Text.Encoding.UTF8);
+                    this.FilePath = filePath;
                     return true;
                 }
                 catch
@@ -142,69 +153,95 @@
             return false;
         }
 
+        private static string GetDefaultConfigPath()
+        {
+            string appDataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), @"JsonViewer");
+            string newConfig = Path.Combine(appDataDirectory, @"Config.json");
+            if (File.Exists(newConfig))
+            {
+                return newConfig;
+            }
+
+            try
+            {
+                if (File.Exists("Config.json"))
+                {
+                    Directory.CreateDirectory(appDataDirectory);
+                    File.Copy("Config.json", newConfig);
+                    return newConfig;
+                }
+            }
+            catch
+            {
+            }
+
+            return string.Empty;
+        }
+
         public static void Reload()
         {
             _this = null;
 
-            _filePath = Properties.Settings.Default.ConfigPath;
-            if (Path.GetFileName(_filePath).ToLower() == "config.json" && File.Exists(Path.Combine(Path.GetDirectoryName(_filePath), "JsonViewer.exe")))
+
+            string filePath = Properties.Settings.Default.ConfigPath;
+            if (Path.GetFileName(filePath).ToLower() == "config.json" && File.Exists(Path.Combine(Path.GetDirectoryName(filePath), "JsonViewer.exe")))
             {
-                _filePath = null;
+                filePath = null;
             }
 
-            if (!File.Exists(_filePath))
+            if (!File.Exists(filePath))
             {
-                _filePath = null;
+                filePath = null;
             }
 
-            if (string.IsNullOrEmpty(_filePath) && File.Exists("Config.json"))
+            if (string.IsNullOrEmpty(filePath))
             {
-                _filePath = "Config.json";
+                filePath = GetDefaultConfigPath();
             }
 
-            if (!string.IsNullOrEmpty(_filePath))
+            StringBuilder sb = new StringBuilder();
+            sb.Append("Error processing config:\r\n");
+
+            List<string> exceptionMessages = new List<string>();
+
+            JsonSerializerSettings jsonSerializerSettings = new JsonSerializerSettings
             {
-                StringBuilder sb = new StringBuilder();
-                sb.Append("Error processing config:\r\n");
-
-                List<string> exceptionMessages = new List<string>();
-
-                JsonSerializerSettings jsonSerializerSettings = new JsonSerializerSettings
+                Error = new EventHandler<Newtonsoft.Json.Serialization.ErrorEventArgs>(
+                (obj, args) =>
                 {
-                    Error = new EventHandler<Newtonsoft.Json.Serialization.ErrorEventArgs>(
-                    (obj, args) =>
-                    {
-                        exceptionMessages.Add(args.ErrorContext.Error.ToString());
-                        args.ErrorContext.Handled = true;
-                    }),
-                    CheckAdditionalContent = true,
-                    MaxDepth = 100,
-                    MissingMemberHandling = MissingMemberHandling.Error
-                };
+                    exceptionMessages.Add(args.ErrorContext.Error.ToString());
+                    args.ErrorContext.Handled = true;
+                }),
+                CheckAdditionalContent = true,
+                MaxDepth = 100,
+                MissingMemberHandling = MissingMemberHandling.Error
+            };
 
-                string errorMessage = string.Empty;
-                try
+            string errorMessage = string.Empty;
+            try
+            {
+                _this = JsonConvert.DeserializeObject<Config>(File.ReadAllText(filePath), jsonSerializerSettings);
+                _this.FilePath = filePath;
+
+                if (exceptionMessages.Count > 0)
                 {
-                    _this = JsonConvert.DeserializeObject<Config>(File.ReadAllText(_filePath), jsonSerializerSettings);
-                    _this.IsDefault = false;
-
-                    if (exceptionMessages.Count > 0)
-                    {
-                        errorMessage = "Exceptions hit while procesing config:\r\n\r\n";
-                        errorMessage += string.Join("\r\n\r\n-------------------------\r\n\r\n", exceptionMessages.ToArray());
-                    }
+                    errorMessage = "Exceptions hit while processing config:\r\n\r\n";
+                    errorMessage += string.Join("\r\n\r\n-------------------------\r\n\r\n", exceptionMessages.ToArray());
                 }
-                catch
+            }
+            catch
+            {
+                _this = null;
+                _this = new Config();
+                if (!string.IsNullOrEmpty(filePath))
                 {
-                    _this = null;
-                    _this = new Config();
-                    errorMessage = "Unable to process the config file.";
+                    errorMessage = "Unable to process the config file :\r\n" + filePath;
                 }
+            }
 
-                if (!string.IsNullOrEmpty(errorMessage))
-                {
-                    MessageBox.Show(errorMessage, "Error!", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
+            if (!string.IsNullOrEmpty(errorMessage))
+            {
+                MessageBox.Show(errorMessage, "Error!", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
