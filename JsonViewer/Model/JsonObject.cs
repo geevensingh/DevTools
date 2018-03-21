@@ -340,6 +340,11 @@
             }
         }
 
+        protected virtual void ApplyRules()
+        {
+            _rules.Initialize();
+        }
+
         private static object GetTypedValue(object value, out DataType dataType)
         {
             dataType = DataType.Other;
@@ -467,11 +472,6 @@
             }
 
             this.ApplyRules();
-        }
-
-        protected virtual void ApplyRules()
-        {
-            _rules.Initialize();
         }
 
         private bool AreListsEqual<T>(IList<T> first, IList<T> second)
