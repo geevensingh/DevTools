@@ -5,7 +5,7 @@
     using System.Windows.Media;
     using Utilities;
 
-    internal class FindRule : IRule
+    public class FindRule : IRule
     {
         private List<ConfigRule> _rules = new List<ConfigRule>();
         private Brush _foregroundBrush;
@@ -13,6 +13,8 @@
 
         internal FindRule(string text, bool ignoreCase, bool searchKeys, bool searchValues, bool searchValueTypes, bool appliesToParents, MatchTypeEnum matchType)
         {
+            System.Diagnostics.Debug.Assert(System.Threading.Thread.CurrentThread.ManagedThreadId == 1);
+
             _foregroundBrush = Config.This.GetBrush(matchType == MatchTypeEnum.Exact ? ConfigValue.SimilarNodeForeground : ConfigValue.SearchResultForeground);
             _backgroundBrush = Config.This.GetBrush(matchType == MatchTypeEnum.Exact ? ConfigValue.SimilarNodeBackground : ConfigValue.SearchResultBackground);
 

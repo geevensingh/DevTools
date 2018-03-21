@@ -199,7 +199,8 @@
             <TextBlock
                 Grid.Column="0"
                 Padding="5"
-                HorizontalAlignment="Left">
+                HorizontalAlignment="Left"
+                FontSize="18">
                 <Hyperlink
                     x:Name="WarningBannerActionLink"
                     Click="OnWarningBannerAction"

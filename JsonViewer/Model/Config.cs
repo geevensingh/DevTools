@@ -297,6 +297,7 @@
         {
             if (!_brushes.ContainsKey(configValue))
             {
+                Debug.WriteLine("thread id: " + System.Threading.Thread.CurrentThread.ManagedThreadId);
                 _brushes[configValue] = new SolidColorBrush(this.GetColor(configValue));
             }
 
@@ -348,39 +349,6 @@
 
             _rawValues[key] = fallback.GetName();
             return fallback;
-        }
-
-        public Brush GetForegroundColor(JsonObject obj)
-        {
-            IRule rule = obj.Rules.FirstOrDefault(x => x.ForegroundBrush != null);
-            if (rule != null)
-            {
-                return rule.ForegroundBrush;
-            }
-
-            return Config.This.GetBrush(ConfigValue.DefaultForeground);
-        }
-
-        public Brush GetBackgroundColor(JsonObject obj)
-        {
-            IRule rule = obj.Rules.FirstOrDefault(x => x.BackgroundBrush != null);
-            if (rule != null)
-            {
-                return rule.BackgroundBrush;
-            }
-
-            return this.GetBrush(ConfigValue.DefaultBackground);
-        }
-
-        public double GetFontSize(JsonObject obj)
-        {
-            IRule rule = obj.Rules.FirstOrDefault(x => x.FontSize.HasValue);
-            if (rule != null)
-            {
-                return rule.FontSize.Value;
-            }
-
-            return this.DefaultFontSize;
         }
 
         private static string GetDefaultConfigPath()

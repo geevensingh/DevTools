@@ -20,6 +20,8 @@
 
         public BaseCommand(string text, bool canExecute)
         {
+            Debug.Assert(System.Threading.Thread.CurrentThread.ManagedThreadId == 1);
+
             _text = text;
             _canExecute = canExecute;
 

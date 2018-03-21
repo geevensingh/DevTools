@@ -20,9 +20,7 @@
         private string _originalString;
         private object _typedValue;
         private DataType _dataType = DataType.Other;
-        private List<IRule> _rules = new List<IRule>();
-        private FindRule _findRule = null;
-        private FindRule _matchRule = null;
+        private RuleSet _rules = null;
         private bool _valuesInitialized = false;
         private string _valueTypeString;
         private string _oneLineValue;
@@ -182,7 +180,7 @@
             }
         }
 
-        internal List<IRule> Rules
+        internal RuleSet Rules
         {
             get
             {
@@ -193,83 +191,21 @@
 
         internal FindRule FindRule
         {
-            get => _findRule;
+            get => _rules.FindRule;
             set
             {
                 this.EnsureValues();
-
-                FindRule oldRule = _findRule;
-                FindRule newRule = value;
-
-                Debug.Assert(newRule == null || newRule.Matches(this));
-
-                if (oldRule == null && newRule == null)
-                {
-                    return;
-                }
-
-                if (oldRule != null && newRule != null)
-                {
-                    // Even though the old rule and the new rule are different,
-                    // let's treat them as the same and assume that they apply
-                    // the same formatting rules.
-                    return;
-                }
-
-                if (_findRule != null)
-                {
-                    _rules.Remove(_findRule);
-                }
-
-                _findRule = newRule;
-
-                if (newRule != null)
-                {
-                    _rules.Insert(0, newRule);
-                }
-
-                this.FirePropertyChanged("FindRule");
+                _rules.SetFindRule(value);
             }
         }
 
         internal FindRule MatchRule
         {
-            get => _matchRule;
+            get => _rules.MatchRule;
             set
             {
                 this.EnsureValues();
-
-                FindRule oldRule = _matchRule;
-                FindRule newRule = value;
-
-                Debug.Assert(newRule == null || newRule.Matches(this));
-
-                if (oldRule == null && newRule == null)
-                {
-                    return;
-                }
-
-                if (oldRule != null && newRule != null)
-                {
-                    // Even though the old rule and the new rule are different,
-                    // let's treat them as the same and assume that they apply
-                    // the same formatting rules.
-                    return;
-                }
-
-                if (_matchRule != null)
-                {
-                    _rules.Remove(_matchRule);
-                }
-
-                _matchRule = newRule;
-
-                if (newRule != null)
-                {
-                    _rules.Add(newRule);
-                }
-
-                this.FirePropertyChanged("FindRule");
+                _rules.SetMatchRule(value);
             }
         }
 
@@ -525,23 +461,17 @@
 
             _oneLineValue = oneLineValue;
 
+            if (_rules == null)
+            {
+                _rules = new RuleSet(this);
+            }
+
             this.ApplyRules();
         }
 
-        private void ApplyRules()
+        protected virtual void ApplyRules()
         {
-            List<IRule> newRules = new List<IRule>(Config.This.Rules.Where(rule => rule.Matches(this)));
-            if (_findRule != null)
-            {
-                newRules.Insert(0, _findRule);
-            }
-
-            if (_matchRule != null)
-            {
-                newRules.Add(_matchRule);
-            }
-
-            this.SetValueList(ref _rules, newRules, "Rules");
+            _rules.Initialize();
         }
 
         private bool AreListsEqual<T>(IList<T> first, IList<T> second)

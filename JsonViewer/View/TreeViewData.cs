@@ -2,8 +2,8 @@
 {
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
+    using System.ComponentModel;
     using System.Diagnostics;
-    using System.Linq;
     using System.Windows.Media;
     using JsonViewer.Commands.PerItem;
     using JsonViewer.Model;
@@ -16,18 +16,18 @@
         private ObservableCollection<TreeViewData> _children = new ObservableCollection<TreeViewData>();
         private bool _isSelected = false;
         private bool _isChildSelected = false;
-        private bool _rulesChangeFontSize = false;
-        private bool _rulesChangeForeground = false;
-        private bool _rulesChangeBackground = false;
 
         internal TreeViewData(CustomTreeView tree, JsonObject jsonObject, IList<TreeViewData> children)
         {
+            Debug.Assert(System.Threading.Thread.CurrentThread.ManagedThreadId == 1);
+
             _tree = tree;
             _jsonObject = jsonObject;
             _jsonObject.ViewObject = this;
             _children = new ObservableCollection<TreeViewData>(children);
 
             _jsonObject.PropertyChanged += OnDataModelPropertyChanged;
+            _jsonObject.Rules.PropertyChanged += OnRulesPropertyChanged;
             Properties.Settings.Default.PropertyChanged += OnSettingsPropertyChanged;
 
             this.ExpandChildrenCommand = new ExpandChildrenCommand(this);
@@ -86,7 +86,7 @@
                     return Config.This.GetBrush(ConfigValue.SelectedParentForeground);
                 }
 
-                return Config.This.GetForegroundColor(_jsonObject);
+                return _jsonObject.Rules.TextColor;
             }
         }
 
@@ -104,7 +104,7 @@
                     return Config.This.GetBrush(ConfigValue.SelectedParentBackground);
                 }
 
-                return Config.This.GetBackgroundColor(_jsonObject);
+                return _jsonObject.Rules.BackgroundColor;
             }
         }
 
@@ -112,7 +112,7 @@
         {
             get
             {
-                return Config.This.GetFontSize(_jsonObject);
+                return _jsonObject.Rules.FontSize;
             }
         }
 
@@ -193,13 +193,26 @@
                 case "AllChildren":
                     this.FirePropertyChanged("AllChildren");
                     break;
-                case "FindRule":
-                    this.FirePropertyChanged(new string[] { "TextColor", "BackgroundColor" });
+                default:
+                    Debug.Assert(false, "Unknown property change");
+                    break;
+            }
+        }
+
+        private void OnRulesPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            switch (e.PropertyName)
+            {
+                case "TextColor":
+                case "BackgroundColor":
+                case "FontSize":
+                    this.FirePropertyChanged(e.PropertyName);
                     break;
                 case "Rules":
-                    this.SetValue(ref _rulesChangeFontSize, this.JsonObject.Rules.Any((rule) => rule.FontSize.HasValue), "FontSize");
-                    this.SetValue(ref _rulesChangeForeground, this.JsonObject.Rules.Any((rule) => rule.ForegroundBrush != null), "TextColor");
-                    this.SetValue(ref _rulesChangeBackground, this.JsonObject.Rules.Any((rule) => rule.BackgroundBrush != null), "BackgroundColor");
+                case "FindRule":
+                case "MatchRule":
+                case "ExpandChildren":
+                case "WarningMessages":
                     break;
                 default:
                     Debug.Assert(false, "Unknown property change");

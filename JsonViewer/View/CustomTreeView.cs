@@ -18,6 +18,8 @@
 
         public CustomTreeView()
         {
+            System.Diagnostics.Debug.Assert(System.Threading.Thread.CurrentThread.ManagedThreadId == 1);
+
             _action = new SingularAction(this.Dispatcher);
             _action.PropertyChanged += OnActionPropertyChanged;
             CommandBinding copyCommandBinding = new CommandBinding

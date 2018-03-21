@@ -74,7 +74,7 @@
                 {
                     foreach (JsonObject jsonObj in this.AllChildren)
                     {
-                        int? depth = jsonObj.Rules.Max(x => x.ExpandChildren);
+                        int? depth = jsonObj.Rules.ExpandChildren;
                         if (depth.HasValue)
                         {
                             tree.ExpandToItem(jsonObj.ViewObject);
@@ -97,6 +97,11 @@
             Debug.Assert(this.Children[index].ViewObject == _viewChildren[index]);
             _viewChildren.RemoveAt(index);
             _viewChildren.Insert(index, child.ResetView());
+        }
+
+        protected override void ApplyRules()
+        {
+            // Do nothing
         }
     }
 }

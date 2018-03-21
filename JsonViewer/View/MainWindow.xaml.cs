@@ -310,7 +310,6 @@
                 case "ConfigPath":
                     this.SetWarningMessage(
                         "Your default config file has changed.  Would you like to reload?",
-                        null,
                         () =>
                         {
                             this.Toolbar.ReloadCommand.Execute(null);
@@ -335,7 +334,6 @@
             {
                 this.SetWarningMessage(
                     "Unable to find your configuration file.  Do you want to pick a configuration file?",
-                    null,
                     () =>
                     {
                         this.Toolbar.PickConfigCommand.Execute(null);
@@ -350,24 +348,37 @@
             }
             else
             {
-                IEnumerable<ConfigRule> warningRules = Config.This?.Rules?.Where(rule => !string.IsNullOrEmpty(rule.WarningMessage)).Where(x => _rootObject?.AllChildren?.Any(y => y.Rules.Contains(x)) ?? false);
-                IEnumerable<string> warnings = warningRules?.Select(x => x.WarningMessage);
-                if (warnings != null && warnings.Count() > 0)
+                List<JsonObject> nodes = _rootObject?.AllChildren;
+                if (nodes != null)
                 {
-                    double? fontSize = warningRules.Max((rule) => rule.FontSize);
-                    string warningMessage = string.Join("\r\n", warnings);
-                    this.SetWarningMessage(
-                        warningMessage,
-                        fontSize,
-                        null,
-                        () =>
+                    SortedSet<string> set = new SortedSet<string>();
+                    foreach (JsonObject obj in nodes)
+                    {
+                        IEnumerable<string> warningMessages = obj.Rules.WarningMessages;
+                        if (warningMessages != null)
                         {
-                            foreach (JsonObject jsonObject in _rootObject.AllChildren)
+                            foreach (string warningMessage in warningMessages)
                             {
-                                jsonObject.Rules.RemoveAll(y => !string.IsNullOrEmpty(y.WarningMessage));
+                                set.Add(warningMessage);
                             }
-                            this.UpdateWarnings();
-                        });
+                        }
+                    }
+
+                    if (set.Count > 0)
+                    {
+                        string warningMessage = string.Join("\r\n", set.ToArray());
+                        this.SetWarningMessage(
+                            warningMessage,
+                            null,
+                            () =>
+                            {
+                                foreach (JsonObject jsonObject in _rootObject.AllChildren)
+                                {
+                                    jsonObject.Rules.DismissWarningMessage();
+                                }
+                                this.UpdateWarnings();
+                            });
+                    }
                 }
             }
         }
@@ -379,17 +390,11 @@
             this._warningBannerDismiss = null;
         }
 
-        private void SetWarningMessage(string message, double? fontSize, WarningBannerActionHandler onAction, WarningBannerActionHandler onDismiss)
+        private void SetWarningMessage(string message, WarningBannerActionHandler onAction, WarningBannerActionHandler onDismiss)
         {
             Debug.Assert(!string.IsNullOrEmpty(message));
 
-            if (!fontSize.HasValue)
-            {
-                fontSize = Config.This.DefaultFontSize;
-            }
-
             this.WarningBanner.Visibility = Visibility.Visible;
-            this.WarningBannerActionLink.FontSize = fontSize.Value * 1.5;
             this.WarningBannerActionLink.Inlines.Clear();
             this.WarningBannerActionLink.Inlines.Add(new System.Windows.Documents.Run(message));
             this._warningBannerAction = onAction;

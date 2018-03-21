@@ -16,6 +16,8 @@
 
         public EditableRuleView()
         {
+            System.Diagnostics.Debug.Assert(System.Threading.Thread.CurrentThread.ManagedThreadId == 1);
+
             _rule = new ConfigRule();
         }
 
