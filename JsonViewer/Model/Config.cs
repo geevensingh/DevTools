@@ -6,6 +6,7 @@
     using System.IO;
     using System.Linq;
     using System.Text;
+    using System.Threading.Tasks;
     using System.Web.Script.Serialization;
     using System.Windows;
     using System.Windows.Media;
@@ -260,7 +261,7 @@
             return false;
         }
 
-        public bool Save(string filePath)
+        public async Task<bool> Save(string filePath)
         {
             if (string.IsNullOrEmpty(filePath))
             {
@@ -278,16 +279,37 @@
 
             if (!string.IsNullOrEmpty(filePath))
             {
+                string jsonString = string.Empty;
                 try
                 {
-                    string jsonString = JsonConvert.SerializeObject(Config.This);
-                    File.WriteAllText(filePath, jsonString, System.Text.Encoding.UTF8);
+                    jsonString = JsonConvert.SerializeObject(Config.This);
+                }
+                catch
+                {
+                    return false;
+                }
+
+
+                try
+                {
+                    jsonString = (await RootObject.Create(JsonObjectFactory.TryDeserialize(jsonString)?.Dictionary)).PrettyValueString;
+                }
+                catch
+                {
+                    // Don't care if this fails
+                }
+
+                try
+                {
+                    File.WriteAllText(filePath, jsonString, Encoding.UTF8);
                     this.FilePath = filePath;
                     return true;
                 }
                 catch
                 {
+                    // Falls through to return false
                 }
+
             }
 
             return false;

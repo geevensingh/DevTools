@@ -6,6 +6,7 @@
     using System.ComponentModel;
     using System.Diagnostics;
     using System.Linq;
+    using System.Threading.Tasks;
     using JsonViewer.View;
     using Utilities;
 
@@ -76,7 +77,7 @@
             return newIndex;
         }
 
-        internal void Save()
+        internal async Task Save()
         {
             List<ConfigRule> configRules = new List<ConfigRule>();
             foreach (EditableRuleView ruleView in this.Rules)
@@ -86,7 +87,7 @@
 
             Config.This.Rules = configRules;
 
-            if (Config.This.Save(Config.This.FilePath))
+            if (await Config.This.Save(Config.This.FilePath))
             {
                 foreach (EditableRuleView ruleView in this.Rules)
                 {

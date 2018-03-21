@@ -424,9 +424,9 @@
             }
         }
 
-        private void SaveRuleChanges_Click(object sender, RoutedEventArgs e)
+        private async void SaveRuleChanges_Click(object sender, RoutedEventArgs e)
         {
-            this.RuleSet.Save();
+            await this.RuleSet.Save();
             this.RootObject?.FlushRules();
             this.RootObject?.ApplyExpandRule(this.Tree);
             this.UpdateWarnings();
