@@ -597,17 +597,25 @@
             }
             else
             {
-                sb.Append("\"");
                 if (_originalString == null)
                 {
-                    sb.Append(this.ValueString);
+                    if (this.Value is DateTime dateTime)
+                    {
+                        sb.Append("\"");
+                        sb.Append(dateTime.ToString("o", System.Globalization.CultureInfo.InvariantCulture));
+                        sb.Append("\"");
+                    }
+                    else
+                    {
+                        sb.Append(this.ValueString);
+                    }
                 }
                 else
                 {
+                    sb.Append("\"");
                     sb.Append(Utilities.CSEscape.Escape(_originalString));
+                    sb.Append("\"");
                 }
-
-                sb.Append("\"");
             }
 
             return sb.ToString();
