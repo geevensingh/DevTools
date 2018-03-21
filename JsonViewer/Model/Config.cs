@@ -289,7 +289,6 @@
                     return false;
                 }
 
-
                 try
                 {
                     jsonString = (await RootObject.Create(JsonObjectFactory.TryDeserialize(jsonString)?.Dictionary)).PrettyValueString;
@@ -309,7 +308,6 @@
                 {
                     // Falls through to return false
                 }
-
             }
 
             return false;
