@@ -18,6 +18,11 @@
             _foregroundBrush = Config.This.GetBrush(matchType == MatchTypeEnum.Exact ? ConfigValue.SimilarNodeForeground : ConfigValue.SearchResultForeground);
             _backgroundBrush = Config.This.GetBrush(matchType == MatchTypeEnum.Exact ? ConfigValue.SimilarNodeBackground : ConfigValue.SearchResultBackground);
 
+            if (ignoreCase)
+            {
+                text = text.ToLower();
+            }
+
             void AddRule(MatchFieldEnum matchField)
             {
                 _rules.Add(new ConfigRule()
