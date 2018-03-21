@@ -9,7 +9,7 @@
         public static ObservableCollection<EditableRuleView> CreateCollection(EditableRuleSet ruleSet)
         {
             List<EditableRuleView> ruleViews = new List<EditableRuleView>();
-            IList<ConfigRule> rules = Config.This.Rules;
+            IList<ConfigRule> rules = Config.Values.Rules;
             for (int ii = 0; ii < rules.Count; ii++)
             {
                 ruleViews.Add(new EditableRuleView(rules[ii], ii, ruleSet));

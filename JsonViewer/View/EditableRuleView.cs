@@ -157,9 +157,9 @@
             }
         }
 
-        public Brush BackgroundBrush { get => _rule.BackgroundBrush ?? Config.This.GetBrush(ConfigValue.DefaultBackground); }
+        public Brush BackgroundBrush { get => _rule.BackgroundBrush ?? Config.Values.GetBrush(ConfigValue.DefaultBackground); }
 
-        public Brush ForegroundBrush { get => _rule.ForegroundBrush ?? Config.This.GetBrush(ConfigValue.DefaultForeground); }
+        public Brush ForegroundBrush { get => _rule.ForegroundBrush ?? Config.Values.GetBrush(ConfigValue.DefaultForeground); }
 
         public Color ForegroundColor
         {

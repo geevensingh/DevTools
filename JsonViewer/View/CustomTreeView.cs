@@ -144,11 +144,11 @@
         {
             base.OnInitialized(e);
 
-            Config config = Config.This;
-            this.Foreground = config.GetBrush(ConfigValue.DefaultForeground);
-            this.Background = config.GetBrush(ConfigValue.DefaultBackground);
-            this.Resources[SystemColors.HighlightBrushKey] = config.GetBrush(ConfigValue.SelectedBackground);
-            this.Resources[SystemColors.HighlightTextBrushKey] = config.GetBrush(ConfigValue.SelectedForeground);
+            ConfigValues configValues = Config.Values;
+            this.Foreground = configValues.GetBrush(ConfigValue.DefaultForeground);
+            this.Background = configValues.GetBrush(ConfigValue.DefaultBackground);
+            this.Resources[SystemColors.HighlightBrushKey] = configValues.GetBrush(ConfigValue.SelectedBackground);
+            this.Resources[SystemColors.HighlightTextBrushKey] = configValues.GetBrush(ConfigValue.SelectedForeground);
         }
 
         protected override DependencyObject GetContainerForItemOverride()

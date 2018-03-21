@@ -85,9 +85,9 @@
                 configRules.Add(ruleView.Rule);
             }
 
-            Config.This.Rules = configRules;
+            Config.Values.Rules = configRules;
 
-            if (await Config.This.Save(Config.This.FilePath))
+            if (await Config.Save(Config.FilePath))
             {
                 foreach (EditableRuleView ruleView in this.Rules)
                 {

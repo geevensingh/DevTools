@@ -330,7 +330,7 @@
         {
             this.ClearWarningMessage();
 
-            if (Config.This.IsDefault && Properties.Settings.Default.MainWindowWarnOnDefaultConfig)
+            if (Config.IsDefault && Properties.Settings.Default.MainWindowWarnOnDefaultConfig)
             {
                 this.SetWarningMessage(
                     "Unable to find your configuration file.  Do you want to pick a configuration file?",

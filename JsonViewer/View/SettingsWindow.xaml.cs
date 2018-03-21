@@ -29,7 +29,7 @@
 
         public Color DefaultForegroundColor
         {
-            get => Config.This.GetColor(ConfigValue.DefaultForeground);
+            get => Config.Values.GetColor(ConfigValue.DefaultForeground);
             set
             {
                 Debug.Assert(false);
@@ -38,7 +38,7 @@
 
         public Color DefaultBackgroundColor
         {
-            get => Config.This.GetColor(ConfigValue.DefaultBackground);
+            get => Config.Values.GetColor(ConfigValue.DefaultBackground);
             set
             {
                 Debug.Assert(false);
@@ -47,7 +47,7 @@
 
         public Brush DefaultForegroundBrush
         {
-            get => Config.This.GetBrush(ConfigValue.DefaultForeground);
+            get => Config.Values.GetBrush(ConfigValue.DefaultForeground);
             set
             {
                 Debug.Assert(false);
@@ -56,7 +56,7 @@
 
         public Brush DefaultBackgroundBrush
         {
-            get => Config.This.GetBrush(ConfigValue.DefaultBackground);
+            get => Config.Values.GetBrush(ConfigValue.DefaultBackground);
             set
             {
                 Debug.Assert(false);
@@ -65,7 +65,7 @@
 
         public Color SelectedForegroundColor
         {
-            get => Config.This.GetColor(ConfigValue.SelectedForeground);
+            get => Config.Values.GetColor(ConfigValue.SelectedForeground);
             set
             {
                 Debug.Assert(false);
@@ -74,7 +74,7 @@
 
         public Color SelectedBackgroundColor
         {
-            get => Config.This.GetColor(ConfigValue.SelectedBackground);
+            get => Config.Values.GetColor(ConfigValue.SelectedBackground);
             set
             {
                 Debug.Assert(false);
@@ -83,7 +83,7 @@
 
         public Brush SelectedForegroundBrush
         {
-            get => Config.This.GetBrush(ConfigValue.SelectedForeground);
+            get => Config.Values.GetBrush(ConfigValue.SelectedForeground);
             set
             {
                 Debug.Assert(false);
@@ -92,7 +92,7 @@
 
         public Brush SelectedBackgroundBrush
         {
-            get => Config.This.GetBrush(ConfigValue.SelectedBackground);
+            get => Config.Values.GetBrush(ConfigValue.SelectedBackground);
             set
             {
                 Debug.Assert(false);
@@ -101,7 +101,7 @@
 
         public Color SearchResultForegroundColor
         {
-            get => Config.This.GetColor(ConfigValue.SearchResultForeground);
+            get => Config.Values.GetColor(ConfigValue.SearchResultForeground);
             set
             {
                 Debug.Assert(false);
@@ -110,7 +110,7 @@
 
         public Color SearchResultBackgroundColor
         {
-            get => Config.This.GetColor(ConfigValue.SearchResultBackground);
+            get => Config.Values.GetColor(ConfigValue.SearchResultBackground);
             set
             {
                 Debug.Assert(false);
@@ -119,7 +119,7 @@
 
         public Brush SearchResultForegroundBrush
         {
-            get => Config.This.GetBrush(ConfigValue.SearchResultForeground);
+            get => Config.Values.GetBrush(ConfigValue.SearchResultForeground);
             set
             {
                 Debug.Assert(false);
@@ -128,7 +128,7 @@
 
         public Brush SearchResultBackgroundBrush
         {
-            get => Config.This.GetBrush(ConfigValue.SearchResultBackground);
+            get => Config.Values.GetBrush(ConfigValue.SearchResultBackground);
             set
             {
                 Debug.Assert(false);
@@ -137,7 +137,7 @@
 
         public Color SimilarNodeForegroundColor
         {
-            get => Config.This.GetColor(ConfigValue.SimilarNodeForeground);
+            get => Config.Values.GetColor(ConfigValue.SimilarNodeForeground);
             set
             {
                 Debug.Assert(false);
@@ -146,7 +146,7 @@
 
         public Color SimilarNodeBackgroundColor
         {
-            get => Config.This.GetColor(ConfigValue.SimilarNodeBackground);
+            get => Config.Values.GetColor(ConfigValue.SimilarNodeBackground);
             set
             {
                 Debug.Assert(false);
@@ -155,7 +155,7 @@
 
         public Brush SimilarNodeForegroundBrush
         {
-            get => Config.This.GetBrush(ConfigValue.SimilarNodeForeground);
+            get => Config.Values.GetBrush(ConfigValue.SimilarNodeForeground);
             set
             {
                 Debug.Assert(false);
@@ -164,7 +164,7 @@
 
         public Brush SimilarNodeBackgroundBrush
         {
-            get => Config.This.GetBrush(ConfigValue.SimilarNodeBackground);
+            get => Config.Values.GetBrush(ConfigValue.SimilarNodeBackground);
             set
             {
                 Debug.Assert(false);
@@ -173,7 +173,7 @@
 
         public Color SelectedParentForegroundColor
         {
-            get => Config.This.GetColor(ConfigValue.SelectedParentForeground);
+            get => Config.Values.GetColor(ConfigValue.SelectedParentForeground);
             set
             {
                 Debug.Assert(false);
@@ -182,7 +182,7 @@
 
         public Color SelectedParentBackgroundColor
         {
-            get => Config.This.GetColor(ConfigValue.SelectedParentBackground);
+            get => Config.Values.GetColor(ConfigValue.SelectedParentBackground);
             set
             {
                 Debug.Assert(false);
@@ -191,7 +191,7 @@
 
         public Brush SelectedParentForegroundBrush
         {
-            get => Config.This.GetBrush(ConfigValue.SelectedParentForeground);
+            get => Config.Values.GetBrush(ConfigValue.SelectedParentForeground);
             set
             {
                 Debug.Assert(false);
@@ -200,7 +200,7 @@
 
         public Brush SelectedParentBackgroundBrush
         {
-            get => Config.This.GetBrush(ConfigValue.SelectedParentBackground);
+            get => Config.Values.GetBrush(ConfigValue.SelectedParentBackground);
             set
             {
                 Debug.Assert(false);
