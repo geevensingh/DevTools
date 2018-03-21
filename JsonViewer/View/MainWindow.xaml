@@ -162,6 +162,8 @@
                 <MenuItem Command="{Binding ElementName=Toolbar, Path=NewWindowCommand.RoutedUICommand}" Header="_New window" />
                 <Separator />
                 <MenuItem Command="ApplicationCommands.Find" Header="_Find window" />
+                <Separator />
+                <MenuItem Command="{Binding ElementName=Toolbar, Path=SettingsCommand.RoutedUICommand}" Header="{Binding ElementName=Toolbar, Path=SettingsCommand.Text}" />
             </MenuItem>
             <MenuItem x:Name="ExpandToMenuItem" Header="_Expand to" />
         </Menu>

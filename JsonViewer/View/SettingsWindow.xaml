@@ -1,0 +1,132 @@
+﻿<Window
+    x:Class="JsonViewer.View.SettingsWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:JsonViewer.View"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+    Title="SettingsWindow"
+    DataContext="{Binding RelativeSource={RelativeSource Self}}"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    SizeToContent="WidthAndHeight"
+    WindowStartupLocation="CenterOwner"
+    WindowStyle="ToolWindow"
+    mc:Ignorable="d">
+    <Window.Resources>
+        <Style x:Key="TextBoxStyle" TargetType="TextBlock">
+            <Setter Property="Margin" Value="5,5" />
+        </Style>
+
+        <Style x:Key="ColorPropertyValueWrapperStyle" TargetType="StackPanel">
+            <Setter Property="Orientation" Value="Horizontal" />
+            <Setter Property="Margin" Value="5,5" />
+        </Style>
+    </Window.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <TextBlock
+            Grid.Row="0"
+            Grid.Column="0"
+            Background="{Binding Path=DefaultBackgroundBrush}"
+            Foreground="{Binding Path=DefaultForegroundBrush}"
+            Style="{StaticResource TextBoxStyle}">
+            Default Text
+        </TextBlock>
+        <StackPanel
+            Grid.Row="0"
+            Grid.Column="1"
+            Style="{StaticResource ColorPropertyValueWrapperStyle}">
+            <xctk:ColorPicker DisplayColorAndName="True" SelectedColor="{Binding Path=DefaultForegroundColor}" />
+            <TextBlock Margin="5,0">on</TextBlock>
+            <xctk:ColorPicker DisplayColorAndName="True" SelectedColor="{Binding Path=DefaultBackgroundColor}" />
+        </StackPanel>
+
+        <TextBlock
+            Grid.Row="1"
+            Grid.Column="0"
+            Background="{Binding Path=SelectedBackgroundBrush}"
+            Foreground="{Binding Path=SelectedForegroundBrush}"
+            Style="{StaticResource TextBoxStyle}">
+            Selected Text
+        </TextBlock>
+        <StackPanel
+            Grid.Row="1"
+            Grid.Column="1"
+            Style="{StaticResource ColorPropertyValueWrapperStyle}">
+            <xctk:ColorPicker DisplayColorAndName="True" SelectedColor="{Binding Path=SelectedForegroundColor}" />
+            <TextBlock Margin="5,0">on</TextBlock>
+            <xctk:ColorPicker DisplayColorAndName="True" SelectedColor="{Binding Path=SelectedBackgroundColor}" />
+        </StackPanel>
+
+        <TextBlock
+            Grid.Row="2"
+            Grid.Column="0"
+            Background="{Binding Path=SearchResultBackgroundBrush}"
+            Foreground="{Binding Path=SearchResultForegroundBrush}"
+            Style="{StaticResource TextBoxStyle}">
+            SearchResult Text
+        </TextBlock>
+        <StackPanel
+            Grid.Row="2"
+            Grid.Column="1"
+            Style="{StaticResource ColorPropertyValueWrapperStyle}">
+            <xctk:ColorPicker DisplayColorAndName="True" SelectedColor="{Binding Path=SearchResultForegroundColor}" />
+            <TextBlock Margin="5,0">on</TextBlock>
+            <xctk:ColorPicker DisplayColorAndName="True" SelectedColor="{Binding Path=SearchResultBackgroundColor}" />
+        </StackPanel>
+
+        <TextBlock
+            Grid.Row="3"
+            Grid.Column="0"
+            Background="{Binding Path=SimilarNodeBackgroundBrush}"
+            Foreground="{Binding Path=SimilarNodeForegroundBrush}"
+            Style="{StaticResource TextBoxStyle}">
+            SimilarNode Text
+        </TextBlock>
+        <StackPanel
+            Grid.Row="3"
+            Grid.Column="1"
+            Style="{StaticResource ColorPropertyValueWrapperStyle}">
+            <xctk:ColorPicker DisplayColorAndName="True" SelectedColor="{Binding Path=SimilarNodeForegroundColor}" />
+            <TextBlock Margin="5,0">on</TextBlock>
+            <xctk:ColorPicker DisplayColorAndName="True" SelectedColor="{Binding Path=SimilarNodeBackgroundColor}" />
+        </StackPanel>
+
+        <TextBlock
+            Grid.Row="4"
+            Grid.Column="0"
+            Background="{Binding Path=SelectedParentBackgroundBrush}"
+            Foreground="{Binding Path=SelectedParentForegroundBrush}"
+            Style="{StaticResource TextBoxStyle}">
+            SelectedParent Text
+        </TextBlock>
+        <StackPanel
+            Grid.Row="4"
+            Grid.Column="1"
+            Style="{StaticResource ColorPropertyValueWrapperStyle}">
+            <xctk:ColorPicker DisplayColorAndName="True" SelectedColor="{Binding Path=SelectedParentForegroundColor}" />
+            <TextBlock Margin="5,0">on</TextBlock>
+            <xctk:ColorPicker DisplayColorAndName="True" SelectedColor="{Binding Path=SelectedParentBackgroundColor}" />
+        </StackPanel>
+    </Grid>
+</Window>

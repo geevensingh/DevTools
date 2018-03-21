@@ -34,6 +34,7 @@
         private PrettyCopyAllCommand _prettyCopyAllCommand = null;
         private PrettyTextCommand _prettyTextCommand = null;
         private ReloadCommand _reloadCommand = null;
+        private SettingsCommand _settingsCommand = null;
         private ShowToolbarIconToggleCommand _showToolbarIconToggleCommand = null;
         private ShowToolbarTextToggleCommand _showToolbarTextToggleCommand = null;
         private SwitchModeCommand _showTextModeCommand = null;
@@ -49,13 +50,15 @@
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        public BaseCommand[] AllCommands { get => new BaseCommand[] { _autoPasteToggleCommand, _collapseAllCommand, _expandAllCommand, _findNextCommand, _findPreviousCommand, _hideFindCommand, _highlightParentsToggleCommand, _highlightSimilarKeysToggleCommand, _highlightSimilarValuesToggleCommand, _newWindowCommand, _openJsonFileCommand, _pasteCommand, _pickConfigCommand, _prettyCopyAllCommand, _prettyTextCommand, _reloadCommand, _showTextModeCommand, _showToolbarIconToggleCommand, _showToolbarTextToggleCommand, _showTreeModeCommand, _showRulesModeCommand }; }
+        public BaseCommand[] AllCommands { get => new BaseCommand[] { _autoPasteToggleCommand, _collapseAllCommand, _expandAllCommand, _findNextCommand, _findPreviousCommand, _hideFindCommand, _highlightParentsToggleCommand, _highlightSimilarKeysToggleCommand, _highlightSimilarValuesToggleCommand, _newWindowCommand, _openJsonFileCommand, _pasteCommand, _pickConfigCommand, _prettyCopyAllCommand, _prettyTextCommand, _reloadCommand, _settingsCommand, _showTextModeCommand, _showToolbarIconToggleCommand, _showToolbarTextToggleCommand, _showTreeModeCommand, _showRulesModeCommand }; }
 
         public NewWindowCommand NewWindowCommand { get => _newWindowCommand; }
 
         public PickConfigCommand PickConfigCommand { get => _pickConfigCommand; }
 
         public ReloadCommand ReloadCommand { get => _reloadCommand; }
+
+        public SettingsCommand SettingsCommand { get => _settingsCommand; }
 
         public HideFindCommand HideFindCommand { get => _hideFindCommand; }
 
@@ -129,6 +132,7 @@
             NotifyPropertyChanged.SetValue(ref _newWindowCommand, new NewWindowCommand(_mainWindow), "NewWindowCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _pickConfigCommand, new PickConfigCommand(_mainWindow), "PickConfigCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _reloadCommand, new ReloadCommand(_mainWindow), "ReloadCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _settingsCommand, new SettingsCommand(_mainWindow), "SettingsCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _hideFindCommand, new HideFindCommand(_mainWindow), "HideFindCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _openJsonFileCommand, new OpenJsonFileCommand(_mainWindow), "OpenJsonFileCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _highlightParentsToggleCommand, new HighlightParentsToggleCommand(), "HighlightParentsToggleCommand", this, this.PropertyChanged);
