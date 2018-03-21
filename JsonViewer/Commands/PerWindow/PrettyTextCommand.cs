@@ -1,30 +1,29 @@
-﻿namespace JsonViewer.Commands
+﻿namespace JsonViewer.Commands.PerWindow
 {
+    using System.Diagnostics;
     using JsonViewer.View;
 
-    public class SwitchModeCommand : BaseCommand
+    public class PrettyTextCommand : BaseCommand
     {
-        public SwitchModeCommand(MainWindow mainWindow, string text, MainWindow.DisplayMode displayMode)
-            : base(text)
+        public PrettyTextCommand(MainWindow mainWindow)
+            : base("Pretty-ify text")
         {
             this.ForceVisibility = System.Windows.Visibility.Visible;
-            this.DisplayMode = displayMode;
             this.MainWindow = mainWindow;
             this.Update();
         }
 
-        private MainWindow.DisplayMode DisplayMode { get; set; }
-
         public override void Execute(object parameter)
         {
-            this.MainWindow.SetDisplayMode(this.DisplayMode);
+            Debug.Assert(this.MainWindow.RootObject != null);
+            this.MainWindow.Raw_TextBox.Text = this.MainWindow.RootObject?.PrettyValueString;
         }
 
         protected override void OnMainWindowPropertyChanged(string propertyName)
         {
             switch (propertyName)
             {
-                case "Mode":
+                case "RootObject":
                     this.Update();
                     break;
             }
@@ -32,7 +31,7 @@
 
         private void Update()
         {
-            this.SetCanExecute(this.MainWindow.Mode != this.DisplayMode);
+            this.SetCanExecute(this.MainWindow.RootObject != null);
         }
     }
 }
