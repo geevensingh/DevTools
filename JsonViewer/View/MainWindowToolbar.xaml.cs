@@ -131,7 +131,7 @@
 
             NotifyPropertyChanged.SetValue(ref _newWindowCommand, new NewWindowCommand(_mainWindow), "NewWindowCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _pickConfigCommand, new PickConfigCommand(_mainWindow), "PickConfigCommand", this, this.PropertyChanged);
-            NotifyPropertyChanged.SetValue(ref _reloadCommand, new ReloadCommand(_mainWindow), "ReloadCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _reloadCommand, new ReloadCommand(), "ReloadCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _settingsCommand, new SettingsCommand(_mainWindow), "SettingsCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _hideFindCommand, new HideFindCommand(_mainWindow), "HideFindCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _openJsonFileCommand, new OpenJsonFileCommand(_mainWindow), "OpenJsonFileCommand", this, this.PropertyChanged);

@@ -32,12 +32,6 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition />
@@ -127,6 +121,14 @@
             <xctk:ColorPicker DisplayColorAndName="True" SelectedColor="{Binding Path=SelectedParentForegroundColor}" />
             <TextBlock Margin="5,0">on</TextBlock>
             <xctk:ColorPicker DisplayColorAndName="True" SelectedColor="{Binding Path=SelectedParentBackgroundColor}" />
+        </StackPanel>
+
+        <StackPanel
+            Grid.Row="5"
+            Grid.Column="1"
+            Orientation="Horizontal">
+            <Button Click="OnSaveButtonClick">Save</Button>
+            <Button Click="OnCancelButtonClick">Cancel</Button>
         </StackPanel>
     </Grid>
 </Window>

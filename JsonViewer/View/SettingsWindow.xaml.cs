@@ -1,210 +1,169 @@
 ﻿namespace JsonViewer.View
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Diagnostics;
-    using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
+    using System.ComponentModel;
     using System.Windows;
-    using System.Windows.Controls;
-    using System.Windows.Data;
-    using System.Windows.Documents;
-    using System.Windows.Input;
     using System.Windows.Media;
-    using System.Windows.Media.Imaging;
-    using System.Windows.Shapes;
     using JsonViewer.Model;
+    using Utilities;
 
     /// <summary>
     /// Interaction logic for SettingsWindow.xaml
     /// </summary>
-    public partial class SettingsWindow : Window
+    public partial class SettingsWindow : Window, INotifyPropertyChanged
     {
+        private ConfigValues _values;
+
         public SettingsWindow(MainWindow mainWindow)
         {
+            _values = Config.Values.Clone();
+            _values.PropertyChanged += OnValuesPropertyChanged;
             InitializeComponent();
             this.Owner = mainWindow;
         }
 
+        public event PropertyChangedEventHandler PropertyChanged;
+
         public Color DefaultForegroundColor
         {
-            get => Config.Values.GetColor(ConfigValue.DefaultForeground);
-            set
-            {
-                Debug.Assert(false);
-            }
+            get => _values.GetColor(ConfigValue.DefaultForeground);
+            set => _values.DefaultForeground = value;
         }
 
         public Color DefaultBackgroundColor
         {
-            get => Config.Values.GetColor(ConfigValue.DefaultBackground);
-            set
-            {
-                Debug.Assert(false);
-            }
+            get => _values.GetColor(ConfigValue.DefaultBackground);
+            set => _values.DefaultBackground = value;
         }
 
         public Brush DefaultForegroundBrush
         {
-            get => Config.Values.GetBrush(ConfigValue.DefaultForeground);
-            set
-            {
-                Debug.Assert(false);
-            }
+            get => _values.GetBrush(ConfigValue.DefaultForeground);
         }
 
         public Brush DefaultBackgroundBrush
         {
-            get => Config.Values.GetBrush(ConfigValue.DefaultBackground);
-            set
-            {
-                Debug.Assert(false);
-            }
+            get => _values.GetBrush(ConfigValue.DefaultBackground);
         }
 
         public Color SelectedForegroundColor
         {
-            get => Config.Values.GetColor(ConfigValue.SelectedForeground);
-            set
-            {
-                Debug.Assert(false);
-            }
+            get => _values.GetColor(ConfigValue.SelectedForeground);
+            set => _values.SelectedForeground = value;
         }
 
         public Color SelectedBackgroundColor
         {
-            get => Config.Values.GetColor(ConfigValue.SelectedBackground);
-            set
-            {
-                Debug.Assert(false);
-            }
+            get => _values.GetColor(ConfigValue.SelectedBackground);
+            set => _values.SelectedBackground = value;
         }
 
         public Brush SelectedForegroundBrush
         {
-            get => Config.Values.GetBrush(ConfigValue.SelectedForeground);
-            set
-            {
-                Debug.Assert(false);
-            }
+            get => _values.GetBrush(ConfigValue.SelectedForeground);
         }
 
         public Brush SelectedBackgroundBrush
         {
-            get => Config.Values.GetBrush(ConfigValue.SelectedBackground);
-            set
-            {
-                Debug.Assert(false);
-            }
+            get => _values.GetBrush(ConfigValue.SelectedBackground);
         }
 
         public Color SearchResultForegroundColor
         {
-            get => Config.Values.GetColor(ConfigValue.SearchResultForeground);
-            set
-            {
-                Debug.Assert(false);
-            }
+            get => _values.GetColor(ConfigValue.SearchResultForeground);
+            set => _values.SearchResultForeground = value;
         }
 
         public Color SearchResultBackgroundColor
         {
-            get => Config.Values.GetColor(ConfigValue.SearchResultBackground);
-            set
-            {
-                Debug.Assert(false);
-            }
+            get => _values.GetColor(ConfigValue.SearchResultBackground);
+            set => _values.SearchResultBackground = value;
         }
 
         public Brush SearchResultForegroundBrush
         {
-            get => Config.Values.GetBrush(ConfigValue.SearchResultForeground);
-            set
-            {
-                Debug.Assert(false);
-            }
+            get => _values.GetBrush(ConfigValue.SearchResultForeground);
         }
 
         public Brush SearchResultBackgroundBrush
         {
-            get => Config.Values.GetBrush(ConfigValue.SearchResultBackground);
-            set
-            {
-                Debug.Assert(false);
-            }
+            get => _values.GetBrush(ConfigValue.SearchResultBackground);
         }
 
         public Color SimilarNodeForegroundColor
         {
-            get => Config.Values.GetColor(ConfigValue.SimilarNodeForeground);
-            set
-            {
-                Debug.Assert(false);
-            }
+            get => _values.GetColor(ConfigValue.SimilarNodeForeground);
+            set => _values.SimilarNodeForeground = value;
         }
 
         public Color SimilarNodeBackgroundColor
         {
-            get => Config.Values.GetColor(ConfigValue.SimilarNodeBackground);
-            set
-            {
-                Debug.Assert(false);
-            }
+            get => _values.GetColor(ConfigValue.SimilarNodeBackground);
+            set => _values.SimilarNodeBackground = value;
         }
 
         public Brush SimilarNodeForegroundBrush
         {
-            get => Config.Values.GetBrush(ConfigValue.SimilarNodeForeground);
-            set
-            {
-                Debug.Assert(false);
-            }
+            get => _values.GetBrush(ConfigValue.SimilarNodeForeground);
         }
 
         public Brush SimilarNodeBackgroundBrush
         {
-            get => Config.Values.GetBrush(ConfigValue.SimilarNodeBackground);
-            set
-            {
-                Debug.Assert(false);
-            }
+            get => _values.GetBrush(ConfigValue.SimilarNodeBackground);
         }
 
         public Color SelectedParentForegroundColor
         {
-            get => Config.Values.GetColor(ConfigValue.SelectedParentForeground);
-            set
-            {
-                Debug.Assert(false);
-            }
+            get => _values.GetColor(ConfigValue.SelectedParentForeground);
+            set => _values.SelectedParentForeground = value;
         }
 
         public Color SelectedParentBackgroundColor
         {
-            get => Config.Values.GetColor(ConfigValue.SelectedParentBackground);
-            set
-            {
-                Debug.Assert(false);
-            }
+            get => _values.GetColor(ConfigValue.SelectedParentBackground);
+            set => _values.SelectedParentBackground = value;
         }
 
         public Brush SelectedParentForegroundBrush
         {
-            get => Config.Values.GetBrush(ConfigValue.SelectedParentForeground);
-            set
-            {
-                Debug.Assert(false);
-            }
+            get => _values.GetBrush(ConfigValue.SelectedParentForeground);
         }
 
         public Brush SelectedParentBackgroundBrush
         {
-            get => Config.Values.GetBrush(ConfigValue.SelectedParentBackground);
-            set
+            get => _values.GetBrush(ConfigValue.SelectedParentBackground);
+        }
+
+        private void OnValuesPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            switch (e.PropertyName)
             {
-                Debug.Assert(false);
+                case "DefaultForeground":
+                case "DefaultBackground":
+                case "SelectedForeground":
+                case "SelectedBackground":
+                case "SearchResultForeground":
+                case "SearchResultBackground":
+                case "SimilarNodeForeground":
+                case "SimilarNodeBackground":
+                case "SelectedParentForeground":
+                case "SelectedParentBackground":
+                    NotifyPropertyChanged.FirePropertyChanged(e.PropertyName + "Color", this, this.PropertyChanged);
+                    NotifyPropertyChanged.FirePropertyChanged(e.PropertyName + "Brush", this, this.PropertyChanged);
+                    break;
+                default:
+                    break;
             }
+        }
+
+        private async void OnSaveButtonClick(object sender, RoutedEventArgs e)
+        {
+            await Config.SetValues(_values);
+            this.Close();
+        }
+
+        private void OnCancelButtonClick(object sender, RoutedEventArgs e)
+        {
+            this.Close();
         }
     }
 }

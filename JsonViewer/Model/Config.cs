@@ -8,6 +8,7 @@
     using System.Threading.Tasks;
     using System.Windows;
     using Newtonsoft.Json;
+    using Utilities;
 
     internal enum ConfigValue
     {
@@ -28,6 +29,10 @@
         private static string _filePath = null;
         private static ConfigValues _configValues = null;
         private static bool _isInitialized = false;
+
+        public delegate void PropertyChangeHandler(string propertyName);
+
+        public static event PropertyChangeHandler PropertyChanged;
 
         public static bool IsDefault
         {
@@ -56,15 +61,12 @@
             }
         }
 
-        private static void EnsureInitialized()
+        public static async Task SetValues(ConfigValues values)
         {
-            if (_isInitialized)
-            {
-                return;
-            }
-
-            _isInitialized = true;
-            LoadConfig(Properties.Settings.Default.ConfigPath);
+            EnsureInitialized();
+            _configValues = values;
+            await Save(_filePath);
+            Reload();
         }
 
         public static void Reload()
@@ -84,6 +86,10 @@
 
             if (LoadConfig(filePath))
             {
+                PropertyChanged?.Invoke("Values");
+            }
+            else
+            {
                 MessageBoxResult dr = MessageBox.Show("Unable to load your config.  Do you want to use the default?", "Default config?", MessageBoxButton.YesNo, MessageBoxImage.Question);
                 if (dr == MessageBoxResult.Yes)
                 {
@@ -95,6 +101,8 @@
                 {
                     _configValues = new ConfigValues();
                     _filePath = string.Empty;
+                    PropertyChanged?.Invoke("Values");
+                    PropertyChanged?.Invoke("FilePath");
                 }
             }
         }
@@ -102,9 +110,10 @@
         public static async Task<bool> Save(string filePath)
         {
             bool result = await _configValues.Save(filePath);
-            if (result)
+            if (result && _filePath != filePath)
             {
                 _filePath = filePath;
+                PropertyChanged?.Invoke("FilePath");
             }
 
             return result;
@@ -146,6 +155,12 @@
                 }
                 else
                 {
+                    if (Properties.Settings.Default.ConfigPath != filePath)
+                    {
+                        Properties.Settings.Default.ConfigPath = filePath;
+                        Properties.Settings.Default.Save();
+                    }
+
                     _filePath = filePath;
                     _configValues = values;
                     return true;
@@ -221,6 +236,17 @@
             Properties.Settings.Default.ConfigPath = oldConfigPath;
             Properties.Settings.Default.Save();
             return false;
+        }
+
+        private static void EnsureInitialized()
+        {
+            if (_isInitialized)
+            {
+                return;
+            }
+
+            _isInitialized = true;
+            LoadConfig(Properties.Settings.Default.ConfigPath);
         }
 
         private static string GetDefaultConfigPath()

@@ -31,6 +31,7 @@
         public MainWindow()
         {
             _finder = new Finder(this);
+            Config.PropertyChanged += OnConfigPropertyChanged;
 
             InitializeComponent();
         }
@@ -240,6 +241,18 @@
 
             this.Raw_TextBox.Text = initialText;
             this.SetDisplayMode(string.IsNullOrEmpty(initialText) ? DisplayMode.RawText : DisplayMode.TreeView);
+        }
+
+        private void OnConfigPropertyChanged(string propertyName)
+        {
+            switch (propertyName)
+            {
+                case "Values":
+                    this.ReloadAsync().Forget();
+                    break;
+                default:
+                    break;
+            }
         }
 
         private void OnToolbarPropertyChanged(object sender, PropertyChangedEventArgs e)
