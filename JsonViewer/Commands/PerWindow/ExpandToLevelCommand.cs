@@ -20,7 +20,6 @@
 
         public override void Execute(object parameter)
         {
-            this.MainWindow.Tree.CollapseAll();
             this.MainWindow.Tree.ExpandAll(_depth);
         }
 
