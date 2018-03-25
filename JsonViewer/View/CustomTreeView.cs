@@ -189,8 +189,14 @@
 
         private async Task<bool> ExpandSubtree(TreeViewData data, int depth, Guid actionId, SingularAction action)
         {
-            if (!data.HasChildren || depth <= 0)
+            if (!data.HasChildren)
             {
+                return true;
+            }
+
+            if (depth <= 0)
+            {
+                this.CollapseSubtree(data);
                 return true;
             }
 
