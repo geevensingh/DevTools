@@ -220,6 +220,27 @@
             }
         }
 
+        public int CountAtDepth(int depth)
+        {
+            if (depth <= 0)
+            {
+                return 0;
+            }
+
+            if (depth == 1 || !this.HasChildren)
+            {
+                return _children.Count;
+            }
+
+            int count = 0;
+            foreach (JsonObject child in _children)
+            {
+                count += child.CountAtDepth(depth - 1);
+            }
+
+            return count;
+        }
+
         public bool HasLevel(int depth)
         {
             if (depth == 0)
