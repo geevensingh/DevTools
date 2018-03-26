@@ -15,7 +15,17 @@
     WindowStyle="ToolWindow"
     mc:Ignorable="d">
     <Window.Resources>
+        <Style TargetType="TextBox">
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style TargetType="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+
         <Style x:Key="TextBoxStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="{Binding Path=DefaultFontSize}" />
             <Setter Property="Margin" Value="5,5" />
         </Style>
 
@@ -23,8 +33,14 @@
             <Setter Property="Orientation" Value="Horizontal" />
             <Setter Property="Margin" Value="5,5" />
         </Style>
+
+        <Style TargetType="xctk:ColorPicker">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="DisplayColorAndName" Value="True" />
+            <Setter Property="MinWidth" Value="100" />
+        </Style>
     </Window.Resources>
-    <Grid>
+    <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -50,9 +66,12 @@
             Grid.Row="0"
             Grid.Column="1"
             Style="{StaticResource ColorPropertyValueWrapperStyle}">
-            <xctk:ColorPicker DisplayColorAndName="True" SelectedColor="{Binding Path=DefaultForegroundColor}" />
+            <xctk:ColorPicker SelectedColor="{Binding Path=DefaultForegroundColor}" />
             <TextBlock Margin="5,0">on</TextBlock>
-            <xctk:ColorPicker DisplayColorAndName="True" SelectedColor="{Binding Path=DefaultBackgroundColor}" />
+            <xctk:ColorPicker SelectedColor="{Binding Path=DefaultBackgroundColor}" />
+            <TextBlock Margin="5,0">at</TextBlock>
+            <TextBox Text="{Binding Path=DefaultFontSize}" />
+            <TextBlock Margin="5,0">pt</TextBlock>
         </StackPanel>
 
         <TextBlock
@@ -67,9 +86,9 @@
             Grid.Row="1"
             Grid.Column="1"
             Style="{StaticResource ColorPropertyValueWrapperStyle}">
-            <xctk:ColorPicker DisplayColorAndName="True" SelectedColor="{Binding Path=SelectedForegroundColor}" />
+            <xctk:ColorPicker SelectedColor="{Binding Path=SelectedForegroundColor}" />
             <TextBlock Margin="5,0">on</TextBlock>
-            <xctk:ColorPicker DisplayColorAndName="True" SelectedColor="{Binding Path=SelectedBackgroundColor}" />
+            <xctk:ColorPicker SelectedColor="{Binding Path=SelectedBackgroundColor}" />
         </StackPanel>
 
         <TextBlock
@@ -84,9 +103,9 @@
             Grid.Row="2"
             Grid.Column="1"
             Style="{StaticResource ColorPropertyValueWrapperStyle}">
-            <xctk:ColorPicker DisplayColorAndName="True" SelectedColor="{Binding Path=SearchResultForegroundColor}" />
+            <xctk:ColorPicker SelectedColor="{Binding Path=SearchResultForegroundColor}" />
             <TextBlock Margin="5,0">on</TextBlock>
-            <xctk:ColorPicker DisplayColorAndName="True" SelectedColor="{Binding Path=SearchResultBackgroundColor}" />
+            <xctk:ColorPicker SelectedColor="{Binding Path=SearchResultBackgroundColor}" />
         </StackPanel>
 
         <TextBlock
@@ -101,9 +120,9 @@
             Grid.Row="3"
             Grid.Column="1"
             Style="{StaticResource ColorPropertyValueWrapperStyle}">
-            <xctk:ColorPicker DisplayColorAndName="True" SelectedColor="{Binding Path=SimilarNodeForegroundColor}" />
+            <xctk:ColorPicker SelectedColor="{Binding Path=SimilarNodeForegroundColor}" />
             <TextBlock Margin="5,0">on</TextBlock>
-            <xctk:ColorPicker DisplayColorAndName="True" SelectedColor="{Binding Path=SimilarNodeBackgroundColor}" />
+            <xctk:ColorPicker SelectedColor="{Binding Path=SimilarNodeBackgroundColor}" />
         </StackPanel>
 
         <TextBlock
@@ -118,17 +137,31 @@
             Grid.Row="4"
             Grid.Column="1"
             Style="{StaticResource ColorPropertyValueWrapperStyle}">
-            <xctk:ColorPicker DisplayColorAndName="True" SelectedColor="{Binding Path=SelectedParentForegroundColor}" />
+            <xctk:ColorPicker SelectedColor="{Binding Path=SelectedParentForegroundColor}" />
             <TextBlock Margin="5,0">on</TextBlock>
-            <xctk:ColorPicker DisplayColorAndName="True" SelectedColor="{Binding Path=SelectedParentBackgroundColor}" />
+            <xctk:ColorPicker SelectedColor="{Binding Path=SelectedParentBackgroundColor}" />
         </StackPanel>
 
         <StackPanel
             Grid.Row="5"
             Grid.Column="1"
+            Margin="0,10,0,0"
+            HorizontalAlignment="Right"
             Orientation="Horizontal">
-            <Button Click="OnSaveButtonClick">Save</Button>
-            <Button Click="OnCancelButtonClick">Cancel</Button>
+            <Button
+                MinWidth="100"
+                Margin="10"
+                Padding="5"
+                Click="OnSaveButtonClick">
+                Save
+            </Button>
+            <Button
+                MinWidth="100"
+                Margin="10"
+                Padding="5"
+                Click="OnCancelButtonClick">
+                Cancel
+            </Button>
         </StackPanel>
     </Grid>
 </Window>

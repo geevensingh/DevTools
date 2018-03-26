@@ -23,6 +23,12 @@
 
         public event PropertyChangedEventHandler PropertyChanged;
 
+        public double DefaultFontSize
+        {
+            get => _values.DefaultFontSize;
+            set => _values.DefaultFontSize = value;
+        }
+
         public Color DefaultForegroundColor
         {
             get => _values.GetColor(ConfigValue.DefaultForeground);
@@ -149,6 +155,9 @@
                 case "SelectedParentBackground":
                     NotifyPropertyChanged.FirePropertyChanged(e.PropertyName + "Color", this, this.PropertyChanged);
                     NotifyPropertyChanged.FirePropertyChanged(e.PropertyName + "Brush", this, this.PropertyChanged);
+                    break;
+                case "DefaultFontSize":
+                    NotifyPropertyChanged.FirePropertyChanged(e.PropertyName, this, this.PropertyChanged);
                     break;
                 default:
                     break;
