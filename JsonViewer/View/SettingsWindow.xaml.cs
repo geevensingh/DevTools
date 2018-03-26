@@ -2,6 +2,7 @@
 {
     using System.ComponentModel;
     using System.Windows;
+    using System.Windows.Controls;
     using System.Windows.Media;
     using JsonViewer.Model;
     using Utilities;
@@ -12,16 +13,22 @@
     public partial class SettingsWindow : Window, INotifyPropertyChanged
     {
         private ConfigValues _values;
+        private bool _isEditCommitting = false;
+        private EditableRuleSet _ruleSet;
 
         public SettingsWindow(MainWindow mainWindow)
         {
             _values = Config.Values.Clone();
             _values.PropertyChanged += OnValuesPropertyChanged;
+            _ruleSet = new EditableRuleSet(_values);
+
             InitializeComponent();
             this.Owner = mainWindow;
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
+
+        public EditableRuleSet RuleSet { get => _ruleSet; set => _ruleSet = value; }
 
         public double DefaultFontSize
         {
@@ -166,6 +173,7 @@
 
         private async void OnSaveButtonClick(object sender, RoutedEventArgs e)
         {
+            _ruleSet.Save();
             await Config.SetValues(_values);
             this.Close();
         }
@@ -173,6 +181,25 @@
         private void OnCancelButtonClick(object sender, RoutedEventArgs e)
         {
             this.Close();
+        }
+
+        private void RulesList_CellEditEnding(object sender, System.Windows.Controls.DataGridCellEditEndingEventArgs e)
+        {
+            string columnHeader = e.Column.Header as string;
+            if (!_isEditCommitting && (columnHeader == "Color" || columnHeader == "Font size"))
+            {
+                _isEditCommitting = true;
+                ((DataGrid)sender).CommitEdit(DataGridEditingUnit.Row, true);
+                _isEditCommitting = false;
+            }
+        }
+
+        private void RulesList_AddingNewItem(object sender, AddingNewItemEventArgs e)
+        {
+        }
+
+        private void RulesList_InitializingNewItem(object sender, InitializingNewItemEventArgs e)
+        {
         }
     }
 }

@@ -10,7 +10,7 @@
     using Newtonsoft.Json;
     using Utilities;
 
-    internal enum ConfigValue
+    public enum ConfigValue
     {
         DefaultForeground,
         DefaultBackground,

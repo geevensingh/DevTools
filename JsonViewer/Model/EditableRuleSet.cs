@@ -12,11 +12,13 @@
 
     public class EditableRuleSet : NotifyPropertyChanged
     {
+        private ConfigValues _configValues;
         private ObservableCollection<EditableRuleView> _rules;
         private bool _isDirty = false;
 
-        public EditableRuleSet()
+        public EditableRuleSet(ConfigValues configValues)
         {
+            _configValues = configValues;
         }
 
         public ObservableCollection<EditableRuleView> Rules
@@ -25,7 +27,7 @@
             {
                 if (_rules == null)
                 {
-                    this.SetRules(EditableRuleViewFactory.CreateCollection(this));
+                    this.SetRules(EditableRuleViewFactory.CreateCollection(this, _configValues));
                 }
 
                 return _rules;
@@ -77,7 +79,7 @@
             return newIndex;
         }
 
-        internal async Task Save()
+        internal void Save()
         {
             List<ConfigRule> configRules = new List<ConfigRule>();
             foreach (EditableRuleView ruleView in this.Rules)
@@ -85,25 +87,8 @@
                 configRules.Add(ruleView.Rule);
             }
 
-            Config.Values.Rules = configRules;
-
-            if (await Config.Save(Config.FilePath))
-            {
-                foreach (EditableRuleView ruleView in this.Rules)
-                {
-                    ruleView.IsDirty = false;
-                }
-
-                this.SetValue(ref _isDirty, false, "IsDirty");
-            }
-        }
-
-        internal void Discard()
-        {
+            _configValues.Rules = configRules;
             this.SetValue(ref _isDirty, false, "IsDirty");
-            Config.Reload();
-            this.SetRules(EditableRuleViewFactory.CreateCollection(this));
-            this.FirePropertyChanged("IsDirty");
         }
 
         private void OnRulesCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
@@ -128,6 +113,7 @@
                     EditableRuleView newRuleView = (EditableRuleView)e.NewItems[0];
                     newRuleView.RuleSet = this;
                     newRuleView.UpdateIndex(e.NewStartingIndex);
+                    newRuleView.SetConfigValues(_configValues);
                     this.SetValue(ref _isDirty, true, "IsDirty");
                     break;
                 case NotifyCollectionChangedAction.Replace:

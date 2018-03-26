@@ -13,7 +13,7 @@
     using Utilities;
 
     [JsonObject]
-    internal class ConfigValues : NotifyPropertyChanged
+    public class ConfigValues : NotifyPropertyChanged
     {
         private Dictionary<string, object> _rawValues = new Dictionary<string, object>();
         private Dictionary<ConfigValue, Color> _colors = new Dictionary<ConfigValue, Color>();
@@ -184,6 +184,18 @@
 
         public void SetColor(ConfigValue configValue, Color color)
         {
+            if (color == Colors.Transparent)
+            {
+                if (_colors.ContainsKey(configValue))
+                {
+                    _colors.Remove(configValue);
+                    _brushes.Remove(configValue);
+                    FirePropertyChanged(configValue.ToString());
+                }
+
+                return;
+            }
+
             bool hasChanged = true;
             if (_colors.ContainsKey(configValue))
             {
