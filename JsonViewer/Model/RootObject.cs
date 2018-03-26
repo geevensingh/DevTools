@@ -38,26 +38,6 @@
             }
         }
 
-        private int ExpandLevelWithLessThanCount(int count)
-        {
-            int totalChildCount = this.TotalChildCount;
-            int depth = 0;
-            int lastCount = this.CountAtDepth(depth++);
-            while (depth < count && lastCount < count && lastCount < totalChildCount)
-            {
-                lastCount += this.CountAtDepth(depth++);
-            }
-
-            if (lastCount > count)
-            {
-                Debug.Assert(depth >= 3);
-                return depth - 3;
-            }
-
-            Debug.Assert(depth >= 2);
-            return depth - 2;
-        }
-
         public override void SetChildren(IList<JsonObject> children)
         {
             Debug.Assert(_viewChildren == null);
@@ -129,6 +109,26 @@
         protected override void ApplyRules()
         {
             // Do nothing
+        }
+
+        private int ExpandLevelWithLessThanCount(int count)
+        {
+            int totalChildCount = this.TotalChildCount;
+            int depth = 0;
+            int lastCount = this.CountAtDepth(depth++);
+            while (depth < count && lastCount < count && lastCount < totalChildCount)
+            {
+                lastCount += this.CountAtDepth(depth++);
+            }
+
+            if (lastCount > count)
+            {
+                Debug.Assert(depth >= 3);
+                return depth - 3;
+            }
+
+            Debug.Assert(depth >= 2);
+            return depth - 2;
         }
     }
 }

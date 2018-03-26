@@ -10,6 +10,7 @@
 
     public class EditableRuleView : NotifyPropertyChanged
     {
+        private ConfigValues _configValues;
         private ConfigRule _rule;
         private bool _isDirty = false;
         private int _index = -1;
@@ -21,8 +22,10 @@
             _rule = new ConfigRule();
         }
 
-        internal EditableRuleView(ConfigRule rule, int index, EditableRuleSet ruleSet)
+        internal EditableRuleView(ConfigRule rule, int index, EditableRuleSet ruleSet, ConfigValues configValues)
         {
+            _configValues = configValues;
+            _configValues.PropertyChanged += OnConfigValuesPropertyChanged;
             _rule = rule.Clone();
             this.UpdateIndex(index);
             this.RuleSet = ruleSet;
@@ -88,7 +91,20 @@
             }
         }
 
-        public string FontSize
+        public double FontSize
+        {
+            get
+            {
+                if (_rule.FontSize.HasValue)
+                {
+                    return _rule.FontSize.Value;
+                }
+
+                return _configValues.DefaultFontSize;
+            }
+        }
+
+        public string FontSizeString
         {
             get => _rule.FontSize.HasValue ? _rule.FontSize.ToString() : string.Empty;
             set
@@ -107,7 +123,7 @@
                 if (newValue != _rule.FontSize)
                 {
                     _rule.FontSize = newValue;
-                    this.FirePropertyChanged("FontSize");
+                    this.FirePropertyChanged(new string[] { "FontSize", "FontSizeString" });
                     this.SetValue(ref _isDirty, true, "IsDirty");
                 }
             }
@@ -157,9 +173,9 @@
             }
         }
 
-        public Brush BackgroundBrush { get => _rule.BackgroundBrush ?? Config.This.GetBrush(ConfigValue.DefaultBackground); }
+        public Brush BackgroundBrush { get => _rule.BackgroundBrush ?? _configValues.GetBrush(ConfigValue.DefaultBackground); }
 
-        public Brush ForegroundBrush { get => _rule.ForegroundBrush ?? Config.This.GetBrush(ConfigValue.DefaultForeground); }
+        public Brush ForegroundBrush { get => _rule.ForegroundBrush ?? _configValues.GetBrush(ConfigValue.DefaultForeground); }
 
         public Color ForegroundColor
         {
@@ -216,9 +232,33 @@
 
         public EditableRuleSet RuleSet { get; internal set; }
 
+        internal void SetConfigValues(ConfigValues configValues)
+        {
+            Debug.Assert(_configValues == null);
+            _configValues = configValues;
+        }
+
         internal void UpdateIndex(int newIndex)
         {
             this.SetValue(ref _index, newIndex, "Index");
+        }
+
+        private void OnConfigValuesPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            switch (e.PropertyName)
+            {
+                case "DefaultFontSize":
+                    this.FirePropertyChanged(new string[] { "FontSize", "FontSizeString" });
+                    break;
+                case "DefaultForeground":
+                    this.FirePropertyChanged(new string[] { "Foreground", "ForegroundBrush", "ColorString" });
+                    break;
+                case "DefaultBackground":
+                    this.FirePropertyChanged(new string[] { "Background", "BackgroundBrush", "ColorString" });
+                    break;
+                default:
+                    break;
+            }
         }
     }
 }

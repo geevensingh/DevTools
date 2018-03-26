@@ -78,12 +78,12 @@
             {
                 if (this._isSelected)
                 {
-                    return Config.This.GetBrush(ConfigValue.SelectedForeground);
+                    return Config.Values.GetBrush(ConfigValue.SelectedForeground);
                 }
 
                 if (_isChildSelected && Properties.Settings.Default.HighlightSelectedParents)
                 {
-                    return Config.This.GetBrush(ConfigValue.SelectedParentForeground);
+                    return Config.Values.GetBrush(ConfigValue.SelectedParentForeground);
                 }
 
                 return _jsonObject.Rules.TextColor;
@@ -96,12 +96,12 @@
             {
                 if (this._isSelected)
                 {
-                    return Config.This.GetBrush(ConfigValue.SelectedBackground);
+                    return Config.Values.GetBrush(ConfigValue.SelectedBackground);
                 }
 
                 if (_isChildSelected && Properties.Settings.Default.HighlightSelectedParents)
                 {
-                    return Config.This.GetBrush(ConfigValue.SelectedParentBackground);
+                    return Config.Values.GetBrush(ConfigValue.SelectedParentBackground);
                 }
 
                 return _jsonObject.Rules.BackgroundColor;

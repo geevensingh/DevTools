@@ -25,12 +25,11 @@
         private WarningBannerActionHandler _warningBannerAction;
         private WarningBannerActionHandler _warningBannerDismiss;
         private string _lastText = string.Empty;
-        private EditableRuleSet _ruleSet = new EditableRuleSet();
-        private bool _isEditCommitting = false;
 
         public MainWindow()
         {
             _finder = new Finder(this);
+            Config.PropertyChanged += OnConfigPropertyChanged;
 
             InitializeComponent();
         }
@@ -42,15 +41,12 @@
         public enum DisplayMode
         {
             RawText,
-            TreeView,
-            Rules
+            TreeView
         }
 
         public DisplayMode Mode { get; private set; }
 
         public Finder Finder { get => _finder; }
-
-        public EditableRuleSet RuleSet { get => _ruleSet; }
 
         internal RootObject RootObject { get => _rootObject; }
 
@@ -87,8 +83,6 @@
 
         public Task<bool> ReloadAsync()
         {
-            _ruleSet.Refresh();
-
             if (string.IsNullOrWhiteSpace(this.Raw_TextBox.Text))
             {
                 return Task.FromResult(false);
@@ -142,7 +136,6 @@
             {
                 this.Raw_TextBox.Visibility = Visibility.Collapsed;
                 this.Tree.Visibility = Visibility.Collapsed;
-                this.RulesList.Visibility = Visibility.Collapsed;
                 Control newControl = null;
                 switch (newMode)
                 {
@@ -151,9 +144,6 @@
                         break;
                     case DisplayMode.TreeView:
                         newControl = this.Tree;
-                        break;
-                    case DisplayMode.Rules:
-                        newControl = this.RulesList;
                         break;
                     default:
                         Debug.Assert(false);
@@ -183,8 +173,6 @@
             this.SimilarHighlighter = new SimilarHighlighter(this);
 
             this.Toolbar.PropertyChanged += OnToolbarPropertyChanged;
-
-            _ruleSet.Refresh();
 
             WindowPlacementSerializer.SetPlacement(this, Properties.Settings.Default.MainWindowPlacement, _initialOffset);
             if (_initialOffset.HasValue)
@@ -235,6 +223,18 @@
 
             this.Raw_TextBox.Text = initialText;
             this.SetDisplayMode(string.IsNullOrEmpty(initialText) ? DisplayMode.RawText : DisplayMode.TreeView);
+        }
+
+        private void OnConfigPropertyChanged(string propertyName)
+        {
+            switch (propertyName)
+            {
+                case "Values":
+                    this.ReloadAsync().Forget();
+                    break;
+                default:
+                    break;
+            }
         }
 
         private void OnToolbarPropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -325,7 +325,7 @@
         {
             this.ClearWarningMessage();
 
-            if (Config.This.IsDefault && Properties.Settings.Default.MainWindowWarnOnDefaultConfig)
+            if (Config.IsDefault && Properties.Settings.Default.MainWindowWarnOnDefaultConfig)
             {
                 this.SetWarningMessage(
                     "Unable to find your configuration file.  Do you want to pick a configuration file?",
@@ -406,30 +406,6 @@
         {
             Debug.Assert(this._warningBannerAction != null);
             this._warningBannerAction?.Invoke();
-        }
-
-        private void RulesList_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
-        {
-            string columnHeader = e.Column.Header as string;
-            if (!_isEditCommitting && (columnHeader == "Color" || columnHeader == "Font size"))
-            {
-                _isEditCommitting = true;
-                ((DataGrid)sender).CommitEdit(DataGridEditingUnit.Row, true);
-                _isEditCommitting = false;
-            }
-        }
-
-        private async void SaveRuleChanges_Click(object sender, RoutedEventArgs e)
-        {
-            await this.RuleSet.Save();
-            this.RootObject?.FlushRules();
-            this.RootObject?.ApplyExpandRule(this.Tree);
-            this.UpdateWarnings();
-        }
-
-        private void DiscardRuleChanges_Click(object sender, RoutedEventArgs e)
-        {
-            this.RuleSet.Discard();
         }
     }
 }

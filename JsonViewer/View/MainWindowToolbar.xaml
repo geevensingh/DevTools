@@ -96,28 +96,6 @@
                         Visibility="{Binding ElementName=Root, Path=ToolbarTextVisibility}" />
                 </StackPanel>
             </Button>
-            <Button
-                Command="{Binding ElementName=Root, Path=ShowRulesModeCommand}"
-                DataContext="{Binding Path=Command, RelativeSource={RelativeSource Self}}"
-                IsEnabled="{Binding Path=IsEnabled}"
-                Style="{StaticResource MyButtonStyle}"
-                ToolTip="{Binding Path=Text}"
-                Visibility="{Binding Path=IsVisible}">
-                <Button.Resources>
-                    <BitmapImage x:Key="Image" UriSource="..\Resources\settings.png" />
-                </Button.Resources>
-                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                    <Image
-                        Height="{StaticResource ImageHeight}"
-                        Source="{DynamicResource Image}"
-                        Visibility="{Binding ElementName=Root, Path=ToolbarIconVisibility}" />
-                    <TextBlock
-                        Margin="5,0"
-                        VerticalAlignment="Center"
-                        Text="{Binding Path=Text}"
-                        Visibility="{Binding ElementName=Root, Path=ToolbarTextVisibility}" />
-                </StackPanel>
-            </Button>
             <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
             <Button
                 Command="{Binding ElementName=Root, Path=OpenJsonFileCommand}"
