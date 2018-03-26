@@ -7,7 +7,6 @@
         public SwitchModeCommand(MainWindow mainWindow, string text, MainWindow.DisplayMode displayMode)
             : base(text)
         {
-            this.ForceVisibility = System.Windows.Visibility.Visible;
             this.DisplayMode = displayMode;
             this.MainWindow = mainWindow;
             this.Update();
