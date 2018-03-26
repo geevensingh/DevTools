@@ -48,7 +48,7 @@
         {
             Debug.Assert(color.A == 0xff);
             color.GetHSL(out float hue, out float saturation, out float lightness);
-            lightness = Clamp(lightness * lightnessFactor, 0, 1);
+            lightness = MathHelper.Clamp(lightness * lightnessFactor, 0, 1);
             return FromHSL(hue, saturation, lightness).Convert();
         }
 
@@ -56,7 +56,7 @@
         {
             Debug.Assert(color.A == 0xff);
             color.GetHSL(out float hue, out float saturation, out float lightness);
-            saturation = Clamp(saturation * saturationFactor, 0, 1);
+            saturation = MathHelper.Clamp(saturation * saturationFactor, 0, 1);
             return FromHSL(hue, saturation, lightness).Convert();
         }
 
@@ -67,11 +67,11 @@
             color.GetHSL(out float hue, out float saturation, out float lightness);
             if (lightness < 0.5)
             {
-                lightness = Clamp((float)Math.Pow(lightness, factor), 0, 1);
+                lightness = MathHelper.Clamp((float)Math.Pow(lightness, factor), 0, 1);
             }
             else if (lightness > 0.5)
             {
-                lightness = Clamp(1f - (float)Math.Pow(1 - lightness, factor), 0, 1);
+                lightness = MathHelper.Clamp(1f - (float)Math.Pow(1 - lightness, factor), 0, 1);
             }
             return FromHSL(hue, saturation, lightness).Convert();
         }
@@ -80,20 +80,15 @@
         {
             if (value < 0.5)
             {
-                return Clamp((float)Math.Pow(value, factor), 0, 1);
+                return MathHelper.Clamp((float)Math.Pow(value, factor), 0, 1);
             }
 
             if (value > 0.5)
             {
-                return Clamp(1f - (float)Math.Pow(1 - value, factor), 0, 1);
+                return MathHelper.Clamp(1f - (float)Math.Pow(1 - value, factor), 0, 1);
             }
 
             return value;
-        }
-
-        private static float Clamp(float value, float min, float max)
-        {
-            return Math.Min(Math.Max(value, min), max);
         }
 
         public static System.Drawing.Color Convert(this System.Windows.Media.Color color)
