@@ -152,14 +152,16 @@
                 MinWidth="100"
                 Margin="10"
                 Padding="5"
-                Click="OnSaveButtonClick">
+                Click="OnSaveButtonClick"
+                IsDefault="True">
                 Save
             </Button>
             <Button
                 MinWidth="100"
                 Margin="10"
                 Padding="5"
-                Click="OnCancelButtonClick">
+                Click="OnCancelButtonClick"
+                IsCancel="True">
                 Cancel
             </Button>
         </StackPanel>
