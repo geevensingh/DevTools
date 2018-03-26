@@ -31,24 +31,6 @@
             this.RuleSet = ruleSet;
         }
 
-        private void OnConfigValuesPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
-        {
-            switch (e.PropertyName)
-            {
-                case "DefaultFontSize":
-                    this.FirePropertyChanged(new string[] { "FontSize", "FontSizeString" });
-                    break;
-                case "DefaultForeground":
-                    this.FirePropertyChanged(new string[] { "Foreground", "ForegroundBrush", "ColorString" });
-                    break;
-                case "DefaultBackground":
-                    this.FirePropertyChanged(new string[] { "Background", "BackgroundBrush", "ColorString" });
-                    break;
-                default:
-                    break;
-            }
-        }
-
         public ConfigRule Rule { get => _rule.Clone(); }
 
         public int Index
@@ -235,12 +217,6 @@
             }
         }
 
-        internal void SetConfigValues(ConfigValues configValues)
-        {
-            Debug.Assert(_configValues == null);
-            _configValues = configValues;
-        }
-
         public string ColorString
         {
             get
@@ -256,9 +232,33 @@
 
         public EditableRuleSet RuleSet { get; internal set; }
 
+        internal void SetConfigValues(ConfigValues configValues)
+        {
+            Debug.Assert(_configValues == null);
+            _configValues = configValues;
+        }
+
         internal void UpdateIndex(int newIndex)
         {
             this.SetValue(ref _index, newIndex, "Index");
+        }
+
+        private void OnConfigValuesPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            switch (e.PropertyName)
+            {
+                case "DefaultFontSize":
+                    this.FirePropertyChanged(new string[] { "FontSize", "FontSizeString" });
+                    break;
+                case "DefaultForeground":
+                    this.FirePropertyChanged(new string[] { "Foreground", "ForegroundBrush", "ColorString" });
+                    break;
+                case "DefaultBackground":
+                    this.FirePropertyChanged(new string[] { "Background", "BackgroundBrush", "ColorString" });
+                    break;
+                default:
+                    break;
+            }
         }
     }
 }

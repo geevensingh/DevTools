@@ -20,6 +20,8 @@
         {
             System.Diagnostics.Debug.Assert(System.Threading.Thread.CurrentThread.ManagedThreadId == 1);
 
+            Config.PropertyChanged += OnConfigPropertyChanged;
+
             _action = new SingularAction(this.Dispatcher);
             _action.PropertyChanged += OnActionPropertyChanged;
             CommandBinding copyCommandBinding = new CommandBinding
@@ -144,11 +146,7 @@
         {
             base.OnInitialized(e);
 
-            ConfigValues configValues = Config.Values;
-            this.Foreground = configValues.GetBrush(ConfigValue.DefaultForeground);
-            this.Background = configValues.GetBrush(ConfigValue.DefaultBackground);
-            this.Resources[SystemColors.HighlightBrushKey] = configValues.GetBrush(ConfigValue.SelectedBackground);
-            this.Resources[SystemColors.HighlightTextBrushKey] = configValues.GetBrush(ConfigValue.SelectedForeground);
+            this.SetColors();
         }
 
         protected override DependencyObject GetContainerForItemOverride()
@@ -185,6 +183,27 @@
             }
 
             NotifyPropertyChanged.SetValue(ref _selectedIndex, newSelectedIndex, "SelectedIndex", this, this.PropertyChanged);
+        }
+
+        private void OnConfigPropertyChanged(string propertyName)
+        {
+            switch (propertyName)
+            {
+                case "Values":
+                    this.SetColors();
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        private void SetColors()
+        {
+            ConfigValues configValues = Config.Values;
+            this.Foreground = configValues.GetBrush(ConfigValue.DefaultForeground);
+            this.Background = configValues.GetBrush(ConfigValue.DefaultBackground);
+            this.Resources[SystemColors.HighlightBrushKey] = configValues.GetBrush(ConfigValue.SelectedBackground);
+            this.Resources[SystemColors.HighlightTextBrushKey] = configValues.GetBrush(ConfigValue.SelectedForeground);
         }
 
         private async Task<bool> ExpandSubtree(TreeViewData data, int depth, Guid actionId, SingularAction action)
