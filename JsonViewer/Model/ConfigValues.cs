@@ -144,10 +144,15 @@
                 {
                     case ConfigValue.DefaultForeground:
                     case ConfigValue.SelectedForeground:
-                    case ConfigValue.SearchResultForeground:
                     case ConfigValue.SimilarNodeForeground:
                     case ConfigValue.SelectedParentForeground:
                         color = Colors.Black;
+                        break;
+                    case ConfigValue.SearchResultForeground:
+                        color = Colors.Blue;
+                        break;
+                    case ConfigValue.DefaultBackground:
+                        color = Colors.White;
                         break;
                     case ConfigValue.SelectedBackground:
                         color = Colors.Yellow;
@@ -155,10 +160,11 @@
                     case ConfigValue.SearchResultBackground:
                         color = Colors.LightGreen;
                         break;
-                    case ConfigValue.DefaultBackground:
                     case ConfigValue.SimilarNodeBackground:
+                        color = Colors.LightBlue;
+                        break;
                     case ConfigValue.SelectedParentBackground:
-                        color = Colors.White;
+                        color = Colors.LightGoldenrodYellow;
                         break;
                     default:
                         Debug.Assert(false);
