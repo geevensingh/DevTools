@@ -126,11 +126,6 @@
             _finder.SetObjects(rootObject);
             _rootObject.SetTreeItemsSource(this.Tree);
 
-            if (_rootObject.TotalChildCount <= 50)
-            {
-                this.Tree.ExpandAll();
-            }
-
             if (oldSelectionIndex.HasValue && oldSelectionIndex.Value < _rootObject.AllChildren.Count)
             {
                 this.Tree.SelectItem(_rootObject.AllChildren[oldSelectionIndex.Value].ViewObject);

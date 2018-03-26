@@ -38,6 +38,26 @@
             }
         }
 
+        private int ExpandLevelWithLessThanCount(int count)
+        {
+            int totalChildCount = this.TotalChildCount;
+            int depth = 0;
+            int lastCount = this.CountAtDepth(depth++);
+            while (depth < count && lastCount < count && lastCount < totalChildCount)
+            {
+                lastCount += this.CountAtDepth(depth++);
+            }
+
+            if (lastCount > count)
+            {
+                Debug.Assert(depth >= 3);
+                return depth - 3;
+            }
+
+            Debug.Assert(depth >= 2);
+            return depth - 2;
+        }
+
         public override void SetChildren(IList<JsonObject> children)
         {
             Debug.Assert(_viewChildren == null);
@@ -68,6 +88,7 @@
 
             Debug.Assert(_expandByRules.Dispatcher == tree.Dispatcher);
 
+            bool expandedSomething = false;
             _expandByRules.BeginInvoke(
                 System.Windows.Threading.DispatcherPriority.Background,
                 async (actionId, action) =>
@@ -79,11 +100,17 @@
                         {
                             tree.ExpandToItem(jsonObj.ViewObject);
                             tree.ExpandSubtree(jsonObj.ViewObject, depth.Value);
+                            expandedSomething = true;
                         }
                         if (!await action.YieldAndContinue(actionId))
                         {
                             return false;
                         }
+                    }
+
+                    if (!expandedSomething)
+                    {
+                        tree.ExpandAll(this.ExpandLevelWithLessThanCount(50));
                     }
 
                     return true;
