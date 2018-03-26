@@ -39,13 +39,13 @@
         public Color DefaultForegroundColor
         {
             get => _values.GetColor(ConfigValue.DefaultForeground);
-            set => _values.DefaultForeground = value;
+            set => _values.DefaultForeground = value.GetName();
         }
 
         public Color DefaultBackgroundColor
         {
             get => _values.GetColor(ConfigValue.DefaultBackground);
-            set => _values.DefaultBackground = value;
+            set => _values.DefaultBackground = value.GetName();
         }
 
         public Brush DefaultForegroundBrush
@@ -61,13 +61,13 @@
         public Color SelectedForegroundColor
         {
             get => _values.GetColor(ConfigValue.SelectedForeground);
-            set => _values.SelectedForeground = value;
+            set => _values.SelectedForeground = value.GetName();
         }
 
         public Color SelectedBackgroundColor
         {
             get => _values.GetColor(ConfigValue.SelectedBackground);
-            set => _values.SelectedBackground = value;
+            set => _values.SelectedBackground = value.GetName();
         }
 
         public Brush SelectedForegroundBrush
@@ -83,13 +83,13 @@
         public Color SearchResultForegroundColor
         {
             get => _values.GetColor(ConfigValue.SearchResultForeground);
-            set => _values.SearchResultForeground = value;
+            set => _values.SearchResultForeground = value.GetName();
         }
 
         public Color SearchResultBackgroundColor
         {
             get => _values.GetColor(ConfigValue.SearchResultBackground);
-            set => _values.SearchResultBackground = value;
+            set => _values.SearchResultBackground = value.GetName();
         }
 
         public Brush SearchResultForegroundBrush
@@ -105,13 +105,13 @@
         public Color SimilarNodeForegroundColor
         {
             get => _values.GetColor(ConfigValue.SimilarNodeForeground);
-            set => _values.SimilarNodeForeground = value;
+            set => _values.SimilarNodeForeground = value.GetName();
         }
 
         public Color SimilarNodeBackgroundColor
         {
             get => _values.GetColor(ConfigValue.SimilarNodeBackground);
-            set => _values.SimilarNodeBackground = value;
+            set => _values.SimilarNodeBackground = value.GetName();
         }
 
         public Brush SimilarNodeForegroundBrush
@@ -127,13 +127,13 @@
         public Color SelectedParentForegroundColor
         {
             get => _values.GetColor(ConfigValue.SelectedParentForeground);
-            set => _values.SelectedParentForeground = value;
+            set => _values.SelectedParentForeground = value.GetName();
         }
 
         public Color SelectedParentBackgroundColor
         {
             get => _values.GetColor(ConfigValue.SelectedParentBackground);
-            set => _values.SelectedParentBackground = value;
+            set => _values.SelectedParentBackground = value.GetName();
         }
 
         public Brush SelectedParentForegroundBrush

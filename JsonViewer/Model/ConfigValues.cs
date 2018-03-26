@@ -15,30 +15,30 @@
     [JsonObject]
     public class ConfigValues : NotifyPropertyChanged
     {
-        private Dictionary<string, object> _rawValues = new Dictionary<string, object>();
+        private Dictionary<string, string> _rawValues = new Dictionary<string, string>();
         private Dictionary<ConfigValue, Color> _colors = new Dictionary<ConfigValue, Color>();
         private Dictionary<ConfigValue, Brush> _brushes = new Dictionary<ConfigValue, Brush>();
         private IList<ConfigRule> _rules = new List<ConfigRule>();
 
-        public Color DefaultForeground { get => this.GetColor(ConfigValue.DefaultForeground); set => this.SetColor(ConfigValue.DefaultForeground, value); }
+        public string DefaultForeground { get => this.GetRawValue(ConfigValue.DefaultForeground); set => this.SetColorString(ConfigValue.DefaultForeground, value); }
 
-        public Color DefaultBackground { get => this.GetColor(ConfigValue.DefaultBackground); set => this.SetColor(ConfigValue.DefaultBackground, value); }
+        public string DefaultBackground { get => this.GetRawValue(ConfigValue.DefaultBackground); set => this.SetColorString(ConfigValue.DefaultBackground, value); }
 
-        public Color SelectedForeground { get => this.GetColor(ConfigValue.SelectedForeground); set => this.SetColor(ConfigValue.SelectedForeground, value); }
+        public string SelectedForeground { get => this.GetRawValue(ConfigValue.SelectedForeground); set => this.SetColorString(ConfigValue.SelectedForeground, value); }
 
-        public Color SelectedBackground { get => this.GetColor(ConfigValue.SelectedBackground); set => this.SetColor(ConfigValue.SelectedBackground, value); }
+        public string SelectedBackground { get => this.GetRawValue(ConfigValue.SelectedBackground); set => this.SetColorString(ConfigValue.SelectedBackground, value); }
 
-        public Color SearchResultForeground { get => this.GetColor(ConfigValue.SearchResultForeground); set => this.SetColor(ConfigValue.SearchResultForeground, value); }
+        public string SearchResultForeground { get => this.GetRawValue(ConfigValue.SearchResultForeground); set => this.SetColorString(ConfigValue.SearchResultForeground, value); }
 
-        public Color SearchResultBackground { get => this.GetColor(ConfigValue.SearchResultBackground); set => this.SetColor(ConfigValue.SearchResultBackground, value); }
+        public string SearchResultBackground { get => this.GetRawValue(ConfigValue.SearchResultBackground); set => this.SetColorString(ConfigValue.SearchResultBackground, value); }
 
-        public Color SimilarNodeForeground { get => this.GetColor(ConfigValue.SimilarNodeForeground); set => this.SetColor(ConfigValue.SimilarNodeForeground, value); }
+        public string SimilarNodeForeground { get => this.GetRawValue(ConfigValue.SimilarNodeForeground); set => this.SetColorString(ConfigValue.SimilarNodeForeground, value); }
 
-        public Color SimilarNodeBackground { get => this.GetColor(ConfigValue.SimilarNodeBackground); set => this.SetColor(ConfigValue.SimilarNodeBackground, value); }
+        public string SimilarNodeBackground { get => this.GetRawValue(ConfigValue.SimilarNodeBackground); set => this.SetColorString(ConfigValue.SimilarNodeBackground, value); }
 
-        public Color SelectedParentForeground { get => this.GetColor(ConfigValue.SelectedParentForeground); set => this.SetColor(ConfigValue.SelectedParentForeground, value); }
+        public string SelectedParentForeground { get => this.GetRawValue(ConfigValue.SelectedParentForeground); set => this.SetColorString(ConfigValue.SelectedParentForeground, value); }
 
-        public Color SelectedParentBackground { get => this.GetColor(ConfigValue.SelectedParentBackground); set => this.SetColor(ConfigValue.SelectedParentBackground, value); }
+        public string SelectedParentBackground { get => this.GetRawValue(ConfigValue.SelectedParentBackground); set => this.SetColorString(ConfigValue.SelectedParentBackground, value); }
 
         public double DefaultFontSize
         {
@@ -46,17 +46,17 @@
             {
                 try
                 {
-                    if (double.TryParse(_rawValues["DefaultFontSize"] as string, out double doubleTemp))
+                    string valueString = this.GetRawValue("DefaultFontSize");
+                    if (double.TryParse(valueString, out double valueDouble))
                     {
-                        return doubleTemp;
+                        return valueDouble;
                     }
                 }
                 catch
                 {
                 }
 
-                this.DefaultFontSize = 12.0;
-                return this.DefaultFontSize;
+                return 12.0;
             }
 
             set
@@ -129,10 +129,44 @@
             if (!_brushes.ContainsKey(configValue))
             {
                 Debug.WriteLine("thread id: " + System.Threading.Thread.CurrentThread.ManagedThreadId);
-                _brushes[configValue] = new SolidColorBrush(this.GetColor(configValue));
+                _brushes[configValue] = new SolidColorBrush(this.GetColorWithFallback(configValue));
             }
 
             return _brushes[configValue];
+        }
+
+        public Color GetColorWithFallback(ConfigValue configValue)
+        {
+            Color color = this.GetColor(configValue);
+            if (color == Colors.Transparent)
+            {
+                switch (configValue)
+                {
+                    case ConfigValue.DefaultForeground:
+                    case ConfigValue.SelectedForeground:
+                    case ConfigValue.SearchResultForeground:
+                    case ConfigValue.SimilarNodeForeground:
+                    case ConfigValue.SelectedParentForeground:
+                        color = Colors.Black;
+                        break;
+                    case ConfigValue.SelectedBackground:
+                        color = Colors.Yellow;
+                        break;
+                    case ConfigValue.SearchResultBackground:
+                        color = Colors.LightGreen;
+                        break;
+                    case ConfigValue.DefaultBackground:
+                    case ConfigValue.SimilarNodeBackground:
+                    case ConfigValue.SelectedParentBackground:
+                        color = Colors.White;
+                        break;
+                    default:
+                        Debug.Assert(false);
+                        break;
+                }
+            }
+
+            return color;
         }
 
         public Color GetColor(ConfigValue configValue)
@@ -143,7 +177,8 @@
             {
                 if (!_colors.ContainsKey(configValue))
                 {
-                    _colors[configValue] = (Color)ColorConverter.ConvertFromString(_rawValues[key] as string);
+                    string colorString = this.GetRawValue(configValue);
+                    _colors[configValue] = (Color)ColorConverter.ConvertFromString(colorString);
                 }
 
                 return _colors[configValue];
@@ -152,87 +187,84 @@
             {
             }
 
-            Color fallback = Colors.Transparent;
-            switch (configValue)
+            return Colors.Transparent;
+        }
+
+        public void SetColorString(ConfigValue configValue, string colorString)
+        {
+            Color color = Colors.Transparent;
+            if (!string.IsNullOrEmpty(colorString))
             {
-                case ConfigValue.DefaultForeground:
-                case ConfigValue.SelectedForeground:
-                case ConfigValue.SearchResultForeground:
-                case ConfigValue.SimilarNodeForeground:
-                case ConfigValue.SelectedParentForeground:
-                    fallback = Colors.Black;
-                    break;
-                case ConfigValue.SelectedBackground:
-                    fallback = Colors.Yellow;
-                    break;
-                case ConfigValue.SearchResultBackground:
-                    fallback = Colors.LightGreen;
-                    break;
-                case ConfigValue.DefaultBackground:
-                case ConfigValue.SimilarNodeBackground:
-                case ConfigValue.SelectedParentBackground:
-                    fallback = Colors.White;
-                    break;
-                default:
-                    Debug.Assert(false);
-                    break;
+                color = (Color)ColorConverter.ConvertFromString(colorString);
             }
 
-            _rawValues[key] = fallback.GetName();
-            return fallback;
+            this.SetColor(configValue, color);
         }
 
         public void SetColor(ConfigValue configValue, Color color)
         {
+            string colorString = color.GetName();
             if (color == Colors.Transparent)
             {
-                if (_colors.ContainsKey(configValue))
+                colorString = string.Empty;
+            }
+
+            this.SetRawValue(
+                configValue,
+                colorString,
+                () =>
                 {
                     _colors.Remove(configValue);
                     _brushes.Remove(configValue);
-                    FirePropertyChanged(configValue.ToString());
-                }
+                });
+        }
 
-                return;
+        private string GetRawValue(ConfigValue configValue)
+        {
+            return this.GetRawValue(configValue.ToString());
+        }
+
+        private string GetRawValue(string key)
+        {
+            if (_rawValues.ContainsKey(key))
+            {
+                return _rawValues[key];
             }
 
-            bool hasChanged = true;
-            if (_colors.ContainsKey(configValue))
+            return string.Empty;
+        }
+
+        private bool SetRawValue(ConfigValue configValue, string value, Action action = null)
+        {
+            return this.SetRawValue(configValue.ToString(), value, action);
+        }
+
+        private bool SetRawValue(string key, string value, Action action = null)
+        {
+            bool hasChanged = false;
+            if (!_rawValues.ContainsKey(key))
             {
-                hasChanged = this.GetColor(configValue) != color;
+                _rawValues[key] = value;
+                hasChanged = true;
+            }
+            else if (string.IsNullOrEmpty(value))
+            {
+                _rawValues.Remove(key);
+                hasChanged = true;
+            }
+            else if (_rawValues[key] != value)
+            {
+                _rawValues[key] = value;
+                hasChanged = true;
             }
 
             if (hasChanged)
             {
-                _colors[configValue] = color;
-                _brushes.Remove(configValue);
-                FirePropertyChanged(configValue.ToString());
-            }
-        }
-
-        private string GetRawValue(string key, string fallback)
-        {
-            string result = null;
-            if (_rawValues.ContainsKey(key))
-            {
-                result = _rawValues[key] as string;
-            }
-
-            if (string.IsNullOrEmpty(result))
-            {
-                result = fallback;
-            }
-
-            return result;
-        }
-
-        private void SetRawValue(string key, string value)
-        {
-            if (!_rawValues.ContainsKey(key) || _rawValues[key] as string != value)
-            {
-                _rawValues[key] = value;
+                action?.Invoke();
                 this.FirePropertyChanged(key);
             }
+
+            return hasChanged;
         }
     }
 }
