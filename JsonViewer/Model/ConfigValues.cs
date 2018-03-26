@@ -59,7 +59,11 @@
                 return this.DefaultFontSize;
             }
 
-            set => this.SetRawValue("DefaultFontSize", value.ToString());
+            set
+            {
+                double newValue = MathHelper.Clamp(value, 8.0, 48.0);
+                this.SetRawValue("DefaultFontSize", newValue.ToString());
+            }
         }
 
         public IList<ConfigRule> Rules { get => _rules; set => this.SetValue(ref _rules, value, "Rules"); }
