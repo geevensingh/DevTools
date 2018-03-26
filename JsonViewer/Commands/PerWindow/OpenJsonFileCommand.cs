@@ -45,6 +45,7 @@
                 {
                     this.MainWindow.Raw_TextBox.Text = System.IO.File.ReadAllText(filePath);
                     _lastFile = filePath;
+                    new SwitchModeCommand(this.MainWindow, string.Empty, MainWindow.DisplayMode.TreeView).Execute(parameter);
                 }
                 catch
                 {
