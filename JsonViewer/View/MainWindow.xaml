@@ -5,7 +5,6 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:JsonViewer.View"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:model="clr-namespace:JsonViewer.Model"
     xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
     x:Name="mainWindow"
     Title="Json Viewer"
@@ -129,7 +128,6 @@
             <MenuItem Header="_View">
                 <MenuItem Command="{Binding ElementName=Toolbar, Path=ShowTextModeCommand.RoutedUICommand}" Header="{Binding ElementName=Toolbar, Path=ShowTextModeCommand.Text}" />
                 <MenuItem Command="{Binding ElementName=Toolbar, Path=ShowTreeModeCommand.RoutedUICommand}" Header="{Binding ElementName=Toolbar, Path=ShowTreeModeCommand.Text}" />
-                <MenuItem Command="{Binding ElementName=Toolbar, Path=ShowRulesModeCommand.RoutedUICommand}" Header="{Binding ElementName=Toolbar, Path=ShowRulesModeCommand.Text}" />
                 <Separator />
                 <MenuItem
                     Command="{Binding ElementName=Toolbar, Path=ShowToolbarTextToggleCommand}"
@@ -162,6 +160,8 @@
                 <MenuItem Command="{Binding ElementName=Toolbar, Path=NewWindowCommand.RoutedUICommand}" Header="_New window" />
                 <Separator />
                 <MenuItem Command="ApplicationCommands.Find" Header="_Find window" />
+                <Separator />
+                <MenuItem Command="{Binding ElementName=Toolbar, Path=SettingsCommand.RoutedUICommand}" Header="{Binding ElementName=Toolbar, Path=SettingsCommand.Text}" />
             </MenuItem>
             <MenuItem x:Name="ExpandToMenuItem" Header="_Expand to" />
         </Menu>
@@ -169,17 +169,6 @@
             x:Name="Toolbar"
             DataContext="{Binding ElementName=mainWindow}"
             DockPanel.Dock="Top" />
-        <TextBlock
-            Margin="5"
-            Background="Yellow"
-            DataContext="{Binding Path=RuleSet}"
-            DockPanel.Dock="Top"
-            Visibility="{Binding Path=IsDirty, Mode=OneWay, Converter={StaticResource BooleanToVisibility}}">
-            <Run>You have unsaved rule changes.</Run>
-            <Hyperlink Click="SaveRuleChanges_Click">Save them</Hyperlink>
-            <Run>|</Run>
-            <Hyperlink Click="DiscardRuleChanges_Click">Discard them</Hyperlink>
-        </TextBlock>
         <TextBlock
             x:Name="ErrorBanner"
             Margin="5"
@@ -218,129 +207,6 @@
         </Grid>
         <local:StatusBar DataContext="{Binding ElementName=mainWindow}" DockPanel.Dock="Bottom" />
         <Grid>
-            <Grid.Resources>
-                <ObjectDataProvider
-                    x:Key="odpMatchType"
-                    MethodName="GetValues"
-                    ObjectType="{x:Type model:MatchTypeEnum}">
-                    <ObjectDataProvider.MethodParameters>
-                        <x:Type Type="model:MatchTypeEnum" />
-                    </ObjectDataProvider.MethodParameters>
-                </ObjectDataProvider>
-                <ObjectDataProvider
-                    x:Key="odpMatchField"
-                    MethodName="GetValues"
-                    ObjectType="{x:Type model:MatchFieldEnum}">
-                    <ObjectDataProvider.MethodParameters>
-                        <x:Type Type="model:MatchFieldEnum" />
-                    </ObjectDataProvider.MethodParameters>
-                </ObjectDataProvider>
-                <DataTemplate x:Key="ColorCellTemplate">
-                    <TextBlock
-                        Margin="5,2"
-                        Background="{Binding Path=BackgroundBrush}"
-                        FontSize="{Binding Path=FontSize}"
-                        Foreground="{Binding Path=ForegroundBrush}"
-                        Text="{Binding Path=ColorString}" />
-                </DataTemplate>
-                <DataTemplate x:Key="ColorCellEditingTemplate">
-                    <StackPanel Margin="5,2" Orientation="Horizontal">
-                        <xctk:ColorPicker DisplayColorAndName="True" SelectedColor="{Binding Path=ForegroundColor}" />
-                        <TextBlock Margin="5,0">on</TextBlock>
-                        <xctk:ColorPicker DisplayColorAndName="True" SelectedColor="{Binding Path=BackgroundColor}" />
-                    </StackPanel>
-                </DataTemplate>
-                <Style x:Key="TextBlockCellStyle" TargetType="{x:Type TextBlock}">
-                    <Setter Property="Margin" Value="5,2" />
-                </Style>
-                <Style x:Key="CheckBoxCellStyle" TargetType="{x:Type CheckBox}">
-                    <Setter Property="Margin" Value="5,2" />
-                </Style>
-                <Style x:Key="ComboBoxCellStyle" TargetType="{x:Type ComboBox}">
-                    <Setter Property="Margin" Value="5,2" />
-                </Style>
-                <Style TargetType="{x:Type DataGridCell}">
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="{x:Type DataGridCell}">
-                                <Grid Background="{TemplateBinding Background}">
-                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                </Grid>
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
-                </Style>
-            </Grid.Resources>
-            <DataGrid
-                x:Name="RulesList"
-                HorizontalContentAlignment="Center"
-                VerticalContentAlignment="Center"
-                AutoGenerateColumns="False"
-                CanUserAddRows="True"
-                CanUserDeleteRows="True"
-                CanUserReorderColumns="False"
-                CanUserResizeRows="False"
-                CanUserSortColumns="True"
-                CellEditEnding="RulesList_CellEditEnding"
-                FontSize="14"
-                ItemsSource="{Binding Path=RuleSet.Rules, Mode=TwoWay}"
-                SelectionMode="Single"
-                SelectionUnit="FullRow"
-                Visibility="Collapsed">
-                <DataGrid.Columns>
-                    <DataGridTextColumn
-                        Binding="{Binding Path=Index}"
-                        ElementStyle="{StaticResource TextBlockCellStyle}"
-                        Header="Order" />
-                    <!--  how matches are made  -->
-                    <DataGridTextColumn
-                        Binding="{Binding Path=MatchString}"
-                        ElementStyle="{StaticResource TextBlockCellStyle}"
-                        Header="Match string" />
-                    <DataGridComboBoxColumn
-                        ElementStyle="{StaticResource ComboBoxCellStyle}"
-                        Header="Match type"
-                        ItemsSource="{Binding Source={StaticResource odpMatchType}}"
-                        SelectedItemBinding="{Binding Path=MatchType}" />
-                    <DataGridComboBoxColumn
-                        ElementStyle="{StaticResource ComboBoxCellStyle}"
-                        Header="Match field"
-                        ItemsSource="{Binding Source={StaticResource odpMatchField}}"
-                        SelectedItemBinding="{Binding Path=MatchField}" />
-                    <DataGridCheckBoxColumn
-                        Binding="{Binding Path=IgnoreCase}"
-                        ElementStyle="{StaticResource CheckBoxCellStyle}"
-                        Header="Ignore Case" />
-                    <DataGridCheckBoxColumn
-                        Binding="{Binding Path=AppliesToParents}"
-                        ElementStyle="{StaticResource CheckBoxCellStyle}"
-                        Header="Applies to parents" />
-
-                    <!--  what happens when a match is made  -->
-                    <DataGridTemplateColumn
-                        CellEditingTemplate="{StaticResource ColorCellEditingTemplate}"
-                        CellTemplate="{StaticResource ColorCellTemplate}"
-                        Header="Color" />
-                    <DataGridTextColumn
-                        Binding="{Binding Path=FontSize}"
-                        ElementStyle="{StaticResource TextBlockCellStyle}"
-                        Header="Font size" />
-                    <DataGridTextColumn
-                        Binding="{Binding Path=ExpandChildren}"
-                        ElementStyle="{StaticResource TextBlockCellStyle}"
-                        Header="Expand children" />
-                    <DataGridTextColumn
-                        Binding="{Binding Path=WarningMessage}"
-                        ElementStyle="{StaticResource TextBlockCellStyle}"
-                        Header="Warning message" />
-
-                    <!--<DataGridCheckBoxColumn
-                        Binding="{Binding Path=IsDirty, Mode=OneWay}"
-                        Header="Has changed"
-                        ElementStyle="{StaticResource CheckBoxCellStyle}"
-                        IsReadOnly="True" />-->
-                </DataGrid.Columns>
-            </DataGrid>
             <TextBox
                 x:Name="Raw_TextBox"
                 AcceptsReturn="True"

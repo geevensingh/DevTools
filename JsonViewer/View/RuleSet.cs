@@ -16,9 +16,9 @@
         private FindRule _findRule = null;
         private FindRule _matchRule = null;
         private List<IRule> _rules = new List<IRule>();
-        private Brush _foregroundBrush = Config.This.GetBrush(ConfigValue.DefaultForeground);
-        private Brush _backgroundBrush = Config.This.GetBrush(ConfigValue.DefaultBackground);
-        private double _fontSize = Config.This.DefaultFontSize;
+        private Brush _foregroundBrush = Config.Values.GetBrush(ConfigValue.DefaultForeground);
+        private Brush _backgroundBrush = Config.Values.GetBrush(ConfigValue.DefaultBackground);
+        private double _fontSize = Config.Values.DefaultFontSize;
         private int? _expandChildren = null;
         private IEnumerable<string> _warningMessages = null;
 
@@ -122,7 +122,7 @@
 
         internal void Initialize()
         {
-            List<IRule> newRules = new List<IRule>(Config.This.Rules.Where(rule => rule.Matches(_jsonObject)));
+            List<IRule> newRules = new List<IRule>(Config.Values.Rules.Where(rule => rule.Matches(_jsonObject)));
             if (_findRule != null)
             {
                 newRules.Insert(0, _findRule);
@@ -139,17 +139,17 @@
 
         private Brush CalculateForegroundBrush()
         {
-            return _rules.FirstOrDefault((rule) => rule.ForegroundBrush != null)?.ForegroundBrush ?? Config.This.GetBrush(ConfigValue.DefaultForeground);
+            return _rules.FirstOrDefault((rule) => rule.ForegroundBrush != null)?.ForegroundBrush ?? Config.Values.GetBrush(ConfigValue.DefaultForeground);
         }
 
         private Brush CalculateBackgroundBrush()
         {
-            return _rules.FirstOrDefault((rule) => rule.BackgroundBrush != null)?.BackgroundBrush ?? Config.This.GetBrush(ConfigValue.DefaultBackground);
+            return _rules.FirstOrDefault((rule) => rule.BackgroundBrush != null)?.BackgroundBrush ?? Config.Values.GetBrush(ConfigValue.DefaultBackground);
         }
 
         private double CalculateFontSize()
         {
-            return _rules.FirstOrDefault((rule) => rule.FontSize.HasValue)?.FontSize.Value ?? Config.This.DefaultFontSize;
+            return _rules.FirstOrDefault((rule) => rule.FontSize.HasValue)?.FontSize.Value ?? Config.Values.DefaultFontSize;
         }
 
         private int? CalculateExpandChildren()

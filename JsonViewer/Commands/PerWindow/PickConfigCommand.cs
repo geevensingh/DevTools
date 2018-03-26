@@ -26,7 +26,7 @@
 
         private string GetInitialDirectory()
         {
-            string configPath = Config.This.FilePath;
+            string configPath = Config.FilePath;
             string configDirectory = string.IsNullOrEmpty(configPath) ? string.Empty : Path.GetFullPath(configPath);
             return string.IsNullOrEmpty(configDirectory) ? string.Empty : Path.GetDirectoryName(configDirectory);
         }

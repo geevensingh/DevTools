@@ -127,6 +127,7 @@
     <Compile Include="Commands\PerWindow\HideFindCommand.cs" />
     <Compile Include="Commands\PerWindow\FindNextCommand.cs" />
     <Compile Include="Commands\PerWindow\PrettyTextCommand.cs" />
+    <Compile Include="Commands\PerWindow\SettingsCommand.cs" />
     <Compile Include="Commands\ShowToolbarTextToggleCommand.cs" />
     <Compile Include="Commands\ShowToolbarIconToggleCommand.cs" />
     <Compile Include="Commands\HighlightParentsToggleCommand.cs" />
@@ -138,6 +139,7 @@
     <Compile Include="Commands\ToggleCommand.cs" />
     <Compile Include="Model\ClipboardManager.cs" />
     <Compile Include="Model\ConfigRuleMatcher.cs" />
+    <Compile Include="Model\ConfigValues.cs" />
     <Compile Include="Model\DeserializeResult.cs" />
     <Compile Include="Model\FindRule.cs" />
     <Compile Include="Model\ConfigRule.cs" />
@@ -161,6 +163,9 @@
     <Compile Include="View\ErrorMessage.cs" />
     <Compile Include="View\EditableRuleView.cs" />
     <Compile Include="View\EditableRuleViewFactory.cs" />
+    <Compile Include="View\SettingsWindow.xaml.cs">
+      <DependentUpon>SettingsWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="View\StatusBar.xaml.cs">
       <DependentUpon>StatusBar.xaml</DependentUpon>
     </Compile>
@@ -190,6 +195,10 @@
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Page Include="View\SettingsWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="View\StatusBar.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
