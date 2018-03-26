@@ -171,8 +171,6 @@
 
         public Color GetColor(ConfigValue configValue)
         {
-            string key = configValue.ToString();
-
             try
             {
                 if (!_colors.ContainsKey(configValue))
