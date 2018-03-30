@@ -1,5 +1,6 @@
 ﻿namespace JsonViewer.View
 {
+    using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
     using System.ComponentModel;
@@ -106,6 +107,47 @@
 
                 return _jsonObject.Rules.BackgroundColor;
             }
+        }
+
+        public int IndexOfChild(TreeViewData child)
+        {
+            return this.Children.IndexOf(child);
+        }
+
+        public int Index
+        {
+            get
+            {
+                if (this.JsonObject.Parent == null)
+                {
+                    return 0;
+                }
+
+                int result = this.JsonObject.Parent.Children.IndexOf(this.JsonObject);
+                Debug.Assert(result != -1);
+                return result;
+            }
+        }
+
+        public struct ParentData
+        {
+            public TreeViewData treeViewData;
+            public int childIndex;
+        }
+
+        public IList<ParentData> GetParents()
+        {
+            List<ParentData> parentDatas = new List<ParentData>();
+            if (this.JsonObject.Parent != null)
+            {
+                parentDatas.AddRange(this.JsonObject.Parent.ViewObject.GetParents());
+                ParentData parentData;
+                parentData.treeViewData = this.JsonObject.Parent.ViewObject;
+                parentData.childIndex = this.Index;
+                parentDatas.Add(parentData);
+            }
+
+            return parentDatas;
         }
 
         public double FontSize

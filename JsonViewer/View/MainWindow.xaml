@@ -248,7 +248,25 @@
                 HorizontalContentAlignment="Stretch"
                 ItemTemplate="{StaticResource TreeViewItemTemplate}"
                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                VirtualizingPanel.IsVirtualizing="True"
+                VirtualizingPanel.VirtualizationMode="Recycling"
                 Visibility="Collapsed">
+                <TreeView.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <local:CustomVirtualizingStackPanel />
+                    </ItemsPanelTemplate>
+                </TreeView.ItemsPanel>
+                <TreeView.ItemContainerStyle>
+                    <Style TargetType="TreeViewItem">
+                        <Setter Property="ItemsPanel">
+                            <Setter.Value>
+                                <ItemsPanelTemplate>
+                                    <local:CustomVirtualizingStackPanel />
+                                </ItemsPanelTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </TreeView.ItemContainerStyle>
                 <local:CustomTreeView.InputBindings>
                     <KeyBinding
                         Key="Left"

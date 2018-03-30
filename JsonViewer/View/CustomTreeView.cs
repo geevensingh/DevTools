@@ -1,12 +1,14 @@
 ﻿namespace JsonViewer.View
 {
     using System;
+    using System.Collections.Generic;
     using System.ComponentModel;
     using System.Diagnostics;
     using System.Threading.Tasks;
     using System.Windows;
     using System.Windows.Controls;
     using System.Windows.Input;
+    using System.Windows.Media;
     using JsonViewer.Model;
     using Utilities;
 
@@ -95,34 +97,14 @@
 
         public TreeViewItem ExpandToItem(TreeViewData treeViewData)
         {
-            TreeViewItem parentItem = null;
-            if (treeViewData.Parent != null)
+            IList<TreeViewData.ParentData> parentDatas = treeViewData.GetParents();
+            ItemsControl lastParent = this;
+            foreach (TreeViewData.ParentData parentData in parentDatas)
             {
-                parentItem = ExpandToItem(treeViewData.Parent);
+                lastParent = GetTreeViewItem(lastParent, parentData.treeViewData, parentData.childIndex);
             }
 
-            TreeViewItem item = null;
-            if (parentItem == null)
-            {
-                Debug.Assert(treeViewData.Parent == null);
-                item = GetItem(treeViewData);
-            }
-            else
-            {
-                bool isExpanded = parentItem.IsExpanded;
-                if (!isExpanded)
-                {
-                    parentItem.IsExpanded = true;
-                    parentItem.UpdateLayout();
-                }
-
-                item = (TreeViewItem)parentItem.ItemContainerGenerator.ContainerFromItem(treeViewData);
-            }
-
-            Debug.Assert(item != null);
-            Debug.Assert(item.DataContext == treeViewData);
-
-            return item;
+            return GetTreeViewItem(lastParent, treeViewData, treeViewData.Index);
         }
 
         public TreeViewItem SelectItem(TreeViewData treeViewData)
@@ -135,6 +117,146 @@
             item.BringIntoView(new Rect(0, -50, item.ActualWidth, 100 + item.ActualHeight));
 
             return item;
+        }
+
+        private TreeViewItem GetTreeViewItem(ItemsControl container, TreeViewData item, int childIndex)
+        {
+            if (container == null)
+            {
+                Debug.Assert(false);
+                return null;
+            }
+
+            if (container.DataContext == item)
+            {
+                return container as TreeViewItem;
+            }
+
+            // Expand the current container
+            if (container is TreeViewItem treeViewItem && !treeViewItem.IsExpanded)
+            {
+                treeViewItem.IsExpanded = true;
+            }
+
+            // Try to generate the ItemsPresenter and the ItemsPanel.
+            // by calling ApplyTemplate.  Note that in the
+            // virtualizing case even if the item is marked
+            // expanded we still need to do this step in order to
+            // regenerate the visuals because they may have been virtualized away.
+            container.ApplyTemplate();
+            ItemsPresenter itemsPresenter = (ItemsPresenter)container.Template.FindName("ItemsHost", container);
+            if (itemsPresenter != null)
+            {
+                itemsPresenter.ApplyTemplate();
+            }
+            else
+            {
+                // The Tree template has not named the ItemsPresenter, 
+                // so walk the descendants and find the child.
+                itemsPresenter = FindVisualChild<ItemsPresenter>(container);
+                if (itemsPresenter == null)
+                {
+                    container.UpdateLayout();
+
+                    itemsPresenter = FindVisualChild<ItemsPresenter>(container);
+                }
+            }
+
+            Panel itemsHostPanel = (Panel)VisualTreeHelper.GetChild(itemsPresenter, 0);
+
+            // Ensure that the generator for this panel has been created.
+            UIElementCollection children = itemsHostPanel.Children;
+
+            CustomVirtualizingStackPanel virtualizingPanel = itemsHostPanel as CustomVirtualizingStackPanel;
+
+            if (childIndex != -1)
+            {
+                TreeViewItem subContainer;
+                if (virtualizingPanel != null)
+                {
+                    // Bring the item into view so 
+                    // that the container will be generated.
+                    virtualizingPanel.BringIntoView(childIndex);
+
+                    subContainer = (TreeViewItem)container.ItemContainerGenerator.ContainerFromIndex(childIndex);
+                }
+                else
+                {
+                    subContainer = (TreeViewItem)container.ItemContainerGenerator.ContainerFromIndex(childIndex);
+
+                    // Bring the item into view to maintain the 
+                    // same behavior as with a virtualizing panel.
+                    subContainer.BringIntoView();
+                }
+
+                if (subContainer != null && subContainer.DataContext == item)
+                {
+                    return subContainer as TreeViewItem;
+                }
+            }
+
+            for (int i = 0, count = container.Items.Count; i < count; i++)
+            {
+                TreeViewItem subContainer;
+                if (virtualizingPanel != null)
+                {
+                    // Bring the item into view so 
+                    // that the container will be generated.
+                    virtualizingPanel.BringIntoView(i);
+
+                    subContainer = (TreeViewItem)container.ItemContainerGenerator.ContainerFromIndex(i);
+                }
+                else
+                {
+                    subContainer = (TreeViewItem)container.ItemContainerGenerator.ContainerFromIndex(i);
+
+                    // Bring the item into view to maintain the 
+                    // same behavior as with a virtualizing panel.
+                    subContainer.BringIntoView();
+                }
+
+                if (subContainer != null)
+                {
+                    // Search the next level for the object.
+                    TreeViewItem resultContainer = GetTreeViewItem(subContainer, item, -1);
+                    if (resultContainer != null)
+                    {
+                        return resultContainer;
+                    }
+                    else
+                    {
+                        // The object is not under this TreeViewItem
+                        // so collapse it.
+                        subContainer.IsExpanded = false;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private T FindVisualChild<T>(Visual visual)
+            where T : Visual
+        {
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(visual); i++)
+            {
+                Visual child = (Visual)VisualTreeHelper.GetChild(visual, i);
+                if (child != null)
+                {
+                    if (child is T correctlyTyped)
+                    {
+                        return correctlyTyped;
+                    }
+
+                    T descendent = FindVisualChild<T>(child);
+                    if (descendent != null)
+                    {
+                        return descendent;
+                    }
+                }
+            }
+
+            return null;
         }
 
         public TreeViewItem GetItem(TreeViewData data)

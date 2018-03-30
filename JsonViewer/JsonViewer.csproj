@@ -145,6 +145,7 @@
     <Compile Include="Model\ConfigRule.cs" />
     <Compile Include="Model\IRule.cs" />
     <Compile Include="Model\EditableRuleSet.cs" />
+    <Compile Include="View\CustomVirtualizingStackPanel.cs" />
     <Compile Include="View\RuleSet.cs" />
     <Compile Include="Model\SimilarHighlighter.cs" />
     <Compile Include="View\FindMatchNavigator.cs" />
