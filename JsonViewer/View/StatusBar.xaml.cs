@@ -14,7 +14,7 @@
     public partial class StatusBar : UserControl, INotifyPropertyChanged
     {
         private MainWindow _mainWindow = null;
-        private RootObject _rootObject = null;
+        private RootJsonObject _rootObject = null;
 
         public StatusBar()
         {

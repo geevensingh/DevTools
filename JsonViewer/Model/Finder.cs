@@ -11,7 +11,7 @@
     public class Finder : NotifyPropertyChanged
     {
         private MainWindow _parentWindow;
-        private RootObject _rootObject = null;
+        private RootJsonObject _rootObject = null;
         private string _text = Properties.Settings.Default.FindText;
         private bool _shouldSearchKeys = Properties.Settings.Default.FindSearchKeys;
         private bool _shouldSearchValues = Properties.Settings.Default.FindSearchValues;
@@ -173,7 +173,7 @@
             }
         }
 
-        internal void SetObjects(RootObject rootObject)
+        internal void SetObjects(RootJsonObject rootObject)
         {
             if (_rootObject != null)
             {

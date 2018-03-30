@@ -11,7 +11,7 @@
     {
         private SingularAction _action = null;
         private MainWindow _mainWindow;
-        private RootObject _rootObject = null;
+        private RootJsonObject _rootObject = null;
 
         public SimilarHighlighter(MainWindow mainWindow)
         {
@@ -59,7 +59,7 @@
             }
         }
 
-        private void SetRootObject(RootObject rootObject)
+        private void SetRootObject(RootJsonObject rootObject)
         {
             if (_rootObject == rootObject)
             {

@@ -6,7 +6,7 @@
 
     public class ExpandToLevelCommand : BaseCommand
     {
-        private RootObject _rootObject = null;
+        private RootJsonObject _rootObject = null;
         private int _depth;
 
         public ExpandToLevelCommand(MainWindow mainWindow, int depth)
@@ -43,7 +43,7 @@
             }
         }
 
-        private void SetRootObject(RootObject rootObject)
+        private void SetRootObject(RootJsonObject rootObject)
         {
             if (_rootObject == rootObject)
             {

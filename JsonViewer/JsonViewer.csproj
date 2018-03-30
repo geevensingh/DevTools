@@ -158,7 +158,7 @@
     </Compile>
     <Compile Include="Model\JsonObject.cs" />
     <Compile Include="Model\JsonObjectFactory.cs" />
-    <Compile Include="Model\RootObject.cs" />
+    <Compile Include="Model\RootJsonObject.cs" />
     <Compile Include="View\ErrorMessage.cs" />
     <Compile Include="View\EditableRuleView.cs" />
     <Compile Include="View\EditableRuleViewFactory.cs" />

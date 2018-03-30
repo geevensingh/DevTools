@@ -21,7 +21,7 @@
     {
         private Finder _finder;
         private Point? _initialOffset = null;
-        private RootObject _rootObject = null;
+        private RootJsonObject _rootObject = null;
         private WarningBannerActionHandler _warningBannerAction;
         private WarningBannerActionHandler _warningBannerDismiss;
         private string _lastText = string.Empty;
@@ -48,7 +48,7 @@
 
         public Finder Finder { get => _finder; }
 
-        internal RootObject RootObject { get => _rootObject; }
+        internal RootJsonObject RootObject { get => _rootObject; }
 
         internal ClipboardManager ClipboardManager { get; private set; }
 
@@ -93,7 +93,7 @@
 
         public async Task<bool> ReloadAsync(Dictionary<string, object> dictionary)
         {
-            RootObject rootObject = await RootObject.Create(dictionary);
+            RootJsonObject rootObject = await RootJsonObject.Create(dictionary);
             if (rootObject == null)
             {
                 this.SetErrorMessage("Unable to parse given string");

@@ -84,14 +84,14 @@
             }
         }
 
-        public virtual RootObject Root
+        public virtual RootJsonObject Root
         {
             get
             {
                 if (_parent == null)
                 {
-                    Debug.Assert(this as RootObject != null);
-                    return this as RootObject;
+                    Debug.Assert(this as RootJsonObject != null);
+                    return this as RootJsonObject;
                 }
 
                 return _parent.Root;

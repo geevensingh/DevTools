@@ -7,7 +7,7 @@
 
     internal static class TreeViewDataFactory
     {
-        public static ObservableCollection<TreeViewData> CreateCollection(ListView tree, RootObject rootObject)
+        public static ObservableCollection<TreeViewData> CreateCollection(ListView tree, RootJsonObject rootObject)
         {
             return new ObservableCollection<TreeViewData>(CreateList(tree, rootObject));
         }

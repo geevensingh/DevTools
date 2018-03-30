@@ -9,17 +9,17 @@
     using JsonViewer.View;
     using Utilities;
 
-    public class RootObject : JsonObject
+    public class RootJsonObject : JsonObject
     {
         private static SingularAction _expandByRules = null;
         private ObservableCollection<TreeViewData> _viewChildren = null;
 
-        public RootObject()
+        public RootJsonObject()
             : base(string.Empty, new Dictionary<string, object>())
         {
         }
 
-        public static async Task<RootObject> Create(Dictionary<string, object> jsonObj)
+        public static async Task<RootJsonObject> Create(Dictionary<string, object> jsonObj)
         {
             if (jsonObj == null)
             {
@@ -31,7 +31,7 @@
                 return await Task.Run(
                     () =>
                     {
-                        RootObject root = new RootObject();
+                        RootJsonObject root = new RootJsonObject();
                         var jsonObjects = new List<JsonObject>();
                         JsonObjectFactory.Flatten(ref jsonObjects, jsonObj, root);
                         return root;
