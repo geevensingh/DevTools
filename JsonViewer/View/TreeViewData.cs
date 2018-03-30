@@ -8,27 +8,28 @@
     using System.Windows.Media;
     using JsonViewer.Commands.PerItem;
     using JsonViewer.Model;
+    using JsonViewer.ViewModel;
     using Utilities;
 
     internal class TreeViewData : NotifyPropertyChanged
     {
         private ListView _tree = null;
-        private JsonObject _jsonObject;
+        private VMObject _vmObject;
         private ObservableCollection<TreeViewData> _children = new ObservableCollection<TreeViewData>();
         private bool _isSelected = false;
         private bool _isChildSelected = false;
 
-        internal TreeViewData(ListView tree, JsonObject jsonObject, IList<TreeViewData> children)
+        internal TreeViewData(ListView tree, VMObject vmObject, IList<TreeViewData> children)
         {
             Debug.Assert(System.Threading.Thread.CurrentThread.ManagedThreadId == 1);
 
             _tree = tree;
-            _jsonObject = jsonObject;
-            _jsonObject.ViewObject = this;
+            _vmObject = vmObject;
+            _vmObject.JsonObject.ViewObject = this;
             _children = new ObservableCollection<TreeViewData>(children);
 
-            _jsonObject.PropertyChanged += OnDataModelPropertyChanged;
-            _jsonObject.Rules.PropertyChanged += OnRulesPropertyChanged;
+            _vmObject.PropertyChanged += OnDataModelPropertyChanged;
+            _vmObject.Rules.PropertyChanged += OnRulesPropertyChanged;
             Properties.Settings.Default.PropertyChanged += OnSettingsPropertyChanged;
 
             this.ExpandChildrenCommand = new ExpandChildrenCommand(this);
@@ -42,21 +43,21 @@
             this.TreatAsTextCommand = new TreatAsTextCommand(tree, this);
         }
 
-        public string KeyName { get => _jsonObject.Key; }
+        public string KeyName { get => _vmObject.JsonObject.Key; }
 
-        public string Value { get => _jsonObject.ValueString; }
+        public string Value { get => _vmObject.JsonObject.ValueString; }
 
-        public string PrettyValue { get => _jsonObject.PrettyValueString; }
+        public string PrettyValue { get => _vmObject.JsonObject.PrettyValueString; }
 
-        public string OneLineValue { get => _jsonObject.OneLineValue; }
+        public string OneLineValue { get => _vmObject.JsonObject.OneLineValue; }
 
-        public string ValueType { get => _jsonObject.ValueTypeString; }
+        public string ValueType { get => _vmObject.JsonObject.ValueTypeString; }
 
         public ObservableCollection<TreeViewData> Children { get => _children; }
 
-        public TreeViewData Parent { get => _jsonObject.Parent?.ViewObject; }
+        public TreeViewData Parent { get => _vmObject.JsonObject.Parent?.ViewObject; }
 
-        public bool HasChildren { get => _jsonObject.HasChildren; }
+        public bool HasChildren { get => _vmObject.JsonObject.HasChildren; }
 
         public IList<TreeViewData> ParentList
         {
@@ -87,7 +88,7 @@
                     return Config.Values.GetBrush(ConfigValue.SelectedParentForeground);
                 }
 
-                return _jsonObject.Rules.TextColor;
+                return _vmObject.Rules.TextColor;
             }
         }
 
@@ -105,7 +106,7 @@
                     return Config.Values.GetBrush(ConfigValue.SelectedParentBackground);
                 }
 
-                return _jsonObject.Rules.BackgroundColor;
+                return _vmObject.Rules.BackgroundColor;
             }
         }
 
@@ -113,7 +114,7 @@
         {
             get
             {
-                return _jsonObject.Rules.FontSize;
+                return _vmObject.Rules.FontSize;
             }
         }
 
@@ -173,7 +174,7 @@
 
         public TreatAsTextCommand TreatAsTextCommand { get; private set; }
 
-        internal JsonObject JsonObject { get => _jsonObject; }
+        internal JsonObject JsonObject { get => _vmObject.JsonObject; }
 
         internal ListView Tree { get => _tree; }
 

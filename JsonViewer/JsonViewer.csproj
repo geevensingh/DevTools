@@ -145,6 +145,7 @@
     <Compile Include="Model\ConfigRule.cs" />
     <Compile Include="Model\IRule.cs" />
     <Compile Include="Model\EditableRuleSet.cs" />
+    <Compile Include="ViewModel\VMObject.cs" />
     <Compile Include="View\RuleSet.cs" />
     <Compile Include="Model\SimilarHighlighter.cs" />
     <Compile Include="View\FindMatchNavigator.cs" />
@@ -228,6 +229,7 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <None Include="Examples Json\616Events.json" />
+    <None Include="Examples Json\FlatShallow.json" />
     <None Include="Examples Json\NestedEvents.json" />
     <None Include="Examples Json\Depth.json" />
     <None Include="Examples Json\FlatList.json" />

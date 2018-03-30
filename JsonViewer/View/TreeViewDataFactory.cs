@@ -4,6 +4,7 @@
     using System.Collections.ObjectModel;
     using System.Windows.Controls;
     using JsonViewer.Model;
+    using JsonViewer.ViewModel;
 
     internal static class TreeViewDataFactory
     {
@@ -20,7 +21,7 @@
                 children.Add(CreateNode(tree, child));
             }
 
-            return new TreeViewData(tree, jsonObject, children);
+            return new TreeViewData(tree, new VMObject(jsonObject), children);
         }
 
         private static List<TreeViewData> CreateList(ListView tree, JsonObject jsonObject)

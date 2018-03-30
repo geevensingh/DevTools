@@ -323,59 +323,59 @@
 
         private void UpdateWarnings()
         {
-            this.ClearWarningMessage();
+            //this.ClearWarningMessage();
 
-            if (Config.IsDefault && Properties.Settings.Default.MainWindowWarnOnDefaultConfig)
-            {
-                this.SetWarningMessage(
-                    "Unable to find your configuration file.  Do you want to pick a configuration file?",
-                    () =>
-                    {
-                        this.Toolbar.PickConfigCommand.Execute(null);
-                        this.UpdateWarnings();
-                    },
-                    () =>
-                    {
-                        Properties.Settings.Default.MainWindowWarnOnDefaultConfig = false;
-                        Properties.Settings.Default.Save();
-                        this.UpdateWarnings();
-                    });
-            }
-            else
-            {
-                List<JsonObject> nodes = _rootObject?.AllChildren;
-                if (nodes != null)
-                {
-                    SortedSet<string> set = new SortedSet<string>();
-                    foreach (JsonObject obj in nodes)
-                    {
-                        IEnumerable<string> warningMessages = obj.Rules.WarningMessages;
-                        if (warningMessages != null)
-                        {
-                            foreach (string warningMessage in warningMessages)
-                            {
-                                set.Add(warningMessage);
-                            }
-                        }
-                    }
+            //if (Config.IsDefault && Properties.Settings.Default.MainWindowWarnOnDefaultConfig)
+            //{
+            //    this.SetWarningMessage(
+            //        "Unable to find your configuration file.  Do you want to pick a configuration file?",
+            //        () =>
+            //        {
+            //            this.Toolbar.PickConfigCommand.Execute(null);
+            //            this.UpdateWarnings();
+            //        },
+            //        () =>
+            //        {
+            //            Properties.Settings.Default.MainWindowWarnOnDefaultConfig = false;
+            //            Properties.Settings.Default.Save();
+            //            this.UpdateWarnings();
+            //        });
+            //}
+            //else
+            //{
+            //    List<JsonObject> nodes = _rootObject?.AllChildren;
+            //    if (nodes != null)
+            //    {
+            //        SortedSet<string> set = new SortedSet<string>();
+            //        foreach (JsonObject obj in nodes)
+            //        {
+            //            IEnumerable<string> warningMessages = obj.Rules.WarningMessages;
+            //            if (warningMessages != null)
+            //            {
+            //                foreach (string warningMessage in warningMessages)
+            //                {
+            //                    set.Add(warningMessage);
+            //                }
+            //            }
+            //        }
 
-                    if (set.Count > 0)
-                    {
-                        string warningMessage = string.Join("\r\n", set.ToArray());
-                        this.SetWarningMessage(
-                            warningMessage,
-                            null,
-                            () =>
-                            {
-                                foreach (JsonObject jsonObject in _rootObject.AllChildren)
-                                {
-                                    jsonObject.Rules.DismissWarningMessage();
-                                }
-                                this.UpdateWarnings();
-                            });
-                    }
-                }
-            }
+            //        if (set.Count > 0)
+            //        {
+            //            string warningMessage = string.Join("\r\n", set.ToArray());
+            //            this.SetWarningMessage(
+            //                warningMessage,
+            //                null,
+            //                () =>
+            //                {
+            //                    foreach (JsonObject jsonObject in _rootObject.AllChildren)
+            //                    {
+            //                        jsonObject.Rules.DismissWarningMessage();
+            //                    }
+            //                    this.UpdateWarnings();
+            //                });
+            //        }
+            //    }
+            //}
         }
 
         private void ClearWarningMessage()

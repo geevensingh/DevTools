@@ -62,40 +62,40 @@
 
         internal void ApplyExpandRule(ListView tree)
         {
-            if (_expandByRules == null)
-            {
-                _expandByRules = new SingularAction(tree.Dispatcher);
-            }
+            //if (_expandByRules == null)
+            //{
+            //    _expandByRules = new SingularAction(tree.Dispatcher);
+            //}
 
-            Debug.Assert(_expandByRules.Dispatcher == tree.Dispatcher);
+            //Debug.Assert(_expandByRules.Dispatcher == tree.Dispatcher);
 
-            bool expandedSomething = false;
-            _expandByRules.BeginInvoke(
-                System.Windows.Threading.DispatcherPriority.Background,
-                async (actionId, action) =>
-                {
-                    foreach (JsonObject jsonObj in this.AllChildren)
-                    {
-                        int? depth = jsonObj.Rules.ExpandChildren;
-                        if (depth.HasValue)
-                        {
-                            //tree.ExpandToItem(jsonObj.ViewObject);
-                            //tree.ExpandSubtree(jsonObj.ViewObject, depth.Value);
-                            expandedSomething = true;
-                        }
-                        if (!await action.YieldAndContinue(actionId))
-                        {
-                            return false;
-                        }
-                    }
+            //bool expandedSomething = false;
+            //_expandByRules.BeginInvoke(
+            //    System.Windows.Threading.DispatcherPriority.Background,
+            //    async (actionId, action) =>
+            //    {
+            //        foreach (JsonObject jsonObj in this.AllChildren)
+            //        {
+            //            int? depth = jsonObj.Rules.ExpandChildren;
+            //            if (depth.HasValue)
+            //            {
+            //                //tree.ExpandToItem(jsonObj.ViewObject);
+            //                //tree.ExpandSubtree(jsonObj.ViewObject, depth.Value);
+            //                expandedSomething = true;
+            //            }
+            //            if (!await action.YieldAndContinue(actionId))
+            //            {
+            //                return false;
+            //            }
+            //        }
 
-                    if (!expandedSomething)
-                    {
-                        //tree.ExpandAll(this.ExpandLevelWithLessThanCount(50));
-                    }
+            //        if (!expandedSomething)
+            //        {
+            //            //tree.ExpandAll(this.ExpandLevelWithLessThanCount(50));
+            //        }
 
-                    return true;
-                });
+            //        return true;
+            //    });
         }
 
         protected override void UpdateChild(JsonObject child)
@@ -105,11 +105,6 @@
             Debug.Assert(this.Children[index].ViewObject == _viewChildren[index]);
             _viewChildren.RemoveAt(index);
             _viewChildren.Insert(index, child.ResetView());
-        }
-
-        protected override void ApplyRules()
-        {
-            // Do nothing
         }
 
         private int ExpandLevelWithLessThanCount(int count)

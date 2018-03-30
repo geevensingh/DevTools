@@ -21,7 +21,6 @@
         private string _originalString;
         private object _typedValue;
         private DataType _dataType = DataType.Other;
-        private RuleSet _rules = null;
         private bool _valuesInitialized = false;
         private string _valueTypeString;
         private string _oneLineValue;
@@ -181,35 +180,6 @@
             }
         }
 
-        internal RuleSet Rules
-        {
-            get
-            {
-                this.EnsureValues();
-                return _rules;
-            }
-        }
-
-        internal FindRule FindRule
-        {
-            get => _rules.FindRule;
-            set
-            {
-                this.EnsureValues();
-                _rules.SetFindRule(value);
-            }
-        }
-
-        internal FindRule MatchRule
-        {
-            get => _rules.MatchRule;
-            set
-            {
-                this.EnsureValues();
-                _rules.SetMatchRule(value);
-            }
-        }
-
         public virtual void SetChildren(IList<JsonObject> children)
         {
             Debug.Assert(_children.Count == 0);
@@ -321,15 +291,6 @@
             _parent.UpdateChild(this);
         }
 
-        public void FlushRules()
-        {
-            this.ApplyRules();
-            foreach (JsonObject child in this.Children)
-            {
-                child.FlushRules();
-            }
-        }
-
         internal TreeViewData ResetView()
         {
             ListView tree = _viewObject.Tree;
@@ -360,11 +321,6 @@
             {
                 this.FirePropertyChanged(new string[] { "AllChildren", "TotalChildCount" });
             }
-        }
-
-        protected virtual void ApplyRules()
-        {
-            _rules.Initialize();
         }
 
         private static object GetTypedValue(object value, out DataType dataType)
@@ -431,7 +387,7 @@
             return str;
         }
 
-        private void EnsureValues()
+        public void EnsureValues()
         {
             if (_valuesInitialized)
             {
@@ -488,12 +444,7 @@
 
             _oneLineValue = oneLineValue;
 
-            if (_rules == null)
-            {
-                _rules = new RuleSet(this);
-            }
-
-            this.ApplyRules();
+            this.FirePropertyChanged("Values");
         }
 
         private bool AreListsEqual<T>(IList<T> first, IList<T> second)
