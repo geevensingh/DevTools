@@ -11,8 +11,8 @@
 
         public override void Execute(object parameter)
         {
-            this.Data.Tree.SelectItem(this.Data);
-            this.Data.Tree.ExpandSubtree(this.Data, int.MaxValue);
+            //this.Data.Tree.SelectItem(this.Data);
+            //this.Data.Tree.ExpandSubtree(this.Data, int.MaxValue);
         }
 
         protected override void OnDataPropertyChanged(string propertyName)

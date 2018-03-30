@@ -2,16 +2,17 @@
 {
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
+    using System.Windows.Controls;
     using JsonViewer.Model;
 
     internal static class TreeViewDataFactory
     {
-        public static ObservableCollection<TreeViewData> CreateCollection(CustomTreeView tree, RootObject rootObject)
+        public static ObservableCollection<TreeViewData> CreateCollection(ListView tree, RootObject rootObject)
         {
             return new ObservableCollection<TreeViewData>(CreateList(tree, rootObject));
         }
 
-        public static TreeViewData CreateNode(CustomTreeView tree, JsonObject jsonObject)
+        public static TreeViewData CreateNode(ListView tree, JsonObject jsonObject)
         {
             var children = new List<TreeViewData>();
             foreach (JsonObject child in jsonObject.Children)
@@ -22,7 +23,7 @@
             return new TreeViewData(tree, jsonObject, children);
         }
 
-        private static List<TreeViewData> CreateList(CustomTreeView tree, JsonObject jsonObject)
+        private static List<TreeViewData> CreateList(ListView tree, JsonObject jsonObject)
         {
             var result = new List<TreeViewData>();
             foreach (JsonObject jsonChildren in jsonObject.Children)

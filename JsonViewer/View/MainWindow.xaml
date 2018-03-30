@@ -14,10 +14,7 @@
     Loaded="OnLoaded"
     mc:Ignorable="d">
     <Window.Resources>
-        <HierarchicalDataTemplate
-            x:Key="TreeViewItemTemplate"
-            DataType="local:TreeViewData"
-            ItemsSource="{Binding Path=Children}">
+        <DataTemplate x:Key="TreeViewItemTemplate" DataType="local:TreeViewData">
             <Grid HorizontalAlignment="Stretch" Background="{Binding Path=BackgroundColor}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="auto" />
@@ -99,7 +96,7 @@
                     Foreground="{Binding Path=TextColor}"
                     Text="{Binding Path=ValueType}" />
             </Grid>
-        </HierarchicalDataTemplate>
+        </DataTemplate>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibility" />
     </Window.Resources>
     <Window.CommandBindings>
@@ -242,14 +239,14 @@
                     </Style>
                 </TextBox.Style>
             </TextBox>
-            <local:CustomTreeView
+            <ListView
                 x:Name="Tree"
                 HorizontalAlignment="Stretch"
                 HorizontalContentAlignment="Stretch"
                 ItemTemplate="{StaticResource TreeViewItemTemplate}"
                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                 Visibility="Collapsed">
-                <local:CustomTreeView.InputBindings>
+                <ListView.InputBindings>
                     <KeyBinding
                         Key="Left"
                         Modifiers="Ctrl"
@@ -266,8 +263,8 @@
                         Key="Right"
                         Modifiers="Alt"
                         Command="{Binding ElementName=Toolbar, Path=FindNextCommand}" />
-                </local:CustomTreeView.InputBindings>
-            </local:CustomTreeView>
+                </ListView.InputBindings>
+            </ListView>
         </Grid>
     </DockPanel>
 </Window>

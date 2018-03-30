@@ -17,7 +17,7 @@
         {
             _mainWindow = mainWindow;
 
-            _mainWindow.Tree.PropertyChanged += OnTreePropertyChanged;
+            //_mainWindow.Tree.PropertyChanged += OnTreePropertyChanged;
             _mainWindow.Finder.PropertyChanged += OnFinderPropertyChanged;
 
             UpdateFindMatches();
@@ -43,7 +43,7 @@
             int adjusted = direction == Direction.Forward ? (previous + 1) : (next - 1);
             _currentHitIndex = (adjusted + _mainWindow.Finder.Hits.Count) % _mainWindow.Finder.Hits.Count;
             JsonObject hit = _mainWindow.Finder.Hits[_currentHitIndex.Value];
-            _mainWindow.Tree.SelectItem(hit.ViewObject);
+            //_mainWindow.Tree.SelectItem(hit.ViewObject);
         }
 
         private void OnTreePropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)

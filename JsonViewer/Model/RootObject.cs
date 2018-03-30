@@ -5,6 +5,7 @@
     using System.Diagnostics;
     using System.Linq;
     using System.Threading.Tasks;
+    using System.Windows.Controls;
     using JsonViewer.View;
     using Utilities;
 
@@ -45,7 +46,7 @@
             base.SetChildren(children);
         }
 
-        internal void SetTreeItemsSource(CustomTreeView tree)
+        internal void SetTreeItemsSource(ListView tree)
         {
             if (_viewChildren == null)
             {
@@ -59,7 +60,7 @@
             this.ApplyExpandRule(tree);
         }
 
-        internal void ApplyExpandRule(CustomTreeView tree)
+        internal void ApplyExpandRule(ListView tree)
         {
             if (_expandByRules == null)
             {
@@ -78,8 +79,8 @@
                         int? depth = jsonObj.Rules.ExpandChildren;
                         if (depth.HasValue)
                         {
-                            tree.ExpandToItem(jsonObj.ViewObject);
-                            tree.ExpandSubtree(jsonObj.ViewObject, depth.Value);
+                            //tree.ExpandToItem(jsonObj.ViewObject);
+                            //tree.ExpandSubtree(jsonObj.ViewObject, depth.Value);
                             expandedSomething = true;
                         }
                         if (!await action.YieldAndContinue(actionId))
@@ -90,7 +91,7 @@
 
                     if (!expandedSomething)
                     {
-                        tree.ExpandAll(this.ExpandLevelWithLessThanCount(50));
+                        //tree.ExpandAll(this.ExpandLevelWithLessThanCount(50));
                     }
 
                     return true;

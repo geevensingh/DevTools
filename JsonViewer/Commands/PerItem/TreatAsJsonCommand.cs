@@ -1,13 +1,14 @@
 ﻿namespace JsonViewer.Commands.PerItem
 {
+    using System.Windows.Controls;
     using JsonViewer.Model;
     using JsonViewer.View;
 
     internal class TreatAsJsonCommand : BaseTreeViewDataCommand
     {
-        private CustomTreeView _tree;
+        private ListView _tree;
 
-        public TreatAsJsonCommand(CustomTreeView tree, TreeViewData data)
+        public TreatAsJsonCommand(ListView tree, TreeViewData data)
             : base(data, "Treat as Json", data.JsonObject.CanTreatAsJson)
         {
             _tree = tree;
@@ -17,7 +18,7 @@
         {
             JsonObject obj = this.Data.JsonObject;
             obj.TreatAsJson();
-            _tree.SelectItem(obj.ViewObject).IsExpanded = true;
+            //_tree.SelectItem(obj.ViewObject).IsExpanded = true;
         }
     }
 }

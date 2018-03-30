@@ -152,7 +152,6 @@
       <DependentUpon>MainWindowToolbar.xaml</DependentUpon>
     </Compile>
     <Compile Include="Model\Config.cs" />
-    <Compile Include="View\CustomTreeView.cs" />
     <Compile Include="Model\Finder.cs" />
     <Compile Include="View\FindWindow.xaml.cs">
       <DependentUpon>FindWindow.xaml</DependentUpon>
@@ -169,7 +168,6 @@
     <Compile Include="View\StatusBar.xaml.cs">
       <DependentUpon>StatusBar.xaml</DependentUpon>
     </Compile>
-    <Compile Include="View\StretchingTreeViewItem.cs" />
     <Compile Include="View\TreeViewData.cs" />
     <Compile Include="View\TreeViewDataFactory.cs" />
     <Compile Include="NativeMethods.cs" />

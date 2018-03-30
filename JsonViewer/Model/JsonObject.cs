@@ -5,6 +5,7 @@
     using System.Diagnostics;
     using System.Linq;
     using System.Text;
+    using System.Windows.Controls;
     using JsonViewer.View;
     using Utilities;
 
@@ -331,7 +332,7 @@
 
         internal TreeViewData ResetView()
         {
-            CustomTreeView tree = _viewObject.Tree;
+            ListView tree = _viewObject.Tree;
             _viewObject = null;
             TreeViewDataFactory.CreateNode(tree, this);
             Debug.Assert(_viewObject != null);

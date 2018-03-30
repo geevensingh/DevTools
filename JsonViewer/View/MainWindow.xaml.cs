@@ -105,7 +105,7 @@
             TreeViewData treeViewData = (TreeViewData)this.Tree.SelectedItem;
             if (treeViewData != null)
             {
-                this.Tree.GetItem(treeViewData).IsSelected = false;
+                //this.Tree.GetItem(treeViewData).IsSelected = false;
             }
 
             if (_rootObject != null)
@@ -122,7 +122,7 @@
 
             if (oldSelectionIndex.HasValue && oldSelectionIndex.Value < _rootObject.AllChildren.Count)
             {
-                this.Tree.SelectItem(_rootObject.AllChildren[oldSelectionIndex.Value].ViewObject);
+                //this.Tree.SelectItem(_rootObject.AllChildren[oldSelectionIndex.Value].ViewObject);
             }
 
             this.UpdateWarnings();

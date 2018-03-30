@@ -4,6 +4,7 @@
     using System.Collections.ObjectModel;
     using System.ComponentModel;
     using System.Diagnostics;
+    using System.Windows.Controls;
     using System.Windows.Media;
     using JsonViewer.Commands.PerItem;
     using JsonViewer.Model;
@@ -11,13 +12,13 @@
 
     internal class TreeViewData : NotifyPropertyChanged
     {
-        private CustomTreeView _tree = null;
+        private ListView _tree = null;
         private JsonObject _jsonObject;
         private ObservableCollection<TreeViewData> _children = new ObservableCollection<TreeViewData>();
         private bool _isSelected = false;
         private bool _isChildSelected = false;
 
-        internal TreeViewData(CustomTreeView tree, JsonObject jsonObject, IList<TreeViewData> children)
+        internal TreeViewData(ListView tree, JsonObject jsonObject, IList<TreeViewData> children)
         {
             Debug.Assert(System.Threading.Thread.CurrentThread.ManagedThreadId == 1);
 
@@ -174,7 +175,7 @@
 
         internal JsonObject JsonObject { get => _jsonObject; }
 
-        internal CustomTreeView Tree { get => _tree; }
+        internal ListView Tree { get => _tree; }
 
         private void OnDataModelPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {

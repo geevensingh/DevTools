@@ -14,13 +14,13 @@
         {
             _depth = depth;
             this.MainWindow = mainWindow;
-            this.MainWindow.Tree.PropertyChanged += OnTreePropertyChanged;
+            //this.MainWindow.Tree.PropertyChanged += OnTreePropertyChanged;
             this.SetRootObject(this.MainWindow.RootObject);
         }
 
         public override void Execute(object parameter)
         {
-            this.MainWindow.Tree.ExpandAll(_depth);
+            //this.MainWindow.Tree.ExpandAll(_depth);
         }
 
         protected override void OnMainWindowPropertyChanged(string propertyName)
@@ -77,7 +77,7 @@
         private void Update()
         {
             Debug.Assert(this.MainWindow.RootObject == _rootObject);
-            this.SetCanExecute(!this.MainWindow.Tree.IsWaiting && this.MainWindow.RootObject != null && _rootObject.HasLevel(_depth));
+            //this.SetCanExecute(!this.MainWindow.Tree.IsWaiting && this.MainWindow.RootObject != null && _rootObject.HasLevel(_depth));
         }
     }
 }

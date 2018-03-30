@@ -18,7 +18,7 @@
             _mainWindow = mainWindow;
             _action = new SingularAction(_mainWindow.Dispatcher);
 
-            _mainWindow.Tree.SelectedItemChanged += OnSelectedItemChanged;
+            //_mainWindow.Tree.SelectedItemChanged += OnSelectedItemChanged;
             _mainWindow.PropertyChanged += OnMainWindowPropertyChanged;
             Properties.Settings.Default.PropertyChanged += OnSettingsPropertyChanged;
         }

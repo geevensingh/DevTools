@@ -86,7 +86,7 @@
             _mainWindow = (MainWindow)this.DataContext;
             Debug.Assert(_mainWindow != null);
 
-            _mainWindow.Tree.PropertyChanged += OnTreePropertyChanged;
+            //_mainWindow.Tree.PropertyChanged += OnTreePropertyChanged;
             _mainWindow.PropertyChanged += OnMainWindowPropertyChanged;
             this.AddRootObjectPropertyChangedHandler();
         }
