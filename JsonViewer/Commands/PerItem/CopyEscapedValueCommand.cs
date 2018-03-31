@@ -4,7 +4,7 @@
     using JsonViewer.View;
     using Utilities;
 
-    internal class CopyEscapedValueCommand : BaseTreeViewDataCommand
+    public class CopyEscapedValueCommand : BaseTreeViewDataCommand
     {
         public CopyEscapedValueCommand(TreeViewData data)
             : base(data, "Copy escaped value", true)

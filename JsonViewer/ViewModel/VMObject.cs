@@ -1,19 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using JsonViewer.Model;
-using JsonViewer.View;
-using Utilities;
-
-namespace JsonViewer.ViewModel
+﻿namespace JsonViewer.ViewModel
 {
+    using System.Collections.Generic;
+    using System.Diagnostics;
+    using JsonViewer.Model;
+    using JsonViewer.View;
+    using Utilities;
+
     public class VMObject : NotifyPropertyChanged
     {
-        private RuleSet _rules = null;
         private JsonObject _jsonObject = null;
+        private bool _isExpanded = true;
+        private List<VMObject> _children = null;
 
         public VMObject(JsonObject jsonObject)
         {
@@ -21,59 +18,84 @@ namespace JsonViewer.ViewModel
             _jsonObject.PropertyChanged += OnJsonObjectPropertyChanged;
         }
 
+        public JsonObject Data { get => _jsonObject; }
+
+        public bool IsExpanded
+        {
+            get => _isExpanded && this.HasChildren;
+            set
+            {
+                this.SetValue(ref _isExpanded, value, new string[] { "IsExpanded", "IsCollapsed" });
+            }
+        }
+
+        public bool IsCollapsed
+        {
+            get => !_isExpanded && this.HasChildren;
+            set
+            {
+                this.IsExpanded = !value;
+            }
+        }
+
+        public void ToggleExpand()
+        {
+            this.IsExpanded = !this.IsExpanded;
+        }
+
+        public bool HasChildren
+        {
+            get => _jsonObject.HasChildren;
+        }
+
+        public IList<TreeViewData> GetVisibleList()
+        {
+            List<TreeViewData> flatList = new List<TreeViewData>();
+            foreach (VMObject child in this.GetVisibleChildren())
+            {
+                flatList.Add(child._jsonObject.ViewObject);
+                flatList.AddRange(child.GetVisibleList());
+            }
+
+            return flatList;
+        }
+
+        public IList<VMObject> GetVisibleChildren()
+        {
+            if (this.IsExpanded)
+            {
+                return this.GetChildren();
+            }
+
+            return new List<VMObject>();
+        }
+
+        private IList<VMObject> GetChildren()
+        {
+            if (_children == null)
+            {
+                _children = new List<VMObject>();
+                foreach (JsonObject dataChildren in _jsonObject.Children)
+                {
+                    _children.Add(new VMObject(dataChildren));
+                }
+            }
+
+            return _children;
+        }
+
         private void OnJsonObjectPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
             Debug.Assert(sender == _jsonObject);
             switch (e.PropertyName)
             {
-                case "Values":
-                    if (_rules == null)
-                    {
-                        _rules = new RuleSet(_jsonObject);
-                    }
+                case "Children":
+                    _children = null;
 
-                    this.ApplyRules();
                     break;
                 default:
                     break;
             }
         }
-
-        protected virtual void ApplyRules()
-        {
-            _rules.Initialize();
-        }
-
-
-        internal RuleSet Rules
-        {
-            get
-            {
-                _jsonObject.EnsureValues();
-                return _rules;
-            }
-        }
-
-        internal FindRule FindRule
-        {
-            get => _rules.FindRule;
-            set
-            {
-                _jsonObject.EnsureValues();
-                _rules.SetFindRule(value);
-            }
-        }
-
-        internal FindRule MatchRule
-        {
-            get => _rules.MatchRule;
-            set
-            {
-                _jsonObject.EnsureValues();
-                _rules.SetMatchRule(value);
-            }
-        }
-
-        public JsonObject JsonObject { get => _jsonObject; }
     }
 }

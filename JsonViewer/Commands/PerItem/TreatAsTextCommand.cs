@@ -4,7 +4,7 @@
     using JsonViewer.Model;
     using JsonViewer.View;
 
-    internal class TreatAsTextCommand : BaseTreeViewDataCommand
+    public class TreatAsTextCommand : BaseTreeViewDataCommand
     {
         private ListView _tree;
 

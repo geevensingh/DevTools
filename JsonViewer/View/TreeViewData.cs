@@ -11,7 +11,7 @@
     using JsonViewer.ViewModel;
     using Utilities;
 
-    internal class TreeViewData : NotifyPropertyChanged
+    public class TreeViewData : NotifyPropertyChanged
     {
         private ListView _tree = null;
         private VMObject _vmObject;
@@ -25,11 +25,11 @@
 
             _tree = tree;
             _vmObject = vmObject;
-            _vmObject.JsonObject.ViewObject = this;
+            _vmObject.Data.ViewObject = this;
             _children = new ObservableCollection<TreeViewData>(children);
 
-            _vmObject.PropertyChanged += OnDataModelPropertyChanged;
-            _vmObject.Rules.PropertyChanged += OnRulesPropertyChanged;
+            _vmObject.Data.PropertyChanged += OnDataModelPropertyChanged;
+            _vmObject.Data.Rules.PropertyChanged += OnRulesPropertyChanged;
             Properties.Settings.Default.PropertyChanged += OnSettingsPropertyChanged;
 
             this.ExpandChildrenCommand = new ExpandChildrenCommand(this);
@@ -43,21 +43,23 @@
             this.TreatAsTextCommand = new TreatAsTextCommand(tree, this);
         }
 
-        public string KeyName { get => _vmObject.JsonObject.Key; }
+        public string KeyName { get => _vmObject.Data.Key; }
 
-        public string Value { get => _vmObject.JsonObject.ValueString; }
+        public string Value { get => _vmObject.Data.ValueString; }
 
-        public string PrettyValue { get => _vmObject.JsonObject.PrettyValueString; }
+        public string PrettyValue { get => _vmObject.Data.PrettyValueString; }
 
-        public string OneLineValue { get => _vmObject.JsonObject.OneLineValue; }
+        public string OneLineValue { get => _vmObject.Data.OneLineValue; }
 
-        public string ValueType { get => _vmObject.JsonObject.ValueTypeString; }
+        public string ValueType { get => _vmObject.Data.ValueTypeString; }
 
         public ObservableCollection<TreeViewData> Children { get => _children; }
 
-        public TreeViewData Parent { get => _vmObject.JsonObject.Parent?.ViewObject; }
+        public TreeViewData Parent { get => _vmObject.Data.Parent?.ViewObject; }
 
-        public bool HasChildren { get => _vmObject.JsonObject.HasChildren; }
+        public bool HasChildren { get => _vmObject.Data.HasChildren; }
+
+        public int Depth { get => this.ParentList.Count * 20; }
 
         public IList<TreeViewData> ParentList
         {
@@ -88,7 +90,7 @@
                     return Config.Values.GetBrush(ConfigValue.SelectedParentForeground);
                 }
 
-                return _vmObject.Rules.TextColor;
+                return _vmObject.Data.Rules.TextColor;
             }
         }
 
@@ -106,7 +108,7 @@
                     return Config.Values.GetBrush(ConfigValue.SelectedParentBackground);
                 }
 
-                return _vmObject.Rules.BackgroundColor;
+                return _vmObject.Data.Rules.BackgroundColor;
             }
         }
 
@@ -114,7 +116,7 @@
         {
             get
             {
-                return _vmObject.Rules.FontSize;
+                return _vmObject.Data.Rules.FontSize;
             }
         }
 
@@ -174,7 +176,9 @@
 
         public TreatAsTextCommand TreatAsTextCommand { get; private set; }
 
-        internal JsonObject JsonObject { get => _vmObject.JsonObject; }
+        internal JsonObject JsonObject { get => _vmObject.Data; }
+
+        internal VMObject VMObject { get => _vmObject; }
 
         internal ListView Tree { get => _tree; }
 

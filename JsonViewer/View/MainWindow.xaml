@@ -18,6 +18,8 @@
             <Grid HorizontalAlignment="Stretch" Background="{Binding Path=BackgroundColor}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="auto" />
+                    <ColumnDefinition Width="auto" />
+                    <ColumnDefinition Width="auto" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="auto" />
                 </Grid.ColumnDefinitions>
@@ -68,7 +70,9 @@
                             Visibility="{Binding Path=TreatAsTextCommand.IsVisible}" />
                     </ContextMenu>
                 </Grid.ContextMenu>
-                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                <Border Width="{Binding Path=Depth}" />
+                <Button Grid.Column="1" Click="ExpandButton_Click">+/-</Button>
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
                     <TextBlock
                         x:Name="KeyBlock"
                         FontSize="{Binding Path=FontSize}"
@@ -83,7 +87,7 @@
                 </StackPanel>
                 <TextBlock
                     x:Name="OneLineValueBlock"
-                    Grid.Column="1"
+                    Grid.Column="3"
                     Padding="5,0"
                     FontSize="{Binding Path=FontSize}"
                     Foreground="{Binding Path=TextColor}"
@@ -91,7 +95,7 @@
                     TextWrapping="Wrap" />
                 <TextBlock
                     x:Name="ValueTypeBlock"
-                    Grid.Column="3"
+                    Grid.Column="5"
                     FontSize="{Binding Path=FontSize}"
                     Foreground="{Binding Path=TextColor}"
                     Text="{Binding Path=ValueType}" />
@@ -244,9 +248,9 @@
                 HorizontalAlignment="Stretch"
                 HorizontalContentAlignment="Stretch"
                 ItemTemplate="{StaticResource TreeViewItemTemplate}"
+                ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                 VirtualizingPanel.IsVirtualizing="True"
                 VirtualizingPanel.VirtualizationMode="Recycling"
-                ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                 Visibility="Collapsed">
                 <ListView.InputBindings>
                     <KeyBinding

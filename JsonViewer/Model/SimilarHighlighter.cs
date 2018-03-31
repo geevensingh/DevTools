@@ -82,62 +82,62 @@
 
         private void Update()
         {
-            //if (_rootObject == null)
-            //{
-            //    return;
-            //}
+            if (_rootObject == null)
+            {
+                return;
+            }
 
-            //JsonObject selectedObject = (_mainWindow?.Tree?.SelectedItem as TreeViewData)?.JsonObject;
-            //FindRule newKeyRule = null;
-            //FindRule newValueRule = null;
+            JsonObject selectedObject = (_mainWindow?.Tree?.SelectedItem as TreeViewData)?.JsonObject;
+            FindRule newKeyRule = null;
+            FindRule newValueRule = null;
 
-            //if (selectedObject != null && Properties.Settings.Default.HighlightSimilarKeys)
-            //{
-            //    newKeyRule = new FindRule(
-            //        text: selectedObject.Key,
-            //        ignoreCase: false,
-            //        searchKeys: true,
-            //        searchValues: false,
-            //        searchValueTypes: false,
-            //        appliesToParents: false,
-            //        matchType: MatchTypeEnum.Exact);
-            //}
+            if (selectedObject != null && Properties.Settings.Default.HighlightSimilarKeys)
+            {
+                newKeyRule = new FindRule(
+                    text: selectedObject.Key,
+                    ignoreCase: false,
+                    searchKeys: true,
+                    searchValues: false,
+                    searchValueTypes: false,
+                    appliesToParents: false,
+                    matchType: MatchTypeEnum.Exact);
+            }
 
-            //if (selectedObject != null && Properties.Settings.Default.HighlightSimilarValues)
-            //{
-            //    newValueRule = new FindRule(
-            //        text: selectedObject.ValueString,
-            //        ignoreCase: false,
-            //        searchKeys: false,
-            //        searchValues: true,
-            //        searchValueTypes: false,
-            //        appliesToParents: false,
-            //        matchType: MatchTypeEnum.Exact);
-            //}
+            if (selectedObject != null && Properties.Settings.Default.HighlightSimilarValues)
+            {
+                newValueRule = new FindRule(
+                    text: selectedObject.ValueString,
+                    ignoreCase: false,
+                    searchKeys: false,
+                    searchValues: true,
+                    searchValueTypes: false,
+                    appliesToParents: false,
+                    matchType: MatchTypeEnum.Exact);
+            }
 
-            //Func<Guid, SingularAction, Task<bool>> updateAction = new Func<Guid, SingularAction, Task<bool>>(async (actionId, action) =>
-            //{
-            //    foreach (JsonObject obj in _rootObject.AllChildren)
-            //    {
-            //        obj.MatchRule = null;
-            //        foreach (FindRule rule in new FindRule[] { newKeyRule, newValueRule })
-            //        {
-            //            if (rule != null && rule.Matches(obj))
-            //            {
-            //                obj.MatchRule = rule;
-            //            }
-            //        }
+            Func<Guid, SingularAction, Task<bool>> updateAction = new Func<Guid, SingularAction, Task<bool>>(async (actionId, action) =>
+            {
+                foreach (JsonObject obj in _rootObject.AllChildren)
+                {
+                    obj.MatchRule = null;
+                    foreach (FindRule rule in new FindRule[] { newKeyRule, newValueRule })
+                    {
+                        if (rule != null && rule.Matches(obj))
+                        {
+                            obj.MatchRule = rule;
+                        }
+                    }
 
-            //        if (!await action.YieldAndContinue(actionId))
-            //        {
-            //            return false;
-            //        }
-            //    }
+                    if (!await action.YieldAndContinue(actionId))
+                    {
+                        return false;
+                    }
+                }
 
-            //    return true;
-            //});
+                return true;
+            });
 
-            //_action.BeginInvoke(DispatcherPriority.Background, updateAction);
+            _action.BeginInvoke(DispatcherPriority.Background, updateAction);
         }
     }
 }

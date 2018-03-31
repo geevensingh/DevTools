@@ -197,66 +197,66 @@
 
         private void Update()
         {
-            //FindRule newRule = null;
-            //List<JsonObject> hits = new List<JsonObject>();
-            //List<JsonObject> misses = new List<JsonObject>();
+            FindRule newRule = null;
+            List<JsonObject> hits = new List<JsonObject>();
+            List<JsonObject> misses = new List<JsonObject>();
 
-            //if (_rootObject != null && !string.IsNullOrEmpty(_text))
-            //{
-            //    newRule = new FindRule(
-            //        text: _text,
-            //        ignoreCase: this.ShouldIgnoreCase,
-            //        searchKeys: this.ShouldSearchKeys,
-            //        searchValues: this.ShouldSearchValues,
-            //        searchValueTypes: this.ShouldSearchValueTypes,
-            //        appliesToParents: this.ShouldSearchParentValues,
-            //        matchType: MatchTypeEnum.Partial);
+            if (_rootObject != null && !string.IsNullOrEmpty(_text))
+            {
+                newRule = new FindRule(
+                    text: _text,
+                    ignoreCase: this.ShouldIgnoreCase,
+                    searchKeys: this.ShouldSearchKeys,
+                    searchValues: this.ShouldSearchValues,
+                    searchValueTypes: this.ShouldSearchValueTypes,
+                    appliesToParents: this.ShouldSearchParentValues,
+                    matchType: MatchTypeEnum.Partial);
 
-            //    foreach (JsonObject obj in _rootObject.AllChildren)
-            //    {
-            //        bool matches = newRule.Matches(obj);
-            //        if (matches)
-            //        {
-            //            hits.Add(obj);
-            //        }
-            //        else
-            //        {
-            //            misses.Add(obj);
-            //        }
-            //    }
-            //}
-            //else if (_rootObject != null)
-            //{
-            //    misses = _rootObject.AllChildren;
-            //}
+                foreach (JsonObject obj in _rootObject.AllChildren)
+                {
+                    bool matches = newRule.Matches(obj);
+                    if (matches)
+                    {
+                        hits.Add(obj);
+                    }
+                    else
+                    {
+                        misses.Add(obj);
+                    }
+                }
+            }
+            else if (_rootObject != null)
+            {
+                misses = _rootObject.AllChildren;
+            }
 
-            //this.SetValue(ref _hitCount, hits.Count, "HitCount");
-            //this.SetValueList(ref _hits, hits, "Hits");
+            this.SetValue(ref _hitCount, hits.Count, "HitCount");
+            this.SetValueList(ref _hits, hits, "Hits");
 
-            //Func<Guid, SingularAction, Task<bool>> updateAction = new Func<Guid, SingularAction, Task<bool>>(async (actionId, action) =>
-            //{
-            //    foreach (JsonObject obj in misses)
-            //    {
-            //        obj.FindRule = null;
-            //        if (!await action.YieldAndContinue(actionId))
-            //        {
-            //            return false;
-            //        }
-            //    }
+            Func<Guid, SingularAction, Task<bool>> updateAction = new Func<Guid, SingularAction, Task<bool>>(async (actionId, action) =>
+            {
+                foreach (JsonObject obj in misses)
+                {
+                    obj.FindRule = null;
+                    if (!await action.YieldAndContinue(actionId))
+                    {
+                        return false;
+                    }
+                }
 
-            //    foreach (JsonObject obj in hits)
-            //    {
-            //        obj.FindRule = newRule;
-            //        if (!await action.YieldAndContinue(actionId))
-            //        {
-            //            return false;
-            //        }
-            //    }
+                foreach (JsonObject obj in hits)
+                {
+                    obj.FindRule = newRule;
+                    if (!await action.YieldAndContinue(actionId))
+                    {
+                        return false;
+                    }
+                }
 
-            //    return true;
-            //});
+                return true;
+            });
 
-            //_action.BeginInvoke(DispatcherPriority.Background, updateAction);
+            _action.BeginInvoke(DispatcherPriority.Background, updateAction);
         }
     }
 }

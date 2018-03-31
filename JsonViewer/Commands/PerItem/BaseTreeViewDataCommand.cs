@@ -3,7 +3,7 @@
     using System.Diagnostics;
     using JsonViewer.View;
 
-    internal abstract class BaseTreeViewDataCommand : BaseCommand
+    public abstract class BaseTreeViewDataCommand : BaseCommand
     {
         private TreeViewData _data;
 

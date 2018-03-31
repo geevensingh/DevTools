@@ -2,7 +2,7 @@
 {
     using JsonViewer.View;
 
-    internal class CollapseAllCommand : BaseTreeViewDataCommand
+    public class CollapseAllCommand : BaseTreeViewDataCommand
     {
         public CollapseAllCommand(TreeViewData data)
             : base(data, "Collapse all", data.HasChildren)

@@ -2,7 +2,7 @@
 {
     using JsonViewer.View;
 
-    internal class ExpandChildrenCommand : BaseTreeViewDataCommand
+    public class ExpandChildrenCommand : BaseTreeViewDataCommand
     {
         public ExpandChildrenCommand(TreeViewData data)
             : base(data, "Expand children", CanExpandChildren(data))

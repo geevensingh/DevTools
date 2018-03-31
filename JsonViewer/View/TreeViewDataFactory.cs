@@ -24,7 +24,7 @@
             return new TreeViewData(tree, new VMObject(jsonObject), children);
         }
 
-        private static List<TreeViewData> CreateList(ListView tree, JsonObject jsonObject)
+        public static List<TreeViewData> CreateList(ListView tree, JsonObject jsonObject)
         {
             var result = new List<TreeViewData>();
             foreach (JsonObject jsonChildren in jsonObject.Children)

@@ -3,7 +3,7 @@
     using System.Windows;
     using JsonViewer.View;
 
-    internal class CopyPrettyValueCommand : BaseTreeViewDataCommand
+    public class CopyPrettyValueCommand : BaseTreeViewDataCommand
     {
         public CopyPrettyValueCommand(TreeViewData data)
             : base(data, "Copy pretty value (beta)", data.HasChildren)
