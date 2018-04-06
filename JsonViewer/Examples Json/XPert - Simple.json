@@ -1,0 +1,27 @@
+﻿"ver": "2.1", "name": "Microsoft.Commerce.Tracing.Sll.Metrics.BillingOutgoingRequest", "time": "2018-04-04T19:56:22.1967436Z", "epoch": "24284", "seqNum": 44403, "os": "Win32NT", "osVer": "6.3.9600.0", "appId": "S:w3wp.exe", "appVer": "8.5.9600.16384 (winblue_rtm.130821-1623)", "cV": "N+FvNYiUFU6hZodv.8.23.4.12.0", "ext": {
+  "cloud": {
+    "name": "PaymentInstrumentManagement",
+    "role": "Unknown",
+    "roleInstance": "DM2CTP020062013",
+    "location": "prod.sd.net",
+    "environment": "Unknown"
+  },
+  "sll": {
+    "libVer": "4.1.16127.1",
+    "level": 2
+  }
+}, "data": {
+  "baseType": "Ms.Qos.OutgoingServiceRequest",
+  "baseData": {
+    "operationName": "",
+    "latencyMs": 11016,
+    "succeeded": "false",
+    "requestMethod": "GET",
+    "protocol": "HTTP",
+    "dependencyOperationName": "GetPaymentInstrument",
+    "dependencyName": "PaymentInstrumentManagement",
+    "requestStatus": 5
+  },
+  "TraceId": "475fa288-0a39-4603-a33c-db58b4894a6c",
+  "CorrelationTraceId": "685b25ba-c5bf-4309-9707-13da38ccafde"
+}

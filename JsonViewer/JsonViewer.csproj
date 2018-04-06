@@ -242,6 +242,8 @@
     <None Include="Examples Json\Semi-valid.json" />
     <None Include="Examples Json\Simple.json" />
     <None Include="Examples Json\Test.json" />
+    <None Include="Examples Json\XPert - Response.json" />
+    <None Include="Examples Json\XPert - Simple.json" />
     <None Include="JsonViewer.ruleset" />
     <None Include="packages.config" />
     <None Include="Resources\JsonViewer_TemporaryKey.pfx" />

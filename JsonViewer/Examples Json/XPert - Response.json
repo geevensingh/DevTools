@@ -1,0 +1,45 @@
+﻿  "ver": "2.1",
+  "name": "Microsoft.Commerce.Tracing.Sll.Metrics.OperationDetails",
+  "time": "2018-04-05T01:31:18.9625428Z",
+  "epoch": "19960",
+  "seqNum": 3199,
+  "os": "Win32NT",
+  "osVer": "6.3.9600.0",
+  "appId": "S:w3wp.exe",
+  "appVer": "8.5.9600.16384 (winblue_rtm.130821-1623)",
+  "cV": "eeJA31RTBk+WweC9.45.37.63.9.4.13.0",
+  "ext": {
+    "cloud": {
+      "name": "Dunning.Service",
+      "role": "Unknown",
+      "roleInstance": "DM2CTP020060822",
+      "location": "prod.sd.net",
+      "environment": "Unknown"
+    },
+    "sll": {
+      "libVer": "4.1.16127.1",
+      "level": 2
+    }
+  },
+  "data": {
+    "baseType": "Ms.Qos.IncomingServiceRequest",
+    "baseData": {
+      "operationName": "CaptureSchedules-POST-adjust",
+      "targetUri": "https://dunning.prod.sd.net/e381d280-b3b4-4aac-9cbb-9429f854eabb/capture-schedules/6fd7dc232199c5bdeff537aede5f2e05/adjust",
+      "latencyMs": 10993,
+      "succeeded": "false",
+      "requestMethod": "POST",
+      "responseContentType": "application/json",
+      "protocol": "HTTP",
+      "protocolStatusCode": "500",
+      "operationVersion": "2016-06-30",
+      "callerIpAddress": "dunning.prod.sd.net",
+      "callerName": "OneStore",
+      "requestSizeBytes": 271,
+      "requestStatus": 6
+    },
+    "TraceId": "78b933da-b18a-48f6-8072-c43af224d22f",
+    "CorrelationTraceId": "453ff005-cb5a-400b-bc06-d5851ef3143a",
+    "RequestDetails": "POST https://dunning.prod.sd.net/e381d280-b3b4-4aac-9cbb-9429f854eabb/capture-schedules/6fd7dc232199c5bdeff537aede5f2e05/adjust\r\nConnection: Keep-Alive\r\nAccept: application/json\r\nExpect: 100-continue\r\nHost: dunning.prod.sd.net\r\nUser-Agent: M$Purchase\r\napi-version: 2016-06-30\r\nx-ms-tracking-id: 78b933da-b18a-48f6-8072-c43af224d22f\r\nx-ms-correlation-id: 78b933da-b18a-48f6-8072-c43af224d22f\r\nMS-CV: eeJA31RTBk+WweC9.45.37.63.9.4.13\r\nContent-Length: 271\r\nContent-Type: application/json; charset=utf-8\r\n\r\n{\"adjustments\":[{\"capture_instructions\":{\"payment_instrument_id\":{\"account_id\":\"e381d280-b3b4-4aac-9cbb-9429f854eabb\",\"id\":\"TDEaSAAAAAAGAACA\"},\"instruction_type\":\"single_payment_instrument\"},\"type\":\"capture_instructions_adjustment\",\"reason\":\"payment_instrument_update\"}]}",
+    "ResponseDetails": "500 InternalServerError\r\nx-ms-request-id: 78b933da-b18a-48f6-8072-c43af224d22f\r\nContent-Type: application/json; charset=utf-8\r\n\r\n{\"code\":\"InternalServerError\",\"message\":\"An unexpected error was encountered: System.Threading.Tasks.TaskCanceledException: A task was canceled.\\r\\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\\r\\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)\\r\\n   at Microsoft.Commerce.Billing.Web.BillingHttpClient.<Send>d__10.MoveNext()\\r\\n--- End of stack trace from previous location where exception was thrown ---\\r\\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\\r\\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\\r\\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)\\r\\n   at System.Runtime.CompilerServices.TaskAwaiter"1.GetResult()\\r\\n   at Microsoft.Commerce.Billing.Web.BillingHttpClient.<Send>d__7"1.MoveNext()\\r\\n--- End of stack trace from previous location where exception was thrown ---\\r\\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\\r\\n   at System.Runtime.CompilerServ\"}"
+  }
