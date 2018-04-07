@@ -54,7 +54,11 @@
         }
     }
 
+#pragma warning disable SA1402 // File may only contain a single class
+#pragma warning disable SA1204 // Static elements must appear before instance elements
     public static class DeserializeResultExtensions
+#pragma warning restore SA1204 // Static elements must appear before instance elements
+#pragma warning restore SA1402 // File may only contain a single class
     {
         public static bool IsSuccessful(this DeserializeResult deserializeResult)
         {
