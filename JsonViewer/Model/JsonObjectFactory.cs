@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Threading;
+    using System.Threading.Tasks;
     using System.Web.Script.Serialization;
     using Utilities;
 
@@ -11,53 +12,70 @@
     {
         private CancellationTokenSource _refreshCancellationTokenSource = new CancellationTokenSource();
 
-        public static DeserializeResult TryDeserialize(string jsonString)
+        public static Task<DeserializeResult> TryDeserialize(string jsonString)
         {
-            jsonString = jsonString.Trim();
-
-            int firstBrace = jsonString.IndexOfAny(new char[] { '{', '[' });
-            if (firstBrace < 0)
+            return Task.Run<DeserializeResult>(async () =>
             {
+                jsonString = jsonString.Trim();
+
+                int firstBrace = jsonString.IndexOfAny(new char[] { '{', '[' });
+
+                if (firstBrace != 0)
+                {
+                    DeserializeResult wrappedResult = await TryDeserialize("{" + jsonString + "}");
+                    if (wrappedResult != null)
+                    {
+                        return wrappedResult;
+                    }
+
+                    wrappedResult = await TryDeserialize("{ \"array\": " + jsonString + " }");
+                    if (wrappedResult != null)
+                    {
+                        return wrappedResult;
+                    }
+                }
+
+                if (firstBrace >= 0)
+                {
+                    bool firstBraceIsSquare = jsonString[firstBrace] == '[';
+
+                    foreach (string str in new string[] { jsonString, CSEscape.Unescape(jsonString) })
+                    {
+                        Dictionary<string, object> dictionary = TryStrictDeserialize(str);
+                        if (dictionary != null)
+                        {
+                            return new DeserializeResult(dictionary);
+                        }
+
+                        DeserializeResult result = null;
+                        if (firstBraceIsSquare)
+                        {
+                            result = TryTrimmedDeserialize(str, "[", "]", "{{ \"array\": {0} }}");
+                            if (result != null)
+                            {
+                                return result;
+                            }
+                        }
+
+                        result = TryTrimmedDeserialize(str, "{", "}", "{0}");
+                        if (result != null)
+                        {
+                            return result;
+                        }
+
+                        if (!firstBraceIsSquare)
+                        {
+                            result = TryTrimmedDeserialize(str, "[", "]", "{{ \"array\": {0} }}");
+                            if (result != null)
+                            {
+                                return result;
+                            }
+                        }
+                    }
+                }
+
                 return null;
-            }
-
-            bool firstBraceIsSquare = jsonString[firstBrace] == '[';
-
-            foreach (string str in new string[] { jsonString, CSEscape.Unescape(jsonString) })
-            {
-                Dictionary<string, object> dictionary = TryStrictDeserialize(str);
-                if (dictionary != null)
-                {
-                    return new DeserializeResult(dictionary);
-                }
-
-                DeserializeResult result = null;
-                if (firstBraceIsSquare)
-                {
-                    result = TryTrimmedDeserialize(str, "[", "]", "{{ \"array\": {0} }}");
-                    if (result != null)
-                    {
-                        return result;
-                    }
-                }
-
-                result = TryTrimmedDeserialize(str, "{", "}", "{0}");
-                if (result != null)
-                {
-                    return result;
-                }
-
-                if (!firstBraceIsSquare)
-                {
-                    result = TryTrimmedDeserialize(str, "[", "]", "{{ \"array\": {0} }}");
-                    if (result != null)
-                    {
-                        return result;
-                    }
-                }
-            }
-
-            return null;
+            });
         }
 
         public static void Flatten(ref List<JsonObject> items, Dictionary<string, object> dictionary, JsonObject parent)

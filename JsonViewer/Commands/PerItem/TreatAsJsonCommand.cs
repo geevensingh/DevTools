@@ -8,15 +8,19 @@
         private CustomTreeView _tree;
 
         public TreatAsJsonCommand(CustomTreeView tree, TreeViewData data)
-            : base(data, "Treat as Json", data.JsonObject.CanTreatAsJson)
+            : base(data, "Treat as Json", false)
         {
             _tree = tree;
+            data.JsonObject.CanTreatAsJson().ContinueWith((canTreatAsJsonTask) =>
+            {
+                this.SetCanExecute(canTreatAsJsonTask.Result);
+            });
         }
 
-        public override void Execute(object parameter)
+        public override async void Execute(object parameter)
         {
             JsonObject obj = this.Data.JsonObject;
-            obj.TreatAsJson();
+            await obj.TreatAsJson();
             _tree.SelectItem(obj.ViewObject).IsExpanded = true;
         }
     }

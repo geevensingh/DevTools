@@ -21,18 +21,18 @@
         public override void Execute(object parameter)
         {
             string jsonString = ClipboardManager.TryGetText();
-            Debug.Assert(JsonObjectFactory.TryDeserialize(jsonString) != null);
+            Debug.Assert(JsonObjectFactory.TryDeserialize(jsonString).Result != null);
             this.MainWindow.Raw_TextBox.Text = jsonString;
             this.MainWindow.SetDisplayMode(MainWindow.DisplayMode.TreeView);
             this.Update();
         }
 
-        private void Update()
+        private async void Update()
         {
             string jsonString = ClipboardManager.TryGetText();
             this.SetCanExecute(!string.IsNullOrWhiteSpace(jsonString) &&
                 this.MainWindow.Raw_TextBox.Text != jsonString &&
-                JsonObjectFactory.TryDeserialize(jsonString) != null);
+                await JsonObjectFactory.TryDeserialize(jsonString) != null);
         }
 
         private void OnRawTextBoxChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)

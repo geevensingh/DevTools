@@ -184,6 +184,8 @@
                     this.FirePropertyChanged(new string[] { "HasChildren", "ValueType" });
                     break;
                 case "TotalChildCount":
+                case "ValueTypeString":
+                case "OneLineValue":
                     this.FirePropertyChanged(new string[] { "ValueType", "OneLineValue" });
                     break;
                 case "ValueString":

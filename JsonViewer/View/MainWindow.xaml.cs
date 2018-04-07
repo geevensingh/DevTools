@@ -88,7 +88,11 @@
                 return Task.FromResult(false);
             }
 
-            return this.ReloadAsync(JsonObjectFactory.TryDeserialize(this.Raw_TextBox.Text)?.Dictionary);
+            return Task.Run<bool>(async () =>
+            {
+                DeserializeResult deserializeResult = await JsonObjectFactory.TryDeserialize(this.Raw_TextBox.Text);
+                return await this.ReloadAsync(deserializeResult?.Dictionary);
+            });
         }
 
         public async Task<bool> ReloadAsync(Dictionary<string, object> dictionary)
@@ -215,7 +219,7 @@
             if (string.IsNullOrEmpty(initialText) && Clipboard.ContainsText())
             {
                 string jsonString = ClipboardManager.TryGetText();
-                if (JsonObjectFactory.TryDeserialize(jsonString) != null)
+                if (JsonObjectFactory.TryDeserialize(jsonString).Result != null)
                 {
                     initialText = jsonString;
                 }
@@ -279,7 +283,7 @@
         {
             Debug.Assert(sender.Equals(this.Raw_TextBox));
             string newText = this.Raw_TextBox.Text;
-            Dictionary<string, object> dictionary = JsonObjectFactory.TryDeserialize(newText)?.Dictionary;
+            Dictionary<string, object> dictionary = (await JsonObjectFactory.TryDeserialize(newText))?.Dictionary;
             string newNormalizedText = new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(dictionary);
             if (newNormalizedText != _lastText)
             {

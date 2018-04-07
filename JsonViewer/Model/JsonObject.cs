@@ -5,6 +5,7 @@
     using System.Diagnostics;
     using System.Linq;
     using System.Text;
+    using System.Threading.Tasks;
     using JsonViewer.View;
     using Utilities;
 
@@ -20,6 +21,7 @@
         private string _originalString;
         private object _typedValue;
         private DataType _dataType = DataType.Other;
+        private bool? _isParsableJson = null;
         private RuleSet _rules = null;
         private bool _valuesInitialized = false;
         private string _valueTypeString;
@@ -43,8 +45,7 @@
             Json,
             Array,
             Guid,
-            Other,
-            ParsableString
+            Other
         }
 
         public string Key { get => _key; }
@@ -56,6 +57,7 @@
             {
                 _value = value;
                 _valuesInitialized = false;
+                _isParsableJson = null;
             }
         }
 
@@ -112,7 +114,30 @@
             }
         }
 
-        public bool CanTreatAsJson { get => this.Type == DataType.ParsableString; }
+        public Task<bool> CanTreatAsJson()
+        {
+            return IsParsableJsonString();
+        }
+
+        public async Task<bool> IsParsableJsonString()
+        {
+            if (!_isParsableJson.HasValue)
+            {
+                _isParsableJson = false;
+                if (this.Type == DataType.Other && _value is string stringValue)
+                {
+                    DeserializeResult deserializeResult = await JsonObjectFactory.TryDeserialize(stringValue);
+                    Dictionary<string, object> jsonObj = deserializeResult?.Dictionary;
+                    if (jsonObj != null)
+                    {
+                        _isParsableJson = true;
+                        this.UpdateValueTypeString();
+                    }
+                }
+            }
+
+            return _isParsableJson.Value;
+        }
 
         public bool CanTreatAsText { get => this.Type == DataType.Json; }
 
@@ -259,11 +284,11 @@
             return false;
         }
 
-        public void TreatAsJson()
+        public async Task TreatAsJson()
         {
-            Debug.Assert(this.CanTreatAsJson);
+            Debug.Assert(await this.CanTreatAsJson());
 
-            DeserializeResult deserializeResult = JsonObjectFactory.TryDeserialize(this.Value as string);
+            DeserializeResult deserializeResult = JsonObjectFactory.TryDeserialize(this.Value as string).Result;
             Debug.Assert(deserializeResult != null);
 
             Dictionary<string, object> dict = deserializeResult.Dictionary;
@@ -296,7 +321,7 @@
             _parent.UpdateChild(this);
         }
 
-        public void TreatAsText()
+        public async Task TreatAsText()
         {
             Debug.Assert(this.CanTreatAsText);
 
@@ -311,7 +336,7 @@
             }
 
             this.EnsureValues();
-            Debug.Assert(_dataType == DataType.ParsableString);
+            Debug.Assert(await this.CanTreatAsJson());
 
             _children.Clear();
             this.SetChildren(_children);
@@ -366,68 +391,71 @@
             _rules.Initialize();
         }
 
-        private static object GetTypedValue(object value, out DataType dataType)
+        private void SetTypedValue()
         {
-            dataType = DataType.Other;
-            if (value == null)
+            _dataType = DataType.Other;
+            if (_value == null)
             {
-                return null;
+                _typedValue = null;
+                return;
             }
 
-            Type valueType = value.GetType();
+            Type valueType = _value.GetType();
             if (valueType == typeof(System.Collections.ArrayList))
             {
-                dataType = DataType.Array;
-                return value;
+                _dataType = DataType.Array;
+                _typedValue = _value;
+                return;
             }
 
             if (valueType == typeof(Dictionary<string, object>))
             {
-                dataType = DataType.Json;
-                return value;
+                _dataType = DataType.Json;
+                _typedValue = _value;
+                return;
             }
 
             // If this isn't a string, then we can't make a better type
-            if (value.GetType() != typeof(string))
+            if (_value.GetType() != typeof(string))
             {
-                return value;
+                _typedValue = _value;
+                return;
             }
 
-            string str = (string)value;
+            string str = (string)_value;
             if (Guid.TryParse(str, out Guid guidValue))
             {
-                dataType = DataType.Guid;
-                return guidValue;
+                _dataType = DataType.Guid;
+                _typedValue = guidValue;
+                return;
             }
 
             if (double.TryParse(str, out double doubleValue))
             {
-                return doubleValue;
+                _typedValue = doubleValue;
+                return;
             }
 
             if (TimeSpan.TryParse(str, out TimeSpan timeSpanValue))
             {
-                return timeSpanValue;
+                _typedValue = timeSpanValue;
+                return;
             }
 
             if (DateTime.TryParse(str, out DateTime dateTimeValue))
             {
-                return dateTimeValue;
+                _typedValue = dateTimeValue;
+                return;
             }
 
             if (Uri.TryCreate(str, UriKind.Absolute, out Uri uri))
             {
-                return uri;
+                _typedValue = uri;
+                return;
             }
 
-            Dictionary<string, object> jsonObj = JsonObjectFactory.TryDeserialize(str)?.Dictionary;
-            if (jsonObj != null)
-            {
-                dataType = DataType.ParsableString;
-                return str;
-            }
-
-            return str;
+            _typedValue = str;
+            return;
         }
 
         private void EnsureValues()
@@ -438,7 +466,7 @@
             }
 
             _valuesInitialized = true;
-            _typedValue = GetTypedValue(this.Value, out _dataType);
+            SetTypedValue();
 
             if (this.Type == DataType.Array || this.Type == DataType.Json)
             {
@@ -465,7 +493,19 @@
 
             Debug.Assert(string.IsNullOrEmpty(this.Value as string) || !string.IsNullOrEmpty(_valueString));
 
-            _valueTypeString = this.GetValueTypeString(includeChildCount: true);
+            this.UpdateValueTypeString();
+
+            if (_rules == null)
+            {
+                _rules = new RuleSet(this);
+            }
+
+            this.ApplyRules();
+        }
+
+        private void UpdateValueTypeString()
+        {
+            this.SetValue(ref _valueTypeString, this.GetValueTypeString(includeChildCount: true), "ValueTypeString");
 
             string oneLineValue = this.GetValueTypeString(includeChildCount: false);
             if (this.TypedValue != null)
@@ -485,14 +525,7 @@
                 }
             }
 
-            _oneLineValue = oneLineValue;
-
-            if (_rules == null)
-            {
-                _rules = new RuleSet(this);
-            }
-
-            this.ApplyRules();
+            this.SetValue(ref _oneLineValue, oneLineValue, "OneLineValue");
         }
 
         private bool AreListsEqual<T>(IList<T> first, IList<T> second)
@@ -548,11 +581,15 @@
                 case JsonObject.DataType.Json:
                     type = "json-object{" + (value as Dictionary<string, object>).Keys.Count + "}";
                     break;
-                case JsonObject.DataType.ParsableString:
-                    type = "parse-able-string";
-                    break;
                 default:
-                    type = Utilities.StringHelper.TrimStart(value.GetType().ToString(), "System.");
+                    if (_isParsableJson.HasValue && _isParsableJson.Value)
+                    {
+                        type = "parse-able-string";
+                    }
+                    else
+                    {
+                        type = Utilities.StringHelper.TrimStart(value.GetType().ToString(), "System.");
+                    }
                     break;
             }
 
