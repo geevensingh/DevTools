@@ -103,7 +103,10 @@
 
                 try
                 {
-                    jsonString = (await RootObject.Create((await JsonObjectFactory.TryDeserialize(jsonString))?.Dictionary)).PrettyValueString;
+                    DeserializeResult deserializeResult = await JsonObjectFactory.TryDeserialize(jsonString);
+                    Debug.Assert(deserializeResult == null || !deserializeResult.HasExtraText);
+                    RootObject rootObject = await RootObject.Create(deserializeResult?.Dictionary);
+                    jsonString = rootObject.PrettyValueString;
                 }
                 catch
                 {

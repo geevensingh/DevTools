@@ -219,7 +219,7 @@
             if (string.IsNullOrEmpty(initialText) && Clipboard.ContainsText())
             {
                 string jsonString = ClipboardManager.TryGetText();
-                if (JsonObjectFactory.TryDeserialize(jsonString).Result != null)
+                if (JsonObjectFactory.TryDeserialize(jsonString).Result.IsSuccessful())
                 {
                     initialText = jsonString;
                 }
@@ -283,7 +283,8 @@
         {
             Debug.Assert(sender.Equals(this.Raw_TextBox));
             string newText = this.Raw_TextBox.Text;
-            Dictionary<string, object> dictionary = (await JsonObjectFactory.TryDeserialize(newText))?.Dictionary;
+            DeserializeResult deserializeResult = await JsonObjectFactory.TryDeserialize(newText);
+            Dictionary<string, object> dictionary = deserializeResult?.GetEverythingDictionary();
             string newNormalizedText = new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(dictionary);
             if (newNormalizedText != _lastText)
             {

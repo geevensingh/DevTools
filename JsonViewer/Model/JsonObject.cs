@@ -127,8 +127,7 @@
                 if (this.Type == DataType.Other && _value is string stringValue)
                 {
                     DeserializeResult deserializeResult = await JsonObjectFactory.TryDeserialize(stringValue);
-                    Dictionary<string, object> jsonObj = deserializeResult?.Dictionary;
-                    if (jsonObj != null)
+                    if (deserializeResult.IsSuccessful())
                     {
                         _isParsableJson = true;
                         this.UpdateValueTypeString();
@@ -291,26 +290,7 @@
             DeserializeResult deserializeResult = JsonObjectFactory.TryDeserialize(this.Value as string).Result;
             Debug.Assert(deserializeResult != null);
 
-            Dictionary<string, object> dict = deserializeResult.Dictionary;
-            if (deserializeResult.HasExtraText)
-            {
-                dict = new Dictionary<string, object>();
-                if (!string.IsNullOrEmpty(deserializeResult.PreJsonText))
-                {
-                    dict["Pre-JSON text"] = deserializeResult.PreJsonText;
-                }
-
-                foreach (string key in deserializeResult.Dictionary.Keys)
-                {
-                    dict[key] = deserializeResult.Dictionary[key];
-                }
-
-                if (!string.IsNullOrEmpty(deserializeResult.PostJsonText))
-                {
-                    dict["Post-JSON text"] = deserializeResult.PostJsonText;
-                }
-            }
-
+            Dictionary<string, object> dict = deserializeResult.GetEverythingDictionary();
             this.Value = dict;
             this.EnsureValues();
             Debug.Assert(_dataType == DataType.Json);

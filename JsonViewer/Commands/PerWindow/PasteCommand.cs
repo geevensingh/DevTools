@@ -21,7 +21,7 @@
         public override void Execute(object parameter)
         {
             string jsonString = ClipboardManager.TryGetText();
-            Debug.Assert(JsonObjectFactory.TryDeserialize(jsonString).Result != null);
+            Debug.Assert(JsonObjectFactory.TryDeserialize(jsonString).Result.IsSuccessful());
             this.MainWindow.Raw_TextBox.Text = jsonString;
             this.MainWindow.SetDisplayMode(MainWindow.DisplayMode.TreeView);
             this.Update();
@@ -32,7 +32,7 @@
             string jsonString = ClipboardManager.TryGetText();
             this.SetCanExecute(!string.IsNullOrWhiteSpace(jsonString) &&
                 this.MainWindow.Raw_TextBox.Text != jsonString &&
-                await JsonObjectFactory.TryDeserialize(jsonString) != null);
+                (await JsonObjectFactory.TryDeserialize(jsonString)).IsSuccessful());
         }
 
         private void OnRawTextBoxChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
