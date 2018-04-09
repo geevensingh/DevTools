@@ -414,5 +414,15 @@
             TreeViewData treeViewData = (TreeViewData)frameworkElement.DataContext;
             treeViewData.VMObject.ToggleExpand();
         }
+
+        private void ListViewItem_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void ListViewItem_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+
+        }
     }
 }

@@ -15,91 +15,106 @@
     mc:Ignorable="d">
     <Window.Resources>
         <DataTemplate x:Key="TreeViewItemTemplate" DataType="local:TreeViewData">
-            <Grid HorizontalAlignment="Stretch" Background="{Binding Path=BackgroundColor}">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="auto" />
-                    <ColumnDefinition Width="auto" />
-                    <ColumnDefinition Width="auto" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="auto" />
-                </Grid.ColumnDefinitions>
-                <Grid.ContextMenu>
-                    <ContextMenu>
-                        <MenuItem
-                            Command="{Binding Path=ExpandChildrenCommand}"
-                            Header="{Binding Path=ExpandChildrenCommand.Text}"
-                            IsEnabled="{Binding Path=ExpandChildrenCommand.IsEnabled}"
-                            Visibility="{Binding Path=ExpandChildrenCommand.IsVisible}" />
-                        <MenuItem
-                            Command="{Binding Path=ExpandAllCommand}"
-                            Header="{Binding Path=ExpandAllCommand.Text}"
-                            IsEnabled="{Binding Path=ExpandAllCommand.IsEnabled}"
-                            Visibility="{Binding Path=ExpandAllCommand.IsVisible}" />
-                        <MenuItem
-                            Command="{Binding Path=CollapseAllCommand}"
-                            Header="{Binding Path=CollapseAllCommand.Text}"
-                            IsEnabled="{Binding Path=CollapseAllCommand.IsEnabled}"
-                            Visibility="{Binding Path=CollapseAllCommand.IsVisible}" />
-                        <MenuItem
-                            Command="{Binding Path=CopyKeyCommand}"
-                            Header="{Binding Path=CopyKeyCommand.Text}"
-                            IsEnabled="{Binding Path=CopyKeyCommand.IsEnabled}"
-                            Visibility="{Binding Path=CopyKeyCommand.IsVisible}" />
-                        <MenuItem
-                            Command="{Binding Path=CopyValueCommand}"
-                            Header="{Binding Path=CopyValueCommand.Text}"
-                            IsEnabled="{Binding Path=CopyValueCommand.IsEnabled}"
-                            Visibility="{Binding Path=CopyValueCommand.IsVisible}" />
-                        <MenuItem
-                            Command="{Binding Path=CopyPrettyValueCommand}"
-                            Header="{Binding Path=CopyPrettyValueCommand.Text}"
-                            IsEnabled="{Binding Path=CopyPrettyValueCommand.IsEnabled}"
-                            Visibility="{Binding Path=CopyPrettyValueCommand.IsVisible}" />
-                        <MenuItem
-                            Command="{Binding Path=CopyEscapedValueCommand}"
-                            Header="{Binding Path=CopyEscapedValueCommand.Text}"
-                            IsEnabled="{Binding Path=CopyEscapedValueCommand.IsEnabled}"
-                            Visibility="{Binding Path=CopyEscapedValueCommand.IsVisible}" />
-                        <MenuItem
-                            Command="{Binding Path=TreatAsJsonCommand}"
-                            Header="{Binding Path=TreatAsJsonCommand.Text}"
-                            Visibility="{Binding Path=TreatAsJsonCommand.IsVisible}" />
-                        <MenuItem
-                            Command="{Binding Path=TreatAsTextCommand}"
-                            Header="{Binding Path=TreatAsTextCommand.Text}"
-                            Visibility="{Binding Path=TreatAsTextCommand.IsVisible}" />
-                    </ContextMenu>
-                </Grid.ContextMenu>
-                <Border Width="{Binding Path=Depth}" />
-                <Button Grid.Column="1" Click="ExpandButton_Click">+/-</Button>
-                <StackPanel Grid.Column="2" Orientation="Horizontal">
+            <Button
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch"
+                Background="Transparent"
+                BorderBrush="Transparent"
+                BorderThickness="0"
+                Click="ListViewItem_Click"
+                MouseDoubleClick="ListViewItem_MouseDoubleClick">
+                <Grid HorizontalAlignment="Stretch" Background="{Binding Path=BackgroundColor}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="auto" />
+                        <ColumnDefinition Width="auto" />
+                        <ColumnDefinition Width="auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="auto" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem
+                                Command="{Binding Path=ExpandChildrenCommand}"
+                                Header="{Binding Path=ExpandChildrenCommand.Text}"
+                                IsEnabled="{Binding Path=ExpandChildrenCommand.IsEnabled}"
+                                Visibility="{Binding Path=ExpandChildrenCommand.IsVisible}" />
+                            <MenuItem
+                                Command="{Binding Path=ExpandAllCommand}"
+                                Header="{Binding Path=ExpandAllCommand.Text}"
+                                IsEnabled="{Binding Path=ExpandAllCommand.IsEnabled}"
+                                Visibility="{Binding Path=ExpandAllCommand.IsVisible}" />
+                            <MenuItem
+                                Command="{Binding Path=CollapseAllCommand}"
+                                Header="{Binding Path=CollapseAllCommand.Text}"
+                                IsEnabled="{Binding Path=CollapseAllCommand.IsEnabled}"
+                                Visibility="{Binding Path=CollapseAllCommand.IsVisible}" />
+                            <MenuItem
+                                Command="{Binding Path=CopyKeyCommand}"
+                                Header="{Binding Path=CopyKeyCommand.Text}"
+                                IsEnabled="{Binding Path=CopyKeyCommand.IsEnabled}"
+                                Visibility="{Binding Path=CopyKeyCommand.IsVisible}" />
+                            <MenuItem
+                                Command="{Binding Path=CopyValueCommand}"
+                                Header="{Binding Path=CopyValueCommand.Text}"
+                                IsEnabled="{Binding Path=CopyValueCommand.IsEnabled}"
+                                Visibility="{Binding Path=CopyValueCommand.IsVisible}" />
+                            <MenuItem
+                                Command="{Binding Path=CopyPrettyValueCommand}"
+                                Header="{Binding Path=CopyPrettyValueCommand.Text}"
+                                IsEnabled="{Binding Path=CopyPrettyValueCommand.IsEnabled}"
+                                Visibility="{Binding Path=CopyPrettyValueCommand.IsVisible}" />
+                            <MenuItem
+                                Command="{Binding Path=CopyEscapedValueCommand}"
+                                Header="{Binding Path=CopyEscapedValueCommand.Text}"
+                                IsEnabled="{Binding Path=CopyEscapedValueCommand.IsEnabled}"
+                                Visibility="{Binding Path=CopyEscapedValueCommand.IsVisible}" />
+                            <MenuItem
+                                Command="{Binding Path=TreatAsJsonCommand}"
+                                Header="{Binding Path=TreatAsJsonCommand.Text}"
+                                Visibility="{Binding Path=TreatAsJsonCommand.IsVisible}" />
+                            <MenuItem
+                                Command="{Binding Path=TreatAsTextCommand}"
+                                Header="{Binding Path=TreatAsTextCommand.Text}"
+                                Visibility="{Binding Path=TreatAsTextCommand.IsVisible}" />
+                        </ContextMenu>
+                    </Grid.ContextMenu>
+                    <Border Width="{Binding Path=Depth}" />
+                    <Button
+                        Grid.Column="1"
+                        Width="20"
+                        Margin="5"
+                        Click="ExpandButton_Click"
+                        Content="{Binding Path=VMObject.ExpandButtonContent}"
+                        Visibility="{Binding Path=VMObject.ExpandButtonVisibility}" />
+                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                        <TextBlock
+                            x:Name="KeyBlock"
+                            FontSize="{Binding Path=FontSize}"
+                            FontWeight="Bold"
+                            Foreground="{Binding Path=TextColor}"
+                            Text="{Binding Path=KeyName}" />
+                        <TextBlock
+                            FontSize="{Binding Path=FontSize}"
+                            FontWeight="Bold"
+                            Foreground="{Binding Path=TextColor}"
+                            Text=" : " />
+                    </StackPanel>
                     <TextBlock
-                        x:Name="KeyBlock"
+                        x:Name="OneLineValueBlock"
+                        Grid.Column="3"
+                        Padding="5,0"
                         FontSize="{Binding Path=FontSize}"
-                        FontWeight="Bold"
                         Foreground="{Binding Path=TextColor}"
-                        Text="{Binding Path=KeyName}" />
+                        Text="{Binding Path=OneLineValue}"
+                        TextWrapping="Wrap" />
                     <TextBlock
+                        x:Name="ValueTypeBlock"
+                        Grid.Column="5"
                         FontSize="{Binding Path=FontSize}"
-                        FontWeight="Bold"
                         Foreground="{Binding Path=TextColor}"
-                        Text=" : " />
-                </StackPanel>
-                <TextBlock
-                    x:Name="OneLineValueBlock"
-                    Grid.Column="3"
-                    Padding="5,0"
-                    FontSize="{Binding Path=FontSize}"
-                    Foreground="{Binding Path=TextColor}"
-                    Text="{Binding Path=OneLineValue}"
-                    TextWrapping="Wrap" />
-                <TextBlock
-                    x:Name="ValueTypeBlock"
-                    Grid.Column="5"
-                    FontSize="{Binding Path=FontSize}"
-                    Foreground="{Binding Path=TextColor}"
-                    Text="{Binding Path=ValueType}" />
-            </Grid>
+                        Text="{Binding Path=ValueType}" />
+                </Grid>
+            </Button>
         </DataTemplate>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibility" />
     </Window.Resources>

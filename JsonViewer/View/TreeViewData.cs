@@ -60,7 +60,7 @@
         public bool HasChildren { get => _vmObject.Data.HasChildren; }
 
         public int Depth { get => this.ParentList.Count * 20; }
-
+        
         public IList<TreeViewData> ParentList
         {
             get
@@ -178,7 +178,7 @@
 
         internal JsonObject JsonObject { get => _vmObject.Data; }
 
-        internal VMObject VMObject { get => _vmObject; }
+        public VMObject VMObject { get => _vmObject; }
 
         internal ListView Tree { get => _tree; }
 

@@ -2,6 +2,7 @@
 {
     using System.Collections.Generic;
     using System.Diagnostics;
+    using System.Windows;
     using JsonViewer.Model;
     using JsonViewer.View;
     using Utilities;
@@ -20,12 +21,28 @@
 
         public JsonObject Data { get => _jsonObject; }
 
+        public Visibility ExpandButtonVisibility
+        {
+            get
+            {
+                return this.HasChildren ? Visibility.Visible : Visibility.Hidden;
+            }
+        }
+
+        public string ExpandButtonContent
+        {
+            get
+            {
+                return this.IsExpanded ? "-" : "+";
+            }
+        }
+
         public bool IsExpanded
         {
             get => _isExpanded && this.HasChildren;
             set
             {
-                this.SetValue(ref _isExpanded, value, new string[] { "IsExpanded", "IsCollapsed" });
+                this.SetValue(ref _isExpanded, value, new string[] { "IsExpanded", "IsCollapsed", "ExpandButtonContent" });
             }
         }
 
