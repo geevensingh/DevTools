@@ -123,8 +123,7 @@
 
             if (lastCount > count)
             {
-                Debug.Assert(depth >= 3);
-                return depth - 3;
+                return System.Math.Max(depth - 3, 0);
             }
 
             Debug.Assert(depth >= 2);
