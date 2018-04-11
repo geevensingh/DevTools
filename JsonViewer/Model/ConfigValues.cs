@@ -103,7 +103,7 @@
 
                 try
                 {
-                    DeserializeResult deserializeResult = await JsonObjectFactory.TryDeserialize(jsonString);
+                    DeserializeResult deserializeResult = await JsonObjectFactory.TrySimpleDeserialize(jsonString);
                     Debug.Assert(deserializeResult == null || !deserializeResult.HasExtraText);
                     RootObject rootObject = await RootObject.Create(deserializeResult?.Dictionary);
                     jsonString = rootObject.PrettyValueString;

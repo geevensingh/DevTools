@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
+    using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
     using System.Web.Script.Serialization;
@@ -18,27 +19,16 @@
             {
                 jsonString = jsonString.Trim();
 
-                int firstBrace = jsonString.IndexOfAny(new char[] { '{', '[' });
-
-                if (firstBrace != 0)
+                DeserializeResult result = await TrySimpleDeserialize(jsonString);
+                if (result.IsSuccessful())
                 {
-                    DeserializeResult wrappedResult = await TryDeserialize("{" + jsonString + "}");
-                    if (wrappedResult != null)
-                    {
-                        return wrappedResult;
-                    }
-
-                    wrappedResult = await TryDeserialize("{ \"array\": " + jsonString + " }");
-                    if (wrappedResult != null)
-                    {
-                        return wrappedResult;
-                    }
+                    return result;
                 }
+
+                int firstBrace = jsonString.IndexOfAny(new char[] { '{' });
 
                 if (firstBrace >= 0)
                 {
-                    bool firstBraceIsSquare = jsonString[firstBrace] == '[';
-
                     foreach (string str in new string[] { jsonString, CSEscape.Unescape(jsonString) })
                     {
                         Dictionary<string, object> dictionary = TryStrictDeserialize(str);
@@ -47,30 +37,88 @@
                             return new DeserializeResult(dictionary);
                         }
 
-                        DeserializeResult result = null;
-                        if (firstBraceIsSquare)
-                        {
-                            result = TryTrimmedDeserialize(str, "[", "]", "{{ \"array\": {0} }}");
-                            if (result != null)
-                            {
-                                return result;
-                            }
-                        }
-
                         result = TryTrimmedDeserialize(str, "{", "}", "{0}");
-                        if (result != null)
+                        if (result.IsSuccessful())
                         {
                             return result;
                         }
+                    }
+                }
 
-                        if (!firstBraceIsSquare)
+                if (firstBrace != 0)
+                {
+                    DeserializeResult wrappedResult = await TryDeserialize("{" + jsonString + "}");
+                    if (wrappedResult.IsSuccessful())
+                    {
+                        return wrappedResult;
+                    }
+                }
+
+                return null;
+            });
+        }
+
+        public static Task<DeserializeResult> TryAgressiveDeserialize(string jsonString)
+        {
+            return Task.Run<DeserializeResult>(async () =>
+            {
+                jsonString = jsonString.Trim();
+
+                DeserializeResult result = await TrySimpleDeserialize(jsonString);
+                if (result.IsSuccessful())
+                {
+                    return result;
+                }
+
+                // Xpert has a habit of injecting weird things like "1 in the middle of a string.
+                // For example: me.CompilerServices.TaskAwaiter"1.GetResult()\\r\\n   at
+                string adjustedJsonString = jsonString;
+                for (int ii = 0; ii < adjustedJsonString.Length - 3; ii++)
+                {
+                    if ((adjustedJsonString[ii] != ' ') &&
+                        (adjustedJsonString[ii + 1] == '\"') &&
+                        (adjustedJsonString[ii + 2] >= '0' && adjustedJsonString[ii + 2] <= '9'))
+                    {
+                        adjustedJsonString = adjustedJsonString.Remove(ii + 1, 2);
+                    }
+                }
+
+                result = await TrySimpleDeserialize(adjustedJsonString);
+                if (result.IsSuccessful())
+                {
+                    return result;
+                }
+
+                return await TryDeserialize(jsonString);
+            });
+        }
+
+        public static Task<DeserializeResult> TrySimpleDeserialize(string jsonString)
+        {
+            return Task.Run<DeserializeResult>(async () =>
+            {
+                jsonString = jsonString.Trim();
+
+                int firstBrace = jsonString.IndexOfAny(new char[] { '{', '[' });
+
+                if (firstBrace >= 0)
+                {
+                    foreach (string str in new string[] { jsonString, CSEscape.Unescape(jsonString) })
+                    {
+                        Dictionary<string, object> dictionary = TryStrictDeserialize(str);
+                        if (dictionary != null)
                         {
-                            result = TryTrimmedDeserialize(str, "[", "]", "{{ \"array\": {0} }}");
-                            if (result != null)
-                            {
-                                return result;
-                            }
+                            return new DeserializeResult(dictionary);
                         }
+                    }
+                }
+
+                if (firstBrace != 0)
+                {
+                    DeserializeResult wrappedResult = await TrySimpleDeserialize("{" + jsonString + "}");
+                    if (wrappedResult != null)
+                    {
+                        return wrappedResult;
                     }
                 }
 

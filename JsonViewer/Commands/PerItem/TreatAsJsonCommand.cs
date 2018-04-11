@@ -22,6 +22,10 @@
             JsonObject obj = this.Data.JsonObject;
             await obj.TreatAsJson();
             _tree.SelectItem(obj.ViewObject).IsExpanded = true;
+            if (obj.AllChildren.Count <= 10)
+            {
+                _tree.ExpandSubtree(obj.ViewObject, int.MaxValue);
+            }
         }
     }
 }

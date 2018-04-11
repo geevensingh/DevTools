@@ -45,6 +45,7 @@
             Json,
             Array,
             Guid,
+            String,
             Other
         }
 
@@ -112,30 +113,6 @@
                 this.EnsureValues();
                 return _dataType;
             }
-        }
-
-        public Task<bool> CanTreatAsJson()
-        {
-            return IsParsableJsonString();
-        }
-
-        public async Task<bool> IsParsableJsonString()
-        {
-            if (!_isParsableJson.HasValue)
-            {
-                _isParsableJson = false;
-                if (this.Type == DataType.Other && _value is string stringValue)
-                {
-                    DeserializeResult deserializeResult = await JsonObjectFactory.TryDeserialize(stringValue);
-                    if (deserializeResult.IsSuccessful())
-                    {
-                        _isParsableJson = true;
-                        this.UpdateValueTypeString();
-                    }
-                }
-            }
-
-            return _isParsableJson.Value;
         }
 
         public bool CanTreatAsText { get => this.Type == DataType.Json; }
@@ -233,6 +210,30 @@
             }
         }
 
+        public Task<bool> CanTreatAsJson()
+        {
+            return IsParsableJsonString();
+        }
+
+        public async Task<bool> IsParsableJsonString()
+        {
+            if (!_isParsableJson.HasValue)
+            {
+                _isParsableJson = false;
+                if (this.Type == DataType.String && _value is string stringValue)
+                {
+                    DeserializeResult deserializeResult = await JsonObjectFactory.TryDeserialize(stringValue);
+                    if (deserializeResult.IsSuccessful())
+                    {
+                        _isParsableJson = true;
+                        this.UpdateValueTypeString();
+                    }
+                }
+            }
+
+            return _isParsableJson.Value;
+        }
+
         public virtual void SetChildren(IList<JsonObject> children)
         {
             Debug.Assert(_children.Count == 0);
@@ -287,7 +288,7 @@
         {
             Debug.Assert(await this.CanTreatAsJson());
 
-            DeserializeResult deserializeResult = JsonObjectFactory.TryDeserialize(this.Value as string).Result;
+            DeserializeResult deserializeResult = await JsonObjectFactory.TryDeserialize(this.Value as string);
             Debug.Assert(deserializeResult != null);
 
             Dictionary<string, object> dict = deserializeResult.GetEverythingDictionary();
@@ -301,7 +302,7 @@
             _parent.UpdateChild(this);
         }
 
-        public async Task TreatAsText()
+        public void TreatAsText()
         {
             Debug.Assert(this.CanTreatAsText);
 
@@ -316,7 +317,7 @@
             }
 
             this.EnsureValues();
-            Debug.Assert(await this.CanTreatAsJson());
+            Debug.Assert(_dataType == DataType.String);
 
             _children.Clear();
             this.SetChildren(_children);
@@ -434,6 +435,7 @@
                 return;
             }
 
+            _dataType = DataType.String;
             _typedValue = str;
             return;
         }
@@ -564,12 +566,14 @@
                 default:
                     if (_isParsableJson.HasValue && _isParsableJson.Value)
                     {
+                        Debug.Assert(_dataType == DataType.String);
                         type = "parse-able-string";
                     }
                     else
                     {
                         type = Utilities.StringHelper.TrimStart(value.GetType().ToString(), "System.");
                     }
+
                     break;
             }
 

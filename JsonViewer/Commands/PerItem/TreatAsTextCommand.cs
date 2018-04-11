@@ -13,10 +13,10 @@
             _tree = tree;
         }
 
-        public override async void Execute(object parameter)
+        public override void Execute(object parameter)
         {
             JsonObject obj = this.Data.JsonObject;
-            await obj.TreatAsText();
+            obj.TreatAsText();
             _tree.SelectItem(obj.ViewObject);
         }
     }
