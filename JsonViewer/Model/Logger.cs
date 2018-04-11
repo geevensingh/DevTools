@@ -4,7 +4,7 @@
     using System.Diagnostics;
     using System.IO;
 
-    static class Logger
+    internal static class Logger
     {
         public static void Log(string str)
         {
