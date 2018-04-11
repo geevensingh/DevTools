@@ -83,7 +83,7 @@
                 if (_foregroundBrush == null && !string.IsNullOrEmpty(this.ForegroundString))
                 {
                     _foregroundBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(this.ForegroundString));
-                    Debug.Assert(_foregroundBrush != null);
+                    FileLogger.Assert(_foregroundBrush != null);
                 }
 
                 return _foregroundBrush;
@@ -97,7 +97,7 @@
                 if (_backgroundBrush == null && !string.IsNullOrEmpty(this.BackgroundString))
                 {
                     _backgroundBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(this.BackgroundString));
-                    Debug.Assert(_backgroundBrush != null);
+                    FileLogger.Assert(_backgroundBrush != null);
                 }
 
                 return _backgroundBrush;

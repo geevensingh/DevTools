@@ -1,6 +1,7 @@
 ﻿namespace JsonViewer.Commands.PerWindow
 {
     using System.Diagnostics;
+    using JsonViewer.Model;
     using JsonViewer.View;
 
     public class PrettyTextCommand : BaseCommand
@@ -15,7 +16,7 @@
 
         public override void Execute(object parameter)
         {
-            Debug.Assert(this.MainWindow.RootObject != null);
+            FileLogger.Assert(this.MainWindow.RootObject != null);
             this.MainWindow.Raw_TextBox.Text = this.MainWindow.RootObject?.PrettyValueString;
         }
 

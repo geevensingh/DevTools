@@ -28,7 +28,7 @@
                     }
                     else
                     {
-                        Debug.Assert(_rule.MatchType == MatchTypeEnum.Partial);
+                        FileLogger.Assert(_rule.MatchType == MatchTypeEnum.Partial);
                         result = field.Contains(_rule.String);
                     }
                 }

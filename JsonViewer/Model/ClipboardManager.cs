@@ -13,7 +13,7 @@
 
         public ClipboardManager(MainWindow mainWindow)
         {
-            Debug.Assert(mainWindow != null);
+            FileLogger.Assert(mainWindow != null);
             _mainWindow = mainWindow;
 
             HwndSource source = PresentationSource.FromVisual(mainWindow) as HwndSource;

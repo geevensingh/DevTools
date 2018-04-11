@@ -26,7 +26,7 @@
 
         private void OnFinderPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            Debug.Assert(sender == _finder);
+            FileLogger.Assert(sender == _finder);
             if (e.PropertyName == "HasWindow")
             {
                 this.SetCanExecute(_finder.HasWindow);

@@ -153,7 +153,7 @@
         {
             this.HideWindow();
 
-            Debug.Assert(_findWindow == null);
+            FileLogger.Assert(_findWindow == null);
             _findWindow = new FindWindow(_parentWindow, this);
             _findWindow.Closed += (sender, e) => this.HideWindow();
 

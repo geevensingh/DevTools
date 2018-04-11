@@ -104,12 +104,12 @@
 
                     break;
                 case NotifyCollectionChangedAction.Move:
-                    Debug.Assert(e.OldItems.Count == 1);
-                    Debug.Assert(e.NewItems.Count == 1);
-                    Debug.Assert(e.OldItems[0] == e.NewItems[0]);
+                    FileLogger.Assert(e.OldItems.Count == 1);
+                    FileLogger.Assert(e.NewItems.Count == 1);
+                    FileLogger.Assert(e.OldItems[0] == e.NewItems[0]);
                     break;
                 case NotifyCollectionChangedAction.Add:
-                    Debug.Assert(e.NewItems.Count == 1);
+                    FileLogger.Assert(e.NewItems.Count == 1);
                     EditableRuleView newRuleView = (EditableRuleView)e.NewItems[0];
                     newRuleView.RuleSet = this;
                     newRuleView.UpdateIndex(e.NewStartingIndex);
@@ -119,7 +119,7 @@
                 case NotifyCollectionChangedAction.Replace:
                 case NotifyCollectionChangedAction.Reset:
                 default:
-                    Debug.Assert(false);
+                    FileLogger.Assert(false);
                     break;
             }
         }

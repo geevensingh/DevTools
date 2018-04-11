@@ -174,7 +174,7 @@
                 }
             }
 
-            Debug.Assert(!string.IsNullOrEmpty(errorMessage));
+            FileLogger.Assert(!string.IsNullOrEmpty(errorMessage));
             if (!string.IsNullOrEmpty(errorMessage))
             {
                 MessageBox.Show(errorMessage, "Error!", MessageBoxButton.OK, MessageBoxImage.Error);

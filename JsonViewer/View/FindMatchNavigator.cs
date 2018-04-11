@@ -37,7 +37,7 @@
 
         public void Go(Direction direction)
         {
-            Debug.Assert(_mainWindow.Finder.HitCount > 0);
+            FileLogger.Assert(_mainWindow.Finder.HitCount > 0);
             GetHitIndexRange(out int previous, out int next);
 
             int adjusted = direction == Direction.Forward ? (previous + 1) : (next - 1);
@@ -48,7 +48,7 @@
 
         private void OnTreePropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            Debug.Assert(sender == _mainWindow.Tree);
+            FileLogger.Assert(sender == _mainWindow.Tree);
             switch (e.PropertyName)
             {
                 case "SelectedIndex":
@@ -65,7 +65,7 @@
 
         private void OnFinderPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            Debug.Assert(sender == _mainWindow.Finder);
+            FileLogger.Assert(sender == _mainWindow.Finder);
             switch (e.PropertyName)
             {
                 case "Hits":
@@ -81,7 +81,7 @@
             Finder finder = _mainWindow.Finder;
             if (finder.HitCount == 0)
             {
-                Debug.Assert(!_currentHitIndex.HasValue);
+                FileLogger.Assert(!_currentHitIndex.HasValue);
                 this.SetValue(ref _findMatchText, string.Empty, new string[] { "ShowFindControls", "FindMatchText" });
                 return;
             }
@@ -115,7 +115,7 @@
                 return;
             }
 
-            Debug.Assert(_mainWindow.Finder.HitCount > 0);
+            FileLogger.Assert(_mainWindow.Finder.HitCount > 0);
             if (_mainWindow.Finder.HitCount == 1)
             {
                 previous = 1;
@@ -127,7 +127,7 @@
             int? currentIndex = this.CurrentIndex;
             if (currentIndex.HasValue)
             {
-                Debug.Assert(_mainWindow.Finder.HitCount == _mainWindow.Finder.Hits.Count);
+                FileLogger.Assert(_mainWindow.Finder.HitCount == _mainWindow.Finder.Hits.Count);
                 for (int ii = 0; ii < _mainWindow.Finder.Hits.Count; ii++)
                 {
                     JsonObject foo = _mainWindow.Finder.Hits[ii];
@@ -141,11 +141,11 @@
             previous = (previous + _mainWindow.Finder.HitCount) % _mainWindow.Finder.HitCount;
             next = (previous + 1 + _mainWindow.Finder.HitCount) % _mainWindow.Finder.HitCount;
 
-            Debug.Assert(previous >= 0);
-            Debug.Assert(previous < _mainWindow.Finder.HitCount);
+            FileLogger.Assert(previous >= 0);
+            FileLogger.Assert(previous < _mainWindow.Finder.HitCount);
 
-            Debug.Assert(next >= 0);
-            Debug.Assert(next < _mainWindow.Finder.HitCount);
+            FileLogger.Assert(next >= 0);
+            FileLogger.Assert(next < _mainWindow.Finder.HitCount);
         }
     }
 }

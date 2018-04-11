@@ -40,7 +40,7 @@
 
         public override void SetChildren(IList<JsonObject> children)
         {
-            Debug.Assert(_viewChildren == null);
+            FileLogger.Assert(_viewChildren == null);
             _viewChildren = null;
             base.SetChildren(children);
         }
@@ -52,8 +52,8 @@
                 _viewChildren = TreeViewDataFactory.CreateCollection(tree, this);
             }
 
-            Debug.Assert(_viewChildren != null);
-            Debug.Assert(_viewChildren.Count == 0 || _viewChildren[0].Tree == tree);
+            FileLogger.Assert(_viewChildren != null);
+            FileLogger.Assert(_viewChildren.Count == 0 || _viewChildren[0].Tree == tree);
             tree.ItemsSource = _viewChildren;
 
             this.ApplyExpandRule(tree);
@@ -66,7 +66,7 @@
                 _expandByRules = new SingularAction(tree.Dispatcher);
             }
 
-            Debug.Assert(_expandByRules.Dispatcher == tree.Dispatcher);
+            FileLogger.Assert(_expandByRules.Dispatcher == tree.Dispatcher);
 
             bool expandedSomething = false;
             _expandByRules.BeginInvoke(
@@ -99,9 +99,9 @@
 
         protected override void UpdateChild(JsonObject child)
         {
-            Debug.Assert(this.Children.Contains(child));
+            FileLogger.Assert(this.Children.Contains(child));
             int index = this.Children.IndexOf(child);
-            Debug.Assert(this.Children[index].ViewObject == _viewChildren[index]);
+            FileLogger.Assert(this.Children[index].ViewObject == _viewChildren[index]);
             _viewChildren.RemoveAt(index);
             _viewChildren.Insert(index, child.ResetView());
         }
@@ -126,7 +126,7 @@
                 return System.Math.Max(depth - 3, 0);
             }
 
-            Debug.Assert(depth >= 2);
+            FileLogger.Assert(depth >= 2);
             return depth - 2;
         }
     }

@@ -2,6 +2,7 @@
 {
     using System.Diagnostics;
     using System.Windows;
+    using JsonViewer.Model;
     using JsonViewer.View;
 
     public class PrettyCopyAllCommand : BaseCommand
@@ -15,7 +16,7 @@
 
         public override void Execute(object parameter)
         {
-            Debug.Assert(this.MainWindow.RootObject != null);
+            FileLogger.Assert(this.MainWindow.RootObject != null);
             Clipboard.SetDataObject(this.MainWindow.RootObject?.PrettyValueString);
         }
 

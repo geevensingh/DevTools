@@ -18,7 +18,7 @@
 
         public CustomTreeView()
         {
-            System.Diagnostics.Debug.Assert(System.Threading.Thread.CurrentThread.ManagedThreadId == 1);
+            Debug.Assert(System.Threading.Thread.CurrentThread.ManagedThreadId == 1);
 
             Config.PropertyChanged += OnConfigPropertyChanged;
 
@@ -88,7 +88,7 @@
         {
             foreach (TreeViewData data in this.Items)
             {
-                Debug.Assert(data.Parent == null);
+                FileLogger.Assert(data.Parent == null);
                 this.CollapseSubtree(this.ItemContainerGenerator, data);
             }
         }
@@ -104,7 +104,7 @@
             TreeViewItem item = null;
             if (parentItem == null)
             {
-                Debug.Assert(treeViewData.Parent == null);
+                FileLogger.Assert(treeViewData.Parent == null);
                 item = GetItem(treeViewData);
             }
             else
@@ -119,8 +119,8 @@
                 item = (TreeViewItem)parentItem.ItemContainerGenerator.ContainerFromItem(treeViewData);
             }
 
-            Debug.Assert(item != null);
-            Debug.Assert(item.DataContext == treeViewData);
+            FileLogger.Assert(item != null);
+            FileLogger.Assert(item.DataContext == treeViewData);
 
             return item;
         }
@@ -130,8 +130,8 @@
             TreeViewItem item = ExpandToItem(treeViewData);
             item.IsSelected = true;
 
-            Debug.Assert(!double.IsNaN(item.ActualWidth));
-            Debug.Assert(!double.IsNaN(item.ActualHeight));
+            FileLogger.Assert(!double.IsNaN(item.ActualWidth));
+            FileLogger.Assert(!double.IsNaN(item.ActualHeight));
             item.BringIntoView(new Rect(0, -50, item.ActualWidth, 100 + item.ActualHeight));
 
             return item;
@@ -179,7 +179,7 @@
             {
                 _selected.IsSelected = true;
                 newSelectedIndex = _selected.JsonObject.OverallIndex;
-                Debug.Assert(newSelectedIndex >= 0);
+                FileLogger.Assert(newSelectedIndex >= 0);
             }
 
             NotifyPropertyChanged.SetValue(ref _selectedIndex, newSelectedIndex, "SelectedIndex", this, this.PropertyChanged);
@@ -233,8 +233,8 @@
                 if (this.SelectedItem != null)
                 {
                     item = this.GetItem((TreeViewData)this.SelectedItem);
-                    Debug.Assert(!double.IsNaN(item.ActualWidth));
-                    Debug.Assert(!double.IsNaN(item.ActualHeight));
+                    FileLogger.Assert(!double.IsNaN(item.ActualWidth));
+                    FileLogger.Assert(!double.IsNaN(item.ActualHeight));
                     item.BringIntoView(new Rect(0, -50, item.ActualWidth, 100 + item.ActualHeight));
                 }
 
@@ -261,14 +261,14 @@
 
         private void OnCopyCommandCanExecute(object sender, CanExecuteRoutedEventArgs e)
         {
-            Debug.Assert(sender == this);
+            FileLogger.Assert(sender == this);
             bool? canExecute = (this.SelectedItem as TreeViewData)?.CopyValueCommand?.CanExecute(null);
             e.CanExecute = canExecute.HasValue && canExecute.Value;
         }
 
         private void OnCopyCommandExecuted(object sender, ExecutedRoutedEventArgs e)
         {
-            Debug.Assert(sender == this);
+            FileLogger.Assert(sender == this);
             (this.SelectedItem as TreeViewData)?.CopyValueCommand?.Execute(null);
         }
 

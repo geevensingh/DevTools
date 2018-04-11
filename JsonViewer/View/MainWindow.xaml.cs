@@ -150,11 +150,11 @@
                         newControl = this.Tree;
                         break;
                     default:
-                        Debug.Assert(false);
+                        FileLogger.Assert(false);
                         break;
                 }
 
-                Debug.Assert(newControl != null);
+                FileLogger.Assert(newControl != null);
                 newControl.Visibility = Visibility.Visible;
                 newControl.Focus();
 
@@ -281,7 +281,7 @@
 
         private async void Raw_TextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            Debug.Assert(sender.Equals(this.Raw_TextBox));
+            FileLogger.Assert(sender.Equals(this.Raw_TextBox));
             string newText = this.Raw_TextBox.Text;
             DeserializeResult deserializeResult = await JsonObjectFactory.TryAgressiveDeserialize(newText);
             Dictionary<string, object> dictionary = deserializeResult?.GetEverythingDictionary();
@@ -392,7 +392,7 @@
 
         private void SetWarningMessage(string message, WarningBannerActionHandler onAction, WarningBannerActionHandler onDismiss)
         {
-            Debug.Assert(!string.IsNullOrEmpty(message));
+            FileLogger.Assert(!string.IsNullOrEmpty(message));
 
             this.WarningBanner.Visibility = Visibility.Visible;
             this.WarningBannerActionLink.Inlines.Clear();
@@ -403,13 +403,13 @@
 
         private void OnWarningBannerDismiss(object sender, RoutedEventArgs e)
         {
-            Debug.Assert(this._warningBannerDismiss != null);
+            FileLogger.Assert(this._warningBannerDismiss != null);
             this._warningBannerDismiss?.Invoke();
         }
 
         private void OnWarningBannerAction(object sender, RoutedEventArgs e)
         {
-            Debug.Assert(this._warningBannerAction != null);
+            FileLogger.Assert(this._warningBannerAction != null);
             this._warningBannerAction?.Invoke();
         }
     }

@@ -4,6 +4,7 @@
     using System.Diagnostics;
     using System.Windows;
     using System.Windows.Input;
+    using JsonViewer.Model;
     using JsonViewer.View;
     using Utilities;
 
@@ -63,7 +64,7 @@
 
             set
             {
-                Debug.Assert(_mainWindow == null);
+                FileLogger.Assert(_mainWindow == null);
                 _mainWindow = value;
                 _mainWindow.PropertyChanged += (sender, evt) => this.OnMainWindowPropertyChanged(evt.PropertyName);
             }

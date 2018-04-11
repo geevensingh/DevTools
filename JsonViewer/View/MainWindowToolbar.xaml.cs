@@ -6,6 +6,7 @@
     using System.Windows.Controls;
     using JsonViewer.Commands;
     using JsonViewer.Commands.PerWindow;
+    using JsonViewer.Model;
     using JsonViewer.View;
     using Utilities;
 
@@ -123,7 +124,7 @@
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
             _mainWindow = (MainWindow)this.DataContext;
-            Debug.Assert(_mainWindow != null);
+            FileLogger.Assert(_mainWindow != null);
             NotifyPropertyChanged.FirePropertyChanged(new string[] { "TextModeVisibility", "TreeModeVisibility" }, this, this.PropertyChanged);
 
             NotifyPropertyChanged.SetValue(ref _newWindowCommand, new NewWindowCommand(_mainWindow), "NewWindowCommand", this, this.PropertyChanged);
@@ -170,7 +171,7 @@
 
         private void OnFinderPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            Debug.Assert(sender == _mainWindow.Finder);
+            FileLogger.Assert(sender == _mainWindow.Finder);
             switch (e.PropertyName)
             {
                 case "Text":

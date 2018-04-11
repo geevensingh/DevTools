@@ -196,7 +196,7 @@
                     this.FirePropertyChanged("AllChildren");
                     break;
                 default:
-                    Debug.Assert(false, "Unknown property change");
+                    FileLogger.Assert(false, "Unknown property change");
                     break;
             }
         }
@@ -217,7 +217,7 @@
                 case "WarningMessages":
                     break;
                 default:
-                    Debug.Assert(false, "Unknown property change");
+                    FileLogger.Assert(false, "Unknown property change");
                     break;
             }
         }

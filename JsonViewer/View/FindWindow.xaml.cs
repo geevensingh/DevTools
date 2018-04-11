@@ -47,7 +47,7 @@
 
         private void OnViewModelPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
-            Debug.Assert(sender == _finder);
+            FileLogger.Assert(sender == _finder);
             switch (e.PropertyName)
             {
                 case "Text":
@@ -84,7 +84,7 @@
 
         private void OnTextBoxTextChanged(object sender, TextChangedEventArgs e)
         {
-            Debug.Assert(sender == this.textBox);
+            FileLogger.Assert(sender == this.textBox);
             _finder.Text = this.textBox.Text;
         }
     }

@@ -199,8 +199,8 @@
                 return null;
             }
 
-            Debug.Assert(parts.Count == 3);
-            Debug.Assert(!string.IsNullOrEmpty(parts[1]));
+            FileLogger.Assert(parts.Count == 3);
+            FileLogger.Assert(!string.IsNullOrEmpty(parts[1]));
             string trimmedString = string.Format(format, parts[1]);
             Dictionary<string, object> result = TryStrictDeserialize(trimmedString);
             if (result == null)

@@ -1,9 +1,7 @@
 ﻿namespace JsonViewer.View
 {
     using System;
-    using System.Collections.Generic;
     using System.Diagnostics;
-    using System.Linq;
     using System.Windows.Media;
     using JsonViewer.Model;
     using Utilities;
@@ -17,7 +15,7 @@
 
         public EditableRuleView()
         {
-            System.Diagnostics.Debug.Assert(System.Threading.Thread.CurrentThread.ManagedThreadId == 1);
+            Debug.Assert(System.Threading.Thread.CurrentThread.ManagedThreadId == 1);
 
             _rule = new ConfigRule();
         }
@@ -234,7 +232,7 @@
 
         internal void SetConfigValues(ConfigValues configValues)
         {
-            Debug.Assert(_configValues == null);
+            FileLogger.Assert(_configValues == null);
             _configValues = configValues;
         }
 

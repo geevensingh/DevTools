@@ -84,7 +84,7 @@
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
             _mainWindow = (MainWindow)this.DataContext;
-            Debug.Assert(_mainWindow != null);
+            FileLogger.Assert(_mainWindow != null);
 
             _mainWindow.Tree.PropertyChanged += OnTreePropertyChanged;
             _mainWindow.PropertyChanged += OnMainWindowPropertyChanged;

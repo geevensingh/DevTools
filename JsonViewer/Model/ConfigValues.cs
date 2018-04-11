@@ -4,7 +4,6 @@
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.IO;
-    using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
     using System.Windows.Media;
@@ -104,7 +103,7 @@
                 try
                 {
                     DeserializeResult deserializeResult = await JsonObjectFactory.TrySimpleDeserialize(jsonString);
-                    Debug.Assert(deserializeResult == null || !deserializeResult.HasExtraText);
+                    FileLogger.Assert(deserializeResult == null || !deserializeResult.HasExtraText);
                     RootObject rootObject = await RootObject.Create(deserializeResult?.Dictionary);
                     jsonString = rootObject.PrettyValueString;
                 }
@@ -170,7 +169,7 @@
                         color = Colors.LightGoldenrodYellow;
                         break;
                     default:
-                        Debug.Assert(false);
+                        FileLogger.Assert(false);
                         break;
                 }
             }

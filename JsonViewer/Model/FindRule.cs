@@ -1,9 +1,9 @@
 ﻿namespace JsonViewer.Model
 {
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Linq;
     using System.Windows.Media;
-    using Utilities;
 
     public class FindRule : IRule
     {
@@ -13,7 +13,7 @@
 
         internal FindRule(string text, bool ignoreCase, bool searchKeys, bool searchValues, bool searchValueTypes, bool appliesToParents, MatchTypeEnum matchType)
         {
-            System.Diagnostics.Debug.Assert(System.Threading.Thread.CurrentThread.ManagedThreadId == 1);
+            Debug.Assert(System.Threading.Thread.CurrentThread.ManagedThreadId == 1);
 
             _foregroundBrush = Config.Values.GetBrush(matchType == MatchTypeEnum.Exact ? ConfigValue.SimilarNodeForeground : ConfigValue.SearchResultForeground);
             _backgroundBrush = Config.Values.GetBrush(matchType == MatchTypeEnum.Exact ? ConfigValue.SimilarNodeBackground : ConfigValue.SearchResultBackground);

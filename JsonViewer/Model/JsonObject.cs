@@ -92,7 +92,7 @@
             {
                 if (_parent == null)
                 {
-                    Debug.Assert(this as RootObject != null);
+                    FileLogger.Assert(this as RootObject != null);
                     return this as RootObject;
                 }
 
@@ -162,7 +162,7 @@
                     }
                 }
 
-                Debug.Assert(_allChildren.Count == this.TotalChildCount);
+                FileLogger.Assert(_allChildren.Count == this.TotalChildCount);
                 return _allChildren;
             }
         }
@@ -176,7 +176,7 @@
 
             set
             {
-                Debug.Assert(_viewObject == null);
+                FileLogger.Assert(_viewObject == null);
                 _viewObject = value;
             }
         }
@@ -236,7 +236,7 @@
 
         public virtual void SetChildren(IList<JsonObject> children)
         {
-            Debug.Assert(_children.Count == 0);
+            FileLogger.Assert(_children.Count == 0);
             _children = new List<JsonObject>(children);
             this.Value = _value;
             if (_children.Count > 1)
@@ -286,15 +286,16 @@
 
         public async Task TreatAsJson()
         {
+            FileLogger.Assert(_dataType == DataType.String);
             Debug.Assert(await this.CanTreatAsJson());
 
             DeserializeResult deserializeResult = await JsonObjectFactory.TryDeserialize(this.Value as string);
-            Debug.Assert(deserializeResult != null);
+            FileLogger.Assert(deserializeResult != null);
 
             Dictionary<string, object> dict = deserializeResult.GetEverythingDictionary();
             this.Value = dict;
             this.EnsureValues();
-            Debug.Assert(_dataType == DataType.Json);
+            FileLogger.Assert(_dataType == DataType.Json);
 
             JsonObjectFactory.Flatten(ref _children, dict, this);
             this.FireChildrenChanged(true);
@@ -304,7 +305,7 @@
 
         public void TreatAsText()
         {
-            Debug.Assert(this.CanTreatAsText);
+            FileLogger.Assert(this.CanTreatAsText);
 
             if (string.IsNullOrEmpty(_originalString))
             {
@@ -317,7 +318,7 @@
             }
 
             this.EnsureValues();
-            Debug.Assert(_dataType == DataType.String);
+            FileLogger.Assert(_dataType == DataType.String);
 
             _children.Clear();
             this.SetChildren(_children);
@@ -340,15 +341,15 @@
             CustomTreeView tree = _viewObject.Tree;
             _viewObject = null;
             TreeViewDataFactory.CreateNode(tree, this);
-            Debug.Assert(_viewObject != null);
+            FileLogger.Assert(_viewObject != null);
             return _viewObject;
         }
 
         protected virtual void UpdateChild(JsonObject child)
         {
-            Debug.Assert(_children.Contains(child));
+            FileLogger.Assert(_children.Contains(child));
             int index = _children.IndexOf(child);
-            Debug.Assert(_children[index].ViewObject == _viewObject.Children[index]);
+            FileLogger.Assert(_children[index].ViewObject == _viewObject.Children[index]);
             _viewObject.Children.RemoveAt(index);
             _viewObject.Children.Insert(index, child.ResetView());
         }
@@ -465,7 +466,7 @@
             }
             else if (this.TypedValue is Guid)
             {
-                Debug.Assert(this.Value is string);
+                FileLogger.Assert(this.Value is string);
                 _valueString = this.Value as string;
             }
             else
@@ -473,7 +474,7 @@
                 _valueString = this.Value.ToString();
             }
 
-            Debug.Assert(string.IsNullOrEmpty(this.Value as string) || !string.IsNullOrEmpty(_valueString));
+            FileLogger.Assert(string.IsNullOrEmpty(this.Value as string) || !string.IsNullOrEmpty(_valueString));
 
             this.UpdateValueTypeString();
 
@@ -566,7 +567,7 @@
                 default:
                     if (_isParsableJson.HasValue && _isParsableJson.Value)
                     {
-                        Debug.Assert(_dataType == DataType.String);
+                        FileLogger.Assert(_dataType == DataType.String);
                         type = "parse-able-string";
                     }
                     else
@@ -577,7 +578,7 @@
                     break;
             }
 
-            Debug.Assert(!string.IsNullOrEmpty(type));
+            FileLogger.Assert(!string.IsNullOrEmpty(type));
 
             if (includeChildCount && this.HasChildren)
             {
@@ -611,7 +612,7 @@
                 case DataType.Json:
                     return start ? "{" : "}";
                 default:
-                    Debug.Assert(!this.HasChildren);
+                    FileLogger.Assert(!this.HasChildren);
                     return string.Empty;
             }
         }

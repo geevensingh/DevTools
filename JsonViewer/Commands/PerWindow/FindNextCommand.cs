@@ -2,6 +2,7 @@
 {
     using System.Diagnostics;
     using System.Windows.Input;
+    using JsonViewer.Model;
     using JsonViewer.View;
 
     public class FindNextCommand : BaseCommand
@@ -24,7 +25,7 @@
 
         private void OnFinderPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            Debug.Assert(sender == this.MainWindow.Finder);
+            FileLogger.Assert(sender == this.MainWindow.Finder);
             switch (e.PropertyName)
             {
                 case "HitCount":
