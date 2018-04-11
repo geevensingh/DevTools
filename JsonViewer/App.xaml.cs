@@ -5,6 +5,7 @@
     using System.Deployment.Application;
     using System.IO;
     using System.Windows;
+    using JsonViewer.Model;
     using JsonViewer.View;
 
     /// <summary>
@@ -12,12 +13,9 @@
     /// </summary>
     public partial class App : Application
     {
-        private List<string> _args = null;
         private string _initialText = string.Empty;
 
         public static new App Current { get => (App)Application.Current; }
-
-        public IList<string> Args { get => _args; }
 
         public string InitialText { get => _initialText; set => _initialText = value; }
 
@@ -110,12 +108,19 @@
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
+            Logger.Log("---------- Launched new instance ----------");
 
-            _args = new List<string>(e?.Args);
+            List<string> args = new List<string>(e?.Args);
 
-            if (_args.Count == 1)
+            Logger.Log("arg-count : " + args.Count);
+            foreach (string arg in args)
             {
-                string launchFilePath = _args[0];
+                Logger.Log("arg : " + arg);
+            }
+
+            if (args.Count == 1)
+            {
+                string launchFilePath = args[0];
                 try
                 {
                     _initialText = File.ReadAllText(launchFilePath);

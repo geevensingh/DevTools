@@ -21,7 +21,7 @@
     <InstallFrom>Unc</InstallFrom>
     <UpdateEnabled>true</UpdateEnabled>
     <UpdateMode>Background</UpdateMode>
-    <UpdateInterval>7</UpdateInterval>
+    <UpdateInterval>3</UpdateInterval>
     <UpdateIntervalUnits>Days</UpdateIntervalUnits>
     <UpdatePeriodically>true</UpdatePeriodically>
     <UpdateRequired>false</UpdateRequired>
@@ -145,6 +145,7 @@
     <Compile Include="Model\ConfigRule.cs" />
     <Compile Include="Model\IRule.cs" />
     <Compile Include="Model\EditableRuleSet.cs" />
+    <Compile Include="Model\Logger.cs" />
     <Compile Include="View\RuleSet.cs" />
     <Compile Include="Model\SimilarHighlighter.cs" />
     <Compile Include="View\FindMatchNavigator.cs" />
