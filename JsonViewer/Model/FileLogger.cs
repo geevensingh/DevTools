@@ -4,13 +4,36 @@
     using System.Diagnostics;
     using System.IO;
 
-    internal static class Logger
+    internal static class FileLogger
     {
+        public static void Assert(bool condition)
+        {
+            Assert(condition, string.Empty);
+        }
+
+        public static void Assert(bool condition, string message)
+        {
+            Debug.Assert(condition);
+            if (!condition)
+            {
+                Log(new string[] { string.IsNullOrEmpty(message) ? "Assert failed!!" : message, Environment.StackTrace });
+            }
+        }
+
         public static void Log(string str)
         {
+            Log(new string[] { str });
+        }
+
+        public static void Log(string[] lines)
+        {
+            string preface = DateTime.Now.ToString("O") + " : " + Process.GetCurrentProcess().Id + " : ";
             using (StreamWriter sw = File.AppendText(EnsureLogFilePath()))
             {
-                sw.WriteLine(DateTime.Now.ToString("O") + " : " + Process.GetCurrentProcess().Id + " : " + str);
+                foreach (string line in lines)
+                {
+                    sw.WriteLine(preface + line);
+                }
             }
         }
 

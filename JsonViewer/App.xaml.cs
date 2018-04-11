@@ -108,14 +108,14 @@
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
-            Logger.Log("---------- Launched new instance ----------");
+            FileLogger.Log("---------- Launched new instance ----------");
 
             List<string> args = new List<string>(e?.Args);
 
-            Logger.Log("arg-count : " + args.Count);
+            FileLogger.Log("arg-count : " + args.Count);
             foreach (string arg in args)
             {
-                Logger.Log("arg : " + arg);
+                FileLogger.Log("arg : " + arg);
             }
 
             if (args.Count == 1)
