@@ -6,17 +6,25 @@
 
     internal static class FileLogger
     {
+        private static bool _checkedFileTooLarge = false;
+
         public static void Assert(bool condition)
         {
-            Assert(condition, string.Empty);
+            Assert(condition, string.Empty, skipFrames: 2);
         }
 
-        public static void Assert(bool condition, string message)
+        public static void Assert(bool condition, string message, int skipFrames = 1)
         {
             Debug.Assert(condition);
             if (!condition)
             {
-                Log(new string[] { string.IsNullOrEmpty(message) ? "Assert failed!!" : message, Environment.StackTrace });
+                if (string.IsNullOrEmpty(message))
+                {
+                    message = "Assert failed!!";
+                }
+
+                StackTrace stackTrace = new StackTrace(skipFrames, fNeedFileInfo: true);
+                Log(message + "\r\n" + stackTrace.ToString());
             }
         }
 
@@ -40,6 +48,22 @@
         private static string EnsureLogFilePath()
         {
             string logFilePath = GetLogFilePath();
+
+            if (!_checkedFileTooLarge)
+            {
+                _checkedFileTooLarge = true;
+
+                const uint maxLogSize = 128 * 1024 * 1024;   // 128 MB
+                if (File.Exists(logFilePath) && new FileInfo(logFilePath).Length > maxLogSize)
+                {
+                    TimeSpan age = DateTime.Now - File.GetLastWriteTime(logFilePath);
+                    if (age.TotalHours > 2)
+                    {
+                        File.Delete(logFilePath);
+                    }
+                }
+            }
+
             if (!File.Exists(logFilePath))
             {
                 using (StreamWriter sw = File.CreateText(logFilePath))
@@ -47,6 +71,8 @@
                     sw.WriteLine("Log file for JsonViewer");
                     sw.WriteLine("Started at: " + DateTime.Now.ToString("O"));
                 }
+
+                File.SetAttributes(logFilePath, FileAttributes.Hidden);
             }
 
             return logFilePath;
