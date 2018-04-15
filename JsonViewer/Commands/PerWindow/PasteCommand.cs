@@ -14,7 +14,7 @@
 
             this.Tab = tab;
             this.Tab.Raw_TextBox.TextChanged += OnRawTextBoxChanged;
-            this.Tab.ClipboardManager.ClipboardChanged += OnClipboardChanged;
+            this.Tab.Window.ClipboardManager.ClipboardChanged += OnClipboardChanged;
             this.Update();
         }
 

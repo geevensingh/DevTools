@@ -9,25 +9,25 @@
     internal class ClipboardManager
     {
         private static readonly IntPtr WndProcSuccess = IntPtr.Zero;
-        private TabContent _tab;
+        private System.Windows.Window _window;
 
-        public ClipboardManager(TabContent tab)
+        public ClipboardManager(System.Windows.Window window)
         {
-            FileLogger.Assert(tab != null);
-            _tab = tab;
+            FileLogger.Assert(window != null);
+            _window = window;
 
-            HwndSource source = PresentationSource.FromVisual(tab) as HwndSource;
+            HwndSource source = PresentationSource.FromVisual(window) as HwndSource;
             if (source == null)
             {
                 throw new ArgumentException(
                     "Window source MUST be initialized first, such as in the Window's OnSourceInitialized handler.",
-                    nameof(tab));
+                    nameof(window));
             }
 
             source.AddHook(WndProc);
 
             // get window handle for interop
-            IntPtr windowHandle = new WindowInteropHelper(tab).Handle;
+            IntPtr windowHandle = new WindowInteropHelper(window).Handle;
 
             // register for clipboard events
             NativeMethods.AddClipboardFormatListener(windowHandle);
@@ -52,7 +52,7 @@
         {
             if (msg == NativeMethods.WM_CLIPBOARDUPDATE)
             {
-                _tab.RunWhenever(() => { ClipboardChanged?.Invoke(null, EventArgs.Empty); });
+                _window.Dispatcher.BeginInvoke(new Action(() => { ClipboardChanged?.Invoke(null, EventArgs.Empty); }), System.Windows.Threading.DispatcherPriority.ContextIdle);
                 handled = true;
             }
 

@@ -27,7 +27,7 @@
                 CheckFileExists = true,
                 InitialDirectory = initialDirectory
             };
-            bool? ofdResult = openFileDialog.ShowDialog(tab);
+            bool? ofdResult = openFileDialog.ShowDialog(tab.Window);
             if (ofdResult.HasValue && ofdResult.Value)
             {
                 return openFileDialog.FileName;

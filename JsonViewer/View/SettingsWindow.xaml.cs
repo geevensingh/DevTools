@@ -16,14 +16,14 @@
         private bool _isEditCommitting = false;
         private EditableRuleSet _ruleSet;
 
-        public SettingsWindow(TabContent tab)
+        public SettingsWindow(System.Windows.Window window)
         {
             _values = Config.Values.Clone();
             _values.PropertyChanged += OnValuesPropertyChanged;
             _ruleSet = new EditableRuleSet(_values);
 
             InitializeComponent();
-            this.Owner = tab;
+            this.Owner = window;
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

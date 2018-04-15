@@ -20,7 +20,7 @@
             string filePath = OpenJsonFileCommand.PickJsonFile(this.Tab, "Pick config file", this.GetInitialDirectory());
             if (!string.IsNullOrEmpty(filePath))
             {
-                this.Tab.LoadConfig(filePath);
+                this.Tab.Window.LoadConfig(filePath);
             }
         }
 

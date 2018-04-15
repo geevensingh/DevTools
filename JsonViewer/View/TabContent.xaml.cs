@@ -9,6 +9,7 @@
     using System.Windows;
     using System.Windows.Controls;
     using System.Windows.Input;
+    using Dragablz;
     using JsonViewer.Commands;
     using JsonViewer.Commands.PerWindow;
     using JsonViewer.Model;
@@ -17,10 +18,10 @@
     /// <summary>
     /// Interaction logic for TabContent.xaml
     /// </summary>
-    public partial class TabContent : System.Windows.Window, INotifyPropertyChanged
+    public partial class TabContent : UserControl, INotifyPropertyChanged
     {
+        private Window _window = null;
         private Finder _finder;
-        private Point? _initialOffset = null;
         private RootObject _rootObject = null;
         private WarningBannerActionHandler _warningBannerAction;
         private WarningBannerActionHandler _warningBannerDismiss;
@@ -50,35 +51,20 @@
 
         internal RootObject RootObject { get => _rootObject; }
 
-        internal ClipboardManager ClipboardManager { get; private set; }
-
         internal SimilarHighlighter SimilarHighlighter { get; private set; }
+
+        internal Window Window { get => _window; }
 
         public void ShowNewWindow()
         {
-            this.SaveWindowPosition();
+            Debug.Assert(false);
+            //this.SaveWindowPosition();
 
-            TabContent newWindow = new TabContent
-            {
-                _initialOffset = new Point(20, 20)
-            };
-            newWindow.Show();
-        }
-
-        public void LoadConfig(string filePath)
-        {
-            Properties.Settings.Default.PropertyChanged -= OnSettingsPropertyChanged;
-            bool succeeded = Config.SetPath(filePath);
-            Properties.Settings.Default.PropertyChanged += OnSettingsPropertyChanged;
-
-            if (succeeded)
-            {
-                this.ReloadAsync().Forget();
-            }
-            else
-            {
-                MessageBox.Show(this, "Unable to load config: " + filePath, "Error!", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            //TabContent newWindow = new TabContent
+            //{
+            //    _initialOffset = new Point(20, 20)
+            //};
+            //newWindow.Show();
         }
 
         public Task<bool> ReloadAsync()
@@ -168,51 +154,16 @@
             this.Dispatcher.BeginInvoke(action, System.Windows.Threading.DispatcherPriority.ContextIdle);
         }
 
-        protected override void OnSourceInitialized(EventArgs e)
+        private void OnLoaded(object sender, RoutedEventArgs e)
         {
-            base.OnSourceInitialized(e);
-
-            this.ClipboardManager = new ClipboardManager(this);
+            Debug.Assert(_window == null);
+            Debug.Assert(this.DataContext is Window);
+            _window = (Window)this.DataContext;
 
             this.SimilarHighlighter = new SimilarHighlighter(this);
 
             this.Toolbar.PropertyChanged += OnToolbarPropertyChanged;
 
-            WindowPlacementSerializer.SetPlacement(this, Properties.Settings.Default.MainWindowPlacement, _initialOffset);
-            if (_initialOffset.HasValue)
-            {
-                this.SaveWindowPosition();
-            }
-
-            Properties.Settings.Default.PropertyChanged += OnSettingsPropertyChanged;
-
-            this.UpdateWarnings();
-
-            for (int ii = 0; ii < 10; ii++)
-            {
-                MenuItem menuItem = new MenuItem();
-                ExpandToLevelCommand expandToLevelCommand = new ExpandToLevelCommand(this, ii);
-                menuItem.Command = expandToLevelCommand;
-                menuItem.Header = expandToLevelCommand.Text;
-                menuItem.IsCheckable = false;
-                this.ExpandToMenuItem.Items.Add(menuItem);
-            }
-        }
-
-        protected override void OnClosing(CancelEventArgs e)
-        {
-            this.SaveWindowPosition();
-            base.OnClosing(e);
-        }
-
-        private void SaveWindowPosition()
-        {
-            Properties.Settings.Default.MainWindowPlacement = WindowPlacementSerializer.GetPlacement(this);
-            Properties.Settings.Default.Save();
-        }
-
-        private void OnLoaded(object sender, RoutedEventArgs e)
-        {
             string initialText = App.Current.InitialText;
             App.Current.InitialText = string.Empty;
 
@@ -227,6 +178,18 @@
 
             this.Raw_TextBox.Text = initialText;
             this.SetDisplayMode(string.IsNullOrEmpty(initialText) ? DisplayMode.RawText : DisplayMode.TreeView);
+
+            this.UpdateWarnings();
+
+            for (int ii = 0; ii < 10; ii++)
+            {
+                MenuItem menuItem = new MenuItem();
+                ExpandToLevelCommand expandToLevelCommand = new ExpandToLevelCommand(this, ii);
+                menuItem.Command = expandToLevelCommand;
+                menuItem.Header = expandToLevelCommand.Text;
+                menuItem.IsCheckable = false;
+                this.ExpandToMenuItem.Items.Add(menuItem);
+            }
         }
 
         private void OnConfigPropertyChanged(string propertyName)
@@ -301,29 +264,6 @@
         private void CheckForUpdates(object sender, RoutedEventArgs e)
         {
             App.Current.CheckForUpdates();
-        }
-
-        private void OnSettingsPropertyChanged(object sender, PropertyChangedEventArgs e)
-        {
-            switch (e.PropertyName)
-            {
-                case "ConfigPath":
-                    this.SetWarningMessage(
-                        "Your default config file has changed.  Would you like to reload?",
-                        () =>
-                        {
-                            this.Toolbar.ReloadCommand.Execute(null);
-                            this.UpdateWarnings();
-                        },
-                        () =>
-                        {
-                            this.UpdateWarnings();
-                        });
-                    break;
-                case "MainWindowWarnOnDefaultConfig":
-                    this.UpdateWarnings();
-                    break;
-            }
         }
 
         private void UpdateWarnings()

@@ -12,7 +12,7 @@
 
         public override void Execute(object parameter)
         {
-            SettingsWindow settingsWindow = new SettingsWindow(this.Tab);
+            SettingsWindow settingsWindow = new SettingsWindow(this.Tab.Window);
             settingsWindow.ShowDialog();
         }
     }

@@ -1,0 +1,30 @@
+﻿<Window
+    x:Class="JsonViewer.View.Window"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:dragablz="http://dragablz.net/winfx/xaml/dragablz"
+    xmlns:local="clr-namespace:JsonViewer.View"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    x:Name="mainWindow"
+    Title="Json Viewer"
+    Width="1200"
+    Height="750"
+    DataContext="{Binding RelativeSource={RelativeSource Self}}"
+    Loaded="OnLoaded"
+    mc:Ignorable="d">
+    <dragablz:TabablzControl
+        x:Name="tabablzControl"
+        ShowDefaultAddButton="True"
+        ShowDefaultCloseButton="True">
+        <dragablz:TabablzControl.InterTabController>
+            <dragablz:InterTabController />
+        </dragablz:TabablzControl.InterTabController>
+        <TabItem Header="Tab No. 1" IsSelected="True">
+            <local:TabContent DataContext="{Binding ElementName=mainWindow}" />
+        </TabItem>
+        <!--<TabItem Header="Tab No. 2">
+            <TextBlock>We Have Tearable Tabs!</TextBlock>
+        </TabItem>-->
+    </dragablz:TabablzControl>
+</Window>

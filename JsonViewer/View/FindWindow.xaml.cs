@@ -28,7 +28,7 @@
             _navigator = new FindMatchNavigator(owner);
 
             InitializeComponent();
-            this.Owner = owner;
+            this.Owner = owner.Window;
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
