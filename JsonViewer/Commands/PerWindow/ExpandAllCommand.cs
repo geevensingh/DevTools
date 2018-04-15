@@ -4,11 +4,11 @@
 
     public class ExpandAllCommand : BaseCommand
     {
-        public ExpandAllCommand(TabContent mainWindow)
+        public ExpandAllCommand(TabContent tab)
             : base("Expand all")
         {
             this.ForceVisibility = System.Windows.Visibility.Visible;
-            this.Tab = mainWindow;
+            this.Tab = tab;
             this.Tab.Tree.PropertyChanged += OnTreePropertyChanged;
             this.Update();
         }
@@ -18,7 +18,7 @@
             this.Tab.Tree.ExpandAll();
         }
 
-        protected override void OnMainWindowPropertyChanged(string propertyName)
+        protected override void OnTabPropertyChanged(string propertyName)
         {
             switch (propertyName)
             {

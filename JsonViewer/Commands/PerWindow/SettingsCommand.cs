@@ -4,10 +4,10 @@
 
     public class SettingsCommand : BaseCommand
     {
-        public SettingsCommand(TabContent mainWindow)
+        public SettingsCommand(TabContent tab)
             : base("Settings...", true)
         {
-            this.Tab = mainWindow;
+            this.Tab = tab;
         }
 
         public override void Execute(object parameter)

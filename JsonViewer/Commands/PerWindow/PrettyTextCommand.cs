@@ -6,11 +6,11 @@
 
     public class PrettyTextCommand : BaseCommand
     {
-        public PrettyTextCommand(TabContent mainWindow)
+        public PrettyTextCommand(TabContent tab)
             : base("Pretty-ify text")
         {
             this.ForceVisibility = System.Windows.Visibility.Visible;
-            this.Tab = mainWindow;
+            this.Tab = tab;
             this.Update();
         }
 
@@ -20,7 +20,7 @@
             this.Tab.Raw_TextBox.Text = this.Tab.RootObject?.PrettyValueString;
         }
 
-        protected override void OnMainWindowPropertyChanged(string propertyName)
+        protected override void OnTabPropertyChanged(string propertyName)
         {
             switch (propertyName)
             {

@@ -10,20 +10,20 @@
     /// <summary>
     /// Interaction logic for SettingsWindow.xaml
     /// </summary>
-    public partial class SettingsWindow : Window, INotifyPropertyChanged
+    public partial class SettingsWindow : System.Windows.Window, INotifyPropertyChanged
     {
         private ConfigValues _values;
         private bool _isEditCommitting = false;
         private EditableRuleSet _ruleSet;
 
-        public SettingsWindow(TabContent mainWindow)
+        public SettingsWindow(TabContent tab)
         {
             _values = Config.Values.Clone();
             _values.PropertyChanged += OnValuesPropertyChanged;
             _ruleSet = new EditableRuleSet(_values);
 
             InitializeComponent();
-            this.Owner = mainWindow;
+            this.Owner = tab;
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

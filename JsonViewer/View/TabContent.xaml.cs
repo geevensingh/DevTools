@@ -17,7 +17,7 @@
     /// <summary>
     /// Interaction logic for TabContent.xaml
     /// </summary>
-    public partial class TabContent : Window, INotifyPropertyChanged
+    public partial class TabContent : System.Windows.Window, INotifyPropertyChanged
     {
         private Finder _finder;
         private Point? _initialOffset = null;

@@ -7,18 +7,18 @@
 
     public class FindMatchNavigator : NotifyPropertyChanged
     {
-        private TabContent _mainWindow;
+        private TabContent _tab;
 
         private int? _currentHitIndex = null;
 
         private string _findMatchText = string.Empty;
 
-        public FindMatchNavigator(TabContent mainWindow)
+        public FindMatchNavigator(TabContent tab)
         {
-            _mainWindow = mainWindow;
+            _tab = tab;
 
-            _mainWindow.Tree.PropertyChanged += OnTreePropertyChanged;
-            _mainWindow.Finder.PropertyChanged += OnFinderPropertyChanged;
+            _tab.Tree.PropertyChanged += OnTreePropertyChanged;
+            _tab.Finder.PropertyChanged += OnFinderPropertyChanged;
 
             UpdateFindMatches();
         }
@@ -33,29 +33,29 @@
 
         public string FindMatchText { get => _findMatchText; }
 
-        private int? CurrentIndex { get => _mainWindow.Tree.SelectedIndex; }
+        private int? CurrentIndex { get => _tab.Tree.SelectedIndex; }
 
         public void Go(Direction direction)
         {
-            FileLogger.Assert(_mainWindow.Finder.HitCount > 0);
+            FileLogger.Assert(_tab.Finder.HitCount > 0);
             GetHitIndexRange(out int previous, out int next);
 
             int adjusted = direction == Direction.Forward ? (previous + 1) : (next - 1);
-            _currentHitIndex = (adjusted + _mainWindow.Finder.Hits.Count) % _mainWindow.Finder.Hits.Count;
-            JsonObject hit = _mainWindow.Finder.Hits[_currentHitIndex.Value];
-            _mainWindow.Tree.SelectItem(hit.ViewObject);
+            _currentHitIndex = (adjusted + _tab.Finder.Hits.Count) % _tab.Finder.Hits.Count;
+            JsonObject hit = _tab.Finder.Hits[_currentHitIndex.Value];
+            _tab.Tree.SelectItem(hit.ViewObject);
         }
 
         private void OnTreePropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            FileLogger.Assert(sender == _mainWindow.Tree);
+            FileLogger.Assert(sender == _tab.Tree);
             switch (e.PropertyName)
             {
                 case "SelectedIndex":
-                    TreeViewData newSelectedData = (TreeViewData)_mainWindow.Tree.SelectedItem;
-                    if (newSelectedData != null && _mainWindow.Finder.Hits.Contains(newSelectedData.JsonObject))
+                    TreeViewData newSelectedData = (TreeViewData)_tab.Tree.SelectedItem;
+                    if (newSelectedData != null && _tab.Finder.Hits.Contains(newSelectedData.JsonObject))
                     {
-                        _currentHitIndex = _mainWindow.Finder.Hits.IndexOf(newSelectedData.JsonObject);
+                        _currentHitIndex = _tab.Finder.Hits.IndexOf(newSelectedData.JsonObject);
                     }
 
                     UpdateFindMatches();
@@ -65,7 +65,7 @@
 
         private void OnFinderPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            FileLogger.Assert(sender == _mainWindow.Finder);
+            FileLogger.Assert(sender == _tab.Finder);
             switch (e.PropertyName)
             {
                 case "Hits":
@@ -78,7 +78,7 @@
         {
             _currentHitIndex = null;
 
-            Finder finder = _mainWindow.Finder;
+            Finder finder = _tab.Finder;
             if (finder.HitCount == 0)
             {
                 FileLogger.Assert(!_currentHitIndex.HasValue);
@@ -89,7 +89,7 @@
             int? currentIndex = this.CurrentIndex;
             if (currentIndex.HasValue)
             {
-                JsonObject currentObj = _mainWindow.RootObject.AllChildren[currentIndex.Value];
+                JsonObject currentObj = _tab.RootObject.AllChildren[currentIndex.Value];
                 if (finder.Hits.Contains(currentObj))
                 {
                     int indexOfCurrentObj = finder.Hits.IndexOf(currentObj);
@@ -115,8 +115,8 @@
                 return;
             }
 
-            FileLogger.Assert(_mainWindow.Finder.HitCount > 0);
-            if (_mainWindow.Finder.HitCount == 1)
+            FileLogger.Assert(_tab.Finder.HitCount > 0);
+            if (_tab.Finder.HitCount == 1)
             {
                 previous = 1;
                 next = 1;
@@ -127,10 +127,10 @@
             int? currentIndex = this.CurrentIndex;
             if (currentIndex.HasValue)
             {
-                FileLogger.Assert(_mainWindow.Finder.HitCount == _mainWindow.Finder.Hits.Count);
-                for (int ii = 0; ii < _mainWindow.Finder.Hits.Count; ii++)
+                FileLogger.Assert(_tab.Finder.HitCount == _tab.Finder.Hits.Count);
+                for (int ii = 0; ii < _tab.Finder.Hits.Count; ii++)
                 {
-                    JsonObject foo = _mainWindow.Finder.Hits[ii];
+                    JsonObject foo = _tab.Finder.Hits[ii];
                     if (foo.OverallIndex <= currentIndex.Value)
                     {
                         previous = ii;
@@ -138,14 +138,14 @@
                 }
             }
 
-            previous = (previous + _mainWindow.Finder.HitCount) % _mainWindow.Finder.HitCount;
-            next = (previous + 1 + _mainWindow.Finder.HitCount) % _mainWindow.Finder.HitCount;
+            previous = (previous + _tab.Finder.HitCount) % _tab.Finder.HitCount;
+            next = (previous + 1 + _tab.Finder.HitCount) % _tab.Finder.HitCount;
 
             FileLogger.Assert(previous >= 0);
-            FileLogger.Assert(previous < _mainWindow.Finder.HitCount);
+            FileLogger.Assert(previous < _tab.Finder.HitCount);
 
             FileLogger.Assert(next >= 0);
-            FileLogger.Assert(next < _mainWindow.Finder.HitCount);
+            FileLogger.Assert(next < _tab.Finder.HitCount);
         }
     }
 }

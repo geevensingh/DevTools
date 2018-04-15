@@ -15,7 +15,7 @@
     /// </summary>
     public partial class MainWindowToolbar : UserControl, INotifyPropertyChanged
     {
-        private TabContent _mainWindow = null;
+        private TabContent _tab = null;
 
         private FindMatchNavigator _findMatchNavigator = null;
 
@@ -104,9 +104,9 @@
 
         public FindMatchNavigator FindMatchNavigator { get => _findMatchNavigator; }
 
-        public Visibility TextModeVisibility { get => (_mainWindow != null && _mainWindow.Mode == TabContent.DisplayMode.RawText) ? Visibility.Visible : Visibility.Collapsed; }
+        public Visibility TextModeVisibility { get => (_tab != null && _tab.Mode == TabContent.DisplayMode.RawText) ? Visibility.Visible : Visibility.Collapsed; }
 
-        public Visibility TreeModeVisibility { get => (_mainWindow != null && _mainWindow.Mode == TabContent.DisplayMode.TreeView) ? Visibility.Visible : Visibility.Collapsed; }
+        public Visibility TreeModeVisibility { get => (_tab != null && _tab.Mode == TabContent.DisplayMode.TreeView) ? Visibility.Visible : Visibility.Collapsed; }
 
         private void OnSettingsPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
@@ -123,41 +123,41 @@
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
-            _mainWindow = (TabContent)this.DataContext;
-            FileLogger.Assert(_mainWindow != null);
+            _tab = (TabContent)this.DataContext;
+            FileLogger.Assert(_tab != null);
             NotifyPropertyChanged.FirePropertyChanged(new string[] { "TextModeVisibility", "TreeModeVisibility" }, this, this.PropertyChanged);
 
-            NotifyPropertyChanged.SetValue(ref _newWindowCommand, new NewWindowCommand(_mainWindow), "NewWindowCommand", this, this.PropertyChanged);
-            NotifyPropertyChanged.SetValue(ref _pickConfigCommand, new PickConfigCommand(_mainWindow), "PickConfigCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _newWindowCommand, new NewWindowCommand(_tab), "NewWindowCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _pickConfigCommand, new PickConfigCommand(_tab), "PickConfigCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _reloadCommand, new ReloadCommand(), "ReloadCommand", this, this.PropertyChanged);
-            NotifyPropertyChanged.SetValue(ref _settingsCommand, new SettingsCommand(_mainWindow), "SettingsCommand", this, this.PropertyChanged);
-            NotifyPropertyChanged.SetValue(ref _hideFindCommand, new HideFindCommand(_mainWindow), "HideFindCommand", this, this.PropertyChanged);
-            NotifyPropertyChanged.SetValue(ref _openJsonFileCommand, new OpenJsonFileCommand(_mainWindow), "OpenJsonFileCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _settingsCommand, new SettingsCommand(_tab), "SettingsCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _hideFindCommand, new HideFindCommand(_tab), "HideFindCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _openJsonFileCommand, new OpenJsonFileCommand(_tab), "OpenJsonFileCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _highlightParentsToggleCommand, new HighlightParentsToggleCommand(), "HighlightParentsToggleCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _highlightSimilarKeysToggleCommand, new HighlightSimilarKeysToggleCommand(), "HighlightSimilarKeysToggleCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _highlightSimilarValuesToggleCommand, new HighlightSimilarValuesToggleCommand(), "HighlightSimilarValuesToggleCommand", this, this.PropertyChanged);
-            NotifyPropertyChanged.SetValue(ref _expandAllCommand, new ExpandAllCommand(_mainWindow), "ExpandAllCommand", this, this.PropertyChanged);
-            NotifyPropertyChanged.SetValue(ref _collapseAllCommand, new CollapseAllCommand(_mainWindow), "CollapseAllCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _expandAllCommand, new ExpandAllCommand(_tab), "ExpandAllCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _collapseAllCommand, new CollapseAllCommand(_tab), "CollapseAllCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _showToolbarTextToggleCommand, new ShowToolbarTextToggleCommand(), "ShowToolbarTextToggleCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _showToolbarIconToggleCommand, new ShowToolbarIconToggleCommand(), "ShowToolbarIconToggleCommand", this, this.PropertyChanged);
-            NotifyPropertyChanged.SetValue(ref _findNextCommand, new FindNextCommand(_mainWindow), "FindNextCommand", this, this.PropertyChanged);
-            NotifyPropertyChanged.SetValue(ref _findPreviousCommand, new FindPreviousCommand(_mainWindow), "FindPreviousCommand", this, this.PropertyChanged);
-            NotifyPropertyChanged.SetValue(ref _pasteCommand, new PasteCommand(_mainWindow), "PasteCommand", this, this.PropertyChanged);
-            NotifyPropertyChanged.SetValue(ref _prettyCopyAllCommand, new PrettyCopyAllCommand(_mainWindow), "PrettyCopyAllCommand", this, this.PropertyChanged);
-            NotifyPropertyChanged.SetValue(ref _prettyTextCommand, new PrettyTextCommand(_mainWindow), "PrettyTextCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _findNextCommand, new FindNextCommand(_tab), "FindNextCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _findPreviousCommand, new FindPreviousCommand(_tab), "FindPreviousCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _pasteCommand, new PasteCommand(_tab), "PasteCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _prettyCopyAllCommand, new PrettyCopyAllCommand(_tab), "PrettyCopyAllCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _prettyTextCommand, new PrettyTextCommand(_tab), "PrettyTextCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _autoPasteToggleCommand, new AutoPasteToggleCommand(_pasteCommand), "AutoPasteToggleCommand", this, this.PropertyChanged);
-            NotifyPropertyChanged.SetValue(ref _showTextModeCommand, new SwitchModeCommand(_mainWindow, "Show text", TabContent.DisplayMode.RawText), "ShowTextModeCommand", this, this.PropertyChanged);
-            NotifyPropertyChanged.SetValue(ref _showTreeModeCommand, new SwitchModeCommand(_mainWindow, "Show tree", TabContent.DisplayMode.TreeView), "ShowTreeModeCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _showTextModeCommand, new SwitchModeCommand(_tab, "Show text", TabContent.DisplayMode.RawText), "ShowTextModeCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _showTreeModeCommand, new SwitchModeCommand(_tab, "Show tree", TabContent.DisplayMode.TreeView), "ShowTreeModeCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.FirePropertyChanged("CommandsCreated", this, this.PropertyChanged);
 
-            NotifyPropertyChanged.SetValue(ref _findMatchNavigator, new FindMatchNavigator(_mainWindow), "FindMatchNavigator", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _findMatchNavigator, new FindMatchNavigator(_tab), "FindMatchNavigator", this, this.PropertyChanged);
 
-            _mainWindow.PropertyChanged += OnMainWindowPropertyChanged;
-            _mainWindow.Finder.PropertyChanged += OnFinderPropertyChanged;
-            FindTextBox.Text = _mainWindow.Finder.Text;
+            _tab.PropertyChanged += OnTabPropertyChanged;
+            _tab.Finder.PropertyChanged += OnFinderPropertyChanged;
+            FindTextBox.Text = _tab.Finder.Text;
         }
 
-        private void OnMainWindowPropertyChanged(object sender, PropertyChangedEventArgs e)
+        private void OnTabPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             switch (e.PropertyName)
             {
@@ -171,25 +171,25 @@
 
         private void OnFinderPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            FileLogger.Assert(sender == _mainWindow.Finder);
+            FileLogger.Assert(sender == _tab.Finder);
             switch (e.PropertyName)
             {
                 case "Text":
-                    this.FindTextBox.Text = _mainWindow.Finder.Text;
+                    this.FindTextBox.Text = _tab.Finder.Text;
                     break;
             }
         }
 
         private void FindTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            _mainWindow.Finder.Text = FindTextBox.Text;
+            _tab.Finder.Text = FindTextBox.Text;
         }
 
         private void MenuItem_Click(object sender, RoutedEventArgs e)
         {
             if (int.TryParse(((MenuItem)e.Source).CommandParameter as string, out int depth))
             {
-                new ExpandToLevelCommand(_mainWindow, depth).Execute(null);
+                new ExpandToLevelCommand(_tab, depth).Execute(null);
             }
         }
     }

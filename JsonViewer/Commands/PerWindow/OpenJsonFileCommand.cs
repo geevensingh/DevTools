@@ -8,17 +8,17 @@
     {
         private static string _lastFile = string.Empty;
 
-        public OpenJsonFileCommand(TabContent mainWindow)
+        public OpenJsonFileCommand(TabContent tab)
             : base("Open Json file", true)
         {
-            this.Tab = mainWindow;
+            this.Tab = tab;
 
             this.AddKeyGesture(new KeyGesture(Key.O, ModifierKeys.Control));
         }
 
         public static string LastFile { get => _lastFile; set => _lastFile = value; }
 
-        public static string PickJsonFile(TabContent mainWindow, string title, string initialDirectory)
+        public static string PickJsonFile(TabContent tab, string title, string initialDirectory)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog
             {
@@ -27,7 +27,7 @@
                 CheckFileExists = true,
                 InitialDirectory = initialDirectory
             };
-            bool? ofdResult = openFileDialog.ShowDialog(mainWindow);
+            bool? ofdResult = openFileDialog.ShowDialog(tab);
             if (ofdResult.HasValue && ofdResult.Value)
             {
                 return openFileDialog.FileName;

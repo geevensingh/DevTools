@@ -13,7 +13,7 @@
     /// </summary>
     public partial class StatusBar : UserControl, INotifyPropertyChanged
     {
-        private TabContent _mainWindow = null;
+        private TabContent _tab = null;
         private RootObject _rootObject = null;
 
         public StatusBar()
@@ -28,13 +28,13 @@
             get
             {
                 string currentIndexString = "--";
-                int? currentIndex = _mainWindow?.Tree?.SelectedIndex;
+                int? currentIndex = _tab?.Tree?.SelectedIndex;
                 if (currentIndex.HasValue)
                 {
                     currentIndexString = (currentIndex.Value + 1).ToString();
                 }
 
-                return currentIndexString + " / " + (_mainWindow?.RootObject?.TotalChildCount.ToString() ?? "--");
+                return currentIndexString + " / " + (_tab?.RootObject?.TotalChildCount.ToString() ?? "--");
             }
         }
 
@@ -42,7 +42,7 @@
         {
             get
             {
-                return (_mainWindow?.Tree?.SelectedItem as TreeViewData)?.JsonObject.Path;
+                return (_tab?.Tree?.SelectedItem as TreeViewData)?.JsonObject.Path;
             }
         }
 
@@ -83,17 +83,17 @@
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
-            _mainWindow = (TabContent)this.DataContext;
-            FileLogger.Assert(_mainWindow != null);
+            _tab = (TabContent)this.DataContext;
+            FileLogger.Assert(_tab != null);
 
-            _mainWindow.Tree.PropertyChanged += OnTreePropertyChanged;
-            _mainWindow.PropertyChanged += OnMainWindowPropertyChanged;
+            _tab.Tree.PropertyChanged += OnTreePropertyChanged;
+            _tab.PropertyChanged += OnTabPropertyChanged;
             this.AddRootObjectPropertyChangedHandler();
         }
 
         private void AddRootObjectPropertyChangedHandler()
         {
-            if (_rootObject == _mainWindow.RootObject)
+            if (_rootObject == _tab.RootObject)
             {
                 return;
             }
@@ -103,7 +103,7 @@
                 _rootObject.PropertyChanged -= OnRootObjectPropertyChanged;
             }
 
-            _rootObject = _mainWindow.RootObject;
+            _rootObject = _tab.RootObject;
             if (_rootObject != null)
             {
                 _rootObject.PropertyChanged += OnRootObjectPropertyChanged;
@@ -112,7 +112,7 @@
             NotifyPropertyChanged.FirePropertyChanged("CurrentIndex", this, this.PropertyChanged);
         }
 
-        private void OnMainWindowPropertyChanged(object sender, PropertyChangedEventArgs e)
+        private void OnTabPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             switch (e.PropertyName)
             {

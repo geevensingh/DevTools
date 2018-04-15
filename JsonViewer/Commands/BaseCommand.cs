@@ -66,7 +66,7 @@
             {
                 FileLogger.Assert(_tab == null);
                 _tab = value;
-                _tab.PropertyChanged += (sender, evt) => this.OnMainWindowPropertyChanged(evt.PropertyName);
+                _tab.PropertyChanged += (sender, evt) => this.OnTabPropertyChanged(evt.PropertyName);
             }
         }
 
@@ -90,7 +90,7 @@
             }
         }
 
-        protected virtual void OnMainWindowPropertyChanged(string propertyName)
+        protected virtual void OnTabPropertyChanged(string propertyName)
         {
         }
 

@@ -5,10 +5,10 @@
 
     public class NewWindowCommand : BaseCommand
     {
-        public NewWindowCommand(TabContent mainWindow)
+        public NewWindowCommand(TabContent tab)
             : base("New window", true)
         {
-            this.Tab = mainWindow;
+            this.Tab = tab;
 
             this.AddKeyGesture(new KeyGesture(Key.N, ModifierKeys.Control));
         }

@@ -7,12 +7,12 @@
 
     public class PasteCommand : BaseCommand
     {
-        public PasteCommand(TabContent mainWindow)
+        public PasteCommand(TabContent tab)
             : base("Paste")
         {
             this.ForceVisibility = System.Windows.Visibility.Visible;
 
-            this.Tab = mainWindow;
+            this.Tab = tab;
             this.Tab.Raw_TextBox.TextChanged += OnRawTextBoxChanged;
             this.Tab.ClipboardManager.ClipboardChanged += OnClipboardChanged;
             this.Update();

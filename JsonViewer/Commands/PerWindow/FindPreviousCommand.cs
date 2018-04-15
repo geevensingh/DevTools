@@ -7,10 +7,10 @@
 
     public class FindPreviousCommand : BaseCommand
     {
-        public FindPreviousCommand(TabContent mainWindow)
+        public FindPreviousCommand(TabContent tab)
             : base("Previous", true)
         {
-            this.Tab = mainWindow;
+            this.Tab = tab;
             this.Tab.Finder.PropertyChanged += OnFinderPropertyChanged;
             this.Update();
 

@@ -13,15 +13,15 @@
     /// <summary>
     /// Interaction logic for FindWindow.xaml
     /// </summary>
-    public partial class FindWindow : Window, INotifyPropertyChanged
+    public partial class FindWindow : System.Windows.Window, INotifyPropertyChanged
     {
-        private TabContent _mainWindow;
+        private TabContent _tab;
         private Finder _finder;
         private FindMatchNavigator _navigator;
 
         internal FindWindow(TabContent owner, Finder finder)
         {
-            _mainWindow = owner;
+            _tab = owner;
             _finder = finder;
             _finder.PropertyChanged += OnViewModelPropertyChanged;
 
@@ -39,11 +39,11 @@
 
         public FindMatchNavigator FindMatchNavigator { get => _navigator; }
 
-        public HideFindCommand HideFindCommand { get => _mainWindow.Toolbar.HideFindCommand; }
+        public HideFindCommand HideFindCommand { get => _tab.Toolbar.HideFindCommand; }
 
-        public FindNextCommand FindNextCommand { get => _mainWindow.Toolbar.FindNextCommand; }
+        public FindNextCommand FindNextCommand { get => _tab.Toolbar.FindNextCommand; }
 
-        public FindPreviousCommand FindPreviousCommand { get => _mainWindow.Toolbar.FindPreviousCommand; }
+        public FindPreviousCommand FindPreviousCommand { get => _tab.Toolbar.FindPreviousCommand; }
 
         private void OnViewModelPropertyChanged(object sender, PropertyChangedEventArgs e)
         {

@@ -7,10 +7,10 @@
 
     public class FindNextCommand : BaseCommand
     {
-        public FindNextCommand(TabContent mainWindow)
+        public FindNextCommand(TabContent tab)
             : base("Next", true)
         {
-            this.Tab = mainWindow;
+            this.Tab = tab;
             this.Tab.Finder.PropertyChanged += OnFinderPropertyChanged;
             this.Update();
 

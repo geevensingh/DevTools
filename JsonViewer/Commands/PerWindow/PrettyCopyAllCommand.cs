@@ -7,10 +7,10 @@
 
     public class PrettyCopyAllCommand : BaseCommand
     {
-        public PrettyCopyAllCommand(TabContent mainWindow)
+        public PrettyCopyAllCommand(TabContent tab)
             : base("Copy pretty value (beta)", false)
         {
-            this.Tab = mainWindow;
+            this.Tab = tab;
             this.Update();
         }
 
@@ -20,7 +20,7 @@
             Clipboard.SetDataObject(this.Tab.RootObject?.PrettyValueString);
         }
 
-        protected override void OnMainWindowPropertyChanged(string propertyName)
+        protected override void OnTabPropertyChanged(string propertyName)
         {
             switch (propertyName)
             {

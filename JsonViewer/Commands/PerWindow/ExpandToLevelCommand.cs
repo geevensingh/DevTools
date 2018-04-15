@@ -9,11 +9,11 @@
         private RootObject _rootObject = null;
         private int _depth;
 
-        public ExpandToLevelCommand(TabContent mainWindow, int depth)
+        public ExpandToLevelCommand(TabContent tab, int depth)
             : base(depth > 0 ? "+" + depth.ToString() : "Nothing")
         {
             _depth = depth;
-            this.Tab = mainWindow;
+            this.Tab = tab;
             this.Tab.Tree.PropertyChanged += OnTreePropertyChanged;
             this.SetRootObject(this.Tab.RootObject);
         }
@@ -23,7 +23,7 @@
             this.Tab.Tree.ExpandAll(_depth);
         }
 
-        protected override void OnMainWindowPropertyChanged(string propertyName)
+        protected override void OnTabPropertyChanged(string propertyName)
         {
             switch (propertyName)
             {

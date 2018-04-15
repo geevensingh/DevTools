@@ -4,11 +4,11 @@
 
     public class SwitchModeCommand : BaseCommand
     {
-        public SwitchModeCommand(TabContent mainWindow, string text, TabContent.DisplayMode displayMode)
+        public SwitchModeCommand(TabContent tab, string text, TabContent.DisplayMode displayMode)
             : base(text)
         {
             this.DisplayMode = displayMode;
-            this.Tab = mainWindow;
+            this.Tab = tab;
             this.Update();
         }
 
@@ -19,7 +19,7 @@
             this.Tab.SetDisplayMode(this.DisplayMode);
         }
 
-        protected override void OnMainWindowPropertyChanged(string propertyName)
+        protected override void OnTabPropertyChanged(string propertyName)
         {
             switch (propertyName)
             {

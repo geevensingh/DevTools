@@ -15,7 +15,7 @@
         private static Encoding encoding = new UTF8Encoding();
         private static XmlSerializer serializer = new XmlSerializer(typeof(WINDOWPLACEMENT));
 
-        public static void SetPlacement(Window window, string placementXml, Point? offset = null)
+        public static void SetPlacement(System.Windows.Window window, string placementXml, Point? offset = null)
         {
             if (string.IsNullOrEmpty(placementXml))
             {
@@ -53,7 +53,7 @@
             }
         }
 
-        public static string GetPlacement(Window window)
+        public static string GetPlacement(System.Windows.Window window)
         {
             NativeMethods.GetWindowPlacement(new WindowInteropHelper(window).Handle, out WINDOWPLACEMENT placement);
 

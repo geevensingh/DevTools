@@ -9,10 +9,10 @@
     {
         private Finder _finder = null;
 
-        public HideFindCommand(TabContent mainWindow)
+        public HideFindCommand(TabContent tab)
             : base("Hide find window")
         {
-            _finder = mainWindow.Finder;
+            _finder = tab.Finder;
             _finder.PropertyChanged += OnFinderPropertyChanged;
             this.SetCanExecute(_finder.HasWindow);
 

@@ -10,16 +10,16 @@
     internal class SimilarHighlighter
     {
         private SingularAction _action = null;
-        private TabContent _mainWindow;
+        private TabContent _tab;
         private RootObject _rootObject = null;
 
-        public SimilarHighlighter(TabContent mainWindow)
+        public SimilarHighlighter(TabContent tab)
         {
-            _mainWindow = mainWindow;
-            _action = new SingularAction(_mainWindow.Dispatcher);
+            _tab = tab;
+            _action = new SingularAction(_tab.Dispatcher);
 
-            _mainWindow.Tree.SelectedItemChanged += OnSelectedItemChanged;
-            _mainWindow.PropertyChanged += OnMainWindowPropertyChanged;
+            _tab.Tree.SelectedItemChanged += OnSelectedItemChanged;
+            _tab.PropertyChanged += OnTabPropertyChanged;
             Properties.Settings.Default.PropertyChanged += OnSettingsPropertyChanged;
         }
 
@@ -34,12 +34,12 @@
             }
         }
 
-        private void OnMainWindowPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        private void OnTabPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
             switch (e.PropertyName)
             {
                 case "RootObject":
-                    this.SetRootObject(_mainWindow.RootObject);
+                    this.SetRootObject(_tab.RootObject);
                     break;
             }
         }
@@ -87,7 +87,7 @@
                 return;
             }
 
-            JsonObject selectedObject = (_mainWindow?.Tree?.SelectedItem as TreeViewData)?.JsonObject;
+            JsonObject selectedObject = (_tab?.Tree?.SelectedItem as TreeViewData)?.JsonObject;
             FindRule newKeyRule = null;
             FindRule newValueRule = null;
 

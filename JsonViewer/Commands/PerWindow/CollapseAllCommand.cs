@@ -4,11 +4,11 @@
 
     public class CollapseAllCommand : BaseCommand
     {
-        public CollapseAllCommand(TabContent mainWindow)
+        public CollapseAllCommand(TabContent tab)
             : base("Collapse all")
         {
             this.ForceVisibility = System.Windows.Visibility.Visible;
-            this.Tab = mainWindow;
+            this.Tab = tab;
             this.Tab.Tree.PropertyChanged += OnTreePropertyChanged;
             this.Update();
         }
@@ -18,7 +18,7 @@
             this.Tab.Tree.CollapseAll();
         }
 
-        protected override void OnMainWindowPropertyChanged(string propertyName)
+        protected override void OnTabPropertyChanged(string propertyName)
         {
             switch (propertyName)
             {

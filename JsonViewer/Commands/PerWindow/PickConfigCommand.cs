@@ -7,10 +7,10 @@
 
     public class PickConfigCommand : BaseCommand
     {
-        public PickConfigCommand(TabContent mainWindow)
+        public PickConfigCommand(TabContent tab)
             : base("Pick config", true)
         {
-            this.Tab = mainWindow;
+            this.Tab = tab;
 
             this.AddKeyGesture(new KeyGesture(Key.L, ModifierKeys.Control));
         }
