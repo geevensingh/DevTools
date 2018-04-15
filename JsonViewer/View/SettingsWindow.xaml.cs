@@ -16,7 +16,7 @@
         private bool _isEditCommitting = false;
         private EditableRuleSet _ruleSet;
 
-        public SettingsWindow(MainWindow mainWindow)
+        public SettingsWindow(TabContent mainWindow)
         {
             _values = Config.Values.Clone();
             _values.PropertyChanged += OnValuesPropertyChanged;

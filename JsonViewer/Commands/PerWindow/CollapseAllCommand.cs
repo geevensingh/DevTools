@@ -4,18 +4,18 @@
 
     public class CollapseAllCommand : BaseCommand
     {
-        public CollapseAllCommand(MainWindow mainWindow)
+        public CollapseAllCommand(TabContent mainWindow)
             : base("Collapse all")
         {
             this.ForceVisibility = System.Windows.Visibility.Visible;
-            this.MainWindow = mainWindow;
-            this.MainWindow.Tree.PropertyChanged += OnTreePropertyChanged;
+            this.Tab = mainWindow;
+            this.Tab.Tree.PropertyChanged += OnTreePropertyChanged;
             this.Update();
         }
 
         public override void Execute(object parameter)
         {
-            this.MainWindow.Tree.CollapseAll();
+            this.Tab.Tree.CollapseAll();
         }
 
         protected override void OnMainWindowPropertyChanged(string propertyName)
@@ -30,7 +30,7 @@
 
         private void Update()
         {
-            this.SetCanExecute(!this.MainWindow.Tree.IsWaiting && this.MainWindow.RootObject != null && this.MainWindow.RootObject.HasLevel(2));
+            this.SetCanExecute(!this.Tab.Tree.IsWaiting && this.Tab.RootObject != null && this.Tab.RootObject.HasLevel(2));
         }
 
         private void OnTreePropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)

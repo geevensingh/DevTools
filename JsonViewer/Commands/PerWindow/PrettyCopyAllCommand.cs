@@ -7,17 +7,17 @@
 
     public class PrettyCopyAllCommand : BaseCommand
     {
-        public PrettyCopyAllCommand(MainWindow mainWindow)
+        public PrettyCopyAllCommand(TabContent mainWindow)
             : base("Copy pretty value (beta)", false)
         {
-            this.MainWindow = mainWindow;
+            this.Tab = mainWindow;
             this.Update();
         }
 
         public override void Execute(object parameter)
         {
-            FileLogger.Assert(this.MainWindow.RootObject != null);
-            Clipboard.SetDataObject(this.MainWindow.RootObject?.PrettyValueString);
+            FileLogger.Assert(this.Tab.RootObject != null);
+            Clipboard.SetDataObject(this.Tab.RootObject?.PrettyValueString);
         }
 
         protected override void OnMainWindowPropertyChanged(string propertyName)
@@ -32,7 +32,7 @@
 
         private void Update()
         {
-            this.SetCanExecute(this.MainWindow.RootObject != null);
+            this.SetCanExecute(this.Tab.RootObject != null);
         }
     }
 }

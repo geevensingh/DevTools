@@ -15,7 +15,7 @@
     /// </summary>
     public partial class MainWindowToolbar : UserControl, INotifyPropertyChanged
     {
-        private MainWindow _mainWindow = null;
+        private TabContent _mainWindow = null;
 
         private FindMatchNavigator _findMatchNavigator = null;
 
@@ -104,9 +104,9 @@
 
         public FindMatchNavigator FindMatchNavigator { get => _findMatchNavigator; }
 
-        public Visibility TextModeVisibility { get => (_mainWindow != null && _mainWindow.Mode == MainWindow.DisplayMode.RawText) ? Visibility.Visible : Visibility.Collapsed; }
+        public Visibility TextModeVisibility { get => (_mainWindow != null && _mainWindow.Mode == TabContent.DisplayMode.RawText) ? Visibility.Visible : Visibility.Collapsed; }
 
-        public Visibility TreeModeVisibility { get => (_mainWindow != null && _mainWindow.Mode == MainWindow.DisplayMode.TreeView) ? Visibility.Visible : Visibility.Collapsed; }
+        public Visibility TreeModeVisibility { get => (_mainWindow != null && _mainWindow.Mode == TabContent.DisplayMode.TreeView) ? Visibility.Visible : Visibility.Collapsed; }
 
         private void OnSettingsPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
@@ -123,7 +123,7 @@
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
-            _mainWindow = (MainWindow)this.DataContext;
+            _mainWindow = (TabContent)this.DataContext;
             FileLogger.Assert(_mainWindow != null);
             NotifyPropertyChanged.FirePropertyChanged(new string[] { "TextModeVisibility", "TreeModeVisibility" }, this, this.PropertyChanged);
 
@@ -146,8 +146,8 @@
             NotifyPropertyChanged.SetValue(ref _prettyCopyAllCommand, new PrettyCopyAllCommand(_mainWindow), "PrettyCopyAllCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _prettyTextCommand, new PrettyTextCommand(_mainWindow), "PrettyTextCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.SetValue(ref _autoPasteToggleCommand, new AutoPasteToggleCommand(_pasteCommand), "AutoPasteToggleCommand", this, this.PropertyChanged);
-            NotifyPropertyChanged.SetValue(ref _showTextModeCommand, new SwitchModeCommand(_mainWindow, "Show text", MainWindow.DisplayMode.RawText), "ShowTextModeCommand", this, this.PropertyChanged);
-            NotifyPropertyChanged.SetValue(ref _showTreeModeCommand, new SwitchModeCommand(_mainWindow, "Show tree", MainWindow.DisplayMode.TreeView), "ShowTreeModeCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _showTextModeCommand, new SwitchModeCommand(_mainWindow, "Show text", TabContent.DisplayMode.RawText), "ShowTextModeCommand", this, this.PropertyChanged);
+            NotifyPropertyChanged.SetValue(ref _showTreeModeCommand, new SwitchModeCommand(_mainWindow, "Show tree", TabContent.DisplayMode.TreeView), "ShowTreeModeCommand", this, this.PropertyChanged);
             NotifyPropertyChanged.FirePropertyChanged("CommandsCreated", this, this.PropertyChanged);
 
             NotifyPropertyChanged.SetValue(ref _findMatchNavigator, new FindMatchNavigator(_mainWindow), "FindMatchNavigator", this, this.PropertyChanged);

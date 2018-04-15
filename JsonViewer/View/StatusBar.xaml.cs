@@ -13,7 +13,7 @@
     /// </summary>
     public partial class StatusBar : UserControl, INotifyPropertyChanged
     {
-        private MainWindow _mainWindow = null;
+        private TabContent _mainWindow = null;
         private RootObject _rootObject = null;
 
         public StatusBar()
@@ -83,7 +83,7 @@
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
-            _mainWindow = (MainWindow)this.DataContext;
+            _mainWindow = (TabContent)this.DataContext;
             FileLogger.Assert(_mainWindow != null);
 
             _mainWindow.Tree.PropertyChanged += OnTreePropertyChanged;

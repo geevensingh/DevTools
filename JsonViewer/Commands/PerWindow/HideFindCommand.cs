@@ -9,7 +9,7 @@
     {
         private Finder _finder = null;
 
-        public HideFindCommand(MainWindow mainWindow)
+        public HideFindCommand(TabContent mainWindow)
             : base("Hide find window")
         {
             _finder = mainWindow.Finder;

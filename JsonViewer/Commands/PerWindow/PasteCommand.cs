@@ -7,14 +7,14 @@
 
     public class PasteCommand : BaseCommand
     {
-        public PasteCommand(MainWindow mainWindow)
+        public PasteCommand(TabContent mainWindow)
             : base("Paste")
         {
             this.ForceVisibility = System.Windows.Visibility.Visible;
 
-            this.MainWindow = mainWindow;
-            this.MainWindow.Raw_TextBox.TextChanged += OnRawTextBoxChanged;
-            this.MainWindow.ClipboardManager.ClipboardChanged += OnClipboardChanged;
+            this.Tab = mainWindow;
+            this.Tab.Raw_TextBox.TextChanged += OnRawTextBoxChanged;
+            this.Tab.ClipboardManager.ClipboardChanged += OnClipboardChanged;
             this.Update();
         }
 
@@ -22,15 +22,15 @@
         {
             string jsonString = ClipboardManager.TryGetText();
             Debug.Assert(JsonObjectFactory.TryAgressiveDeserialize(jsonString).Result.IsSuccessful());
-            this.MainWindow.Raw_TextBox.Text = jsonString;
-            this.MainWindow.SetDisplayMode(MainWindow.DisplayMode.TreeView);
+            this.Tab.Raw_TextBox.Text = jsonString;
+            this.Tab.SetDisplayMode(TabContent.DisplayMode.TreeView);
             this.Update();
         }
 
         private async void Update()
         {
             string jsonString = ClipboardManager.TryGetText();
-            bool possible = !string.IsNullOrWhiteSpace(jsonString) && this.MainWindow.Raw_TextBox.Text != jsonString;
+            bool possible = !string.IsNullOrWhiteSpace(jsonString) && this.Tab.Raw_TextBox.Text != jsonString;
             if (possible)
             {
                 DeserializeResult deserializeResult = await JsonObjectFactory.TryAgressiveDeserialize(jsonString);

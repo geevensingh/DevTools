@@ -15,11 +15,11 @@
     /// </summary>
     public partial class FindWindow : Window, INotifyPropertyChanged
     {
-        private MainWindow _mainWindow;
+        private TabContent _mainWindow;
         private Finder _finder;
         private FindMatchNavigator _navigator;
 
-        internal FindWindow(MainWindow owner, Finder finder)
+        internal FindWindow(TabContent owner, Finder finder)
         {
             _mainWindow = owner;
             _finder = finder;

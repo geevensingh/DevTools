@@ -7,13 +7,13 @@
 
     public class FindMatchNavigator : NotifyPropertyChanged
     {
-        private MainWindow _mainWindow;
+        private TabContent _mainWindow;
 
         private int? _currentHitIndex = null;
 
         private string _findMatchText = string.Empty;
 
-        public FindMatchNavigator(MainWindow mainWindow)
+        public FindMatchNavigator(TabContent mainWindow)
         {
             _mainWindow = mainWindow;
 

@@ -4,6 +4,6 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="clr-namespace:JsonViewer"
     ShutdownMode="OnLastWindowClose"
-    StartupUri="View\MainWindow.xaml">
+    StartupUri="View\TabContent.xaml">
     <Application.Resources />
 </Application>

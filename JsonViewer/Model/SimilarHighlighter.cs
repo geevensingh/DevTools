@@ -10,10 +10,10 @@
     internal class SimilarHighlighter
     {
         private SingularAction _action = null;
-        private MainWindow _mainWindow;
+        private TabContent _mainWindow;
         private RootObject _rootObject = null;
 
-        public SimilarHighlighter(MainWindow mainWindow)
+        public SimilarHighlighter(TabContent mainWindow)
         {
             _mainWindow = mainWindow;
             _action = new SingularAction(_mainWindow.Dispatcher);

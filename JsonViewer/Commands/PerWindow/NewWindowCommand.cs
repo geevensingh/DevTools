@@ -5,17 +5,17 @@
 
     public class NewWindowCommand : BaseCommand
     {
-        public NewWindowCommand(MainWindow mainWindow)
+        public NewWindowCommand(TabContent mainWindow)
             : base("New window", true)
         {
-            this.MainWindow = mainWindow;
+            this.Tab = mainWindow;
 
             this.AddKeyGesture(new KeyGesture(Key.N, ModifierKeys.Control));
         }
 
         public override void Execute(object parameter)
         {
-            this.MainWindow.ShowNewWindow();
+            this.Tab.ShowNewWindow();
         }
     }
 }

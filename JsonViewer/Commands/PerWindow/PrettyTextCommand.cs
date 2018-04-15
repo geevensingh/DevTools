@@ -6,18 +6,18 @@
 
     public class PrettyTextCommand : BaseCommand
     {
-        public PrettyTextCommand(MainWindow mainWindow)
+        public PrettyTextCommand(TabContent mainWindow)
             : base("Pretty-ify text")
         {
             this.ForceVisibility = System.Windows.Visibility.Visible;
-            this.MainWindow = mainWindow;
+            this.Tab = mainWindow;
             this.Update();
         }
 
         public override void Execute(object parameter)
         {
-            FileLogger.Assert(this.MainWindow.RootObject != null);
-            this.MainWindow.Raw_TextBox.Text = this.MainWindow.RootObject?.PrettyValueString;
+            FileLogger.Assert(this.Tab.RootObject != null);
+            this.Tab.Raw_TextBox.Text = this.Tab.RootObject?.PrettyValueString;
         }
 
         protected override void OnMainWindowPropertyChanged(string propertyName)
@@ -32,7 +32,7 @@
 
         private void Update()
         {
-            this.SetCanExecute(this.MainWindow.RootObject != null);
+            this.SetCanExecute(this.Tab.RootObject != null);
         }
     }
 }

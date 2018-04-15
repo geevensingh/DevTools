@@ -7,20 +7,20 @@
 
     public class PickConfigCommand : BaseCommand
     {
-        public PickConfigCommand(MainWindow mainWindow)
+        public PickConfigCommand(TabContent mainWindow)
             : base("Pick config", true)
         {
-            this.MainWindow = mainWindow;
+            this.Tab = mainWindow;
 
             this.AddKeyGesture(new KeyGesture(Key.L, ModifierKeys.Control));
         }
 
         public override void Execute(object parameter)
         {
-            string filePath = OpenJsonFileCommand.PickJsonFile(this.MainWindow, "Pick config file", this.GetInitialDirectory());
+            string filePath = OpenJsonFileCommand.PickJsonFile(this.Tab, "Pick config file", this.GetInitialDirectory());
             if (!string.IsNullOrEmpty(filePath))
             {
-                this.MainWindow.LoadConfig(filePath);
+                this.Tab.LoadConfig(filePath);
             }
         }
 

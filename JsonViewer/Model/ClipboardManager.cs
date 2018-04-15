@@ -9,9 +9,9 @@
     internal class ClipboardManager
     {
         private static readonly IntPtr WndProcSuccess = IntPtr.Zero;
-        private MainWindow _mainWindow;
+        private TabContent _mainWindow;
 
-        public ClipboardManager(MainWindow mainWindow)
+        public ClipboardManager(TabContent mainWindow)
         {
             FileLogger.Assert(mainWindow != null);
             _mainWindow = mainWindow;

@@ -10,7 +10,7 @@
 
     public class Finder : NotifyPropertyChanged
     {
-        private MainWindow _parentWindow;
+        private TabContent _parentWindow;
         private RootObject _rootObject = null;
         private string _text = Properties.Settings.Default.FindText;
         private bool _shouldSearchKeys = Properties.Settings.Default.FindSearchKeys;
@@ -23,7 +23,7 @@
         private List<JsonObject> _hits = new List<JsonObject>();
         private SingularAction _action = null;
 
-        public Finder(MainWindow parentWindow)
+        public Finder(TabContent parentWindow)
         {
             _parentWindow = parentWindow;
             _action = new SingularAction(_parentWindow.Dispatcher);

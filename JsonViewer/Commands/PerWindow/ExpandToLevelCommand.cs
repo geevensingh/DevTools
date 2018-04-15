@@ -9,18 +9,18 @@
         private RootObject _rootObject = null;
         private int _depth;
 
-        public ExpandToLevelCommand(MainWindow mainWindow, int depth)
+        public ExpandToLevelCommand(TabContent mainWindow, int depth)
             : base(depth > 0 ? "+" + depth.ToString() : "Nothing")
         {
             _depth = depth;
-            this.MainWindow = mainWindow;
-            this.MainWindow.Tree.PropertyChanged += OnTreePropertyChanged;
-            this.SetRootObject(this.MainWindow.RootObject);
+            this.Tab = mainWindow;
+            this.Tab.Tree.PropertyChanged += OnTreePropertyChanged;
+            this.SetRootObject(this.Tab.RootObject);
         }
 
         public override void Execute(object parameter)
         {
-            this.MainWindow.Tree.ExpandAll(_depth);
+            this.Tab.Tree.ExpandAll(_depth);
         }
 
         protected override void OnMainWindowPropertyChanged(string propertyName)
@@ -28,7 +28,7 @@
             switch (propertyName)
             {
                 case "RootObject":
-                    this.SetRootObject(this.MainWindow.RootObject);
+                    this.SetRootObject(this.Tab.RootObject);
                     break;
             }
         }
@@ -76,8 +76,8 @@
 
         private void Update()
         {
-            FileLogger.Assert(this.MainWindow.RootObject == _rootObject);
-            this.SetCanExecute(!this.MainWindow.Tree.IsWaiting && this.MainWindow.RootObject != null && _rootObject.HasLevel(_depth));
+            FileLogger.Assert(this.Tab.RootObject == _rootObject);
+            this.SetCanExecute(!this.Tab.Tree.IsWaiting && this.Tab.RootObject != null && _rootObject.HasLevel(_depth));
         }
     }
 }

@@ -15,9 +15,9 @@
     using Utilities;
 
     /// <summary>
-    /// Interaction logic for MainWindow.xaml
+    /// Interaction logic for TabContent.xaml
     /// </summary>
-    public partial class MainWindow : Window, INotifyPropertyChanged
+    public partial class TabContent : Window, INotifyPropertyChanged
     {
         private Finder _finder;
         private Point? _initialOffset = null;
@@ -26,7 +26,7 @@
         private WarningBannerActionHandler _warningBannerDismiss;
         private string _lastText = string.Empty;
 
-        public MainWindow()
+        public TabContent()
         {
             _finder = new Finder(this);
             Config.PropertyChanged += OnConfigPropertyChanged;
@@ -58,7 +58,7 @@
         {
             this.SaveWindowPosition();
 
-            MainWindow newWindow = new MainWindow
+            TabContent newWindow = new TabContent
             {
                 _initialOffset = new Point(20, 20)
             };

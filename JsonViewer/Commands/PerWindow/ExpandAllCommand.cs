@@ -4,18 +4,18 @@
 
     public class ExpandAllCommand : BaseCommand
     {
-        public ExpandAllCommand(MainWindow mainWindow)
+        public ExpandAllCommand(TabContent mainWindow)
             : base("Expand all")
         {
             this.ForceVisibility = System.Windows.Visibility.Visible;
-            this.MainWindow = mainWindow;
-            this.MainWindow.Tree.PropertyChanged += OnTreePropertyChanged;
+            this.Tab = mainWindow;
+            this.Tab.Tree.PropertyChanged += OnTreePropertyChanged;
             this.Update();
         }
 
         public override void Execute(object parameter)
         {
-            this.MainWindow.Tree.ExpandAll();
+            this.Tab.Tree.ExpandAll();
         }
 
         protected override void OnMainWindowPropertyChanged(string propertyName)
@@ -30,7 +30,7 @@
 
         private void Update()
         {
-            this.SetCanExecute(!this.MainWindow.Tree.IsWaiting && this.MainWindow.RootObject != null && this.MainWindow.RootObject.HasLevel(2));
+            this.SetCanExecute(!this.Tab.Tree.IsWaiting && this.Tab.RootObject != null && this.Tab.RootObject.HasLevel(2));
         }
 
         private void OnTreePropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)

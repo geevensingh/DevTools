@@ -12,7 +12,7 @@
     {
         private string _text = string.Empty;
         private bool _canExecute = false;
-        private MainWindow _mainWindow = null;
+        private TabContent _tab = null;
 
         public BaseCommand(string text)
             : this(text, false)
@@ -55,18 +55,18 @@
 
         protected Visibility? ForceVisibility { get; set; }
 
-        protected MainWindow MainWindow
+        protected TabContent Tab
         {
             get
             {
-                return _mainWindow;
+                return _tab;
             }
 
             set
             {
-                FileLogger.Assert(_mainWindow == null);
-                _mainWindow = value;
-                _mainWindow.PropertyChanged += (sender, evt) => this.OnMainWindowPropertyChanged(evt.PropertyName);
+                FileLogger.Assert(_tab == null);
+                _tab = value;
+                _tab.PropertyChanged += (sender, evt) => this.OnMainWindowPropertyChanged(evt.PropertyName);
             }
         }
 
