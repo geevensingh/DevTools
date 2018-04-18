@@ -80,6 +80,7 @@
             {
                 try
                 {
+                    Directory.CreateDirectory(Path.GetDirectoryName(logFilePath));
                     using (StreamWriter sw = File.CreateText(logFilePath))
                     {
                         sw.WriteLine("Log file for JsonViewer");
