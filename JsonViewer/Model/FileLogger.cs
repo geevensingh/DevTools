@@ -49,7 +49,6 @@
             catch
             {
             }
-
         }
 
         private static string EnsureLogFilePath()
