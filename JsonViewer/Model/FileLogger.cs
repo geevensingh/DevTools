@@ -36,13 +36,20 @@
         public static void Log(string[] lines)
         {
             string preface = DateTime.Now.ToString("O") + " : " + Process.GetCurrentProcess().Id + " : ";
-            using (StreamWriter sw = File.AppendText(EnsureLogFilePath()))
+            try
             {
-                foreach (string line in lines)
+                using (StreamWriter sw = File.AppendText(EnsureLogFilePath()))
                 {
-                    sw.WriteLine(preface + line);
+                    foreach (string line in lines)
+                    {
+                        sw.WriteLine(preface + line);
+                    }
                 }
             }
+            catch
+            {
+            }
+
         }
 
         private static string EnsureLogFilePath()
@@ -59,20 +66,32 @@
                     TimeSpan age = DateTime.Now - File.GetLastWriteTime(logFilePath);
                     if (age.TotalHours > 2)
                     {
-                        File.Delete(logFilePath);
+                        try
+                        {
+                            File.Delete(logFilePath);
+                        }
+                        catch
+                        {
+                        }
                     }
                 }
             }
 
             if (!File.Exists(logFilePath))
             {
-                using (StreamWriter sw = File.CreateText(logFilePath))
+                try
                 {
-                    sw.WriteLine("Log file for JsonViewer");
-                    sw.WriteLine("Started at: " + DateTime.Now.ToString("O"));
-                }
+                    using (StreamWriter sw = File.CreateText(logFilePath))
+                    {
+                        sw.WriteLine("Log file for JsonViewer");
+                        sw.WriteLine("Started at: " + DateTime.Now.ToString("O"));
+                    }
 
-                File.SetAttributes(logFilePath, FileAttributes.Hidden);
+                    File.SetAttributes(logFilePath, FileAttributes.Hidden);
+                }
+                catch
+                {
+                }
             }
 
             return logFilePath;
