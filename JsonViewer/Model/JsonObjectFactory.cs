@@ -25,6 +25,16 @@
                     return result;
                 }
 
+                if (jsonString.StartsWith("\"") && jsonString.EndsWith("\""))
+                {
+                    string quoteEscaped = jsonString.Substring(1, jsonString.Length - 2).Replace("\"\"", "\"");
+                    result = await TrySimpleDeserialize(quoteEscaped);
+                    if (result.IsSuccessful())
+                    {
+                        return result;
+                    }
+                }
+
                 int firstBrace = jsonString.IndexOfAny(new char[] { '{' });
 
                 if (firstBrace >= 0)
