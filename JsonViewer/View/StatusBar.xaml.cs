@@ -46,6 +46,22 @@
             }
         }
 
+        public int SimilarCount
+        {
+            get
+            {
+                return _mainWindow?.SimilarHighlighter?.MatchCount ?? 0;
+            }
+        }
+
+        public Visibility SimilarCountVisibility
+        {
+            get
+            {
+                return this.SimilarCount > 1 ? Visibility.Visible : Visibility.Collapsed;
+            }
+        }
+
         public string CurrentVersion
         {
             get
@@ -87,6 +103,7 @@
             FileLogger.Assert(_mainWindow != null);
 
             _mainWindow.Tree.PropertyChanged += OnTreePropertyChanged;
+            _mainWindow.SimilarHighlighter.PropertyChanged += OnSimilarHighlighterPropertyChanged;
             _mainWindow.PropertyChanged += OnMainWindowPropertyChanged;
             this.AddRootObjectPropertyChangedHandler();
         }
@@ -138,6 +155,16 @@
             {
                 case "SelectedIndex":
                     NotifyPropertyChanged.FirePropertyChanged(new string[] { "CurrentIndex", "CurrentPath" }, this, this.PropertyChanged);
+                    break;
+            }
+        }
+
+        private void OnSimilarHighlighterPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            switch (e.PropertyName)
+            {
+                case "MatchCount":
+                    NotifyPropertyChanged.FirePropertyChanged(new string[] { "SimilarCountVisibility", "SimilarCount" }, this, this.PropertyChanged);
                     break;
             }
         }

@@ -25,6 +25,12 @@
                 <TextBlock VerticalAlignment="Center" Text="{Binding Path=CurrentPath}" />
             </StackPanel>
         </StatusBarItem>
+        <StatusBarItem Visibility="{Binding Path=SimilarCountVisibility}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Margin="5,0" VerticalAlignment="Center">Similar count:</TextBlock>
+                <TextBlock VerticalAlignment="Center" Text="{Binding Path=SimilarCount}" />
+            </StackPanel>
+        </StatusBarItem>
         <StatusBarItem HorizontalAlignment="Right">
             <StackPanel Orientation="Horizontal">
                 <TextBlock Margin="5,0" VerticalAlignment="Center">Current version:</TextBlock>

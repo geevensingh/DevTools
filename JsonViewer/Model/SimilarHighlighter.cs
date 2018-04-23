@@ -7,11 +7,12 @@
     using JsonViewer.View;
     using Utilities;
 
-    internal class SimilarHighlighter
+    internal class SimilarHighlighter : NotifyPropertyChanged
     {
         private SingularAction _action = null;
         private MainWindow _mainWindow;
         private RootObject _rootObject = null;
+        private int _matchCount = 0;
 
         public SimilarHighlighter(MainWindow mainWindow)
         {
@@ -22,6 +23,8 @@
             _mainWindow.PropertyChanged += OnMainWindowPropertyChanged;
             Properties.Settings.Default.PropertyChanged += OnSettingsPropertyChanged;
         }
+
+        public int MatchCount { get => _matchCount; }
 
         private void OnSettingsPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
@@ -90,6 +93,7 @@
             JsonObject selectedObject = (_mainWindow?.Tree?.SelectedItem as TreeViewData)?.JsonObject;
             FindRule newKeyRule = null;
             FindRule newValueRule = null;
+            this.SetValue(ref _matchCount, 0, "MatchCount");
 
             if (selectedObject != null && Properties.Settings.Default.HighlightSimilarKeys)
             {
@@ -117,6 +121,7 @@
 
             Func<Guid, SingularAction, Task<bool>> updateAction = new Func<Guid, SingularAction, Task<bool>>(async (actionId, action) =>
             {
+                int matchCount = 0;
                 foreach (JsonObject obj in _rootObject.AllChildren)
                 {
                     obj.MatchRule = null;
@@ -125,6 +130,7 @@
                         if (rule != null && rule.Matches(obj))
                         {
                             obj.MatchRule = rule;
+                            matchCount++;
                         }
                     }
 
@@ -134,6 +140,7 @@
                     }
                 }
 
+                this.SetValue(ref _matchCount, matchCount, "MatchCount");
                 return true;
             });
 
