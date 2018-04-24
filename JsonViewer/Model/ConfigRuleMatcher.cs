@@ -7,14 +7,14 @@
     internal class ConfigRuleMatcher
     {
         private ConfigRule _rule;
-        private Dictionary<JsonObject, bool> _lookup = new Dictionary<JsonObject, bool>();
+        private Dictionary<Json.JsonObject, bool> _lookup = new Dictionary<Json.JsonObject, bool>();
 
         public ConfigRuleMatcher(ConfigRule rule)
         {
             _rule = rule;
         }
 
-        public bool Matches(JsonObject obj)
+        public bool Matches(Json.JsonObject obj)
         {
             if (!_lookup.ContainsKey(obj))
             {
@@ -39,7 +39,7 @@
             return _lookup[obj];
         }
 
-        private string GetField(JsonObject obj)
+        private string GetField(Json.JsonObject obj)
         {
             string str = string.Empty;
             switch (_rule.MatchField)

@@ -125,7 +125,7 @@
             return (ConfigRule)this.MemberwiseClone();
         }
 
-        public bool Matches(JsonObject obj)
+        public bool Matches(Json.JsonObject obj)
         {
             if (_matcher == null)
             {

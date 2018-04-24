@@ -45,7 +45,7 @@
             FindRule oldRule = _findRule;
             FindRule newRule = value;
 
-            Debug.Assert(newRule == null || newRule.Matches(_jsonObject));
+            //Debug.Assert(newRule == null || newRule.Matches(_jsonObject));
 
             if (oldRule == null && newRule == null)
             {
@@ -81,7 +81,7 @@
             FindRule oldRule = _matchRule;
             FindRule newRule = value;
 
-            Debug.Assert(newRule == null || newRule.Matches(_jsonObject));
+            //Debug.Assert(newRule == null || newRule.Matches(_jsonObject));
 
             if (oldRule == null && newRule == null)
             {
@@ -119,18 +119,18 @@
 
         internal void Initialize()
         {
-            List<IRule> newRules = new List<IRule>(Config.Values.Rules.Where(rule => rule.Matches(_jsonObject)));
-            if (_findRule != null)
-            {
-                newRules.Insert(0, _findRule);
-            }
+            //List<IRule> newRules = new List<IRule>(Config.Values.Rules.Where(rule => rule.Matches(_jsonObject)));
+            //if (_findRule != null)
+            //{
+            //    newRules.Insert(0, _findRule);
+            //}
 
-            if (_matchRule != null)
-            {
-                newRules.Add(_matchRule);
-            }
+            //if (_matchRule != null)
+            //{
+            //    newRules.Add(_matchRule);
+            //}
 
-            this.SetValueList(ref _rules, newRules, "Rules");
+            //this.SetValueList(ref _rules, newRules, "Rules");
             this.Update();
         }
 

@@ -2,7 +2,7 @@
 {
     using System.Windows.Media;
 
-    public interface IRule
+    public interface IRule : Json.IRule
     {
         Brush ForegroundBrush { get; }
 
@@ -13,7 +13,5 @@
         int? ExpandChildren { get; }
 
         string WarningMessage { get; }
-
-        bool Matches(JsonObject obj);
     }
 }

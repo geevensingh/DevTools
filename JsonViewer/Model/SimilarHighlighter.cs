@@ -127,11 +127,11 @@
                     obj.MatchRule = null;
                     foreach (FindRule rule in new FindRule[] { newKeyRule, newValueRule })
                     {
-                        if (rule != null && rule.Matches(obj))
-                        {
-                            obj.MatchRule = rule;
-                            matchCount++;
-                        }
+                        //if (rule != null && rule.Matches(obj))
+                        //{
+                        //    obj.MatchRule = rule;
+                        //    matchCount++;
+                        //}
                     }
 
                     if (!await action.YieldAndContinue(actionId))

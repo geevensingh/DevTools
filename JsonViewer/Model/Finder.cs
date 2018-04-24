@@ -212,18 +212,18 @@
                     appliesToParents: this.ShouldSearchParentValues,
                     matchType: MatchTypeEnum.Partial);
 
-                foreach (JsonObject obj in _rootObject.AllChildren)
-                {
-                    bool matches = newRule.Matches(obj);
-                    if (matches)
-                    {
-                        hits.Add(obj);
-                    }
-                    else
-                    {
-                        misses.Add(obj);
-                    }
-                }
+                //foreach (JsonObject obj in _rootObject.AllChildren)
+                //{
+                //    bool matches = newRule.Matches(obj);
+                //    if (matches)
+                //    {
+                //        hits.Add(obj);
+                //    }
+                //    else
+                //    {
+                //        misses.Add(obj);
+                //    }
+                //}
             }
             else if (_rootObject != null)
             {

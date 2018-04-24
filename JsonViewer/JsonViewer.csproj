@@ -258,6 +258,10 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Json\Json.csproj">
+      <Project>{fd68dcbf-ae15-41fe-a8c0-e7d510a20c85}</Project>
+      <Name>Json</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Utilities\Utilities.csproj">
       <Project>{cb38d65e-0df5-4063-892e-9188bc526a31}</Project>
       <Name>Utilities</Name>

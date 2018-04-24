@@ -61,7 +61,7 @@
 
         public int? ExpandChildren => null;
 
-        public bool Matches(JsonObject obj)
+        public bool Matches(Json.JsonObject obj)
         {
             return _rules.Any(x => x.Matches(obj));
         }
