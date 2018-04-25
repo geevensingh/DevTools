@@ -296,6 +296,37 @@
             }
         }
 
+        public JsonObject GetChild(string path)
+        {
+            if (path.Contains("\\"))
+            {
+                List<string> parts = new List<string>(path.Split(new char[] { '\\' }));
+                string childKey = parts[0];
+                parts.RemoveAt(0);
+                Debug.Assert(parts.Count > 0);
+                foreach (JsonObject child in this.Children)
+                {
+                    if (child.Key == childKey)
+                    {
+                        return child.GetChild(string.Join("\\", parts));
+                    }
+                }
+
+                return null;
+            }
+
+            foreach (JsonObject child in this.Children)
+            {
+                if (child.Key == path)
+                {
+                    return child;
+                }
+            }
+
+            return null;
+
+        }
+
         protected virtual void FireChildrenChanged(bool direct)
         {
             _allChildren = null;

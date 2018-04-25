@@ -57,15 +57,24 @@
   </Choose>
   <ItemGroup>
     <Compile Include="JsonObjectFactoryTests.cs" />
+    <Compile Include="Model\JsonObjectTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\JsonViewer\JsonViewer.csproj">
+      <Project>{86637E48-D0AF-46A1-B611-2089FCABAC87}</Project>
+      <Name>JsonViewer</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Json\Json.csproj">
       <Project>{FD68DCBF-AE15-41FE-A8C0-E7D510A20C85}</Project>
       <Name>Json</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Utilities\Utilities.csproj">
+      <Project>{cb38d65e-0df5-4063-892e-9188bc526a31}</Project>
+      <Name>Utilities</Name>
     </ProjectReference>
   </ItemGroup>
   <Choose>
