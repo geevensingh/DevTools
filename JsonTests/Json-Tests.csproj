@@ -57,7 +57,7 @@
   </Choose>
   <ItemGroup>
     <Compile Include="JsonObjectFactoryTests.cs" />
-    <Compile Include="Model\JsonObjectTests.cs" />
+    <Compile Include="JsonObjectTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
