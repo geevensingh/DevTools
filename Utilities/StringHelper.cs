@@ -127,5 +127,39 @@ namespace Utilities
 
             return null;
         }
+
+        public static byte[] HexStringToByteArray(string hex)
+        {
+            if (hex.StartsWith("0x"))
+            {
+                hex = hex.Substring(2);
+            }
+
+            int charCount = hex.Length;
+
+            byte[] bytes = new byte[charCount / 2];
+
+            for (int i = 0; i < charCount; i += 2)
+            {
+                bytes[i / 2] = Convert.ToByte(hex.Substring(i, 2), 16);
+            }
+
+            return bytes;
+        }
+
+        public static bool IsHexString(string str)
+        {
+            IEnumerable<char> enumString = str;
+
+            if (str.StartsWith("0x"))
+            {
+                enumString = enumString.Skip(2);
+            }
+
+            return enumString.All(ch =>
+            {
+                return (ch >= '0' && ch <= '9') || ((ch = Char.ToLower(ch)) >= 'a' && ch <= 'f');
+            });
+        }
     }
 }
