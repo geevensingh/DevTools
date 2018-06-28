@@ -3,6 +3,8 @@
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
+    using System.IO;
+    using System.IO.Compression;
     using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
@@ -68,7 +70,7 @@
             });
         }
 
-        public static Task<DeserializeResult> TryAgressiveDeserialize(string jsonString)
+        public static Task<DeserializeResult> TryAgressiveDeserialize(string jsonString, bool tryDecompress = true)
         {
             return Task.Run<DeserializeResult>(async () =>
             {
@@ -99,7 +101,40 @@
                     return result;
                 }
 
-                return await TryDeserialize(jsonString);
+                result = await TryDeserialize(jsonString);
+
+                if (result.IsSuccessful())
+                {
+                    return result;
+                }
+
+                if (tryDecompress)
+                {
+                    try
+                    {
+                        if (StringHelper.IsHexString(jsonString))
+                        {
+                            using (MemoryStream memoryStream = new MemoryStream(StringHelper.HexStringToByteArray(jsonString)))
+                            {
+                                string serializationProtocol = StreamHelper.ReadUTF8Line(memoryStream);
+
+                                if (serializationProtocol == "DeflateJsonEntity")
+                                {
+                                    using (DeflateStream deflateStream = new DeflateStream(memoryStream, CompressionMode.Decompress))
+                                    {
+                                        using (StreamReader streamReader = new StreamReader(deflateStream))
+                                        {
+                                            return await TryAgressiveDeserialize(await streamReader.ReadToEndAsync(), tryDecompress: false);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception) {} // oops, must not have been decompressable, ignore
+                }
+
+                return result;
             });
         }
 
