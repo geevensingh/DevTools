@@ -131,7 +131,9 @@
                             }
                         }
                     }
-                    catch (Exception) {} // oops, must not have been decompressable, ignore
+                    catch (Exception)
+                    { // oops, must not have been decompressable, ignore
+                    }
                 }
 
                 return result;
