@@ -34,6 +34,12 @@ namespace IdParser.Tests
         [DataRow("032fa944-399a-4c04-9090-7ce1fd72jhg2a0d", "d6d64cae9b4074b5c02f574d12de535f")]
         [DataRow("/032fa944-399a-4c04-9090-7ce1fd722a0d/capture-schedules/d6d64cae9b4074b5c02f574d12de535f", "d6d64cae9b40702f574d12de535f")]
         [DataRow("   /032fa944-399a-4c04-9090-7ce1fd722a0d/capture-schedules/d6d64cae9b4074b5c02f574d12de535f/    ", "d6d64cae9b40702f574d12de535f")]
+        [DataRow("032fa944-399a-4c04-9090-7ce1fd722a0d,d6d64cae9b4074b5c02f574d12de535f", "d6d64cae9b40702f574d12de535f")]
+        [DataRow("   032fa944-399a-4c04-9090-7ce1fd722a0d  ,   d6d64cae9b4074b5c02f574d12de535f   ", "d6d64cae9b40702f574d12de535f")]
+        [DataRow("032fa944-399a-4c04-9090-7ce1fd722a0d	d6d64cae9b4074b5c02f574d12de535f", "d6d64cae9b40702f574d12de535f")]
+        [DataRow("   032fa944-399a-4c04-9090-7ce1fd722a0d  	   d6d64cae9b4074b5c02f574d12de535f   ", "d6d64cae9b40702f574d12de535f")]
+        [DataRow("032fa944-399a-4c04-9090-7ce1fd722a0d/d6d64cae9b4074b5c02f574d12de535f", "d6d64cae9b40702f574d12de535f")]
+        [DataRow("   032fa944-399a-4c04-9090-7ce1fd722a0d  /   d6d64cae9b4074b5c02f574d12de535f   ", "d6d64cae9b40702f574d12de535f")]
         public void TryParseTest_Warning_AccountId_Invalid(string accountId, string scheduleId)
         {
             PublicIdParser.TryParse(ref accountId, ref scheduleId, out PublicIdParser publicIdParser).Should().BeTrue();
@@ -60,17 +66,20 @@ namespace IdParser.Tests
         }
 
         [DataTestMethod]
-        //[DataRow("032fa944-399a-4c04-9090-7ce1fd722a0d,d6d64cae9b4074b5c02f574d12de535f", "d6d64cae9b40702f574d12de535f")]
-        //[DataRow("   032fa944-399a-4c04-9090-7ce1fd722a0d  ,   d6d64cae9b4074b5c02f574d12de535f   ", "d6d64cae9b40702f574d12de535f")]
-        //[DataRow("032fa944-399a-4c04-9090-7ce1fd722a0d	d6d64cae9b4074b5c02f574d12de535f", "d6d64cae9b40702f574d12de535f")]
-        //[DataRow("   032fa944-399a-4c04-9090-7ce1fd722a0d  	   d6d64cae9b4074b5c02f574d12de535f   ", "d6d64cae9b40702f574d12de535f")]
-        //[DataRow("032fa944-399a-4c04-9090-7ce1fd722a0d/d6d64cae9b4074b5c02f574d12de535f", "d6d64cae9b40702f574d12de535f")]
-        //[DataRow("   032fa944-399a-4c04-9090-7ce1fd722a0d  /   d6d64cae9b4074b5c02f574d12de535f   ", "d6d64cae9b40702f574d12de535f")]
-        public void TryParseTest_Failing_X(string accountId, string scheduleId)
+        [DataRow("032fa944-399a-4c04-9090-7ce1fd72jhg2a0d", "d6d64cae9b4074b5c02f574d12de535f")]
+        [DataRow("/032fa944-399a-4c04-9090-7ce1fd722a0d/capture-schedules/d6d64cae9b4074b5c02f574d12de535f", "d6d64cae9b40702f574d12de535f")]
+        [DataRow("   /032fa944-399a-4c04-9090-7ce1fd722a0d/capture-schedules/d6d64cae9b4074b5c02f574d12de535f/    ", "d6d64cae9b40702f574d12de535f")]
+        [DataRow("032fa944-399a-4c04-9090-7ce1fd722a0d,d6d64cae9b4074b5c02f574d12de535f", "d6d64cae9b40702f574d12de535f")]
+        [DataRow("   032fa944-399a-4c04-9090-7ce1fd722a0d  ,   d6d64cae9b4074b5c02f574d12de535f   ", "d6d64cae9b40702f574d12de535f")]
+        [DataRow("032fa944-399a-4c04-9090-7ce1fd722a0d	d6d64cae9b4074b5c02f574d12de535f", "d6d64cae9b40702f574d12de535f")]
+        [DataRow("   032fa944-399a-4c04-9090-7ce1fd722a0d  	   d6d64cae9b4074b5c02f574d12de535f   ", "d6d64cae9b40702f574d12de535f")]
+        [DataRow("032fa944-399a-4c04-9090-7ce1fd722a0d/d6d64cae9b4074b5c02f574d12de535f", "d6d64cae9b40702f574d12de535f")]
+        [DataRow("   032fa944-399a-4c04-9090-7ce1fd722a0d  /   d6d64cae9b4074b5c02f574d12de535f   ", "d6d64cae9b40702f574d12de535f")]
+        public void TryParseTest_Warning_Too_Much_Data(string accountId, string scheduleId)
         {
-            PublicIdParser.TryParse(ref accountId, ref scheduleId, out PublicIdParser publicIdParser).Should().BeFalse();
+            PublicIdParser.TryParse(ref accountId, ref scheduleId, out PublicIdParser publicIdParser).Should().BeTrue();
             publicIdParser.ViewBag.ErrorMessage.Should().BeEmpty();
-            publicIdParser.ViewBag.WarningMessage.Should().Be($"ScheduleId does not seem to be in the right format: {scheduleId}");
+            publicIdParser.ViewBag.WarningMessage.Should().Be($"AccountId does not seem to be in the right format: {accountId}");
         }
 
         [DataTestMethod]
