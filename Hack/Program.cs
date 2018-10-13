@@ -6,10 +6,12 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using Utilities;
+using Newtonsoft.Json;
+using FluentAssertions;
 
 namespace Hack
 {
-    class Program
+    static class Program
     {
         struct Counts
         {
@@ -27,8 +29,116 @@ namespace Hack
             }
         }
 
+        private static string ErrorMessage = string.Empty;
+
+        static private bool TryParseAccountIdAndScheduleId(ref string accountId, ref string scheduleId)
+        {
+            char[] delimiters = new char[] { '/', ',', '\t', ' ', '\r', '\n' };
+            accountId = accountId.Trim(delimiters);
+            scheduleId = scheduleId.Trim(delimiters);
+
+            if (string.IsNullOrWhiteSpace(accountId))
+            {
+                ErrorMessage = "AccountId is empty - valid accountId required.";
+                return false;
+            }
+
+
+            if (accountId.IndexOfAny(delimiters) != -1)
+            {
+                if (!string.IsNullOrWhiteSpace(scheduleId))
+                {
+                    ErrorMessage = "If all data is given in accountId field, then scheduleId must be empty.";
+                    return false;
+                }
+
+                List<string> parts = new List<string>(accountId.Split(delimiters, StringSplitOptions.RemoveEmptyEntries));
+                parts.Remove("capture-schedules");
+                if (parts.Count != 2)
+                {
+                    ErrorMessage = string.Format("Unable to parse accountId: {0}", accountId);
+                    return false;
+                }
+
+                accountId = parts[0];
+                scheduleId = parts[1];
+            }
+
+            Guid temp;
+            if (string.IsNullOrWhiteSpace(accountId) ||
+                !Guid.TryParse(accountId.Trim(), out temp))
+            {
+                ErrorMessage = string.Format("{0} is an invalid accountId, Valid accountId required.", accountId);
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(scheduleId) ||
+                !Guid.TryParse(scheduleId.Trim(), out temp))
+            {
+                ErrorMessage = string.Format("{0} is an invalid scheduleId, Valid scheduleId required.", scheduleId);
+                return false;
+            }
+
+            return true;
+        }
+
+        static private void Test(string accountId, string scheduleId, bool expectedResult)
+        {
+            Console.WriteLine("input-accountId:    " + accountId);
+            Console.WriteLine("input-scheduleId:   " + scheduleId);
+            bool result = TryParseAccountIdAndScheduleId(ref accountId, ref scheduleId);
+            Console.WriteLine("result:             " + result.ToString());
+            Debug.Assert(result == expectedResult);
+            Console.WriteLine("output-accountId:   " + accountId);
+            Console.WriteLine("output-scheduleId:  " + scheduleId);
+            Console.WriteLine();
+            if (expectedResult)
+            {
+                Debug.Assert(Guid.ParseExact(accountId, "D").ToString("D") == accountId);
+                Debug.Assert(Guid.ParseExact(scheduleId, "N").ToString("N") == scheduleId);
+            }
+        }
+
+
         static int Main(string[] args)
         {
+            Test("032fa944-399a-4c04-9090-7ce1fd722a0d", "d6d64cae9b4074b5c02f574d12de535f", true);
+            Test("   032fa944-399a-4c04-9090-7ce1fd722a0d  ", "   d6d64cae9b4074b5c02f574d12de535f   ", true);
+            Test("/032fa944-399a-4c04-9090-7ce1fd722a0d/capture-schedules/d6d64cae9b4074b5c02f574d12de535f", "", true);
+            Test("   /032fa944-399a-4c04-9090-7ce1fd722a0d/capture-schedules/d6d64cae9b4074b5c02f574d12de535f/    ", "", true);
+            Test("032fa944-399a-4c04-9090-7ce1fd722a0d,d6d64cae9b4074b5c02f574d12de535f", "", true);
+            Test("   032fa944-399a-4c04-9090-7ce1fd722a0d  ,   d6d64cae9b4074b5c02f574d12de535f   ", "", true);
+            Test("032fa944-399a-4c04-9090-7ce1fd722a0d	d6d64cae9b4074b5c02f574d12de535f", "", true);
+            Test("   032fa944-399a-4c04-9090-7ce1fd722a0d  	   d6d64cae9b4074b5c02f574d12de535f   ", "", true);
+            Test("032fa944-399a-4c04-9090-7ce1fd722a0d/d6d64cae9b4074b5c02f574d12de535f", "", true);
+            Test("   032fa944-399a-4c04-9090-7ce1fd722a0d  /   d6d64cae9b4074b5c02f574d12de535f   ", "", true);
+            Test("   032fa944-399a-4c04-9090-7ce1fd722a0d  /   d6d64cae9b4074b5c02f574d12de535f   ", "", true);
+
+
+            Test("032fa944-399a-4c04-9090-7ce1fd722a0d", "d6d64cae9b40702f574d12de535f", false);
+            Test("   032fa944-399a-4c04-9090-7ce1fd722a0d  ", "   d6d64cae9b40702f574d12de535f   ", false);
+            Test("/032fa944-399a-4c04-9090-7ce1fd722a0d/capture-schedules/d6d64cae9b40702f574d12de535f", "", false);
+            Test("   /032fa944-399a-4c04-9090-7ce1fd722a0d/capture-schedules/d6d64cae9b40702f574d12de535f/    ", "", false);
+            Test("032fa944-399a-4c04-9090-7ce1fd722a0d,d6d64cae9b40702f574d12de535f", "", false);
+            Test("   032fa944-399a-4c04-9090-7ce1fd722a0d  ,   d6d64cae9b40702f574d12de535f   ", "", false);
+            Test("032fa944-399a-4c04-9090-7ce1fd722a0d	d6d64cae9b40702f574d12de535f", "", false);
+            Test("   032fa944-399a-4c04-9090-7ce1fd722a0d  	   d6d64cae9b40702f574d12de535f   ", "", false);
+            Test("032fa944-399a-4c04-9090-7ce1fd722a0d/d6d64cae9b40702f574d12de535f", "", false);
+            Test("   032fa944-399a-4c04-9090-7ce1fd722a0d  /   d6d64cae9b40702f574d12de535f   ", "", false);
+
+            Test("/032fa944-399a-4c04-9090-7ce1fd722a0d/capture-schedules/d6d64cae9b4074b5c02f574d12de535f", "d6d64cae9b40702f574d12de535f", false);
+            Test("   /032fa944-399a-4c04-9090-7ce1fd722a0d/capture-schedules/d6d64cae9b4074b5c02f574d12de535f/    ", "d6d64cae9b40702f574d12de535f", false);
+            Test("032fa944-399a-4c04-9090-7ce1fd722a0d,d6d64cae9b4074b5c02f574d12de535f", "d6d64cae9b40702f574d12de535f", false);
+            Test("   032fa944-399a-4c04-9090-7ce1fd722a0d  ,   d6d64cae9b4074b5c02f574d12de535f   ", "d6d64cae9b40702f574d12de535f", false);
+            Test("032fa944-399a-4c04-9090-7ce1fd722a0d	d6d64cae9b4074b5c02f574d12de535f", "d6d64cae9b40702f574d12de535f", false);
+            Test("   032fa944-399a-4c04-9090-7ce1fd722a0d  	   d6d64cae9b4074b5c02f574d12de535f   ", "d6d64cae9b40702f574d12de535f", false);
+            Test("032fa944-399a-4c04-9090-7ce1fd722a0d/d6d64cae9b4074b5c02f574d12de535f", "d6d64cae9b40702f574d12de535f", false);
+            Test("   032fa944-399a-4c04-9090-7ce1fd722a0d  /   d6d64cae9b4074b5c02f574d12de535f   ", "d6d64cae9b40702f574d12de535f", false);
+
+            Test("   032fa944-399a-4c04-9090-7ce1fd722a0d     d6d64cae9b4074b5c02f574d12de535f   ", "", true);
+
+            return 0;
+
             Dictionary<string, List<Counts>> dict = new Dictionary<string, List<Counts>>();
             ProcessHelper proc = new ProcessHelper("git.exe", "log -n 1200 --pretty=\"%H %ae %ad\"");
             int maxAuthorLength = 0;
