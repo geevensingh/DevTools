@@ -19,6 +19,7 @@ namespace IdParser
 
         protected bool TryParseAccountIdAndScheduleId(out string accountId, out string scheduleId)
         {
+            List<string> warningMessages = new List<string>();
             accountId = Request.Form["accountId"].Trim();
             scheduleId = Request.Form["scheduleId"].Trim();
 
@@ -34,11 +35,17 @@ namespace IdParser
             Guid temp;
             if (!Guid.TryParseExact(accountId, "D", out temp))
             {
-                ViewBag.WarningMessage = string.Format("AccountId does not seem to be in the right format: {0}", accountId);
+                warningMessages.Add(string.Format("AccountId does not seem to be in the right format: {0}", accountId));
             }
-            else if (!Guid.TryParseExact(scheduleId, "N", out temp))
+
+            if (!Guid.TryParseExact(scheduleId, "N", out temp))
             {
-                ViewBag.WarningMessage = string.Format("ScheduleId does not seem to be in the right format: {0}", scheduleId);
+                warningMessages.Add(string.Format("ScheduleId does not seem to be in the right format: {0}", scheduleId));
+            }
+
+            if (warningMessages.Count > 0)
+            {
+                ViewBag.WarningMessage = string.Join("\r\n", warningMessages.ToArray());
             }
 
             return true;
