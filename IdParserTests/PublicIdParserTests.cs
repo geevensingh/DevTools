@@ -91,6 +91,29 @@ namespace IdParser.Tests
         }
 
         [DataTestMethod]
+        [DataRow("d6d64cae9b4074b5c02f574d12de535f,032fa944-399a-4c04-9090-7ce1fd722a0d", "")]
+        [DataRow(" d6d64cae9b4074b5c02f574d12de535f,032fa944-399a-4c04-9090-7ce1fd722a0d ", "")]
+        [DataRow("   d6d64cae9b4074b5c02f574d12de535f     032fa944-399a-4c04-9090-7ce1fd722a0d   ", "")]
+        [DataRow("/d6d64cae9b4074b5c02f574d12de535f/capture-schedules/032fa944-399a-4c04-9090-7ce1fd722a0d", "")]
+        [DataRow("   /d6d64cae9b4074b5c02f574d12de535f/capture-schedules/032fa944-399a-4c04-9090-7ce1fd722a0d/    ", "")]
+        [DataRow("d6d64cae9b4074b5c02f574d12de535f,032fa944-399a-4c04-9090-7ce1fd722a0d", "")]
+        [DataRow("   d6d64cae9b4074b5c02f574d12de535f  ,   032fa944-399a-4c04-9090-7ce1fd722a0d   ", "")]
+        [DataRow("d6d64cae9b4074b5c02f574d12de535f	032fa944-399a-4c04-9090-7ce1fd722a0d", "")]
+        [DataRow("   d6d64cae9b4074b5c02f574d12de535f  	   032fa944-399a-4c04-9090-7ce1fd722a0d   ", "")]
+        [DataRow("d6d64cae9b4074b5c02f574d12de535f/032fa944-399a-4c04-9090-7ce1fd722a0d", "")]
+        [DataRow("   d6d64cae9b4074b5c02f574d12de535f  /   032fa944-399a-4c04-9090-7ce1fd722a0d   ", "")]
+        [DataRow("   d6d64cae9b4074b5c02f574d12de535f  /   032fa944-399a-4c04-9090-7ce1fd722a0d   ", "")]
+        [DataRow("   d6d64cae9b4074b5c02f574d12de535f     032fa944-399a-4c04-9090-7ce1fd722a0d   ", "")]
+        public void TryParseTest_Passing_OutOfOrder(string accountId, string scheduleId)
+        {
+            PublicIdParser.TryParse(ref accountId, ref scheduleId, out PublicIdParser publicIdParser).Should().BeTrue();
+            publicIdParser.ViewBag.ErrorMessage.Should().BeEmpty();
+            publicIdParser.ViewBag.WarningMessage.Should().Be("Account and schedule seem to be swapped.  They've been swapped back.");
+            Guid.ParseExact(accountId, "D").ToString("D").Should().Be(accountId);
+            Guid.ParseExact(scheduleId, "N").ToString("N").Should().Be(scheduleId);
+        }
+
+        [DataTestMethod]
         [DataRow("")]
         [DataRow(" ")]
         [DataRow("    ")]

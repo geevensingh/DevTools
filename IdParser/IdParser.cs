@@ -74,6 +74,14 @@ namespace IdParser
 
                 accountId = parts[0];
                 scheduleId = parts[1];
+
+                Guid temp;
+                if (Guid.TryParseExact(scheduleId, "D", out temp) && Guid.TryParseExact(accountId, "N", out temp))
+                {
+                    ViewBag.WarningMessage = "Account and schedule seem to be swapped.  They've been swapped back.";
+                    accountId = parts[1];
+                    scheduleId = parts[0];
+                }
             }
 
             if (string.IsNullOrWhiteSpace(accountId))
