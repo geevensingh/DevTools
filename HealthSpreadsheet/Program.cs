@@ -13,24 +13,22 @@ namespace HealthSpreadsheet
     {
         static string rootPath = @"\\geevens-server\incoming\Health-Spreadsheet";
         static Dictionary<string, Dictionary<DateTime, Bucket>> reasonLookup = new Dictionary<string, Dictionary<DateTime, Bucket>>();
-        static string[] reasonStrings;
+        static List<string> reasonStrings;
 
         static void Main(string[] args)
         {
-            reasonStrings = File.ReadAllLines(Path.Combine(rootPath, "Reasons.txt"));
+            reasonStrings = File.ReadAllLines(Path.Combine(rootPath, "Reasons.txt")).ToList();
             foreach (string reasonString in reasonStrings)
             {
                 reasonLookup.Add(reasonString, new Dictionary<DateTime, Bucket>());
             }
 
+            List<DateTime> allDates = new List<DateTime>();
             string[] summaryOutputPaths = Directory.EnumerateFiles(rootPath, @"AllUpBadSchedulesSummaryByReason????_??_??.ss.csv", SearchOption.TopDirectoryOnly).ToArray();
             foreach (string summaryOutputPath in summaryOutputPaths)
             {
                 DateTime date = GetDateFromFilePath(summaryOutputPath);
-                foreach (string reasonString in reasonStrings)
-                {
-                    reasonLookup[reasonString].Add(date, new Bucket(reasonString));
-                }
+                allDates.Add(date);
 
                 string[] summaryOutputLines = File.ReadAllLines(summaryOutputPath);
                 for (int ii = 1; ii < summaryOutputLines.Length; ii++)
@@ -49,7 +47,29 @@ namespace HealthSpreadsheet
                         return;
                     }
 
-                    reasonLookup[reasonString][date].AddFromBucket(bucket);
+                    reasonLookup[reasonString][date] = bucket;
+                }
+            }
+
+            // Remove reasons that have never occured
+            foreach (string reasonString in reasonStrings)
+            {
+                if (reasonLookup[reasonString].Count == 0)
+                {
+                    reasonLookup.Remove(reasonString);
+                }
+            }
+            reasonStrings = reasonLookup.Keys.ToList();
+
+            // Fill in buckets that didn't occur
+            foreach (string reasonString in reasonStrings)
+            {
+                foreach (DateTime date in allDates)
+                {
+                    if (!reasonLookup[reasonString].ContainsKey(date))
+                    {
+                        reasonLookup[reasonString][date] = new Bucket(reasonString);
+                    }
                 }
             }
 
@@ -57,7 +77,7 @@ namespace HealthSpreadsheet
             Debug.Assert(reasonLookup.All(x => x.Value.Count == reasonLookup.First().Value.Count));
 
             DateTime latestDate = GetLatestDate();
-            reasonStrings = reasonStrings.OrderBy(x => reasonLookup[x], new SpecialComparer()).ToArray();
+            reasonStrings = reasonStrings.OrderBy(x => reasonLookup[x], new SpecialComparer()).ToList();
 
             string genericFilePath = Path.Combine(rootPath, "DunningHealth.xlsx");
             string datedFilePath = Path.Combine(rootPath, GetLatestDate().ToShortDateString().Replace('/', '_') + ".xlsx");

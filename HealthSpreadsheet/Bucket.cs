@@ -50,7 +50,7 @@ namespace HealthSpreadsheet
             };
         }
 
-        public string GetBestReason(string[] reasonStrings)
+        public string GetBestReason(List<string> reasonStrings)
         {
             foreach (string reasonString in reasonStrings)
             {
