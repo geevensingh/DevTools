@@ -44,8 +44,8 @@ namespace HealthSpreadsheet
             
             return new Bucket(parts.Take(parts.Length - 3).Aggregate((agg, x) => agg + "," + x))
             {
-                invoiceValue = decimal.Parse(parts[parts.Length - 1]),
-                consumerValue = decimal.Parse(parts[parts.Length - 2]),
+                invoiceValue = (decimal)float.Parse(parts[parts.Length - 1]),
+                consumerValue = (decimal)float.Parse(parts[parts.Length - 2]),
                 count = uint.Parse(parts[parts.Length - 3]),
             };
         }

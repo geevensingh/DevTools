@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using CcExcelWriter;
 
 namespace HealthSpreadsheet
 {
@@ -16,7 +17,7 @@ namespace HealthSpreadsheet
 
         static void Main(string[] args)
         {
-            reasonStrings = File.ReadAllLines(Path.Combine(rootPath, "Reasons.csv"));
+            reasonStrings = File.ReadAllLines(Path.Combine(rootPath, "Reasons.txt"));
             foreach (string reasonString in reasonStrings)
             {
                 reasonLookup.Add(reasonString, new Dictionary<DateTime, Bucket>());
@@ -44,6 +45,7 @@ namespace HealthSpreadsheet
                     if (reasonString == null)
                     {
                         Console.WriteLine("Unable to determine the best bucket for " + bucket.Reason);
+                        Console.ReadKey();
                         return;
                     }
 
@@ -57,38 +59,58 @@ namespace HealthSpreadsheet
             DateTime latestDate = GetLatestDate();
             reasonStrings = reasonStrings.OrderBy(x => reasonLookup[x], new SpecialComparer()).ToArray();
 
-            WriteCSVByReason(x => x.Count.ToString(), "Faulted-Count.csv");
-            WriteCSVByReason(x => x.InvoiceValue.ToString("F"), "Faulted-Invoice-Value.csv");
-            WriteCSVByReason(x => x.ConsumerValue.ToString("F"), "Faulted-Consumer-Value.csv");
+            string genericFilePath = Path.Combine(rootPath, "DunningHealth.xlsx");
+            string datedFilePath = Path.Combine(rootPath, GetLatestDate().ToShortDateString().Replace('/', '_') + ".xlsx");
+            File.Copy(genericFilePath, datedFilePath, overwrite: true);
+
+            WriteCSVByReason(x => x.Count, "Faulted-Count", datedFilePath);
+            WriteCSVByReason(x => x.InvoiceValue, "Faulted-Invoice-Value", datedFilePath);
+            WriteCSVByReason(x => x.ConsumerValue, "Faulted-Consumer-Value", datedFilePath);
+
+            File.Copy(datedFilePath, genericFilePath, overwrite: true);
+            Process.Start(genericFilePath);
         }
 
-        private static void WriteCSVByReason(Func<Bucket, string> func, string fileName)
+        private static void WriteCSVByReason(Func<Bucket, object> func, string sheetName, string filePath)
         {
-            StringBuilder fileContents = new StringBuilder();
-
-            List<string> columns = new List<string>();
-            columns.Add("Reason");
-            foreach (DateTime date in reasonLookup[reasonStrings[0]].Keys)
+            using (FileStream datedFile = new FileStream(filePath, FileMode.Open))
             {
-                columns.Add(date.ToShortDateString());
-            }
-            fileContents.AppendLine(string.Join(",", columns));
+                Excel datedExcel = new Excel(datedFile);
+                Sheet datedSheet = datedExcel.GetSheet(sheetName);
 
-            foreach (string reasonString in reasonStrings)
-            {
-                columns = new List<string>();
-                columns.Add(GetCSVReasonString(reasonString));
-                foreach (Bucket bucket in reasonLookup[reasonString].Values)
+                uint line = 0;
+                CellStyle textStyle = datedSheet.GetCellStyle("A", line + 1);
+                CellStyle dateStyle = datedSheet.GetCellStyle("B", line + 1);
+                CellStyle numberStyle = datedSheet.GetCellStyle("B", line + 2);
+
+                datedSheet.ClearAllSheetDataBelow(line++);
+
+                BaseAZ column = BaseAZ.Parse("A");
+                datedSheet.SetCell(column++, line, textStyle, "Reason");
+                DateTime[] dates = reasonLookup[reasonStrings[0]].Keys.OrderByDescending(x => x).ToArray();
+                foreach (DateTime date in dates)
                 {
-                    columns.Add(func(bucket));
+                    datedSheet.SetCell(column++, line, dateStyle, ToExcelDateValue(date));
                 }
-                fileContents.AppendLine(string.Join(",", columns));
-            }
+                line++;
 
-            string genericFilePath = Path.Combine(rootPath, fileName);
-            string datedFilePath = Path.Combine(rootPath, GetLatestDate().ToShortDateString().Replace('/', '_') + "_" + fileName);
-            File.WriteAllText(datedFilePath, fileContents.ToString(), Encoding.UTF8);
-            File.Copy(datedFilePath, genericFilePath, overwrite: true);
+                foreach (string reasonString in reasonStrings)
+                {
+                    column = BaseAZ.Parse("A");
+                    datedSheet.SetCell(column++, line, textStyle, GetCSVReasonString(reasonString));
+                    foreach (DateTime date in dates)
+                    {
+                        datedSheet.SetCell(column++, line, numberStyle, func(reasonLookup[reasonString][date]));
+                    }
+                    line++;
+                }
+                datedExcel.Save();
+            }
+        }
+
+        private static double ToExcelDateValue(DateTime date)
+        {
+            return (date - new DateTime(1900, 1, 1)).TotalDays + 1;
         }
 
         private static DateTime GetLatestDate()
