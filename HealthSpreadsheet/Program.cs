@@ -130,7 +130,7 @@ namespace HealthSpreadsheet
 
         private static double ToExcelDateValue(DateTime date)
         {
-            return (date - new DateTime(1900, 1, 1)).TotalDays + 1;
+            return (date - new DateTime(1900, 1, 1)).TotalDays + 2;
         }
 
         private static DateTime GetLatestDate()
