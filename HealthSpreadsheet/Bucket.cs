@@ -10,13 +10,13 @@ namespace HealthSpreadsheet
     class Bucket
     {
         private string reason;
-        private uint count;
+        private int count;
         private decimal consumerValue;
         private decimal invoiceValue;
 
         public decimal InvoiceValue { get => invoiceValue; }
         public decimal ConsumerValue { get => consumerValue; }
-        public uint Count { get => count; }
+        public int Count { get => count; }
         public string Reason { get => reason; }
 
         public Bucket(string reason)
@@ -46,7 +46,7 @@ namespace HealthSpreadsheet
             {
                 invoiceValue = (decimal)float.Parse(parts[parts.Length - 1]),
                 consumerValue = (decimal)float.Parse(parts[parts.Length - 2]),
-                count = uint.Parse(parts[parts.Length - 3]),
+                count = int.Parse(parts[parts.Length - 3]),
             };
         }
 
@@ -69,6 +69,17 @@ namespace HealthSpreadsheet
             }
 
             return null;
+        }
+
+        public static Bucket Diff(Bucket minuend, Bucket subtrahend)
+        {
+            Debug.Assert(minuend.Reason == subtrahend.Reason);
+            return new Bucket(minuend.Reason)
+            {
+                count = minuend.Count - subtrahend.Count,
+                consumerValue = minuend.ConsumerValue - subtrahend.ConsumerValue,
+                invoiceValue = minuend.InvoiceValue - subtrahend.InvoiceValue
+            };
         }
 
         public void AddFromBucket(Bucket bucket)

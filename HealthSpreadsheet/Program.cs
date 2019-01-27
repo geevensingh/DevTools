@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using CcExcelWriter;
 
 namespace HealthSpreadsheet
@@ -76,22 +75,42 @@ namespace HealthSpreadsheet
             // All bucket lists should have the same length
             Debug.Assert(reasonLookup.All(x => x.Value.Count == reasonLookup.First().Value.Count));
 
-            DateTime latestDate = GetLatestDate();
+            // Make sure the dates are all the same
+            allDates.Sort();
+            List<DateTime> dateTimes = reasonLookup[reasonStrings[0]].Keys.ToList();
+            dateTimes.Sort();
+            Debug.Assert(allDates.Count == dateTimes.Count);
+            for (int ii = 0; ii < allDates.Count; ii++)
+            {
+                Debug.Assert(allDates[ii] == dateTimes[ii]);
+            }
+
+            // Figure out the diff between the last 2 dates
+            DateTime latestDate = allDates.Last();
+            DateTime nextLatestDate = allDates.Where(x => x != latestDate).Last();
+            Dictionary<string, Bucket> diffs = new Dictionary<string, Bucket>();
+            foreach (string reasonString in reasonStrings)
+            {
+                Dictionary<DateTime, Bucket> x = reasonLookup[reasonString];
+                diffs.Add(reasonString, Bucket.Diff(x[latestDate], x[nextLatestDate]));
+            }
+
+            // Order the reasons by SpecialComparer (probably by count)
             reasonStrings = reasonStrings.OrderBy(x => reasonLookup[x], new SpecialComparer()).ToList();
 
             string genericFilePath = Path.Combine(rootPath, "DunningHealth.xlsx");
             string datedFilePath = Path.Combine(rootPath, GetLatestDate().ToShortDateString().Replace('/', '_') + ".xlsx");
             File.Copy(genericFilePath, datedFilePath, overwrite: true);
 
-            WriteCSVByReason(x => x.Count, "Faulted-Count", datedFilePath);
-            WriteCSVByReason(x => x.InvoiceValue, "Faulted-Invoice-Value", datedFilePath);
-            WriteCSVByReason(x => x.ConsumerValue, "Faulted-Consumer-Value", datedFilePath);
+            WriteSheet(diffs, x => x.Count, "Faulted-Count", datedFilePath);
+            WriteSheet(diffs, x => x.InvoiceValue, "Faulted-Invoice-Value", datedFilePath);
+            WriteSheet(diffs, x => x.ConsumerValue, "Faulted-Consumer-Value", datedFilePath);
 
             File.Copy(datedFilePath, genericFilePath, overwrite: true);
             Process.Start(genericFilePath);
         }
 
-        private static void WriteCSVByReason(Func<Bucket, object> func, string sheetName, string filePath)
+        private static void WriteSheet(Dictionary<string, Bucket> diffs, Func<Bucket, object> func, string sheetName, string filePath)
         {
             using (FileStream datedFile = new FileStream(filePath, FileMode.Open))
             {
@@ -117,7 +136,7 @@ namespace HealthSpreadsheet
                 foreach (string reasonString in reasonStrings)
                 {
                     column = BaseAZ.Parse("A");
-                    datedSheet.SetCell(column++, line, textStyle, GetCSVReasonString(reasonString));
+                    datedSheet.SetCell(column++, line, textStyle, GetReasonString(diffs, func, reasonString));
                     foreach (DateTime date in dates)
                     {
                         datedSheet.SetCell(column++, line, numberStyle, func(reasonLookup[reasonString][date]));
@@ -138,19 +157,32 @@ namespace HealthSpreadsheet
             return reasonLookup[reasonStrings[0]].Keys.Max();
         }
 
-        private static string GetCSVReasonString(string reason)
+        private static string GetReasonString(Dictionary<string, Bucket> diffs, Func<Bucket, object> func, string reason)
         {
+            string prefixString = string.Empty;
+            object prefixObject = func(diffs[reason]);
+            if (prefixObject is int prefixInt && prefixInt != 0)
+            {
+                prefixString = prefixInt.ToString();
+            }
+            else if (prefixObject is decimal prefixDecimal && prefixDecimal != 0m)
+            {
+                NumberFormatInfo current = (NumberFormatInfo)NumberFormatInfo.CurrentInfo.Clone();
+                current.CurrencyNegativePattern = 1;    // -$n
+                prefixString = string.Format(current, "{0:C}", prefixDecimal);
+            }
+
+            if (!string.IsNullOrEmpty(prefixString))
+            {
+                prefixString += " : ";
+            }
+
             if (string.IsNullOrEmpty(reason))
             {
-                return "Silent";
+                reason = "Silent";
             }
 
-            if (reason.Contains(","))
-            {
-                return "\"" + reason + "\"";
-            }
-
-            return reason;
+            return prefixString + reason;
         }
 
         private static DateTime GetDateFromFilePath(string summaryOutputPath)
