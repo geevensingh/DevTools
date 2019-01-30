@@ -508,7 +508,7 @@
                     }
                     else
                     {
-                        oneLineValue += $" ({dateTimeValue} local - {prettyTimeSpan})";
+                        oneLineValue += $" ({prettyTimeSpan}, {dateTimeValue} local)";
                     }
                 }
                 else if (this.TypedValue is TimeSpan)
