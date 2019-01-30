@@ -150,6 +150,22 @@
       "AppliesToParents": false,
       "WarningMessage": "Warning: test_header key found!",
       "IgnoreCase": false
+    },
+    {
+      "String": "testHeader",
+      "MatchType": "Exact",
+      "MatchField": "Key",
+      "AppliesToParents": false,
+      "WarningMessage": "Warning: testHeader key found!",
+      "IgnoreCase": false
+    },
+    {
+      "String": "expiration_changed",
+      "MatchType": "Exact",
+      "MatchField": "Value",
+      "AppliesToParents": false,
+      "WarningMessage": "Warning: expiration_changed value found!",
+      "IgnoreCase": false
     }
   ]
 }

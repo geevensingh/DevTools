@@ -500,11 +500,20 @@
 
                 if (this.TypedValue is DateTime)
                 {
-                    oneLineValue += " (" + Utilities.TimeSpanStringify.PrettyApprox((DateTime)this.TypedValue - DateTime.Now) + ")";
+                    DateTime dateTimeValue = (DateTime)this.TypedValue;
+                    string prettyTimeSpan = TimeSpanStringify.PrettyApprox(dateTimeValue - DateTime.Now);
+                    if (dateTimeValue.Kind == DateTimeKind.Utc)
+                    {
+                        oneLineValue += $" ({prettyTimeSpan})";
+                    }
+                    else
+                    {
+                        oneLineValue += $" ({dateTimeValue} local - {prettyTimeSpan})";
+                    }
                 }
                 else if (this.TypedValue is TimeSpan)
                 {
-                    oneLineValue += " (" + Utilities.TimeSpanStringify.PrettyApprox((TimeSpan)this.TypedValue) + ")";
+                    oneLineValue += " (" + TimeSpanStringify.PrettyApprox((TimeSpan)this.TypedValue) + ")";
                 }
             }
 
@@ -558,10 +567,10 @@
             string type;
             switch (this.Type)
             {
-                case JsonObject.DataType.Array:
+                case DataType.Array:
                     type = "array[" + (value as System.Collections.ArrayList).Count + "]";
                     break;
-                case JsonObject.DataType.Json:
+                case DataType.Json:
                     type = "json-object{" + (value as Dictionary<string, object>).Keys.Count + "}";
                     break;
                 default:
@@ -572,7 +581,7 @@
                     }
                     else
                     {
-                        type = Utilities.StringHelper.TrimStart(value.GetType().ToString(), "System.");
+                        type = StringHelper.TrimStart(value.GetType().ToString(), "System.");
                     }
 
                     break;
@@ -620,7 +629,7 @@
         private string GetPrettyString(int depth = 0)
         {
             StringBuilder sb = new StringBuilder();
-            sb.Append(Utilities.StringHelper.GeneratePrefix(depth, "  "));
+            sb.Append(StringHelper.GeneratePrefix(depth, "  "));
             sb.Append(this.GetPrettyKeySting(depth));
 
             if (this.HasChildren)
@@ -635,7 +644,7 @@
 
                 sb.Append(string.Join(",\r\n", childStrings.ToArray()));
                 sb.Append("\r\n");
-                sb.Append(Utilities.StringHelper.GeneratePrefix(depth, "  "));
+                sb.Append(StringHelper.GeneratePrefix(depth, "  "));
                 sb.Append(this.GetWrapString(start: false));
             }
             else
@@ -656,7 +665,7 @@
                 else
                 {
                     sb.Append("\"");
-                    sb.Append(Utilities.CSEscape.Escape(_originalString));
+                    sb.Append(CSEscape.Escape(_originalString));
                     sb.Append("\"");
                 }
             }
