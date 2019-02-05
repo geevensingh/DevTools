@@ -10,7 +10,7 @@ namespace HealthSpreadsheet
 {
     class Program
     {
-        static string rootPath = @"\\geevens-server\incoming\Health-Spreadsheet";
+        static string rootPath = @"\\geevens-server\incoming\Health-Spreadsheet - Test";
         static Dictionary<string, Dictionary<DateTime, Bucket>> reasonLookup = new Dictionary<string, Dictionary<DateTime, Bucket>>();
         static List<string> reasonStrings;
 
@@ -37,7 +37,7 @@ namespace HealthSpreadsheet
                         continue;
                     }
 
-                    Bucket bucket = Bucket.CreateFromLine(date, summaryOutputLines[0], summaryOutputLines[ii]);
+                    Bucket bucket = Bucket.CreateFromLine(summaryOutputLines[0], summaryOutputLines[ii]);
                     string reasonString = bucket.GetBestReason(reasonStrings);
                     if (reasonString == null)
                     {

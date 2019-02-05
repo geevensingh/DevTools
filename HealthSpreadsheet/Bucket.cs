@@ -27,7 +27,7 @@ namespace HealthSpreadsheet
             this.invoiceValue = 0m;
         }
 
-        public static Bucket CreateFromLine(DateTime date, string header, string line)
+        public static Bucket CreateFromLine(string header, string line)
         {
             if (header == "Reason,Count,TotalUSD")
             {
@@ -74,7 +74,7 @@ namespace HealthSpreadsheet
         public static Bucket Diff(Bucket minuend, Bucket subtrahend, List<string> reasonStrings)
         {
             Debug.Assert(minuend.GetBestReason(reasonStrings) == subtrahend.GetBestReason(reasonStrings));
-            return new Bucket(minuend.Reason)
+            return new Bucket(minuend.GetBestReason(reasonStrings))
             {
                 count = minuend.Count - subtrahend.Count,
                 consumerValue = minuend.ConsumerValue - subtrahend.ConsumerValue,
