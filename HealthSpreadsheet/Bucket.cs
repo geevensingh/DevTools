@@ -71,9 +71,9 @@ namespace HealthSpreadsheet
             return null;
         }
 
-        public static Bucket Diff(Bucket minuend, Bucket subtrahend)
+        public static Bucket Diff(Bucket minuend, Bucket subtrahend, List<string> reasonStrings)
         {
-            Debug.Assert(minuend.Reason == subtrahend.Reason);
+            Debug.Assert(minuend.GetBestReason(reasonStrings) == subtrahend.GetBestReason(reasonStrings));
             return new Bucket(minuend.Reason)
             {
                 count = minuend.Count - subtrahend.Count,

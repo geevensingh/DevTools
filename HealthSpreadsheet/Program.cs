@@ -92,7 +92,7 @@ namespace HealthSpreadsheet
             foreach (string reasonString in reasonStrings)
             {
                 Dictionary<DateTime, Bucket> x = reasonLookup[reasonString];
-                diffs.Add(reasonString, Bucket.Diff(x[latestDate], x[nextLatestDate]));
+                diffs.Add(reasonString, Bucket.Diff(x[latestDate], x[nextLatestDate], reasonStrings));
             }
 
             // Order the reasons by SpecialComparer (probably by count)
