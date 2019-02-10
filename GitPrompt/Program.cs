@@ -11,14 +11,14 @@ namespace GitPrompt
     {
         static void Main(string[] args)
         {
-            Logger.AnnounceStartStopActions = false;
+            OldLogger.AnnounceStartStopActions = false;
 #if DEBUG
-            Logger.AnnounceStartStopActions = true;
+            OldLogger.AnnounceStartStopActions = true;
 #endif
 
             GitStatus status = GitStatus.Get();
             string root = Environment.GetEnvironmentVariable("REPO_ROOT");
-            Logger.LogLine(String.Join(" ", new string[] { root, status.Branch, status.RemoteChanges, status.AllLocalChanges }));
+            OldLogger.LogLine(String.Join(" ", new string[] { root, status.Branch, status.RemoteChanges, status.AllLocalChanges }));
         }
     }
 }

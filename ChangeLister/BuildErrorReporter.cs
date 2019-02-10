@@ -18,7 +18,7 @@ namespace ChangeLister
 
             if (!cache.ContainsKey(client.Name))
             {
-                Logger.Start("generateErrorReport - " + client.Path);
+                OldLogger.Start("generateErrorReport - " + client.Path);
                 List<string> result = new List<string>();
 #if false
                 SearchOption searchOption = SearchOption.AllDirectories;
@@ -38,7 +38,7 @@ namespace ChangeLister
                     result.Add("Build warning file found at:" + errorFiles[ii]);
                 }
 #endif
-                Logger.Stop("generateErrorReport - " + client.Path);
+                OldLogger.Stop("generateErrorReport - " + client.Path);
                 cache.Add(client.Name, result.ToArray());
             }
             Debug.Assert(cache.ContainsKey(client.Name));

@@ -36,7 +36,7 @@ namespace Cleanup
                     FileInfo fileInfo = new FileInfo(possiblyRemovedFilePath);
                     if (fileInfo.Length < 4)
                     {
-                        Logger.LogLine("Deleted: " + possiblyRemovedFilePath);
+                        OldLogger.LogLine("Deleted: " + possiblyRemovedFilePath);
                         File.Delete(possiblyRemovedFilePath);
                         toBeRemoved.Add(Path.GetFileName(possiblyRemovedFilePath));
                     }
@@ -66,10 +66,10 @@ namespace Cleanup
                 }
                 if (removedLines.Count > 0)
                 {
-                    Logger.LogLine(@"Lines to be removed from " + file + " :");
+                    OldLogger.LogLine(@"Lines to be removed from " + file + " :");
                     foreach(string removedLine in removedLines)
                     {
-                        Logger.LogLine("\t" + removedLine.Trim());
+                        OldLogger.LogLine("\t" + removedLine.Trim());
                     }
                     File.WriteAllLines(file, lines, Utilities.IOHelper.GetEncoding(file));
                 }

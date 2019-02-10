@@ -59,10 +59,10 @@ namespace Utilities
 
         public string[] Go()
         {
-            return Go(Logger.LevelValue.SuperChatty);
+            return Go(OldLogger.LevelValue.SuperChatty);
         }
 
-        public string[] Go(Logger.LevelValue logLevel)
+        public string[] Go(OldLogger.LevelValue logLevel)
         {
             Process process = new Process();
             process.StartInfo.FileName = _fileName;
@@ -76,7 +76,7 @@ namespace Utilities
             {
                 logEventName += " ( " + process.StartInfo.WorkingDirectory + " )";
             }
-            Logger.Start(logEventName, logLevel);
+            OldLogger.Start(logEventName, logLevel);
 
             process.StartInfo.RedirectStandardError = true;
             process.StartInfo.RedirectStandardOutput = true;
@@ -94,7 +94,7 @@ namespace Utilities
             process.OutputDataReceived -= Process_OutputDataReceived;
             process.ErrorDataReceived -= Process_ErrorDataReceived;
 
-            Logger.Stop(logEventName, output: GetAllOutput(true), level: logLevel);
+            OldLogger.Stop(logEventName, output: GetAllOutput(true), level: logLevel);
             return GetAllOutput(false);
         }
         private System.Threading.Mutex _outputMutex = new System.Threading.Mutex();

@@ -14,8 +14,8 @@ namespace GitSync
         {
             bool forceDelete = false;
 #if DEBUG
-            Logger.Level = Logger.LevelValue.Verbose;
-            Logger.AnnounceStartStopActions = true;
+            OldLogger.Level = OldLogger.LevelValue.Verbose;
+            OldLogger.AnnounceStartStopActions = true;
 #endif
             for (int ii = 0; ii < args.Length; ii++)
             {
@@ -24,18 +24,18 @@ namespace GitSync
                 {
                     case "/v":
                     case "/verbose":
-                        Logger.AnnounceStartStopActions = true;
-                        Logger.Level = Logger.LevelValue.Verbose;
+                        OldLogger.AnnounceStartStopActions = true;
+                        OldLogger.Level = OldLogger.LevelValue.Verbose;
                         break;
                     case "/log":
-                        Logger.AddLogFile(args[++ii]);
+                        OldLogger.AddLogFile(args[++ii]);
                         break;
                     case "/html":
-                        Logger.AddHTMLLogFile(args[++ii]);
+                        OldLogger.AddHTMLLogFile(args[++ii]);
                         break;
                     case "/vlog":
-                        Logger.AnnounceStartStopActions = true;
-                        Logger.AddLogFile(args[++ii], Logger.LevelValue.Verbose);
+                        OldLogger.AnnounceStartStopActions = true;
+                        OldLogger.AddLogFile(args[++ii], OldLogger.LevelValue.Verbose);
                         break;
                     case "/fd":
                         forceDelete = true;
@@ -43,22 +43,22 @@ namespace GitSync
                     default:
                         Console.WriteLine("Unknown argument: " + arg);
                         PrintUsage();
-                        Logger.FlushLogs();
-                        return (int)Logger.WarningCount;
+                        OldLogger.FlushLogs();
+                        return (int)OldLogger.WarningCount;
                 }
             }
 
-            string verboseLogFile = Logger.VerboseLogPath;
+            string verboseLogFile = OldLogger.VerboseLogPath;
             if (!string.IsNullOrEmpty(verboseLogFile))
             {
-                Logger.LogLine("Verbose log path: " + verboseLogFile);
+                OldLogger.LogLine("Verbose log path: " + verboseLogFile);
             }
 
-            Logger.Log("Fetching... ");
+            OldLogger.Log("Fetching... ");
             GitOperations.FetchAll();
-            Logger.LogLine("done");
+            OldLogger.LogLine("done");
 
-            Logger.LogLine(@"Examining local branches...");
+            OldLogger.LogLine(@"Examining local branches...");
 
             List<string> localBranches = new List<string>(GitOperations.GetLocalBranches());
             string masterBranch = "master";
@@ -74,7 +74,7 @@ namespace GitSync
             {
                 if (!remoteBranches.Contains(branch) && !remoteBranches.Contains("origin/" + branch) && !branch.Contains("HEAD"))
                 {
-                    Logger.LogLine("Remote branch is gone for " + branch, Logger.LevelValue.Warning);
+                    OldLogger.LogLine("Remote branch is gone for " + branch, OldLogger.LevelValue.Warning);
                     localBranchesWithoutRemote.Add(branch);
                 }
             }
@@ -95,7 +95,7 @@ namespace GitSync
             {
                 if (string.IsNullOrEmpty(branchBasedOn[branch]))
                 {
-                    Logger.LogLine(@"missing based on: " + branch, Logger.LevelValue.Verbose);
+                    OldLogger.LogLine(@"missing based on: " + branch, OldLogger.LevelValue.Verbose);
                     missingBasedOn.Add(branch);
                 }
             }
@@ -106,7 +106,7 @@ namespace GitSync
                 if (GitOperations.IsReleaseBranchName(branch))
                 {
                     missingBasedOn.RemoveAt(ii--);
-                    Logger.LogLine(@"not worried about release branch: " + branch, Logger.LevelValue.Verbose);
+                    OldLogger.LogLine(@"not worried about release branch: " + branch, OldLogger.LevelValue.Verbose);
                 }
             }
 
@@ -120,16 +120,16 @@ namespace GitSync
                     string basedOnBranch = GitOperations.BranchContains(branch, releaseForkPoints);
                     if (string.IsNullOrEmpty(basedOnBranch))
                     {
-                        Logger.LogLine("Ignoring " + branch, Logger.LevelValue.Warning);
-                        Logger.LogLine("Unable to determine the parent branch.  If this is based on " + masterBranch + ", run the following command:");
-                        Logger.LogLine("\tgit config branch." + branch + ".basedon " + masterBranch);
+                        OldLogger.LogLine("Ignoring " + branch, OldLogger.LevelValue.Warning);
+                        OldLogger.LogLine("Unable to determine the parent branch.  If this is based on " + masterBranch + ", run the following command:");
+                        OldLogger.LogLine("\tgit config branch." + branch + ".basedon " + masterBranch);
                         branchBasedOn.Remove(branch);
                     }
                     else
                     {
-                        Logger.LogLine(branch + @" seems to be based on " + basedOnBranch);
-                        Logger.LogLine(@"If so, run the following command for faster runs in the future:");
-                        Logger.LogLine("\tgit config branch." + branch + ".basedon " + basedOnBranch);
+                        OldLogger.LogLine(branch + @" seems to be based on " + basedOnBranch);
+                        OldLogger.LogLine(@"If so, run the following command for faster runs in the future:");
+                        OldLogger.LogLine("\tgit config branch." + branch + ".basedon " + basedOnBranch);
                         Debug.Assert(string.IsNullOrEmpty(branchBasedOn[branch]));
                         branchBasedOn[branch] = basedOnBranch;
                         missingBasedOn.Remove(branch);
@@ -139,14 +139,14 @@ namespace GitSync
 
             GitStatus originalStatus = GitOperations.GetStatus();
             String originalBranch = originalStatus.Branch;
-            Logger.LogLine("\r\nStarted in " + originalBranch);
+            OldLogger.LogLine("\r\nStarted in " + originalBranch);
             if (originalStatus.AnyChanges)
             {
                 if (!GitOperations.Stash())
                 {
-                    Logger.LogLine("Unable to stash the current work.  Cannot continue.", Logger.LevelValue.Error);
-                    Logger.FlushLogs();
-                    return (int)Logger.WarningCount;
+                    OldLogger.LogLine("Unable to stash the current work.  Cannot continue.", OldLogger.LevelValue.Error);
+                    OldLogger.FlushLogs();
+                    return (int)OldLogger.WarningCount;
                 }
             }
 
@@ -157,8 +157,8 @@ namespace GitSync
                 {
                     if (!GitOperations.SwitchBranch(masterBranch, out failureProc))
                     {
-                        Logger.LogLine("Unable to switch branches", Logger.LevelValue.Warning);
-                        Logger.LogLine(failureProc.AllOutput, Logger.LevelValue.Normal);
+                        OldLogger.LogLine("Unable to switch branches", OldLogger.LevelValue.Warning);
+                        OldLogger.LogLine(failureProc.AllOutput, OldLogger.LevelValue.Normal);
                         continue;
                     }
                 }
@@ -182,7 +182,7 @@ namespace GitSync
             foreach (string branch in branchBasedOn.Keys)
             {
                 Debug.Assert(!missingBasedOn.Contains(branch));
-                Logger.LogLine(string.Empty);
+                OldLogger.LogLine(string.Empty);
 
                 PullBranch(branch);
 
@@ -193,14 +193,14 @@ namespace GitSync
                 }
                 MergeBranch(branch, parentBranch);
             }
-            Logger.LogLine(string.Empty);
+            OldLogger.LogLine(string.Empty);
 
             if (!GitOperations.SwitchBranch(originalBranch, out failureProc))
             {
-                Logger.LogLine("Unable to switch branches", Logger.LevelValue.Error);
-                Logger.LogLine(failureProc.AllOutput, Logger.LevelValue.Warning);
-                Logger.FlushLogs();
-                return (int)Logger.WarningCount;
+                OldLogger.LogLine("Unable to switch branches", OldLogger.LevelValue.Error);
+                OldLogger.LogLine(failureProc.AllOutput, OldLogger.LevelValue.Warning);
+                OldLogger.FlushLogs();
+                return (int)OldLogger.WarningCount;
             }
 
             if (originalStatus.AnyChanges)
@@ -208,8 +208,8 @@ namespace GitSync
                 GitOperations.StashPop();
             }
 
-            Logger.FlushLogs();
-            return (int)Logger.WarningCount;
+            OldLogger.FlushLogs();
+            return (int)OldLogger.WarningCount;
         }
 
         private static void PullBranch(string localBranch)
@@ -224,15 +224,15 @@ namespace GitSync
         {
             if (!GitOperations.IsBranchBehind(localBranch, mergeSource))
             {
-                Logger.LogLine(localBranch + " is up to date with " + mergeSource);
+                OldLogger.LogLine(localBranch + " is up to date with " + mergeSource);
                 return;
             }
 
             ProcessHelper failureProc = null;
             if (!GitOperations.SwitchBranch(localBranch, out failureProc))
             {
-                Logger.LogLine("Unable to switch branches", Logger.LevelValue.Warning);
-                Logger.LogLine(failureProc.AllOutput, Logger.LevelValue.Normal);
+                OldLogger.LogLine("Unable to switch branches", OldLogger.LevelValue.Warning);
+                OldLogger.LogLine(failureProc.AllOutput, OldLogger.LevelValue.Normal);
                 return;
             }
 
@@ -243,15 +243,15 @@ namespace GitSync
         {
             if (!GitOperations.IsBranchBehind(localBranch, "origin/" + localBranch))
             {
-                Logger.LogLine(localBranch + " is up to date with origin/" + localBranch);
+                OldLogger.LogLine(localBranch + " is up to date with origin/" + localBranch);
                 return false;
             }
 
             ProcessHelper failureProc = null;
             if (!GitOperations.SwitchBranch(localBranch, out failureProc))
             {
-                Logger.LogLine("Unable to switch branches", Logger.LevelValue.Warning);
-                Logger.LogLine(failureProc.AllOutput, Logger.LevelValue.Normal);
+                OldLogger.LogLine("Unable to switch branches", OldLogger.LevelValue.Warning);
+                OldLogger.LogLine(failureProc.AllOutput, OldLogger.LevelValue.Normal);
                 return false;
             }
 
