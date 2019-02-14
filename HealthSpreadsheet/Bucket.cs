@@ -42,6 +42,7 @@ namespace HealthSpreadsheet
             {
                 // If we only have ConsumerUSDImpact and CommercialUSDImpact, then treat the
                 // ConsumerUSDImpact as EAInvoiceUSDImpact and set NonEAInvoiceUSDImpact to 0.
+                // This means inserting a 0 just before the last value.
                 line = line.Insert(line.LastIndexOf(','), ",0");
             }
             else
