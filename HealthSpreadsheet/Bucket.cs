@@ -13,8 +13,10 @@ namespace HealthSpreadsheet
         private int count;
         private decimal consumerValue;
         private decimal invoiceValue;
+        private decimal eaValue;
 
         public decimal InvoiceValue { get => invoiceValue; }
+        public decimal EAValue { get => eaValue; }
         public decimal ConsumerValue { get => consumerValue; }
         public int Count { get => count; }
         public string Reason { get => reason; }
@@ -25,28 +27,37 @@ namespace HealthSpreadsheet
             this.count = 0;
             this.consumerValue = 0m;
             this.invoiceValue = 0m;
+            this.eaValue = 0m;
         }
 
         public static Bucket CreateFromLine(string header, string line)
         {
             if (header == "Reason,Count,TotalUSD")
             {
-                // inject a 0 value at the end for CommercialUSDImpact so that we treat TotalUSD as ConsumerUSDImpact
-                line += ",0";
+                // If we only have TotalUSD, then treat it all like ConsumerUSDImpact and
+                // set NonEAInvoiceUSDImpact and EAInvoiceUSDImpact to 0
+                line += ",0,0";
+            }
+            else if (header == "Reason,Count,ConsumerUSDImpact,CommercialUSDImpact")
+            {
+                // If we only have ConsumerUSDImpact and CommercialUSDImpact, then treat the
+                // ConsumerUSDImpact as EAInvoiceUSDImpact and set NonEAInvoiceUSDImpact to 0.
+                line = line.Insert(line.LastIndexOf(','), ",0");
             }
             else
             {
-                Debug.Assert(header == "Reason,Count,ConsumerUSDImpact,CommercialUSDImpact");
+                Debug.Assert(header == "Reason,Count,ConsumerUSDImpact,NonEAInvoiceUSDImpact,EAInvoiceUSDImpact");
             }
 
             string[] parts = line.Split(new char[] { ',' }, StringSplitOptions.None);
-            Debug.Assert(parts.Length >= 4);
+            Debug.Assert(parts.Length >= 5);
             
-            return new Bucket(parts.Take(parts.Length - 3).Aggregate((agg, x) => agg + "," + x))
+            return new Bucket(parts.Take(parts.Length - 4).Aggregate((agg, x) => agg + "," + x))
             {
-                invoiceValue = (decimal)float.Parse(parts[parts.Length - 1]),
-                consumerValue = (decimal)float.Parse(parts[parts.Length - 2]),
-                count = int.Parse(parts[parts.Length - 3]),
+                eaValue = (decimal)float.Parse(parts[parts.Length - 1]),
+                invoiceValue = (decimal)float.Parse(parts[parts.Length - 2]),
+                consumerValue = (decimal)float.Parse(parts[parts.Length - 3]),
+                count = int.Parse(parts[parts.Length - 4]),
             };
         }
 
@@ -78,12 +89,14 @@ namespace HealthSpreadsheet
             {
                 count = minuend.Count - subtrahend.Count,
                 consumerValue = minuend.ConsumerValue - subtrahend.ConsumerValue,
-                invoiceValue = minuend.InvoiceValue - subtrahend.InvoiceValue
+                invoiceValue = minuend.InvoiceValue - subtrahend.InvoiceValue,
+                eaValue = minuend.EAValue - subtrahend.EAValue,
             };
         }
 
         public void AddFromBucket(Bucket bucket)
         {
+            this.eaValue += bucket.eaValue;
             this.invoiceValue += bucket.invoiceValue;
             this.consumerValue += bucket.consumerValue;
             this.count += bucket.count;

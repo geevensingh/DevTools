@@ -10,7 +10,7 @@ namespace HealthSpreadsheet
 {
     class Program
     {
-        static string rootPath = @"\\geevens-server\incoming\Health-Spreadsheet - Test";
+        static string rootPath = @"\\geevens-server\incoming\Health-Spreadsheet";
         static Dictionary<string, Dictionary<DateTime, Bucket>> reasonLookup = new Dictionary<string, Dictionary<DateTime, Bucket>>();
         static List<string> reasonStrings;
 
@@ -102,9 +102,10 @@ namespace HealthSpreadsheet
             string datedFilePath = Path.Combine(rootPath, GetLatestDate().ToShortDateString().Replace('/', '_') + ".xlsx");
             File.Copy(genericFilePath, datedFilePath, overwrite: true);
 
-            WriteSheet(diffs, x => x.Count, "Faulted-Count", datedFilePath);
-            WriteSheet(diffs, x => x.InvoiceValue, "Faulted-Invoice-Value", datedFilePath);
-            WriteSheet(diffs, x => x.ConsumerValue, "Faulted-Consumer-Value", datedFilePath);
+            WriteSheet(diffs, x => x.Count, "Count-Data", datedFilePath);
+            WriteSheet(diffs, x => x.InvoiceValue, "Invoice-Data", datedFilePath);
+            WriteSheet(diffs, x => x.EAValue, "EA-Data", datedFilePath);
+            WriteSheet(diffs, x => x.ConsumerValue, "Consumer-Data", datedFilePath);
 
             File.Copy(datedFilePath, genericFilePath, overwrite: true);
             Process.Start(genericFilePath);
