@@ -12,24 +12,24 @@ namespace GitSwitchBranch
         static void Main(string[] args)
         {
 #if DEBUG
-            Logger.AnnounceStartStopActions = true;
-            Logger.Level = Logger.LevelValue.Verbose;
+            OldLogger.AnnounceStartStopActions = true;
+            OldLogger.Level = OldLogger.LevelValue.Verbose;
 #endif
 
             string currentBranch = GitOperations.GetCurrentBranchName();
             List<string> branches = new List<string>(GitOperations.GetLocalBranches());
             branches.Remove(currentBranch);
 
-            Logger.LogLine(@"Currently on " + currentBranch);
-            Logger.LogLine(@"Select from the following:");
+            OldLogger.LogLine(@"Currently on " + currentBranch);
+            OldLogger.LogLine(@"Select from the following:");
             for (int ii = 0; ii < Math.Min(9, branches.Count); ii++)
             {
-                Logger.LogLine("\t" + (ii + 1) + " : " + branches[ii]);
+                OldLogger.LogLine("\t" + (ii + 1) + " : " + branches[ii]);
             }
-            Logger.LogLine("\tn : Make a new branch");
-            Logger.LogLine("\tf : Follow an existing remote branch");
+            OldLogger.LogLine("\tn : Make a new branch");
+            OldLogger.LogLine("\tf : Follow an existing remote branch");
             string input = Console.ReadKey().KeyChar.ToString().Trim().ToLower();
-            Logger.LogLine(string.Empty);
+            OldLogger.LogLine(string.Empty);
             if (string.IsNullOrEmpty(input) || (input.ToLower() == "q"))
             {
                 return;
@@ -50,20 +50,20 @@ namespace GitSwitchBranch
             if ((input == "-") || (input == "--"))
             {
                 SwitchBranch("-");
-                Logger.LogLine("Branch is now : " + GitOperations.GetCurrentBranchName());
+                OldLogger.LogLine("Branch is now : " + GitOperations.GetCurrentBranchName());
                 return;
             }
 
             int index = -1;
             if (!int.TryParse(input, out index))
             {
-                Logger.LogLine(@"Not a valid number: " + input, Logger.LevelValue.Error);
+                OldLogger.LogLine(@"Not a valid number: " + input, OldLogger.LevelValue.Error);
                 return;
             }
 
             if ((index <= 0) || (index > branches.Count))
             {
-                Logger.LogLine(@"Invalid index: " + index, Logger.LevelValue.Error);
+                OldLogger.LogLine(@"Invalid index: " + index, OldLogger.LevelValue.Error);
                 return;
             }
 
@@ -75,8 +75,8 @@ namespace GitSwitchBranch
             ProcessHelper proc = null;
             if (!GitOperations.SwitchBranch(newBranch, out proc))
             {
-                Logger.LogLine("Unable to switch branches", Logger.LevelValue.Error);
-                Logger.LogLine(proc.AllOutput, Logger.LevelValue.Warning);
+                OldLogger.LogLine("Unable to switch branches", OldLogger.LevelValue.Error);
+                OldLogger.LogLine(proc.AllOutput, OldLogger.LevelValue.Warning);
             }
         }
 
@@ -107,14 +107,14 @@ namespace GitSwitchBranch
             }
             if (matchingBranches.Count > 0)
             {
-                Logger.LogLine(@"Select from the following:");
+                OldLogger.LogLine(@"Select from the following:");
                 for (int ii = 0; ii < matchingBranches.Count; ii++)
                 {
-                    Logger.LogLine("\t" + (ii + 1) + " : " + matchingBranches[ii]);
+                    OldLogger.LogLine("\t" + (ii + 1) + " : " + matchingBranches[ii]);
                 }
-                Logger.Log("Or");
+                OldLogger.Log("Or");
             }
-            Logger.LogLine("Enter another branch name");
+            OldLogger.LogLine("Enter another branch name");
             string prompt = Console.ReadLine().Trim();
             if (string.IsNullOrEmpty(prompt) || (prompt.ToLower() == "q"))
             {
@@ -141,7 +141,7 @@ namespace GitSwitchBranch
 
             if (string.IsNullOrEmpty(basedOn))
             {
-                Logger.LogLine("Unable to find the given branch: " + prompt, Logger.LevelValue.Error);
+                OldLogger.LogLine("Unable to find the given branch: " + prompt, OldLogger.LevelValue.Error);
                 return;
             }
 
@@ -151,17 +151,17 @@ namespace GitSwitchBranch
         private static void MakeNewBranch()
         {
             string suggestedPrefix = "u/" + Environment.GetEnvironmentVariable("USERNAME") + "/";
-            Logger.Log("\r\nPrefix? [" + suggestedPrefix + "] : ");
+            OldLogger.Log("\r\nPrefix? [" + suggestedPrefix + "] : ");
             string prefix = Console.ReadLine().Trim().ToLower().Replace('_', '-').Replace(' ', '-');
             if (string.IsNullOrEmpty(prefix))
             {
                 prefix = suggestedPrefix;
             }
-            Logger.Log("Short name : ");
+            OldLogger.Log("Short name : ");
             string shortName = Console.ReadLine().Trim().ToLower().Replace('_', '-').Replace(' ', '-');
             if (string.IsNullOrEmpty(shortName))
             {
-                Logger.LogLine("Short name must be provided!", Logger.LevelValue.Error);
+                OldLogger.LogLine("Short name must be provided!", OldLogger.LevelValue.Error);
                 return;
             }
             string branchName = string.Join("/", string.Join("/", new string[] { prefix, shortName }).Split(new char[] { '/' }, StringSplitOptions.RemoveEmptyEntries));
@@ -171,7 +171,7 @@ namespace GitSwitchBranch
             {
                 suggestedBasedOn = "master";
             }
-            Logger.Log("Based on what branch? [" + suggestedBasedOn + "] : ");
+            OldLogger.Log("Based on what branch? [" + suggestedBasedOn + "] : ");
             string basedOn = Console.ReadLine().Trim();
             if (string.IsNullOrEmpty(basedOn))
             {
@@ -179,11 +179,11 @@ namespace GitSwitchBranch
             }
 
             string remoteBranchName = "origin/" + branchName;
-            Logger.LogLine("Confirming new branch called " + branchName + " based on " + basedOn);
-            Logger.LogLine("This will also be tracking " + remoteBranchName);
-            Logger.Log("That look ok? [y] ");
+            OldLogger.LogLine("Confirming new branch called " + branchName + " based on " + basedOn);
+            OldLogger.LogLine("This will also be tracking " + remoteBranchName);
+            OldLogger.Log("That look ok? [y] ");
             string prompt = Console.ReadKey().KeyChar.ToString().Trim().ToLower();
-            Logger.LogLine(string.Empty);
+            OldLogger.LogLine(string.Empty);
             if (string.IsNullOrEmpty(prompt))
             {
                 prompt = "y";
@@ -199,8 +199,8 @@ namespace GitSwitchBranch
             ProcessHelper proc = null;
             if (!GitOperations.CreateBranch(branchName, basedOn, out proc))
             {
-                Logger.LogLine("Unable to create your branch", Logger.LevelValue.Error);
-                Logger.LogLine(proc.AllOutput, Logger.LevelValue.Warning);
+                OldLogger.LogLine("Unable to create your branch", OldLogger.LevelValue.Error);
+                OldLogger.LogLine(proc.AllOutput, OldLogger.LevelValue.Warning);
             }
         }
     }

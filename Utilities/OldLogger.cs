@@ -5,7 +5,7 @@ using System.IO;
 
 namespace Utilities
 {
-    public class Logger
+    public class OldLogger
     {
         public enum LevelValue
         {
@@ -147,7 +147,7 @@ html { white-space: nowrap; font-family: Verdana; background-color: #e0e0e0; }
             _pending.Remove(description);
         }
 
-        static string GeneratePrefix()
+        public static string GeneratePrefix()
         {
             string prefix = "\t" + DateTime.Now.ToLongTimeString() + " : ";
             for (int ii = 0; ii < _pending.Count; ii++)

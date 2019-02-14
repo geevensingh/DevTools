@@ -8,6 +8,7 @@ using System.Diagnostics;
 using Utilities;
 using Newtonsoft.Json;
 using FluentAssertions;
+using Logging;
 
 namespace Hack
 {
@@ -31,6 +32,7 @@ namespace Hack
 
         private static string ErrorMessage = string.Empty;
 
+        [LogMethod(LogLevel.Error)]
         static private bool TryParseAccountIdAndScheduleId(ref string accountId, ref string scheduleId)
         {
             char[] delimiters = new char[] { '/', ',', '\t', ' ', '\r', '\n' };
@@ -82,16 +84,16 @@ namespace Hack
             return true;
         }
 
+        [LogMethod]
         static private void Test(string accountId, string scheduleId, bool expectedResult)
         {
-            Console.WriteLine("input-accountId:    " + accountId);
-            Console.WriteLine("input-scheduleId:   " + scheduleId);
+            Logger.Instance.LogLine("input-accountId:    " + accountId);
+            Logger.Instance.LogLine("input-scheduleId:   " + scheduleId);
             bool result = TryParseAccountIdAndScheduleId(ref accountId, ref scheduleId);
-            Console.WriteLine("result:             " + result.ToString());
+            Logger.Instance.LogLine("result:             " + result.ToString());
             Debug.Assert(result == expectedResult);
-            Console.WriteLine("output-accountId:   " + accountId);
-            Console.WriteLine("output-scheduleId:  " + scheduleId);
-            Console.WriteLine();
+            Logger.Instance.LogLine("output-accountId:   " + accountId);
+            Logger.Instance.LogLine("output-scheduleId:  " + scheduleId);
             if (expectedResult)
             {
                 Debug.Assert(Guid.ParseExact(accountId, "D").ToString("D") == accountId);
@@ -102,6 +104,8 @@ namespace Hack
 
         static int Main(string[] args)
         {
+            ConsoleLogger.Instance.IncludeEventType = false;
+
             Test("032fa944-399a-4c04-9090-7ce1fd722a0d", "d6d64cae9b4074b5c02f574d12de535f", true);
             Test("   032fa944-399a-4c04-9090-7ce1fd722a0d  ", "   d6d64cae9b4074b5c02f574d12de535f   ", true);
             Test("/032fa944-399a-4c04-9090-7ce1fd722a0d/capture-schedules/d6d64cae9b4074b5c02f574d12de535f", "", true);
@@ -113,7 +117,6 @@ namespace Hack
             Test("032fa944-399a-4c04-9090-7ce1fd722a0d/d6d64cae9b4074b5c02f574d12de535f", "", true);
             Test("   032fa944-399a-4c04-9090-7ce1fd722a0d  /   d6d64cae9b4074b5c02f574d12de535f   ", "", true);
             Test("   032fa944-399a-4c04-9090-7ce1fd722a0d  /   d6d64cae9b4074b5c02f574d12de535f   ", "", true);
-
 
             Test("032fa944-399a-4c04-9090-7ce1fd722a0d", "d6d64cae9b40702f574d12de535f", false);
             Test("   032fa944-399a-4c04-9090-7ce1fd722a0d  ", "   d6d64cae9b40702f574d12de535f   ", false);
@@ -157,9 +160,9 @@ namespace Hack
                     dict[author] = new List<Counts>();
                 }
                 dict[author].Add(new Counts(commitId, fileCount, insertCount, deleteCount));
-                Logger.Log(".");
+                OldLogger.Log(".");
             }
-            Logger.LogLine(" done");
+            OldLogger.LogLine(" done");
 
             foreach (string author in dict.Keys)
             {
@@ -179,7 +182,7 @@ namespace Hack
                 string insertCountString = PluralStringCheck(totalFileCount, "insertion(+)", "insertions(+)");
                 string deleteCountString = PluralStringCheck(totalFileCount, "deletion(+)", "deletions(+)");
                 string netCountString = PluralStringCheck((totalInsertCount - totalDeleteCount), "net line changed", "net lines changed");
-                Logger.LogLine(("Author: " + author).PadRight(maxAuthorLength + 10) + fileCountString.PadRight(20) + insertCountString.PadRight(20) + deleteCountString.PadRight(20) + netCountString);
+                OldLogger.LogLine(("Author: " + author).PadRight(maxAuthorLength + 10) + fileCountString.PadRight(20) + insertCountString.PadRight(20) + deleteCountString.PadRight(20) + netCountString);
             }
 
             foreach (string author in dict.Keys)
@@ -196,17 +199,17 @@ namespace Hack
                     totalDeleteCount += count.deletes;
                 }
 
-                Logger.LogLine(author.PadRight(maxAuthorLength + 10) + totalFileCount.ToString().PadRight(20) + totalInsertCount.ToString().PadRight(20) + totalDeleteCount.ToString().PadRight(20));
+                OldLogger.LogLine(author.PadRight(maxAuthorLength + 10) + totalFileCount.ToString().PadRight(20) + totalInsertCount.ToString().PadRight(20) + totalDeleteCount.ToString().PadRight(20));
             }
 
             foreach (string author in dict.Keys)
             {
-                Logger.LogLine("------------------------------------");
-                Logger.LogLine("Author: " + author);
+                OldLogger.LogLine("------------------------------------");
+                OldLogger.LogLine("Author: " + author);
                 List<Counts> list = dict[author];
                 foreach(Counts count in list)
                 {
-                    Logger.LogLine(count.commit.PadRight(45) + count.files.ToString().PadRight(20) + count.inserts.ToString().PadRight(20) + count.deletes.ToString().PadRight(20));
+                    OldLogger.LogLine(count.commit.PadRight(45) + count.files.ToString().PadRight(20) + count.inserts.ToString().PadRight(20) + count.deletes.ToString().PadRight(20));
                 }
             }
 
@@ -228,7 +231,7 @@ namespace Hack
             proc.Go();
             if (proc.ExitCode != 0 || proc.StandardError.Length != 0)
             {
-                Logger.LogLine("Unable to revert " + filePath, Logger.LevelValue.Warning);
+                OldLogger.LogLine("Unable to revert " + filePath, OldLogger.LevelValue.Warning);
                 return false;
             }
             return true;

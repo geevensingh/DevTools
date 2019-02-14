@@ -64,7 +64,7 @@ namespace Have
             Console.WriteLine("SDRoot: " + sd.SDRoot);
 
             Console.WriteLine();
-            Logger.AnnounceStartStopActions = false;
+            OldLogger.AnnounceStartStopActions = false;
 
             SDOperations.File[] files = sd.GetFiles(currentDir, path);
             foreach (SDOperations.File file in files)

@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Diagnostics;
 
 namespace Utilities
@@ -32,7 +29,7 @@ namespace Utilities
 
         public static bool SwitchBranch(string newBranch, out ProcessHelper proc)
         {
-            Logger.LogLine("Switching to " + newBranch);
+            OldLogger.LogLine("Switching to " + newBranch);
             proc = new ProcessHelper("git.exe", "checkout " + newBranch);
             proc.Go();
             return proc.ExitCode == 0;
@@ -77,7 +74,7 @@ namespace Utilities
                 Debug.Assert(forkPoint.Length == 40);
                 string trimmedBranch = StringHelper.TrimStart(branch, @"origin/");
                 forkpoints[trimmedBranch] = forkPoint;
-                Logger.LogLine(trimmedBranch + " seems to have forked from " + masterBranch + " at " + forkpoints[trimmedBranch], Logger.LevelValue.Verbose);
+                OldLogger.LogLine(trimmedBranch + " seems to have forked from " + masterBranch + " at " + forkpoints[trimmedBranch], OldLogger.LevelValue.Verbose);
             }
             Dictionary<string, string> uniqueCommits = new Dictionary<string, string>();
             foreach (string branch in forkpoints.Keys)
@@ -85,12 +82,12 @@ namespace Utilities
                 string firstChange = GetNextCommitInBranch(forkpoints[branch], @"origin/" + branch);
                 if (string.IsNullOrEmpty(firstChange))
                 {
-                    Logger.LogLine("Unable to find any commits in " + branch, Logger.LevelValue.Warning);
+                    OldLogger.LogLine("Unable to find any commits in " + branch, OldLogger.LevelValue.Warning);
                 }
                 else
                 {
                     uniqueCommits[branch] = firstChange;
-                    Logger.LogLine("The first commit in " + branch + " seems to be " + firstChange, Logger.LevelValue.Verbose);
+                    OldLogger.LogLine("The first commit in " + branch + " seems to be " + firstChange, OldLogger.LevelValue.Verbose);
                 }
             }
             return uniqueCommits;
@@ -141,17 +138,17 @@ namespace Utilities
         {
             List<string> releaseBranches = new List<string>();
             ProcessHelper proc = new ProcessHelper("git.exe", "branch -r");
-            foreach (string line in proc.Go(Logger.LevelValue.SuperChatty))
+            foreach (string line in proc.Go(OldLogger.LevelValue.SuperChatty))
             {
                 if (IsReleaseBranchName(line))
                 {
                     releaseBranches.Add(line.Trim());
                 }
             }
-            Logger.LogLine("Found the following release branches:", Logger.LevelValue.SuperChatty);
+            OldLogger.LogLine("Found the following release branches:", OldLogger.LevelValue.SuperChatty);
             foreach (string branch in releaseBranches)
             {
-                Logger.LogLine("\t" + branch, Logger.LevelValue.SuperChatty);
+                OldLogger.LogLine("\t" + branch, OldLogger.LevelValue.SuperChatty);
             }
             return releaseBranches.ToArray();
         }
@@ -211,39 +208,39 @@ namespace Utilities
         public static bool DeleteBranch(string branchName, bool force = false)
         {
             Debug.Assert(GetStatus().Branch != branchName);
-            Logger.LogLine((force ? "FORCE " : "") + "Deleting " + branchName, (force ? Logger.LevelValue.Warning : Logger.LevelValue.Normal));
+            OldLogger.LogLine((force ? "FORCE " : "") + "Deleting " + branchName, (force ? OldLogger.LevelValue.Warning : OldLogger.LevelValue.Normal));
             string deleteArgs = (force ? "-D" : "-d") + " " + branchName;
             ProcessHelper proc = new ProcessHelper("git.exe", "branch " + deleteArgs);
             proc.Go();
             bool success = (proc.ExitCode == 0);
             if (!success)
             {
-                Logger.LogLine("Unable to delete " + branchName, Logger.LevelValue.Warning);
+                OldLogger.LogLine("Unable to delete " + branchName, OldLogger.LevelValue.Warning);
             }
             return success;
         }
 
         public static void MergeFromBranch(string sourceBranch)
         {
-            Logger.LogLine("Merging from " + sourceBranch + " to " + GetCurrentBranchName());
+            OldLogger.LogLine("Merging from " + sourceBranch + " to " + GetCurrentBranchName());
             ProcessHelper proc = new ProcessHelper("git.exe", "merge --strategy recursive --strategy-option patience " + sourceBranch);
             proc.Go();
             string[] lines = proc.AllOutput;
             if (StringHelper.AnyLineContains(lines, "Automatic merge failed"))
             {
-                Logger.LogLine("Unable to automatically merge " + GetCurrentBranchName(), Logger.LevelValue.Warning);
+                OldLogger.LogLine("Unable to automatically merge " + GetCurrentBranchName(), OldLogger.LevelValue.Warning);
 
                 foreach (string line in lines)
                 {
                     if (line.StartsWith("CONFLICT"))
                     {
-                        Logger.LogLine(line);
+                        OldLogger.LogLine(line);
                     }
                 }
 
-                Logger.LogLine("Aborting merge");
-                Logger.LogLine("\tTo attempt again, go to " + GetCurrentBranchName() + " and run:");
-                Logger.LogLine("\t\t" + proc.CommandLine);
+                OldLogger.LogLine("Aborting merge");
+                OldLogger.LogLine("\tTo attempt again, go to " + GetCurrentBranchName() + " and run:");
+                OldLogger.LogLine("\t\t" + proc.CommandLine);
                 (new ProcessHelper("git.exe", "merge --abort")).Go();
             }
         }
@@ -272,21 +269,21 @@ namespace Utilities
         public static void PullCurrentBranch()
         {
             Debug.Assert(!GetStatus().AnyChanges);
-            Logger.LogLine("Pulling into " + GetCurrentBranchName());
+            OldLogger.LogLine("Pulling into " + GetCurrentBranchName());
             (new ProcessHelper("git.exe", "pull")).Go();
         }
 
         public static bool Stash()
         {
             DateTime now = DateTime.Now;
-            Logger.LogLine("Stashing current work");
+            OldLogger.LogLine("Stashing current work");
             string stashMessage = "Automated stash at " + now.ToLongTimeString() + " on " + now.ToShortDateString();
             ProcessHelper proc = new ProcessHelper("git.exe", "stash save --include-untracked \"" + stashMessage + "\"");
             proc.Go();
             bool hasError = proc.StandardError.Length != 0;
             if (hasError)
             {
-                Logger.LogLine(proc.AllOutput, Logger.LevelValue.Warning);
+                OldLogger.LogLine(proc.AllOutput, OldLogger.LevelValue.Warning);
             }
             return !hasError;
         }
@@ -294,7 +291,7 @@ namespace Utilities
         public static void StashPop()
         {
             Debug.Assert(!GetStatus().AnyChanges);
-            Logger.LogLine("Restoring work from the stash");
+            OldLogger.LogLine("Restoring work from the stash");
             (new ProcessHelper("git.exe", "stash pop")).Go();
         }
 

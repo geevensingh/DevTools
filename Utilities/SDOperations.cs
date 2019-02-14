@@ -288,7 +288,7 @@ namespace Utilities
                 file.LocalPath = line.Substring(localPathStart).Trim();
                 if (!System.IO.File.Exists(file.LocalPath))
                 {
-                    Logger.LogLine("File not found locally: " + file.DepotPath, Logger.LevelValue.Warning);
+                    OldLogger.LogLine("File not found locally: " + file.DepotPath, OldLogger.LevelValue.Warning);
                 }
 
                 files.Add(file);
