@@ -166,7 +166,7 @@ namespace HealthSpreadsheet
             {
                 prefixString = prefixInt.ToString();
             }
-            else if (prefixObject is decimal prefixDecimal && prefixDecimal != 0m)
+            else if (prefixObject is decimal prefixDecimal && Math.Abs(prefixDecimal) >= 0.01m)
             {
                 NumberFormatInfo current = (NumberFormatInfo)NumberFormatInfo.CurrentInfo.Clone();
                 current.CurrencyNegativePattern = 1;    // -$n
