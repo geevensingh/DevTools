@@ -112,9 +112,27 @@
                 {
                     try
                     {
-                        if (StringHelper.IsHexString(jsonString))
+                        bool decodableJsonEntity =
+                            jsonString.StartsWith("0x4465666C6174654A736F6E456E74697479") || // StringToHex("DeflateJsonEntity")
+                            jsonString.StartsWith("RGVmbGF0ZUpzb25FbnRpdHk") || // Base64("DeflateJsonEntity")
+                            jsonString.StartsWith("0x4A736F6E456E74697479") || // StringToHex("JsonEntity")
+                            jsonString.StartsWith("SnNvbkVudGl0eQ"); // Base64("JsonEntity")
+
+                        if (decodableJsonEntity)
                         {
-                            using (MemoryStream memoryStream = new MemoryStream(StringHelper.HexStringToByteArray(jsonString)))
+                            bool base64Encoded = !StringHelper.IsHexString(jsonString);
+
+                            byte[] data;
+                            if (base64Encoded)
+                            {
+                                data = System.Convert.FromBase64String(jsonString);
+                            }
+                            else
+                            {
+                                data = StringHelper.HexStringToByteArray(jsonString);
+                            }
+
+                            using (MemoryStream memoryStream = new MemoryStream(data))
                             {
                                 string serializationProtocol = StreamHelper.ReadUTF8Line(memoryStream);
 
@@ -126,6 +144,13 @@
                                         {
                                             return await TryAgressiveDeserialize(await streamReader.ReadToEndAsync(), tryDecompress: false);
                                         }
+                                    }
+                                }
+                                else if (serializationProtocol == "JsonEntity")
+                                {
+                                    using (StreamReader streamReader = new StreamReader(memoryStream))
+                                    {
+                                        return await TryAgressiveDeserialize(await streamReader.ReadToEndAsync(), tryDecompress: false);
                                     }
                                 }
                             }
