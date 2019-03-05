@@ -67,7 +67,7 @@
     <ApplicationIcon>Resources\json_light_64.ico</ApplicationIcon>
     <AssemblyOriginatorKeyFile>Resources\JsonViewer_TemporaryKey.pfx</AssemblyOriginatorKeyFile>
     <GenerateManifests>true</GenerateManifests>
-    <ManifestCertificateThumbprint>C4359A10D7D3B54169390A4B14D41DB044D98F4C</ManifestCertificateThumbprint>
+    <ManifestCertificateThumbprint>C8C07E7CC89DB50CC33323DA612CAEC6B5C734CF</ManifestCertificateThumbprint>
     <ManifestKeyFile>Resources\JsonViewer_TemporaryKey.pfx</ManifestKeyFile>
     <StartupObject>JsonViewer.App</StartupObject>
   </PropertyGroup>
@@ -246,6 +246,7 @@
     <None Include="Examples Json\XPert - Response.json" />
     <None Include="Examples Json\XPert - Simple.json" />
     <None Include="JsonViewer.ruleset" />
+    <None Include="JsonViewer_1_TemporaryKey.pfx" />
     <None Include="packages.config" />
     <None Include="Resources\JsonViewer_TemporaryKey.pfx" />
     <None Include="stylecop.json" />
