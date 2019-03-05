@@ -113,23 +113,21 @@
                     try
                     {
                         bool decodableJsonEntity =
-                            jsonString.StartsWith("0x4465666C6174654A736F6E456E74697479") || // StringToHex("DeflateJsonEntity")
-                            jsonString.StartsWith("RGVmbGF0ZUpzb25FbnRpdHk") || // Base64("DeflateJsonEntity")
-                            jsonString.StartsWith("0x4A736F6E456E74697479") || // StringToHex("JsonEntity")
-                            jsonString.StartsWith("SnNvbkVudGl0eQ"); // Base64("JsonEntity")
+                            jsonString.StartsWith("0x4465666C6174654A736F6E456E74697479", StringComparison.InvariantCultureIgnoreCase) || // StringToHex("DeflateJsonEntity")
+                            jsonString.StartsWith("RGVmbGF0ZUpzb25FbnRpdHk", StringComparison.InvariantCultureIgnoreCase) || // Base64("DeflateJsonEntity")
+                            jsonString.StartsWith("0x4A736F6E456E74697479", StringComparison.InvariantCultureIgnoreCase) || // StringToHex("JsonEntity")
+                            jsonString.StartsWith("SnNvbkVudGl0eQ", StringComparison.InvariantCultureIgnoreCase); // Base64("JsonEntity")
 
                         if (decodableJsonEntity)
                         {
-                            bool base64Encoded = !StringHelper.IsHexString(jsonString);
-
                             byte[] data;
-                            if (base64Encoded)
+                            if (jsonString.StartsWith("0x", StringComparison.InvariantCultureIgnoreCase))
                             {
-                                data = System.Convert.FromBase64String(jsonString);
+                                data = StringHelper.HexStringToByteArray(jsonString);
                             }
                             else
                             {
-                                data = StringHelper.HexStringToByteArray(jsonString);
+                                data = Convert.FromBase64String(jsonString);
                             }
 
                             using (MemoryStream memoryStream = new MemoryStream(data))
