@@ -10,7 +10,7 @@ namespace HealthSpreadsheet
 {
     class Program
     {
-        static string rootPath = @"\\geevens-server\incoming\Health-Spreadsheet";
+        static string rootPath = @"\\geevens-server\incoming\Health-Spreadsheet - Test";
         static Dictionary<string, Dictionary<DateTime, Bucket>> reasonLookup = new Dictionary<string, Dictionary<DateTime, Bucket>>();
         static List<string> reasonStrings;
 
@@ -46,11 +46,18 @@ namespace HealthSpreadsheet
                         return;
                     }
 
-                    reasonLookup[reasonString][date] = bucket;
+                    if (reasonLookup[reasonString].ContainsKey(date))
+                    {
+                        reasonLookup[reasonString][date].AddFromBucket(bucket);
+                    }
+                    else
+                    {
+                        reasonLookup[reasonString][date] = bucket;
+                    }
                 }
             }
 
-            // Remove reasons that have never occured
+            // Remove reasons that have never occurred
             foreach (string reasonString in reasonStrings)
             {
                 if (reasonLookup[reasonString].Count == 0)
@@ -72,11 +79,18 @@ namespace HealthSpreadsheet
                 }
             }
 
+            // Verify all dates are a week apart
+            allDates.Sort();
+            for (int ii = 0; ii < allDates.Count - 1; ii++)
+            {
+                Debug.Assert(allDates[ii].AddDays(7) == allDates[ii + 1], $"The following dates do not differ by a week: {allDates[ii].ToShortDateString()} and {allDates[ii + 1].ToShortDateString()}");
+            }
+
+
             // All bucket lists should have the same length
             Debug.Assert(reasonLookup.All(x => x.Value.Count == reasonLookup.First().Value.Count));
 
             // Make sure the dates are all the same
-            allDates.Sort();
             List<DateTime> dateTimes = reasonLookup[reasonStrings[0]].Keys.ToList();
             dateTimes.Sort();
             Debug.Assert(allDates.Count == dateTimes.Count);
