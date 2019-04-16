@@ -20,6 +20,7 @@ namespace IdParser.Tests
         [DataRow("   032fa944-399a-4c04-9090-7ce1fd722a0d  /   d6d64cae9b4074b5c02f574d12de535f   ", "")]
         [DataRow("   032fa944-399a-4c04-9090-7ce1fd722a0d  /   d6d64cae9b4074b5c02f574d12de535f   ", "")]
         [DataRow("   032fa944-399a-4c04-9090-7ce1fd722a0d     d6d64cae9b4074b5c02f574d12de535f   ", "")]
+        [DataRow("2ce2aa99-94b2-4ab8-9407-a3c3e6849e42    586a4dd933057887d30bfc048862eb85", "")]   // has non-breaking spaces
         public void TryParseTest_Passing_WellFormed(string accountId, string scheduleId)
         {
             PublicIdParser.TryParse(ref accountId, ref scheduleId, out PublicIdParser publicIdParser).Should().BeTrue();

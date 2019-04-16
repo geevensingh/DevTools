@@ -53,7 +53,8 @@ namespace IdParser
 
         private bool TryParseAccountIdAndScheduleId(string data, ref string accountId, ref string scheduleId)
         {
-            char[] delimiters = new char[] { '/', ',', '\t', ' ', '\r', '\n' };
+            // 0xa0 is a non-breaking space
+            char[] delimiters = new char[] { '/', ',', '\t', ' ', '\r', '\n', (char)0xa0 };
             data = data.Trim(delimiters);
 
             if (string.IsNullOrWhiteSpace(data))
