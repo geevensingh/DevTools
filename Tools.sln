@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27130.2027
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28803.156
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Have", "Have\Have.csproj", "{C811030A-E4CC-4C7B-BADE-94537AE1833F}"
 EndProject
@@ -36,6 +36,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HealthSpreadsheet", "HealthSpreadsheet\HealthSpreadsheet.csproj", "{9319AA52-565A-4EB9-AF38-E9C70D05DB11}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Logging", "Logging\Logging.csproj", "{9FD63E7B-BE56-4986-9B53-0D71AC2282D9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Playlist Generator", "Playlist Generator\Playlist Generator.csproj", "{1A2595D7-5AA1-4B60-AD28-39EFAE747FA9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -317,6 +319,22 @@ Global
 		{9FD63E7B-BE56-4986-9B53-0D71AC2282D9}.Release|x64.Build.0 = Release|Any CPU
 		{9FD63E7B-BE56-4986-9B53-0D71AC2282D9}.Release|x86.ActiveCfg = Release|Any CPU
 		{9FD63E7B-BE56-4986-9B53-0D71AC2282D9}.Release|x86.Build.0 = Release|Any CPU
+		{1A2595D7-5AA1-4B60-AD28-39EFAE747FA9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1A2595D7-5AA1-4B60-AD28-39EFAE747FA9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1A2595D7-5AA1-4B60-AD28-39EFAE747FA9}.Debug|ARM.ActiveCfg = Debug|Any CPU
+		{1A2595D7-5AA1-4B60-AD28-39EFAE747FA9}.Debug|ARM.Build.0 = Debug|Any CPU
+		{1A2595D7-5AA1-4B60-AD28-39EFAE747FA9}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{1A2595D7-5AA1-4B60-AD28-39EFAE747FA9}.Debug|x64.Build.0 = Debug|Any CPU
+		{1A2595D7-5AA1-4B60-AD28-39EFAE747FA9}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{1A2595D7-5AA1-4B60-AD28-39EFAE747FA9}.Debug|x86.Build.0 = Debug|Any CPU
+		{1A2595D7-5AA1-4B60-AD28-39EFAE747FA9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1A2595D7-5AA1-4B60-AD28-39EFAE747FA9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1A2595D7-5AA1-4B60-AD28-39EFAE747FA9}.Release|ARM.ActiveCfg = Release|Any CPU
+		{1A2595D7-5AA1-4B60-AD28-39EFAE747FA9}.Release|ARM.Build.0 = Release|Any CPU
+		{1A2595D7-5AA1-4B60-AD28-39EFAE747FA9}.Release|x64.ActiveCfg = Release|Any CPU
+		{1A2595D7-5AA1-4B60-AD28-39EFAE747FA9}.Release|x64.Build.0 = Release|Any CPU
+		{1A2595D7-5AA1-4B60-AD28-39EFAE747FA9}.Release|x86.ActiveCfg = Release|Any CPU
+		{1A2595D7-5AA1-4B60-AD28-39EFAE747FA9}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
