@@ -13,13 +13,51 @@ namespace Playlist_Generator
 {
     class Program
     {
-        static async Task Main(string[] args)
+        static async Task Main(string[] argsArray)
         {
             ConsoleLogger.Instance.MinLevel = LogLevel.Normal;
-            string zipFilePath = @"C:\Users\geevens\Downloads\logs_15461055.zip";
-            const string filePath = @"S:\Repos\SC.CST.Dunning\sln\generated.playlist";
+#if DEBUG
+            ConsoleLogger.Instance.MinLevel = LogLevel.Verbose;
+#endif
+            string zipFilePath = null;
+            string playlistFilePath = null;
+            List<string> argsList = argsArray.ToList();
+            for (int ii = 0; ii < argsList.Count; ii++)
+            {
+                string arg = argsList[ii].ToLower();
+                switch (arg)
+                {
+                    case "/v":
+                    case "/verbose":
+                        ConsoleLogger.Instance.MinLevel = LogLevel.Verbose;
+                        argsList.RemoveAt(ii--);
+                        break;
+                    default:
+                        if (arg.EndsWith(".playlist"))
+                        {
+                            playlistFilePath = arg;
+                            argsList.RemoveAt(ii--);
+                        }
+                        else if (arg.EndsWith(".zip"))
+                        {
+                            zipFilePath = arg;
+                            argsList.RemoveAt(ii--);
+                        }
+                        break;
+                }
+            }
 
-            await GeneratePlaylist(zipFilePath, filePath);
+            if (string.IsNullOrEmpty(zipFilePath))
+            {
+                zipFilePath = @"C:\Users\geevens\Downloads\logs_15461055.zip";
+            }
+
+            if (string.IsNullOrEmpty(playlistFilePath))
+            {
+                playlistFilePath = @"S:\Repos\SC.CST.Dunning\sln\generated.playlist";
+            }
+
+            await GeneratePlaylist(zipFilePath, playlistFilePath);
         }
 
         private static async Task GeneratePlaylist(string zipFilePath, string filePath)
@@ -51,7 +89,7 @@ namespace Playlist_Generator
                     string line = await reader.ReadLineAsync();
                     while (line != null)
                     {
-                        fullTestNames.AddRange(ProcessLineForTests(line, failedTests[entry]));
+                        fullTestNames.AddRange(ProcessLineForTests(line, failedTests[entry]).Where(x => !fullTestNames.Contains(x)));
                         line = await reader.ReadLineAsync();
                     }
                 }
