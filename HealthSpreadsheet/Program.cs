@@ -16,6 +16,11 @@ namespace HealthSpreadsheet
 
         static void Main(string[] args)
         {
+            if (!Debugger.IsAttached)
+            {
+                rootPath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            }
+
             reasonStrings = File.ReadAllLines(Path.Combine(rootPath, "Reasons.txt")).ToList();
             foreach (string reasonString in reasonStrings)
             {
