@@ -6,8 +6,8 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{1A2595D7-5AA1-4B60-AD28-39EFAE747FA9}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>Playlist_Generator</RootNamespace>
-    <AssemblyName>Playlist Generator</AssemblyName>
+    <RootNamespace>PlaylistGenerator</RootNamespace>
+    <AssemblyName>PlaylistGenerator</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>

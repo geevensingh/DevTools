@@ -8,11 +8,16 @@ using System.IO;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Logging;
+using Microsoft.Win32;
 
-namespace Playlist_Generator
+namespace PlaylistGenerator
 {
     class Program
     {
+        private const string RegistryKeyName = "PlaylistGenerator";
+        private const string RegistryValue_ZipFilePath = "LastZipFilePath";
+        private const string RegistryValue_PlaylistFilePath = "LastPlaylistFilePath";
+
         static async Task Main(string[] argsArray)
         {
             ConsoleLogger.Instance.MinLevel = LogLevel.Normal;
@@ -47,17 +52,123 @@ namespace Playlist_Generator
                 }
             }
 
+            RegistryKey registryRoot = Registry.CurrentUser.CreateSubKey("Software");
             if (string.IsNullOrEmpty(zipFilePath))
             {
-                zipFilePath = @"C:\Users\geevens\Downloads\logs_15461055.zip";
+                zipFilePath = Prompt("Enter path to zip file:", GetMostRecentFile(GetZipDirectory(registryRoot), "zip"));
+                if (!File.Exists(zipFilePath))
+                {
+                    Logger.Instance.LogLine($"File does not exist: {zipFilePath}", LogLevel.Error);
+                    return;
+                }
             }
 
             if (string.IsNullOrEmpty(playlistFilePath))
             {
-                playlistFilePath = @"S:\Repos\SC.CST.Dunning\sln\generated.playlist";
+                string playlistDirectory = GetPlaylistDirectory(registryRoot);
+
+                if (!string.IsNullOrEmpty(playlistDirectory))
+                {
+                    playlistFilePath = Path.Combine(playlistDirectory, Path.GetFileNameWithoutExtension(zipFilePath) + ".playlist");
+                }
+
+                playlistFilePath = Prompt("Enter path to save the playlist:", playlistFilePath);
             }
 
+            RegistryKey rootKey = registryRoot.CreateSubKey(RegistryKeyName);
+            rootKey.SetValue(RegistryValue_ZipFilePath, Path.GetFullPath(zipFilePath));
+            rootKey.SetValue(RegistryValue_PlaylistFilePath, Path.GetFullPath(playlistFilePath));
+
             await GeneratePlaylist(zipFilePath, playlistFilePath);
+
+        }
+
+        private static string GetPlaylistDirectory(RegistryKey registryRoot)
+        {
+            string playlistDirectory = GetFolderFromRegistry(registryRoot, RegistryValue_PlaylistFilePath);
+
+            if (string.IsNullOrEmpty(playlistDirectory))
+            {
+                playlistDirectory = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            }
+
+            return playlistDirectory;
+        }
+
+        private static string GetMostRecentFile(string directoryPath, string extension)
+        {
+            if (string.IsNullOrEmpty(directoryPath) || !Directory.Exists(directoryPath))
+            {
+                return null;
+            }
+
+            string mostRecentFilePath = null;
+            DateTime mostRecentFileCreation = DateTime.MinValue;
+            foreach (string filePath in Directory.EnumerateFiles(directoryPath, $"*.{extension}", SearchOption.TopDirectoryOnly))
+            {
+                DateTime creationTime = File.GetCreationTime(filePath);
+                if (mostRecentFileCreation < creationTime)
+                {
+                    mostRecentFileCreation = creationTime;
+                    mostRecentFilePath = filePath;
+                }
+            }
+
+            return mostRecentFilePath;
+        }
+
+        private static string GetFolderFromRegistry(RegistryKey registryRoot, string registryValueName)
+        {
+            if (registryRoot.GetSubKeyNames().Contains(RegistryKeyName))
+            {
+                RegistryKey key = registryRoot.CreateSubKey(RegistryKeyName);
+                string filePath = key.GetValue(registryValueName) as string;
+                if (!string.IsNullOrEmpty(filePath))
+                {
+                    string directoryPath = Path.GetDirectoryName(filePath);
+                    if (Directory.Exists(directoryPath))
+                    {
+                        return directoryPath;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private static string GetZipDirectory(RegistryKey registryRoot)
+        {
+            string zipDirectory = GetFolderFromRegistry(registryRoot, RegistryValue_ZipFilePath);
+
+            // Or else look for the downloads directory in the profile
+            if (string.IsNullOrEmpty(zipDirectory))
+            {
+                zipDirectory = Path.Combine(Environment.ExpandEnvironmentVariables("%USERPROFILE%"), "Downloads");
+                if (!Directory.Exists(zipDirectory))
+                {
+                    zipDirectory = null;
+                }
+            }
+
+            return zipDirectory;
+        }
+
+        private static string Prompt(string prompt, string defaultResponse)
+        {
+            Console.WriteLine(prompt);
+            bool hasDefaultResponse = !string.IsNullOrWhiteSpace(defaultResponse);
+            if (hasDefaultResponse)
+            {
+                Console.WriteLine($"Press enter for {defaultResponse}");
+            }
+
+            string response = Console.ReadLine();
+            if (hasDefaultResponse && string.IsNullOrWhiteSpace(response))
+            {
+                return defaultResponse;
+            }
+
+            return response;
         }
 
         private static async Task GeneratePlaylist(string zipFilePath, string filePath)
