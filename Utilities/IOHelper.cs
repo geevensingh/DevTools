@@ -28,5 +28,24 @@ namespace Utilities
             if (bom[0] == 0 && bom[1] == 0 && bom[2] == 0xfe && bom[3] == 0xff) return Encoding.UTF32;
             return Encoding.ASCII;
         }
+
+        public static void WriteAllText(string path, string contents)
+        {
+            bool newContentEndsWithCRLF = contents.EndsWith("\r\n");
+            bool oldContentEndsWithCRLF = File.ReadAllText(path).EndsWith("\r\n");
+            if (newContentEndsWithCRLF != oldContentEndsWithCRLF)
+            {
+                if (newContentEndsWithCRLF)
+                {
+                    contents = StringHelper.TrimEnd(contents, "\r\n");
+                }
+                else
+                {
+                    contents += "\r\n";
+                }
+            }
+
+            File.WriteAllText(path, contents, GetEncoding(path));
+        }
     }
 }
