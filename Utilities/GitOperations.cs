@@ -328,5 +328,22 @@ namespace Utilities
                 deleteCount += int.Parse(splits[1]);
             }
         }
+
+        public static string GetRoot()
+        {
+            // git rev-parse --show-toplevel
+            ProcessHelper proc = new ProcessHelper("git.exe", "rev-parse --show-toplevel");
+            proc.Go();
+            Debug.Assert(proc.AllOutput.Length == 1);
+            return proc.AllOutput[0];
+        }
+
+        public static IEnumerable<string> GetDifferentFiles(string masterBranch)
+        {
+            // git diff --name-only master
+            ProcessHelper proc = new ProcessHelper("git.exe", $"diff --name-only {masterBranch}");
+            proc.Go();
+            return proc.AllOutput;
+        }
     }
 }

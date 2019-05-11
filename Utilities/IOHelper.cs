@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using System.IO;
+using System;
 
 namespace Utilities
 {
@@ -46,6 +47,21 @@ namespace Utilities
             }
 
             File.WriteAllText(path, contents, GetEncoding(path));
+        }
+
+        public static bool IsSubdirectory(string parentPath, string childPath)
+        {
+            Uri parentUri = new Uri(parentPath);
+            DirectoryInfo childUri = new DirectoryInfo(childPath);
+            while (childUri != null)
+            {
+                if (new Uri(childUri.FullName) == parentUri)
+                {
+                    return true;
+                }
+                childUri = childUri.Parent;
+            }
+            return false;
         }
     }
 }
