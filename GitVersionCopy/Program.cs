@@ -14,14 +14,16 @@
         static void Main(string[] args)
         {
             OldLogger.AnnounceStartStopActions = true;
+
             string masterBranch = "master";
             string fromVersion = null;
             string toVersion = null;
 
 #if DEBUG
             fromVersion = "v8";
-            toVersion = "v7";
-            masterBranch = "0a4ad9aeb55b0397009558f772697f12ac668a18";
+            toVersion = "v9";
+            masterBranch = "5be077b1b";
+            OldLogger.Level = OldLogger.LevelValue.SuperChatty;
 #endif
 
             if (args.Length == 2)
@@ -74,8 +76,6 @@
                 return;
             }
 
-            fromVersion = fromVersion.ToLower();
-            toVersion = toVersion.ToLower();
             ApplyChanges(masterBranch, fromVersion, toVersion);
         }
 
@@ -88,9 +88,8 @@
             Debug.Assert(IOHelper.IsSubdirectory(gitRootDir, currentDir));
 
             string[] directoriesWithDifferences = GitOperations.GetDifferentFiles(masterBranch)
-                .Select(path => path.ToLower())
-                .Where(path => path.Contains("/" + fromVersion + "/"))
-                .Select(path => path.Substring(0, path.IndexOf(fromVersion)))
+                .Where(path => path.ToLower().Contains("/" + fromVersion.ToLower() + "/"))
+                .Select(path => path.Substring(0, path.ToLower().IndexOf(fromVersion.ToLower())))
                 .Distinct()
                 .ToArray();
             Dictionary<string, string> patchPaths = new Dictionary<string, string>();
