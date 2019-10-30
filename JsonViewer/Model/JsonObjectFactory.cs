@@ -281,11 +281,20 @@
             return new DeserializeResult(result, parts[0].Trim(), parts[2].Trim());
         }
 
-        private static Dictionary<string, object> TryStrictDeserialize(string jsonString)
+        private static Dictionary<string, object> TryStrictDeserialize(string jsonString, bool retryArgumentException = true)
         {
             try
             {
                 return new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(jsonString);
+            }
+            catch (ArgumentException e)
+            {
+                if (retryArgumentException && (e.Message == "Invalid JSON primitive: False." || e.Message == "Invalid JSON primitive: True."))
+                {
+                    return TryStrictDeserialize(
+                        jsonString.Replace("False", "false").Replace("True", "true"),
+                        retryArgumentException: false);
+                }
             }
             catch (SystemException)
             {
