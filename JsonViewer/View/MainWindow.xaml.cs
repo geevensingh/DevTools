@@ -25,6 +25,7 @@
         private WarningBannerActionHandler _warningBannerAction;
         private WarningBannerActionHandler _warningBannerDismiss;
         private string _lastText = string.Empty;
+        private string _rawText = string.Empty;
 
         public MainWindow()
         {
@@ -100,6 +101,7 @@
             RootObject rootObject = await RootObject.Create(dictionary);
             if (rootObject == null)
             {
+                this.SetDisplayMode(DisplayMode.RawText);
                 this.SetErrorMessage("Unable to parse given string");
                 return false;
             }
@@ -166,6 +168,32 @@
         public void RunWhenever(Action action)
         {
             this.Dispatcher.BeginInvoke(action, System.Windows.Threading.DispatcherPriority.ContextIdle);
+        }
+
+        public async Task<bool> SetText(string newText)
+        {
+            bool result = false;
+
+            if (this._rawText != newText)
+            {
+                DeserializeResult deserializeResult = await JsonObjectFactory.TryAgressiveDeserialize(newText);
+                Dictionary<string, object> dictionary = deserializeResult?.GetEverythingDictionary();
+                string newNormalizedText = new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(dictionary);
+                if (newNormalizedText != _lastText)
+                {
+                    _lastText = newNormalizedText;
+                    result = await this.ReloadAsync(dictionary);
+                }
+
+                this._rawText = newText;
+            }
+
+            if (this.Raw_TextBox.Text != newText)
+            {
+                this.Raw_TextBox.Text = newText;
+            }
+
+            return result;
         }
 
         protected override void OnSourceInitialized(EventArgs e)
@@ -279,18 +307,10 @@
             }
         }
 
-        private async void Raw_TextBox_TextChanged(object sender, TextChangedEventArgs e)
+        private void Raw_TextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             FileLogger.Assert(sender.Equals(this.Raw_TextBox));
-            string newText = this.Raw_TextBox.Text;
-            DeserializeResult deserializeResult = await JsonObjectFactory.TryAgressiveDeserialize(newText);
-            Dictionary<string, object> dictionary = deserializeResult?.GetEverythingDictionary();
-            string newNormalizedText = new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(dictionary);
-            if (newNormalizedText != _lastText)
-            {
-                _lastText = newNormalizedText;
-                await this.ReloadAsync(dictionary);
-            }
+            _ = this.SetText(this.Raw_TextBox.Text);
         }
 
         private void CommandBinding_Find(object sender, ExecutedRoutedEventArgs e)
@@ -411,6 +431,48 @@
         {
             FileLogger.Assert(this._warningBannerAction != null);
             this._warningBannerAction?.Invoke();
+        }
+
+        private string IsSingleFile(DragEventArgs args)
+        {
+            // Check for files in the hovering data object.
+            if (args.Data.GetDataPresent(DataFormats.FileDrop, true))
+            {
+                string[] filePaths = args.Data.GetData(DataFormats.FileDrop, true) as string[];
+
+                // Check for a single file or folder.
+                if (filePaths?.Length == 1)
+                {
+                    // Check for a file (a directory will return false).
+                    if (System.IO.File.Exists(filePaths[0]))
+                    {
+                        // At this point we know there is a single file.
+                        return filePaths[0];
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private void OnPreviewDragOver(object sender, DragEventArgs e)
+        {
+            e.Handled = true;
+            string filePath = IsSingleFile(e);
+            if (!string.IsNullOrEmpty(filePath))
+            {
+                e.Effects = DragDropEffects.Move;
+            }
+        }
+
+        private void OnPreviewDrop(object sender, DragEventArgs e)
+        {
+            e.Handled = true;
+            string filePath = IsSingleFile(e);
+            if (!string.IsNullOrEmpty(filePath))
+            {
+                _ = OpenJsonFileCommand.LoadFile(filePath, this, null);
+            }
         }
     }
 }

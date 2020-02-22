@@ -1,5 +1,6 @@
 ﻿namespace JsonViewer.Commands.PerWindow
 {
+    using System.Threading.Tasks;
     using System.Windows.Input;
     using JsonViewer.View;
     using Microsoft.Win32;
@@ -36,6 +37,21 @@
             return null;
         }
 
+        public static async Task LoadFile(string filePath, MainWindow mainWindow, object parameter)
+        {
+            MainWindow.DisplayMode displayMode = MainWindow.DisplayMode.TreeView;
+            if (await mainWindow.SetText(System.IO.File.ReadAllText(filePath)))
+            {
+                _lastFile = filePath;
+            }
+            else
+            {
+                displayMode = MainWindow.DisplayMode.RawText;
+            }
+
+            new SwitchModeCommand(mainWindow, string.Empty, displayMode).Execute(parameter);
+        }
+
         public override void Execute(object parameter)
         {
             string filePath = OpenJsonFileCommand.PickJsonFile(this.MainWindow, "Pick Json content file", GetInitialDirectory());
@@ -43,9 +59,7 @@
             {
                 try
                 {
-                    this.MainWindow.Raw_TextBox.Text = System.IO.File.ReadAllText(filePath);
-                    _lastFile = filePath;
-                    new SwitchModeCommand(this.MainWindow, string.Empty, MainWindow.DisplayMode.TreeView).Execute(parameter);
+                    _ = OpenJsonFileCommand.LoadFile(filePath, this.MainWindow, parameter);
                 }
                 catch
                 {

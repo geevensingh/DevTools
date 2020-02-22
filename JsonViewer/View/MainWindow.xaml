@@ -12,6 +12,9 @@
     Height="750"
     DataContext="{Binding RelativeSource={RelativeSource Self}}"
     Loaded="OnLoaded"
+    AllowDrop="True"
+    DragDrop.PreviewDragOver="OnPreviewDragOver"
+    DragDrop.PreviewDrop="OnPreviewDrop"
     mc:Ignorable="d">
     <Window.Resources>
         <HierarchicalDataTemplate
