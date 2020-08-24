@@ -123,7 +123,6 @@ namespace GitSync
                         OldLogger.LogLine("Ignoring " + branch, OldLogger.LevelValue.Warning);
                         OldLogger.LogLine("Unable to determine the parent branch.  If this is based on " + masterBranch + ", run the following command:");
                         OldLogger.LogLine("\tgit config branch." + branch + ".basedon " + masterBranch);
-                        branchBasedOn.Remove(branch);
                     }
                     else
                     {
@@ -132,7 +131,6 @@ namespace GitSync
                         OldLogger.LogLine("\tgit config branch." + branch + ".basedon " + basedOnBranch);
                         Debug.Assert(string.IsNullOrEmpty(branchBasedOn[branch]));
                         branchBasedOn[branch] = basedOnBranch;
-                        missingBasedOn.Remove(branch);
                     }
                 }
             }
@@ -181,17 +179,19 @@ namespace GitSync
 
             foreach (string branch in branchBasedOn.Keys)
             {
-                Debug.Assert(!missingBasedOn.Contains(branch));
                 OldLogger.LogLine(string.Empty);
 
                 PullBranch(branch);
 
                 string parentBranch = branchBasedOn[branch];
-                if (!string.IsNullOrEmpty(parentBranch) && !localBranches.Contains(parentBranch))
+                if (!string.IsNullOrEmpty(parentBranch))
                 {
-                    parentBranch = "origin/" + parentBranch;
+                    if (!localBranches.Contains(parentBranch))
+                    {
+                        parentBranch = "origin/" + parentBranch;
+                    }
+                    MergeBranch(branch, parentBranch);
                 }
-                MergeBranch(branch, parentBranch);
             }
             OldLogger.LogLine(string.Empty);
 
