@@ -41,7 +41,7 @@
 
         private string GetField(JsonObject obj)
         {
-            string str = string.Empty;
+            string str;
             switch (_rule.MatchField)
             {
                 case MatchFieldEnum.Key:

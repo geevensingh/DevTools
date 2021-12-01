@@ -90,7 +90,7 @@
 
             if (!string.IsNullOrEmpty(filePath))
             {
-                string jsonString = string.Empty;
+                string jsonString;
                 try
                 {
                     jsonString = JsonConvert.SerializeObject(this);

@@ -253,7 +253,7 @@ namespace PlaylistGenerator
         {
             fullTestName = null;
             string[] spaceSplits = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-            Debug.Assert(DateTime.TryParse(spaceSplits[0], out DateTime lineDateTime));
+            Debug.Assert(DateTime.TryParse(spaceSplits[0], out _));
             if (spaceSplits[1] == "Failed" || spaceSplits[1] == "Passed")
             {
                 // Examples:

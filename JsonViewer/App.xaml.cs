@@ -21,8 +21,6 @@
 
         public void CheckForUpdates()
         {
-            UpdateCheckInfo info = null;
-
             if (!ApplicationDeployment.IsNetworkDeployed)
             {
                 MessageBox.Show("This application was not network deployed.", "Update", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -31,6 +29,7 @@
 
             ApplicationDeployment ad = ApplicationDeployment.CurrentDeployment;
 
+            UpdateCheckInfo info;
             try
             {
                 info = ad.CheckForDetailedUpdate();

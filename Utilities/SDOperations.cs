@@ -94,12 +94,10 @@ namespace Utilities
             Change change = new Change();
             string[] strings = line.Split(new char[] { ' ' });
             change.Number = strings[1];
-            long number;
-            Debug.Assert(Int64.TryParse(change.Number, out number));
+            Debug.Assert(Int64.TryParse(change.Number, out _));
             change.Client = client;
             change.ShortDescription = line.Split(new char[] { '\'' })[1];
-            List<string> longDescription, fileList;
-            _getDetailedDescription(change, out longDescription, out fileList);
+            _getDetailedDescription(change, out List<string> longDescription, out List<string> fileList);
             change.LongDescription = longDescription;
             change.FileList = fileList;
             return change;

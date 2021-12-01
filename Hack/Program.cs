@@ -66,16 +66,15 @@ namespace Hack
                 scheduleId = parts[1];
             }
 
-            Guid temp;
             if (string.IsNullOrWhiteSpace(accountId) ||
-                !Guid.TryParse(accountId.Trim(), out temp))
+                !Guid.TryParse(accountId.Trim(), out _))
             {
                 ErrorMessage = string.Format("{0} is an invalid accountId, Valid accountId required.", accountId);
                 return false;
             }
 
             if (string.IsNullOrWhiteSpace(scheduleId) ||
-                !Guid.TryParse(scheduleId.Trim(), out temp))
+                !Guid.TryParse(scheduleId.Trim(), out _))
             {
                 ErrorMessage = string.Format("{0} is an invalid scheduleId, Valid scheduleId required.", scheduleId);
                 return false;
@@ -153,8 +152,7 @@ namespace Hack
                 string author = StringHelper.TrimEnd(splits[1], "@microsoft.com");
                 maxAuthorLength = Math.Max(maxAuthorLength, author.Length);
 
-                int fileCount, insertCount, deleteCount;
-                GitOperations.GetCommitStats(commitId, out fileCount, out insertCount, out deleteCount);
+                GitOperations.GetCommitStats(commitId, out int fileCount, out int insertCount, out int deleteCount);
                 if (!dict.ContainsKey(author))
                 {
                     dict[author] = new List<Counts>();
