@@ -72,8 +72,7 @@ namespace GitSwitchBranch
 
         private static void SwitchBranch(string newBranch)
         {
-            ProcessHelper proc = null;
-            if (!GitOperations.SwitchBranch(newBranch, out proc))
+            if (!GitOperations.SwitchBranch(newBranch, out ProcessHelper proc))
             {
                 OldLogger.LogLine("Unable to switch branches", OldLogger.LevelValue.Error);
                 OldLogger.LogLine(proc.AllOutput, OldLogger.LevelValue.Warning);
@@ -148,6 +147,13 @@ namespace GitSwitchBranch
             CreateBranch(StringHelper.TrimStart(basedOn, "origin/"), basedOn);
         }
 
+        private static string _defaultBranch = null;
+        private static string GetDefaultBranch()
+        {
+            _defaultBranch = _defaultBranch ?? GitOperations.GetDefaultBranch();
+            return _defaultBranch;
+        }
+
         private static void MakeNewBranch()
         {
             string suggestedPrefix = "u/" + Environment.GetEnvironmentVariable("USERNAME") + "/";
@@ -169,7 +175,7 @@ namespace GitSwitchBranch
             string suggestedBasedOn = GitOperations.GetBranchBase(GitOperations.GetCurrentBranchName());
             if (string.IsNullOrEmpty(suggestedBasedOn))
             {
-                suggestedBasedOn = "master";
+                suggestedBasedOn = GetDefaultBranch();
             }
             OldLogger.Log("Based on what branch? [" + suggestedBasedOn + "] : ");
             string basedOn = Console.ReadLine().Trim();
@@ -196,8 +202,7 @@ namespace GitSwitchBranch
 
         private static void CreateBranch(string branchName, string basedOn)
         {
-            ProcessHelper proc = null;
-            if (!GitOperations.CreateBranch(branchName, basedOn, out proc))
+            if (!GitOperations.CreateBranch(branchName, basedOn, out ProcessHelper proc))
             {
                 OldLogger.LogLine("Unable to create your branch", OldLogger.LevelValue.Error);
                 OldLogger.LogLine(proc.AllOutput, OldLogger.LevelValue.Warning);
