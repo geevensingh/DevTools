@@ -38,17 +38,27 @@ $allWeights = @{
             Discipline = 2
             Intellect  = 3
             Strength   = 2
-            Threshold  = 125
+            Threshold  = 130
         },
+        # @{
+        #     Name       = "Grenade"
+        #     Mobility   = 0.1
+        #     Resilience = 2
+        #     Recovery   = 6
+        #     Discipline = 7
+        #     Intellect  = 5
+        #     Strength   = 4
+        #     Threshold  = 250
+        # }
         @{
-            Name       = "Utility"
-            Mobility   = 0.5
-            Resilience = 3
+            Name       = "Super"
+            Mobility   = 0.1
+            Resilience = 2
             Recovery   = 6
-            Discipline = 4
-            Intellect  = 10
+            Discipline = 5
+            Intellect  = 7
             Strength   = 4
-            Threshold  = 295
+            Threshold  = 250
         }
     )
 }
@@ -104,7 +114,7 @@ $allArmor | ForEach-Object {
     $item | Add-Member -MemberType NoteProperty -Name "Threshold" -Value $overallThreshold
 }
 
-# $allArmor = $allArmor | Where-Object { $_.Equippable -eq "Warlock" }
+$allArmor = $allArmor | Where-Object { $_.Equippable -eq "Warlock" }
 # $fileName = ".\" + [Guid]::NewGuid().ToString() + ".csv"
 # $allArmor | Export-Csv -Path $fileName -NoTypeInformation
 # & $fileName
@@ -115,29 +125,48 @@ $junk = $junk | Where-Object {
         # If this item isn't a dup, then we keep it
         if (-not (IsDupe $_ $allArmor)) { return $false }
 
-        $item = $_
-        $dupes = GetDupes $_ $allArmor
-        $dupes = $dupes | Where-Object { $_.Id -ne $item.Id }
+        # $item = $_
+        # $dupes = GetDupes $_ $allArmor
+        # $dupes = $dupes | Where-Object { $_.Id -ne $item.Id }
 
-        $isOneStrictlyBetter = $false
-        $allDupesWorse = $true
-        $dupes | ForEach-Object {
-            $dupe = $_
-            $isDupeStrictlyWorse = $true
-            $isDupeStrictlyBetter = $true
-            (GetWeights $item) | ForEach-Object {
-                $weight = $_
-                $isDupeStrictlyWorse = $isDupeStrictlyWorse -and ($dupe."$($weight.Name) Total" -lt $item."$($weight.Name) Total")
-                $isDupeStrictlyBetter = $isDupeStrictlyBetter -and ($dupe."$($weight.Name) Total" -gt $item."$($weight.Name) Total")
-            }
-            $allDupesWorse = $allDupesWorse -and $isDupeStrictlyWorse
-            $isOneStrictlyBetter = $isOneStrictlyBetter -or $isDupeStrictlyBetter
-        }
+        # $isOneStrictlyBetter = $false
+        # $allDupesWorse = $true
+        # $dupes | ForEach-Object {
+        #     $dupe = $_
+        #     $isDupeStrictlyWorse = $true
+        #     $isDupeStrictlyBetter = $true
+        #     (GetWeights $item) | ForEach-Object {
+        #         $weight = $_
+        #         $isDupeStrictlyWorse = $isDupeStrictlyWorse -and ($dupe."$($weight.Name) Total" -lt $item."$($weight.Name) Total")
+        #         $isDupeStrictlyBetter = $isDupeStrictlyBetter -and ($dupe."$($weight.Name) Total" -gt $item."$($weight.Name) Total")
+        #     }
+        #     $allDupesWorse = $allDupesWorse -and $isDupeStrictlyWorse
+        #     $isOneStrictlyBetter = $isOneStrictlyBetter -or $isDupeStrictlyBetter
+        # }
 
-        if ($allDupesWorse) { return $false }
-        if ($isOneStrictlyBetter) { return $true }
+        # if ($allDupesWorse) { return $false }
+        # if ($isOneStrictlyBetter) { return $true }
     }
     return -not $_.Threshold
+}
+$junk = $junk | Where-Object {
+    $item = $_
+    $highSingleStat = 0
+    $highDoubleStat = 0
+    $highTripleStat = 0
+    @("Mobility", "Resilience", "Recovery", "Discipline", "Intellect", "Strength") | ForEach-Object {
+        $statValue = [int]$item.$_
+        if ($statValue -ge 23) {
+            $highSingleStat++
+        }
+        if ($statValue -ge 19) {
+            $highDoubleStat++
+        }
+        if ($statValue -ge 17) {
+            $highTripleStat++
+        }
+    }
+    return $highSingleStat -lt 1 -and $highDoubleStat -lt 2 -and $highTripleStat -lt 3
 }
 $junk = $junk | Where-Object { ([int]$_."Masterwork Tier") -lt 10 }
 $junk = $junk | Where-Object { $_.Tag -ne "junk" }
