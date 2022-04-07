@@ -13,7 +13,7 @@ namespace Utilities
                 timeSpan = timeSpan.Negate();
             }
 
-            string str = timeSpan.ToString();
+            string str;
             if (timeSpan.TotalDays > 1)
             {
                 str = Math.Round(timeSpan.TotalDays, decimals) + " days";

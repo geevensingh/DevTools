@@ -6,7 +6,23 @@ namespace Utilities
 {
     public class GitOperations
     {
-        public static String GetCurrentBranchName()
+        public static string GetDefaultBranch()
+        {
+            ProcessHelper proc = new ProcessHelper("git.exe", "remote show origin");
+            foreach (string line in proc.Go())
+            {
+                const string prefix = "HEAD branch:";
+                if (line.Trim().StartsWith(prefix))
+                {
+                    string branch = line.Trim().Substring(prefix.Length).Trim();
+                    Debug.Assert(!string.IsNullOrWhiteSpace(branch));
+                    return branch;
+                }
+            }
+            return "unknown";
+        }
+
+        public static string GetCurrentBranchName()
         {
             ProcessHelper proc = new ProcessHelper("git.exe", "rev-parse --abbrev-ref HEAD");
             foreach (string line in proc.Go())
@@ -23,8 +39,7 @@ namespace Utilities
 
         public static bool SwitchBranch(string newBranch)
         {
-            ProcessHelper proc = null;
-            return SwitchBranch(newBranch, out proc);
+            return SwitchBranch(newBranch, out _);
         }
 
         public static bool SwitchBranch(string newBranch, out ProcessHelper proc)
@@ -160,8 +175,7 @@ namespace Utilities
 
         public static bool CreateBranch(string branchName, string basedOn)
         {
-            ProcessHelper proc = null;
-            return CreateBranch(branchName, basedOn, branchName, out proc);
+            return CreateBranch(branchName, basedOn, branchName, out _);
         }
 
         public static bool CreateBranch(string branchName, string basedOn, string remoteBranchName, out ProcessHelper proc)
@@ -254,7 +268,6 @@ namespace Utilities
 
             // git log --pretty=format:%H origin/master --not master
             ProcessHelper proc = new ProcessHelper("git.exe", "log --pretty=format:%H " + remoteBranchName + " --not " + branchName);
-            string nextCommit = string.Empty;
             foreach (string line in proc.Go())
             {
                 Debug.Assert(!line.StartsWith("fatal"));

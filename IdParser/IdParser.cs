@@ -32,13 +32,12 @@ namespace IdParser
                 }
             }
 
-            Guid temp;
-            if (!Guid.TryParseExact(accountId, "D", out temp))
+            if (!Guid.TryParseExact(accountId, "D", out _))
             {
                 warningMessages.Add(string.Format("AccountId does not seem to be in the right format: {0}", accountId));
             }
 
-            if (!Guid.TryParseExact(scheduleId, "N", out temp))
+            if (!Guid.TryParseExact(scheduleId, "N", out _))
             {
                 warningMessages.Add(string.Format("ScheduleId does not seem to be in the right format: {0}", scheduleId));
             }
@@ -75,9 +74,7 @@ namespace IdParser
 
                 accountId = parts[0];
                 scheduleId = parts[1];
-
-                Guid temp;
-                if (Guid.TryParseExact(scheduleId, "D", out temp) && Guid.TryParseExact(accountId, "N", out temp))
+                if (Guid.TryParseExact(scheduleId, "D", out _) && Guid.TryParseExact(accountId, "N", out _))
                 {
                     ViewBag.WarningMessage = "Account and schedule seem to be swapped.  They've been swapped back.";
                     accountId = parts[1];

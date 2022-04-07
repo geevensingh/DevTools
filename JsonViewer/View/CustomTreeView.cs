@@ -101,7 +101,7 @@
                 parentItem = ExpandToItem(treeViewData.Parent);
             }
 
-            TreeViewItem item = null;
+            TreeViewItem item;
             if (parentItem == null)
             {
                 FileLogger.Assert(treeViewData.Parent == null);

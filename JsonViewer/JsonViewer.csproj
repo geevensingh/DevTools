@@ -8,7 +8,7 @@
     <OutputType>WinExe</OutputType>
     <RootNamespace>JsonViewer</RootNamespace>
     <AssemblyName>JsonViewer</AssemblyName>
-    <TargetFrameworkVersion>v4.7</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <WarningLevel>4</WarningLevel>
@@ -16,7 +16,7 @@
     <CodeAnalysisRuleSet>JsonViewer.ruleset</CodeAnalysisRuleSet>
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <TargetFrameworkProfile />
-    <PublishUrl>\\dunning-server\JsonViewer\</PublishUrl>
+    <PublishUrl>\\dunning-server.redmond.corp.microsoft.com\JsonViewer\</PublishUrl>
     <Install>true</Install>
     <InstallFrom>Unc</InstallFrom>
     <UpdateEnabled>true</UpdateEnabled>
@@ -26,12 +26,12 @@
     <UpdatePeriodically>true</UpdatePeriodically>
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
-    <SupportUrl>file://dunning-server/JsonViewer/publish.htm</SupportUrl>
+    <SupportUrl>file://dunning-server.redmond.corp.microsoft.com/JsonViewer/publish.htm</SupportUrl>
     <ProductName>Json Viewer</ProductName>
     <PublisherName>Geeven Singh</PublisherName>
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>publish.htm</WebPage>
-    <ApplicationRevision>60</ApplicationRevision>
+    <ApplicationRevision>61</ApplicationRevision>
     <ApplicationVersion>1.2.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <CreateDesktopShortcut>true</CreateDesktopShortcut>
@@ -50,6 +50,7 @@
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <SignManifests>false</SignManifests>
     <SignAssembly>false</SignAssembly>
+    <CodeAnalysisIgnoreGeneratedCode>false</CodeAnalysisIgnoreGeneratedCode>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -59,17 +60,30 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <RunCodeAnalysis>true</RunCodeAnalysis>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
     <SignManifests>true</SignManifests>
     <SignAssembly>true</SignAssembly>
+    <CodeAnalysisIgnoreGeneratedCode>false</CodeAnalysisIgnoreGeneratedCode>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationIcon>Resources\json_light_64.ico</ApplicationIcon>
-    <AssemblyOriginatorKeyFile>Resources\JsonViewer_TemporaryKey.pfx</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>JsonViewer_1_TemporaryKey.pfx</AssemblyOriginatorKeyFile>
     <GenerateManifests>true</GenerateManifests>
-    <ManifestCertificateThumbprint>C8C07E7CC89DB50CC33323DA612CAEC6B5C734CF</ManifestCertificateThumbprint>
-    <ManifestKeyFile>Resources\JsonViewer_TemporaryKey.pfx</ManifestKeyFile>
+    <ManifestCertificateThumbprint>85EA9F73D983A29BB3B1119C53E077B9B65874C4</ManifestCertificateThumbprint>
+    <ManifestKeyFile>JsonViewer_1_TemporaryKey.pfx</ManifestKeyFile>
     <StartupObject>JsonViewer.App</StartupObject>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <TargetZone>LocalIntranet</TargetZone>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationManifest>Properties\app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignManifests>true</SignManifests>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Newtonsoft.Json, Version=11.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
@@ -247,8 +261,9 @@
     <None Include="Examples Json\XPert - Simple.json" />
     <None Include="JsonViewer.ruleset" />
     <None Include="JsonViewer_1_TemporaryKey.pfx" />
+    <None Include="JsonViewer_TemporaryKey.pfx" />
     <None Include="packages.config" />
-    <None Include="Resources\JsonViewer_TemporaryKey.pfx" />
+    <None Include="Properties\app.manifest" />
     <None Include="stylecop.json" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
@@ -269,9 +284,9 @@
     <Analyzer Include="..\packages\StyleCop.Analyzers.1.0.2\analyzers\dotnet\cs\StyleCop.Analyzers.dll" />
   </ItemGroup>
   <ItemGroup>
-    <BootstrapperPackage Include=".NETFramework,Version=v4.6">
+    <BootstrapperPackage Include=".NETFramework,Version=v4.8">
       <Visible>False</Visible>
-      <ProductName>Microsoft .NET Framework 4.6 %28x86 and x64%29</ProductName>
+      <ProductName>Microsoft .NET Framework 4.8 %28x86 and x64%29</ProductName>
       <Install>true</Install>
     </BootstrapperPackage>
     <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">

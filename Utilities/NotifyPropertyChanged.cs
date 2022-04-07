@@ -14,17 +14,7 @@
 
         public static bool SetValue<T>(ref T member, T newValue, string[] propertyNames, INotifyPropertyChanged sender, PropertyChangedEventHandler propertyChangedEvent)
         {
-            bool isSameValue = false;
-
-            if (member == null)
-            {
-                isSameValue = newValue == null;
-            }
-            else
-            {
-                isSameValue = member.Equals(newValue);
-            }
-
+            bool isSameValue = member?.Equals(newValue) ?? (newValue == null);
             if (!isSameValue)
             {
                 member = newValue;
