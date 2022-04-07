@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Logging;
 using Microsoft.Win32;
+using System.Collections.ObjectModel;
 
 namespace PlaylistGenerator
 {
@@ -293,14 +294,25 @@ namespace PlaylistGenerator
             return false;
         }
 
+        private static bool IsTestFileName(string fileName)
+        {
+            List<string> expectedFileSuffix = new List<string>()
+            {
+                "testassemblies.txt",
+                "vstest.txt"
+            };
+            string lowerCaseFileName = fileName.ToLower();
+            return expectedFileSuffix.Any(x => lowerCaseFileName.EndsWith(x));
+        }
+
         private static async Task<Dictionary<ZipArchiveEntry, List<string>>> GetFailedTestsPerArchiveEntry(string zipFilePath)
         {
             Logger.Instance.LogLine("Looking for failed tests...");
 
             Dictionary<ZipArchiveEntry, List<string>> failedTests = new Dictionary<ZipArchiveEntry, List<string>>();
-            foreach (ZipArchiveEntry entry in ZipFile.Open(zipFilePath, ZipArchiveMode.Read)
-                .Entries
-                .Where(x => x.FullName.EndsWith("testAssemblies.txt")))
+            ReadOnlyCollection<ZipArchiveEntry> entries = ZipFile.Open(zipFilePath, ZipArchiveMode.Read).Entries;
+
+            foreach (ZipArchiveEntry entry in entries.Where(x => IsTestFileName(x.FullName)))
             {
                 using (StreamReader reader = new StreamReader(entry.Open()))
                 {
