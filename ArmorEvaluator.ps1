@@ -1,5 +1,3 @@
-$subset = $false
-
 function IsClassItem($item) {
     return @("Hunter Cloak", "Titan Mark", "Warlock Bond") -contains $item.Type
 }
@@ -38,18 +36,18 @@ $allWeights = @{
             Discipline = 2
             Intellect  = 3
             Strength   = 2
-            Threshold  = 130
+            Threshold  = 136    # effectively 68+ total
         },
-        # @{
-        #     Name       = "Grenade"
-        #     Mobility   = 0.1
-        #     Resilience = 2
-        #     Recovery   = 6
-        #     Discipline = 7
-        #     Intellect  = 5
-        #     Strength   = 4
-        #     Threshold  = 250
-        # }
+        @{
+            Name       = "Grenade"
+            Mobility   = 0.1
+            Resilience = 2
+            Recovery   = 6
+            Discipline = 7
+            Intellect  = 5
+            Strength   = 4
+            Threshold  = 268
+        }
         @{
             Name       = "Super"
             Mobility   = 0.1
@@ -58,7 +56,7 @@ $allWeights = @{
             Discipline = 5
             Intellect  = 7
             Strength   = 4
-            Threshold  = 250
+            Threshold  = 268
         }
     )
 }
@@ -76,13 +74,22 @@ function GetDupes($item, $collection) {
     $collection | Where-Object { $_.Hash -eq $item.Hash -and $_.Tag -ne "junk" }
 }
 
-$everything = Import-Csv -Path ~\Downloads\destinyArmor.csv
-if ($subset) {
-    # $everything = $everything | Select-Object -Skip 20 -First 5
-    $everything = $everything | Where-Object { $_.Name -eq "Ancient Apocalypse Hood" }
+function GetWeightTotal($item, $weight) {
+    $weightedTotal = 0
+    @("Mobility", "Resilience", "Recovery", "Discipline", "Intellect", "Strength") | ForEach-Object {
+        $stat = $_
+        $weightedValue = ([int]$item.$stat) * $weight.$stat
+        $weightedTotal += $weightedValue
+    }
+
+    $weightedTotal
 }
 
-$allArmor = $everything | Where-Object { -not (IsClassItem $_) }
+$everything = Import-Csv -Path ~\Downloads\destinyArmor.csv
+
+$allArmor = $everything |
+    Where-Object { -not (IsClassItem $_) } |
+    Where-Object { $_.Tier -ne "Rare"}
 
 $allArmor | ForEach-Object {
     $item = $_
@@ -92,32 +99,51 @@ $allArmor | ForEach-Object {
         $item.PSObject.Properties.Remove($basePropertyName)
     }
 
-    for ($ii = 0; $ii -le 10; $ii++) {
+    for ($ii = 0; $ii -le 20; $ii++) {
         $item.PSObject.Properties.Remove("Perks $ii")
     }
 
-    $overallThreshold = $true
+    $overallThreshold = $false
+    $absoluteValue = 0
     (GetWeights $item) | ForEach-Object {
         $weight = $_
-        $weightedTotal = 0
-        @("Mobility", "Resilience", "Recovery", "Discipline", "Intellect", "Strength") | ForEach-Object {
-            $weightedValue = ([int]$item.$_) * $weight.$_
-            $weightedTotal += $weightedValue
-            if ($subset) {
-                $item | Add-Member -MemberType NoteProperty -Name "$($weight.Name) Weighted $_" -Value $weightedValue
-            }
-        }
+        $weightedTotal = GetWeightTotal $item $weight
         $item | Add-Member -MemberType NoteProperty -Name "$($weight.Name) Total" -Value $weightedTotal
-        $item | Add-Member -MemberType NoteProperty -Name "$($weight.Name) Threshold" -Value ($weightedTotal -ge $weight.Threshold)
-        $overallThreshold = $overallThreshold -and ($weightedTotal -ge $weight.Threshold)
+
+        $absoluteValue += ($weightedTotal - $weight.Threshold) / $weight.Threshold * 100
+        $meetsThreshold = $weightedTotal -ge $weight.Threshold
+        $item | Add-Member -MemberType NoteProperty -Name "$($weight.Name) Threshold" -Value $meetsThreshold
+        $overallThreshold = $overallThreshold -or $meetsThreshold
     }
     $item | Add-Member -MemberType NoteProperty -Name "Threshold" -Value $overallThreshold
+    $item | Add-Member -MemberType NoteProperty -Name "AbsoluteValue" -Value $absoluteValue
 }
+
+$best = @{}
+$allArmor |% {
+    $armorType = $_.Type
+    $modType = $_."Seasonal Mod"
+    if (-not $best.$armorType) {
+        $best[$armorType] = @{}
+    }
+
+    if (-not $best.$armorType.$modType) {
+        $best[$armorType][$modType] = @($_)
+    } else {
+        $best[$armorType][$modType] += $_
+    }
+}
+
+$best |% {Write-Host $_}
 
 $allArmor = $allArmor | Where-Object { $_.Equippable -eq "Warlock" }
 # $fileName = ".\" + [Guid]::NewGuid().ToString() + ".csv"
 # $allArmor | Export-Csv -Path $fileName -NoTypeInformation
 # & $fileName
+
+$junk = @()
+
+return 
 
 $junk = $allArmor
 $junk = $junk | Where-Object {
@@ -169,7 +195,7 @@ $junk = $junk | Where-Object {
     return $highSingleStat -lt 1 -and $highDoubleStat -lt 2 -and $highTripleStat -lt 3
 }
 $junk = $junk | Where-Object { ([int]$_."Masterwork Tier") -lt 10 }
-$junk = $junk | Where-Object { $_.Tag -ne "junk" }
+# $junk = $junk | Where-Object { $_.Tag -ne "junk" }
 $junk = $junk | Where-Object { $_.Tag -ne "favorite" }
 
 if ($junk.Count -eq 0) {
