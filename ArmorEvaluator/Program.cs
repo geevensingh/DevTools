@@ -87,16 +87,33 @@ foreach (var c in appliedWeights.GroupBy(x => x.Item.Equippable))
 }
 
 // Mark for infusion all junk with a lower power masterwork dupe
-foreach (var name in toBeEvaluated.Where(x => x.IsJunk).GroupBy(x => x.Item.Name))
+var infusionTargets = new HashSet<ScratchPad>();
+foreach (var hash in toBeEvaluated.Where(x => x.IsJunk).GroupBy(x => x.Item.Hash))
 {
-    var bestJunk = name.MaxBy(x => x.Item.Power);
+    var bestJunk = hash.MaxBy(x => x.Item.Power);
     var masterworkDupe = appliedWeights
-        .Where(x => x.Item.Name == name.Key)
+        .Where(x => x.Item.Hash == hash.Key)
         .Where(x => x.Item.Power < bestJunk.Item.Power)
         .Where(x => x.Item.MasterworkTier == 10);
     if (masterworkDupe.Any())
     {
         bestJunk.NewTag = "infuse";
+        infusionTargets.Add(masterworkDupe.MaxBy(x => x.AbsoluteValue));
+    }
+}
+
+// Mark for infusion all junk with a MUCH lower power dupe
+foreach (var hash in toBeEvaluated.Where(x => x.IsJunk).GroupBy(x => x.Item.Hash))
+{
+    var bestJunk = hash.MaxBy(x => x.Item.Power);
+    var reallyLowDupe = appliedWeights
+        .Where(x => x.Item.Hash == hash.Key)
+        .Where(x => bestJunk.Item.Power - x.Item.Power > 20 )
+        .Where(x => x.NewTag != "junk");
+    if (reallyLowDupe.Any())
+    {
+        bestJunk.NewTag = "infuse";
+        infusionTargets.Add(reallyLowDupe.MaxBy(x => x.AbsoluteValue));
     }
 }
 
@@ -106,6 +123,14 @@ foreach (var tag in toBeEvaluated.Where(x => x.TagChanged).GroupBy(x => x.NewTag
     Console.WriteLine(string.Join(" or ", tag.Select(x => $"id:{x.Item.Id}")));
 
 }
+
+if (infusionTargets.Any())
+{
+    Console.WriteLine("infusion targets");
+    Console.WriteLine(string.Join(" or ", infusionTargets.Select(x => $"id:{x.Item.Id}")));
+}
+
+
 
 if (false)
 {

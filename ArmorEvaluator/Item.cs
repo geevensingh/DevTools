@@ -7,6 +7,7 @@ namespace ArmorEvaluator
     public record Item
     {
         public string Name { get; set; }
+        public string Hash { get; set; }
         public string Id { get; set; }
         public string Tag { get; set; }
         public string Tier { get; set; }
