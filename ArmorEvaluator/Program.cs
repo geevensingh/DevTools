@@ -11,7 +11,7 @@ var config = new CsvConfiguration(CultureInfo.InvariantCulture)
     PrepareHeaderForMatch = args => args.Header.Replace(" ", string.Empty),
 };
 
-string filePath = Directory.EnumerateFiles(@"C:\Users\geeve\Downloads", @"destinyArmor*.csv").MaxBy(x => File.GetCreationTime(x));
+string filePath = Directory.EnumerateFiles(Path.Combine(Environment.GetEnvironmentVariable("USERPROFILE"), @"Downloads"), @"destinyArmor*.csv").MaxBy(x => File.GetCreationTime(x));
 Console.WriteLine($"Using {filePath}");
 
 IEnumerable<Item> allItems;
@@ -28,22 +28,20 @@ using (var csv = new CsvReader(reader, config))
 
 var weights = WeightSet.GetDefaults();
 
-var appliedWeights = allItems.Select(item =>
-    new ScratchPad()
-    {
-        Item = item,
-        Weights = AppliedWeightSet.Create(item, weights[item.Equippable]),
-    });
-
 var comparer = new Comparer();
-var allJunk = appliedWeights
+var appliedWeights = allItems.Select(item => new ScratchPad(item, AppliedWeightSet.Create(item, weights[item.Equippable]))).ToHashSet(comparer);
+
+var toBeEvaluated = appliedWeights
     .Where(x => !x.MeetsThreshold)
     .Where(x => x.Item.MasterworkTier < 10)
     .Where(x => x.Item.Tag != "favorite")
     .ToHashSet(comparer);
-var allInfuse = new HashSet<ScratchPad>();
+
+// Assume that everything is junk to start
+foreach (var item in toBeEvaluated) { item.NewTag = "junk"; }
 
 // Make sure we don't delete everything with a specific seasonal mod slot
+var allJunk = toBeEvaluated.Where(x => x.IsJunk);
 foreach (var c in appliedWeights.GroupBy(x => x.Item.Equippable))
 {
     foreach (var type in c.GroupBy(x => x.Item.Type))
@@ -52,19 +50,20 @@ foreach (var c in appliedWeights.GroupBy(x => x.Item.Equippable))
         {
             if (modType.All(x => allJunk.Contains(x)))
             {
-                Debug.Assert(allJunk.Remove(modType.MaxBy(x => x.AbsoluteValue)));
+                modType.MaxBy(x => x.AbsoluteValue).NewTag = "keep";
             }
         }
     }
 }
 
 // Make sure we don't delete all of a given exotic
-foreach (var name in appliedWeights.Where(x => x.Item.Tier == "Exotic").Select(x => x.Item.Name).Distinct())
+allJunk = toBeEvaluated.Where(x => x.IsJunk);
+foreach (var name in allJunk.Where(x => x.Item.Tier == "Exotic").Select(x => x.Item.Name).Distinct())
 {
     var items = appliedWeights.Where(x => x.Item.Name == name);
     if (items.All(x => allJunk.Contains(x)))
     {
-        Debug.Assert(allJunk.Remove(items.MaxBy(x => x.AbsoluteValue)));
+        items.MaxBy(x => x.AbsoluteValue).NewTag = "keep";
     }
 }
 
@@ -82,14 +81,13 @@ foreach (var c in appliedWeights.GroupBy(x => x.Item.Equippable))
         if (type.Count(x => x.Item.Power == highestPower) == junkCountAtHighestPower)
         {
             var toInfuse = inSlotJunk.Where(x => x.Item.Power == highestPower);
-            allInfuse.UnionWith(toInfuse);
-            Debug.Assert(junkCountAtHighestPower == allJunk.RemoveSet(toInfuse));
+            foreach (var item in toInfuse) { item.NewTag = "infuse"; }
         }
     }
 }
 
 // Mark for infusion all junk with a lower power masterwork dupe
-foreach (var name in allJunk.GroupBy(x => x.Item.Name))
+foreach (var name in toBeEvaluated.Where(x => x.IsJunk).GroupBy(x => x.Item.Name))
 {
     var bestJunk = name.MaxBy(x => x.Item.Power);
     var masterworkDupe = appliedWeights
@@ -98,20 +96,16 @@ foreach (var name in allJunk.GroupBy(x => x.Item.Name))
         .Where(x => x.Item.MasterworkTier == 10);
     if (masterworkDupe.Any())
     {
-        allInfuse.Add(bestJunk);
-        Debug.Assert(allJunk.Remove(bestJunk));
+        bestJunk.NewTag = "infuse";
     }
 }
 
-Console.WriteLine("Infuse:");
-Console.WriteLine(string.Join(" or ", allInfuse.Where(x => x.Item.Tag != "infuse").Select(x => $"id:{x.Item.Id}")));
+foreach (var tag in toBeEvaluated.Where(x => x.TagChanged).GroupBy(x => x.NewTag))
+{
+    Console.WriteLine(tag.Key);
+    Console.WriteLine(string.Join(" or ", tag.Select(x => $"id:{x.Item.Id}")));
 
-Console.WriteLine("Junk:");
-Console.WriteLine(string.Join(" or ", allJunk.Where(x => x.Item.Tag != "junk").Select(x => $"id:{x.Item.Id}")));
-
-Console.WriteLine("Not Junk:");
-var notJunk = appliedWeights.Where(x => !allJunk.Contains(x));
-Console.WriteLine(string.Join(" or ", notJunk.Where(x => x.Item.Tag == "junk").Select(x => $"id:{x.Item.Id}")));
+}
 
 if (false)
 {
@@ -121,7 +115,7 @@ if (false)
             x.Item.Name,
             x.Item.Id,
             x.Item.Tag,
-            NewTag = allJunk.Contains(x) ? "junk" : (allInfuse.Contains(x) ? "infuse" : string.Empty),
+            x.NewTag,
             x.Item.Tier,
             x.Item.Type,
             x.Item.Equippable,
