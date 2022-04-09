@@ -31,6 +31,12 @@ var weights = WeightSet.GetDefaults();
 var comparer = new Comparer();
 var appliedWeights = allItems.Select(item => new ScratchPad(item, AppliedWeightSet.Create(item, weights[item.Equippable]))).ToHashSet(comparer);
 
+// Assume we're keeping everything
+foreach (var item in appliedWeights
+    .Where(x => x.MeetsThreshold || x.Item.MasterworkTier == 10)
+    .Where(x => x.Item.Tag != "favorite"))
+{ item.SetTag("keep", "default"); }
+
 var toBeEvaluated = appliedWeights
     .Where(x => !x.MeetsThreshold)
     .Where(x => x.Item.MasterworkTier < 10)
@@ -38,7 +44,7 @@ var toBeEvaluated = appliedWeights
     .ToHashSet(comparer);
 
 // Assume that everything is junk to start
-foreach (var item in toBeEvaluated) { item.NewTag = "junk"; }
+foreach (var item in toBeEvaluated) { item.SetTag("junk", "default"); }
 
 // Make sure we don't delete everything with a specific seasonal mod slot
 var allJunk = toBeEvaluated.Where(x => x.IsJunk);
@@ -50,7 +56,7 @@ foreach (var c in appliedWeights.GroupBy(x => x.Item.Equippable))
         {
             if (modType.All(x => allJunk.Contains(x)))
             {
-                modType.MaxBy(x => x.AbsoluteValue).NewTag = "keep";
+                modType.MaxBy(x => x.AbsoluteValue).SetTag("keep", $"best {c.Key} {type.Key} {modType.Key}");
             }
         }
     }
@@ -63,7 +69,7 @@ foreach (var name in allJunk.Where(x => x.Item.Tier == "Exotic").Select(x => x.I
     var items = appliedWeights.Where(x => x.Item.Name == name);
     if (items.All(x => allJunk.Contains(x)))
     {
-        items.MaxBy(x => x.AbsoluteValue).NewTag = "keep";
+        items.MaxBy(x => x.AbsoluteValue).SetTag("keep", $"best exotic {name}");
     }
 }
 
@@ -81,7 +87,7 @@ foreach (var c in appliedWeights.GroupBy(x => x.Item.Equippable))
         if (type.Count(x => x.Item.Power == highestPower) == junkCountAtHighestPower)
         {
             var toInfuse = inSlotJunk.Where(x => x.Item.Power == highestPower);
-            foreach (var item in toInfuse) { item.NewTag = "infuse"; }
+            foreach (var item in toInfuse) { item.SetTag("infuse", $"highest power in {c.Key} {type.Key}"); }
         }
     }
 }
@@ -97,7 +103,7 @@ foreach (var hash in toBeEvaluated.Where(x => x.IsJunk).GroupBy(x => x.Item.Hash
         .Where(x => x.Item.MasterworkTier == 10);
     if (masterworkDupe.Any())
     {
-        bestJunk.NewTag = "infuse";
+        bestJunk.SetTag("infuse", "use to improve a masterwork");
         infusionTargets.Add(masterworkDupe.MaxBy(x => x.AbsoluteValue));
     }
 }
@@ -112,12 +118,44 @@ foreach (var hash in toBeEvaluated.Where(x => x.IsJunk).GroupBy(x => x.Item.Hash
         .Where(x => x.NewTag != "junk");
     if (reallyLowDupe.Any())
     {
-        bestJunk.NewTag = "infuse";
+        bestJunk.SetTag("infuse", "use to improve something *much* lower");
         infusionTargets.Add(reallyLowDupe.MaxBy(x => x.AbsoluteValue));
     }
 }
 
-foreach (var tag in toBeEvaluated.Where(x => x.TagChanged).GroupBy(x => x.NewTag))
+// Look for items that are strictly worse that others
+foreach (var eval in appliedWeights.Where(x => x.Item.Tier == "Legendary"))
+{
+    var strictlyBetter = appliedWeights
+        .Where(x => x.Item.Id != eval.Item.Id)
+        .Where(x => x.Item.Tier != "Exotic")
+        .Where(x => x.Item.Type == eval.Item.Type)
+        .Where(x => x.Item.Equippable == eval.Item.Equippable)
+        .Where(x => x.Item.SeasonalMod == eval.Item.SeasonalMod)
+        .Where(x => x.Item.Total > eval.Item.Total)
+        .Where(x => x.Item.Mobility >= eval.Item.Mobility)
+        .Where(x => x.Item.Resilience >= eval.Item.Resilience)
+        .Where(x => x.Item.Recovery >= eval.Item.Recovery)
+        .Where(x => x.Item.Discipline >= eval.Item.Discipline)
+        .Where(x => x.Item.Intellect >= eval.Item.Intellect)
+        .Where(x => x.Item.Strength >= eval.Item.Strength);
+    if (strictlyBetter.Count() > 0)
+    {
+        eval.SetTag("junk", "strictly worse than other");
+    }
+}
+
+
+foreach (var reason in appliedWeights.Where(x => x.TagChanged).GroupBy(x => x.NewTagReason))
+{
+    Console.WriteLine(reason.Key);
+    Console.WriteLine("  " + string.Join("\r\n  ", reason.Select(x => x.Item.Name)));
+    Console.WriteLine(string.Join(" or ", reason.Select(x => $"id:{x.Item.Id}")));
+
+}
+Console.WriteLine();
+
+foreach (var tag in appliedWeights.Where(x => x.TagChanged).GroupBy(x => x.NewTag))
 {
     Console.WriteLine(tag.Key);
     Console.WriteLine(string.Join(" or ", tag.Select(x => $"id:{x.Item.Id}")));
@@ -127,9 +165,9 @@ foreach (var tag in toBeEvaluated.Where(x => x.TagChanged).GroupBy(x => x.NewTag
 if (infusionTargets.Any())
 {
     Console.WriteLine("infusion targets");
+    Console.WriteLine("  " + string.Join("\r\n  ", infusionTargets.Select(x => x.Item.Name)));
     Console.WriteLine(string.Join(" or ", infusionTargets.Select(x => $"id:{x.Item.Id}")));
 }
-
 
 
 if (false)
@@ -170,4 +208,22 @@ if (false)
     }
 
     Process.Start(@"C:\Program Files\Microsoft Office\root\Office16\EXCEL.EXE", outputPath);
+}
+
+HashSet<ScratchPad> GetStrictlyBetter(ScratchPad given, IEnumerable<ScratchPad> everything)
+{
+    return everything
+        .Where(x => x.Item.Id != given.Item.Id)
+        .Where(x => x.Item.Tier != "Exotic")
+        .Where(x => x.Item.Type == given.Item.Type)
+        .Where(x => x.Item.Equippable == given.Item.Equippable)
+        .Where(x => x.Item.SeasonalMod == given.Item.SeasonalMod)
+        .Where(x => x.Item.Total > given.Item.Total)
+        .Where(x => x.Item.Mobility >= given.Item.Mobility)
+        .Where(x => x.Item.Resilience >= given.Item.Resilience)
+        .Where(x => x.Item.Recovery >= given.Item.Recovery)
+        .Where(x => x.Item.Discipline >= given.Item.Discipline)
+        .Where(x => x.Item.Intellect >= given.Item.Intellect)
+        .Where(x => x.Item.Strength >= given.Item.Strength)
+        .ToHashSet();
 }
