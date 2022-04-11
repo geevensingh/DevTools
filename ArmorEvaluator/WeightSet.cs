@@ -9,7 +9,6 @@ namespace ArmorEvaluator
     public class WeightSet
     {
         public string Name { get; set; }
-        public string Class { get; set; }
         public float Threshold { get; set; }
 
         public float Mobility { get; set; }
@@ -29,8 +28,18 @@ namespace ArmorEvaluator
                     {
                         new WeightSet()
                         {
-                            Class = "Hunter",
-                            Name = "Basic",
+                            Name       = "Basic",
+                            Threshold  = 147,    // effectively 68+ total
+                            Mobility   = 3,
+                            Resilience = 2,
+                            Recovery   = 2,
+                            Discipline = 2,
+                            Intellect  = 2,
+                            Strength   = 2,
+                        },
+                        new WeightSet()
+                        {
+                            Name = "Mobility-focused",
                             Threshold = 340,
                             Mobility = 10,
                             Resilience = 4,
@@ -38,7 +47,7 @@ namespace ArmorEvaluator
                             Discipline = 4,
                             Intellect = 7,
                             Strength = 4,
-                        }
+                        },
                     }
                 },
                 {
@@ -47,8 +56,18 @@ namespace ArmorEvaluator
                     {
                         new WeightSet()
                         {
-                            Class = "Titan",
                             Name = "Basic",
+                            Threshold  = 136,    // effectively 68+ total
+                            Mobility   = 1,
+                            Resilience = 2,
+                            Recovery   = 2,
+                            Discipline = 2,
+                            Intellect  = 3,
+                            Strength   = 2,
+                        },
+                        new WeightSet()
+                        {
+                            Name = "Resilience-focused",
                             Threshold = 310,
                             Mobility = 1,
                             Resilience = 10,
@@ -56,7 +75,7 @@ namespace ArmorEvaluator
                             Discipline = 4,
                             Intellect = 7,
                             Strength = 4,
-                        }
+                        },
                     }
                 },
                 {
@@ -65,7 +84,6 @@ namespace ArmorEvaluator
                     {
                         new WeightSet()
                         {
-                            Class = "Warlock",
                             Name       = "Basic",
                             Threshold  = 136,    // effectively 68+ total
                             Mobility   = 1,
@@ -77,7 +95,6 @@ namespace ArmorEvaluator
                         },
                         new WeightSet()
                         {
-                            Class = "Warlock",
                             Name       = "Grenade",
                             Threshold  = 268,
                             Mobility   = 0.1f,
@@ -89,7 +106,6 @@ namespace ArmorEvaluator
                         },
                         new WeightSet()
                         {
-                            Class = "Warlock",
                             Name       = "Super",
                             Threshold  = 268,
                             Mobility   = 0.1f,

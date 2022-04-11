@@ -14,7 +14,8 @@ namespace ArmorEvaluator
         public string Type { get; set; }
         public string Equippable { get; set; }
         public int Power { get; set; }
-        public int MasterworkTier { get; set; }
+        public string MasterworkTier { get; set; }
+        public int MasterworkTierInt => string.IsNullOrEmpty(MasterworkTier) ? 0 : int.Parse(MasterworkTier);
         [Name("Mobility (Base)")]
         public int Mobility { get; set; }
         [Name("Resilience (Base)")]
@@ -35,6 +36,57 @@ namespace ArmorEvaluator
             AllStats.Any(x => x >= 23) ||
             AllStats.Count(x => x >= 19) > 1 ||
             AllStats.Count(x => x >= 17) > 2;
+
+        public bool IsClassItem =>
+            (Type == "Hunter Cloak") ||
+            (Type == "Titan Mark") ||
+            (Type == "Warlock Bond");
+
+        public string Perks0 { get; set; }
+        public string Perks1 { get; set; }
+        public string Perks2 { get; set; }
+        public string Perks3 { get; set; }
+        public string Perks4 { get; set; }
+        public string Perks5 { get; set; }
+        public string Perks6 { get; set; }
+        public string Perks7 { get; set; }
+        public string Perks8 { get; set; }
+        public string Perks9 { get; set; }
+        public string Perks10 { get; set; }
+        public string Perks11 { get; set; }
+
+        public List<string> Perks => new List<string>()
+        {
+            Perks0,
+            Perks1,
+            Perks2,
+            Perks3,
+            Perks4,
+            Perks5,
+            Perks6,
+            Perks7,
+            Perks8,
+            Perks9,
+            Perks10,
+            Perks11
+        };
+
+        public static HashSet<string> AllSpecialPerks { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "Artifice Armor",
+            "Uniformed Officer",
+            "Iron Lord's Pride",
+        };
+
+        public HashSet<string> SpecialPerks => Perks.Where(x => AllSpecialPerks.Contains(x.Trim('*'))).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        public string UniqueType
+        {
+            get
+            {
+                return $"{string.Join("-", SpecialPerks)}-{SeasonalMod}";
+            }
+        }
 
         //public bool Equals(Item? other)
         //{

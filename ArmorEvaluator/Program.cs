@@ -11,7 +11,16 @@ var config = new CsvConfiguration(CultureInfo.InvariantCulture)
     PrepareHeaderForMatch = args => args.Header.Replace(" ", string.Empty),
 };
 
-string filePath = Directory.EnumerateFiles(Path.Combine(Environment.GetEnvironmentVariable("USERPROFILE"), @"Downloads"), @"destinyArmor*.csv").MaxBy(x => File.GetCreationTime(x));
+string filePath = null;
+if (args.Length > 0 && File.Exists(args[0]))
+{
+    filePath = args[0];
+}
+
+if (string.IsNullOrEmpty(filePath))
+{
+    filePath = Directory.EnumerateFiles(Path.Combine(Environment.GetEnvironmentVariable("USERPROFILE"), @"Downloads"), @"destinyArmor*.csv").MaxBy(x => File.GetCreationTime(x));
+}
 Console.WriteLine($"Using {filePath}");
 
 IEnumerable<Item> allItems;
@@ -20,9 +29,7 @@ using (var csv = new CsvReader(reader, config))
 {
     allItems = csv.GetRecords<Item>()
         .Where(x => x.Tier != "Rare")
-        .Where(x => x.Type != "Hunter Cloak")
-        .Where(x => x.Type != "Titan Mark")
-        .Where(x => x.Type != "Warlock Bond")
+        //.Where(x => !x.IsClassItem)
         .ToList();
 }
 
@@ -33,13 +40,13 @@ var appliedWeights = allItems.Select(item => new ScratchPad(item, AppliedWeightS
 
 // Assume we're keeping everything
 foreach (var item in appliedWeights
-    .Where(x => x.MeetsThreshold || x.Item.MasterworkTier == 10)
+    .Where(x => x.MeetsThreshold || x.Item.MasterworkTierInt == 10)
     .Where(x => x.Item.Tag != "favorite"))
 { item.SetTag("keep", "default"); }
 
 var toBeEvaluated = appliedWeights
     .Where(x => !x.MeetsThreshold)
-    .Where(x => x.Item.MasterworkTier < 10)
+    .Where(x => x.Item.MasterworkTierInt < 10)
     .Where(x => x.Item.Tag != "favorite")
     .ToHashSet(comparer);
 
@@ -52,11 +59,11 @@ foreach (var c in appliedWeights.GroupBy(x => x.Item.Equippable))
 {
     foreach (var type in c.GroupBy(x => x.Item.Type))
     {
-        foreach (var modType in type.GroupBy(x => x.Item.SeasonalMod))
+        foreach (var modType in type.GroupBy(x => x.Item.UniqueType))
         {
             if (modType.All(x => allJunk.Contains(x)))
             {
-                modType.MaxBy(x => x.AbsoluteValue).SetTag("keep", $"best {c.Key} {type.Key} {modType.Key}");
+                GetBest(modType).SetTag("keep", $"best {c.Key} {type.Key} {modType.Key}");
             }
         }
     }
@@ -69,7 +76,7 @@ foreach (var name in allJunk.Where(x => x.Item.Tier == "Exotic").Select(x => x.I
     var items = appliedWeights.Where(x => x.Item.Name == name);
     if (items.All(x => allJunk.Contains(x)))
     {
-        items.MaxBy(x => x.AbsoluteValue).SetTag("keep", $"best exotic {name}");
+        GetBest(items).SetTag("keep", $"best exotic {name}");
     }
 }
 
@@ -100,11 +107,11 @@ foreach (var hash in toBeEvaluated.Where(x => x.IsJunk).GroupBy(x => x.Item.Hash
     var masterworkDupe = appliedWeights
         .Where(x => x.Item.Hash == hash.Key)
         .Where(x => x.Item.Power < bestJunk.Item.Power)
-        .Where(x => x.Item.MasterworkTier == 10);
+        .Where(x => x.Item.MasterworkTierInt == 10);
     if (masterworkDupe.Any())
     {
         bestJunk.SetTag("infuse", "use to improve a masterwork");
-        infusionTargets.Add(masterworkDupe.MaxBy(x => x.AbsoluteValue));
+        infusionTargets.Add(GetBest(masterworkDupe));
     }
 }
 
@@ -119,7 +126,7 @@ foreach (var hash in toBeEvaluated.Where(x => x.IsJunk).GroupBy(x => x.Item.Hash
     if (reallyLowDupe.Any())
     {
         bestJunk.SetTag("infuse", "use to improve something *much* lower");
-        infusionTargets.Add(reallyLowDupe.MaxBy(x => x.AbsoluteValue));
+        infusionTargets.Add(GetBest(reallyLowDupe));
     }
 }
 
@@ -131,17 +138,18 @@ foreach (var eval in appliedWeights.Where(x => x.Item.Tier == "Legendary"))
         .Where(x => x.Item.Tier != "Exotic")
         .Where(x => x.Item.Type == eval.Item.Type)
         .Where(x => x.Item.Equippable == eval.Item.Equippable)
-        .Where(x => x.Item.SeasonalMod == eval.Item.SeasonalMod)
+        .Where(x => x.Item.UniqueType == eval.Item.UniqueType)
         .Where(x => x.Item.Total > eval.Item.Total)
         .Where(x => x.Item.Mobility >= eval.Item.Mobility)
         .Where(x => x.Item.Resilience >= eval.Item.Resilience)
         .Where(x => x.Item.Recovery >= eval.Item.Recovery)
         .Where(x => x.Item.Discipline >= eval.Item.Discipline)
         .Where(x => x.Item.Intellect >= eval.Item.Intellect)
-        .Where(x => x.Item.Strength >= eval.Item.Strength);
+        .Where(x => x.Item.Strength >= eval.Item.Strength)
+        .OrderByDescending(x => x.AbsoluteValue);
     if (strictlyBetter.Count() > 0)
     {
-        eval.SetTag("junk", "strictly worse than other");
+        eval.SetTag("junk", $"strictly worse than {strictlyBetter.First().Item.Name}");
     }
 }
 
@@ -183,7 +191,7 @@ if (false)
             x.Item.Type,
             x.Item.Equippable,
             x.Item.Power,
-            x.Item.MasterworkTier,
+            x.Item.MasterworkTierInt,
             x.Item.Mobility,
             x.Item.Resilience,
             x.Item.Recovery,
@@ -191,6 +199,7 @@ if (false)
             x.Item.Intellect,
             x.Item.Strength,
             x.Item.SeasonalMod,
+            SpecialPerks = string.Join(",", x.Item.SpecialPerks),
             x.AbsoluteValue,
             FirstName = x.Weights.FirstOrDefault()?.WeightSet.Name,
             FirstSum = x.Weights.FirstOrDefault()?.Sum,
@@ -210,20 +219,7 @@ if (false)
     Process.Start(@"C:\Program Files\Microsoft Office\root\Office16\EXCEL.EXE", outputPath);
 }
 
-HashSet<ScratchPad> GetStrictlyBetter(ScratchPad given, IEnumerable<ScratchPad> everything)
+ScratchPad GetBest(IEnumerable<ScratchPad> records)
 {
-    return everything
-        .Where(x => x.Item.Id != given.Item.Id)
-        .Where(x => x.Item.Tier != "Exotic")
-        .Where(x => x.Item.Type == given.Item.Type)
-        .Where(x => x.Item.Equippable == given.Item.Equippable)
-        .Where(x => x.Item.SeasonalMod == given.Item.SeasonalMod)
-        .Where(x => x.Item.Total > given.Item.Total)
-        .Where(x => x.Item.Mobility >= given.Item.Mobility)
-        .Where(x => x.Item.Resilience >= given.Item.Resilience)
-        .Where(x => x.Item.Recovery >= given.Item.Recovery)
-        .Where(x => x.Item.Discipline >= given.Item.Discipline)
-        .Where(x => x.Item.Intellect >= given.Item.Intellect)
-        .Where(x => x.Item.Strength >= given.Item.Strength)
-        .ToHashSet();
+    return records.OrderByDescending(x => x.AbsoluteValue).ThenByDescending(x => x.Item.MasterworkTierInt).First();
 }
