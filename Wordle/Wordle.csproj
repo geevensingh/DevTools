@@ -8,6 +8,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Program - V1.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Program - V1.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Update="Scrabble-Words.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
