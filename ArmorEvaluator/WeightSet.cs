@@ -29,9 +29,9 @@ namespace ArmorEvaluator
                         new WeightSet()
                         {
                             Name       = "Basic",
-                            Threshold  = 147,    // effectively 68+ total
+                            Threshold  = 136,    // effectively 68+ total
                             Mobility   = 3,
-                            Resilience = 2,
+                            Resilience = 1,
                             Recovery   = 2,
                             Discipline = 2,
                             Intellect  = 2,
@@ -40,12 +40,12 @@ namespace ArmorEvaluator
                         new WeightSet()
                         {
                             Name = "Mobility-focused",
-                            Threshold = 340,
+                            Threshold = 369,
                             Mobility = 10,
                             Resilience = 4,
                             Recovery = 5,
                             Discipline = 4,
-                            Intellect = 7,
+                            Intellect = 6,
                             Strength = 4,
                         },
                     }
@@ -68,7 +68,7 @@ namespace ArmorEvaluator
                         new WeightSet()
                         {
                             Name = "Resilience-focused",
-                            Threshold = 310,
+                            Threshold = 369,
                             Mobility = 1,
                             Resilience = 10,
                             Recovery = 5,

@@ -12,9 +12,18 @@ var config = new CsvConfiguration(CultureInfo.InvariantCulture)
 };
 
 string filePath = null;
-if (args.Length > 0 && File.Exists(args[0]))
+bool makeSpreadsheet = false;
+foreach (string arg in args)
 {
-    filePath = args[0];
+    if (File.Exists(arg))
+    {
+        filePath = arg;
+    }
+    else if (arg.ToLower() == "-sheet")
+    {
+        makeSpreadsheet = true;
+    }
+
 }
 
 if (string.IsNullOrEmpty(filePath))
@@ -38,11 +47,12 @@ var weights = WeightSet.GetDefaults();
 var comparer = new Comparer();
 var appliedWeights = allItems.Select(item => new ScratchPad(item, AppliedWeightSet.Create(item, weights[item.Equippable]))).ToHashSet(comparer);
 
+
 // Assume we're keeping everything
 foreach (var item in appliedWeights
     .Where(x => x.MeetsThreshold || x.Item.MasterworkTierInt == 10)
     .Where(x => x.Item.Tag != "favorite"))
-{ item.SetTag("keep", "default"); }
+{ item.SetTag("keep", "meets threshold or masterwork"); }
 
 var toBeEvaluated = appliedWeights
     .Where(x => !x.MeetsThreshold)
@@ -51,7 +61,43 @@ var toBeEvaluated = appliedWeights
     .ToHashSet(comparer);
 
 // Assume that everything is junk to start
-foreach (var item in toBeEvaluated) { item.SetTag("junk", "default"); }
+foreach (var item in toBeEvaluated) { item.SetTag("junk", "does not meet threshold or masterwork"); }
+
+// Look for items that are strictly worse that others
+var evaluated = new HashSet<ScratchPad>();
+foreach (var eval in appliedWeights.Where(x => x.Item.Tier == "Legendary" && !x.Item.IsClassItem))
+{
+    if (evaluated.Contains(eval))
+    {
+        continue;
+    }
+
+    var dupeSet = appliedWeights
+        .Where(x => x.Item.Equippable == eval.Item.Equippable)
+        .Where(x => x.Item.Tier == eval.Item.Tier)
+        .Where(x => x.Item.Type == eval.Item.Type)
+        .Where(x => x.Item.Equippable == eval.Item.Equippable)
+        .Where(x => x.Item.UniqueType == eval.Item.UniqueType)
+        .Where(x => x.Item.Total >= eval.Item.Total)
+        .Where(x => x.Item.Mobility >= eval.Item.Mobility)
+        .Where(x => x.Item.Resilience >= eval.Item.Resilience)
+        .Where(x => x.Item.Recovery >= eval.Item.Recovery)
+        .Where(x => x.Item.Discipline >= eval.Item.Discipline)
+        .Where(x => x.Item.Intellect >= eval.Item.Intellect)
+        .Where(x => x.Item.Strength >= eval.Item.Strength);
+    if (dupeSet.Count() > 1)
+    {
+        evaluated.UnionWith(dupeSet);
+        var bestDupe = GetBest(dupeSet);
+        foreach (var dupe in dupeSet.Where(x => x.Item.MasterworkTierInt < 10 && x.Item.Tag != "favorite"))
+        {
+            if (dupe != bestDupe)
+            {
+                dupe.SetTag("junk", $"strictly worse than {bestDupe.Item.Name}");
+            }
+        }
+    }
+}
 
 // Make sure we don't delete everything with a specific seasonal mod slot
 var allJunk = toBeEvaluated.Where(x => x.IsJunk);
@@ -121,7 +167,7 @@ foreach (var hash in toBeEvaluated.Where(x => x.IsJunk).GroupBy(x => x.Item.Hash
     var bestJunk = hash.MaxBy(x => x.Item.Power);
     var reallyLowDupe = appliedWeights
         .Where(x => x.Item.Hash == hash.Key)
-        .Where(x => bestJunk.Item.Power - x.Item.Power > 20 )
+        .Where(x => bestJunk.Item.Power - x.Item.Power > 25 )
         .Where(x => x.NewTag != "junk");
     if (reallyLowDupe.Any())
     {
@@ -129,30 +175,6 @@ foreach (var hash in toBeEvaluated.Where(x => x.IsJunk).GroupBy(x => x.Item.Hash
         infusionTargets.Add(GetBest(reallyLowDupe));
     }
 }
-
-// Look for items that are strictly worse that others
-foreach (var eval in appliedWeights.Where(x => x.Item.Tier == "Legendary"))
-{
-    var strictlyBetter = appliedWeights
-        .Where(x => x.Item.Id != eval.Item.Id)
-        .Where(x => x.Item.Tier != "Exotic")
-        .Where(x => x.Item.Type == eval.Item.Type)
-        .Where(x => x.Item.Equippable == eval.Item.Equippable)
-        .Where(x => x.Item.UniqueType == eval.Item.UniqueType)
-        .Where(x => x.Item.Total > eval.Item.Total)
-        .Where(x => x.Item.Mobility >= eval.Item.Mobility)
-        .Where(x => x.Item.Resilience >= eval.Item.Resilience)
-        .Where(x => x.Item.Recovery >= eval.Item.Recovery)
-        .Where(x => x.Item.Discipline >= eval.Item.Discipline)
-        .Where(x => x.Item.Intellect >= eval.Item.Intellect)
-        .Where(x => x.Item.Strength >= eval.Item.Strength)
-        .OrderByDescending(x => x.AbsoluteValue);
-    if (strictlyBetter.Count() > 0)
-    {
-        eval.SetTag("junk", $"strictly worse than {strictlyBetter.First().Item.Name}");
-    }
-}
-
 
 foreach (var reason in appliedWeights.Where(x => x.TagChanged).GroupBy(x => x.NewTagReason))
 {
@@ -178,7 +200,7 @@ if (infusionTargets.Any())
 }
 
 
-if (false)
+if (makeSpreadsheet)
 {
     var outputRecords = appliedWeights
         .Select(x => new
@@ -209,7 +231,7 @@ if (false)
             ThirdSum = x.Weights.Skip(2).FirstOrDefault()?.Sum,
         });
 
-    var outputPath = Path.Combine(@"C:\Users\geeve\Downloads", $"destinyArmor-{Guid.NewGuid()}.csv");
+    var outputPath = Path.Combine(@"C:\Users\geeve\Downloads", $"output-destinyArmor-{Guid.NewGuid()}.csv");
     using (var textWriter = new StreamWriter(outputPath))
     using (var writer = new CsvWriter(textWriter, config))
     {
