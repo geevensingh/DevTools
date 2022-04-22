@@ -88,7 +88,20 @@ while (true)
 
     foreach (var ch in badLetters)
     {
-        words = words.Where(x => !x.Contains(ch)).ToArray();
+        words = words.Where(x =>
+        {
+            int offset = 0;
+            foreach (var pair in rightPlace.OrderBy(a => a.Item2))
+            {
+                if (x[pair.Item2 - offset] == pair.Item1)
+                {
+                    x = x.Remove(pair.Item2 - offset, 1);
+                    offset++;
+                }
+            }
+
+            return !x.Contains(ch);
+        }).ToArray();
     }
 
     foreach (var pair in wrongPlace)
@@ -96,13 +109,15 @@ while (true)
         words = words.Where(x => x.Remove(pair.Item2, 1).Contains(pair.Item1)).ToArray();
     }
 
+    Debug.Assert(words.Any());
+
     Dictionary<string, double> scoreLookup = new Dictionary<string, double>();
     foreach (string word in words)
     {
         scoreLookup[word] = words.Where(x => x != word).Sum(x => CompareWords(word, x));
         if (word.Distinct().Count() == word.Length)
         {
-            scoreLookup[word] = Math.Round(scoreLookup[word] * 1.2, 2);
+            scoreLookup[word] = Math.Round(scoreLookup[word] * 1.48, 3);
         }
     }
 
