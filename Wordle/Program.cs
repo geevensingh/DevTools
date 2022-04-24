@@ -1,6 +1,13 @@
 ﻿using System.Diagnostics;
 
-string[] words = await File.ReadAllLinesAsync("Scrabble-Words.txt");
+string dictionaryFileName = "Scrabble-Words.txt";
+string dictionaryPath = dictionaryFileName;
+if (!File.Exists(dictionaryPath))
+{
+    dictionaryPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, dictionaryFileName);
+}
+
+string[] words = await File.ReadAllLinesAsync(dictionaryPath);
 words = words
     .Select(x => x.ToLower().Trim())
     .Where(x => x.Length == 5)
@@ -117,7 +124,7 @@ while (true)
         scoreLookup[word] = words.Where(x => x != word).Sum(x => CompareWords(word, x));
         if (word.Distinct().Count() == word.Length)
         {
-            scoreLookup[word] = Math.Round(scoreLookup[word] * 1.48, 3);
+            scoreLookup[word] = Math.Round(scoreLookup[word] * 1.25, 3);
         }
     }
 
@@ -145,15 +152,17 @@ static int CompareWords(string guess, string answer)
 {
     Debug.Assert(guess.Length == answer.Length);
     int score = 0;
+    HashSet<char> wrongPlaceLetters = new HashSet<char>();
     for (int ii = 0; ii < guess.Length; ii++)
     {
         if (guess[ii] == answer[ii])
         {
             score += 3;
         }
-        else if (answer.Contains(guess[ii]))
+        else if (answer.Contains(guess[ii]) && !wrongPlaceLetters.Contains(guess[ii]))
         {
-            score++;
+            score += 2;
+            wrongPlaceLetters.Add(guess[ii]);
         }
     }
 
