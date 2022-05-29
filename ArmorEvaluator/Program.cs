@@ -63,6 +63,23 @@ var toBeEvaluated = appliedWeights
 // Assume that everything is junk to start
 foreach (var item in toBeEvaluated) { item.SetTag("junk", "does not meet threshold or masterwork"); }
 
+// For titan and hunter, keep only the best few in each slot
+foreach (var c in appliedWeights.GroupBy(x => x.Item.Equippable).Where(x => x.Key == "Hunter" || x.Key == "Titan"))
+{
+    int count = 3;
+    if (c.Key == "Hunter")
+    {
+        count = 6;
+    }
+
+    foreach (var type in c.Where(x => x.Item.Tier != "Exotic").GroupBy(x => x.Item.Type))
+    {
+        var best = GetBest(type, count);
+        var garbage = type.Where(x => !best.Contains(x));
+        foreach (var item in garbage) { item.SetTag("junk", $"Not high enough for {c.Key} - didn't make the top {count}"); }
+    }
+}
+
 // Look for items that are strictly worse that others
 var evaluated = new HashSet<ScratchPad>();
 foreach (var eval in appliedWeights.Where(x => x.Item.Tier == "Legendary" && !x.Item.IsClassItem))
@@ -88,7 +105,7 @@ foreach (var eval in appliedWeights.Where(x => x.Item.Tier == "Legendary" && !x.
     if (dupeSet.Count() > 1)
     {
         evaluated.UnionWith(dupeSet);
-        var bestDupe = GetBest(dupeSet);
+        var bestDupe = GetSingleBest(dupeSet);
         foreach (var dupe in dupeSet.Where(x => x.Item.MasterworkTierInt < 10 && x.Item.Tag != "favorite"))
         {
             if (dupe != bestDupe)
@@ -109,7 +126,7 @@ foreach (var c in appliedWeights.GroupBy(x => x.Item.Equippable))
         {
             if (modType.All(x => allJunk.Contains(x)))
             {
-                GetBest(modType).SetTag("keep", $"best {c.Key} {type.Key} {modType.Key}");
+                GetSingleBest(modType).SetTag("keep", $"best {c.Key} {type.Key} {modType.Key}");
             }
         }
     }
@@ -122,7 +139,7 @@ foreach (var name in allJunk.Where(x => x.Item.Tier == "Exotic").Select(x => x.I
     var items = appliedWeights.Where(x => x.Item.Name == name);
     if (items.All(x => allJunk.Contains(x)))
     {
-        GetBest(items).SetTag("keep", $"best exotic {name}");
+        GetSingleBest(items).SetTag("keep", $"best exotic {name}");
     }
 }
 
@@ -157,7 +174,7 @@ foreach (var hash in toBeEvaluated.Where(x => x.IsJunk).GroupBy(x => x.Item.Hash
     if (masterworkDupe.Any())
     {
         bestJunk.SetTag("infuse", "use to improve a masterwork");
-        infusionTargets.Add(GetBest(masterworkDupe));
+        infusionTargets.Add(GetSingleBest(masterworkDupe));
     }
 }
 
@@ -172,7 +189,7 @@ foreach (var hash in toBeEvaluated.Where(x => x.IsJunk).GroupBy(x => x.Item.Hash
     if (reallyLowDupe.Any())
     {
         bestJunk.SetTag("infuse", "use to improve something *much* lower");
-        infusionTargets.Add(GetBest(reallyLowDupe));
+        infusionTargets.Add(GetSingleBest(reallyLowDupe));
     }
 }
 
@@ -229,6 +246,12 @@ if (makeSpreadsheet)
             SecondSum = x.Weights.Skip(1).FirstOrDefault()?.Sum,
             ThirdName = x.Weights.Skip(2).FirstOrDefault()?.WeightSet.Name,
             ThirdSum = x.Weights.Skip(2).FirstOrDefault()?.Sum,
+            FourthName = x.Weights.Skip(3).FirstOrDefault()?.WeightSet.Name,
+            FourthSum = x.Weights.Skip(3).FirstOrDefault()?.Sum,
+            FirstThreshold = x.Weights.FirstOrDefault()?.MeetsThreshold,
+            SecondThreshold = x.Weights.Skip(1).FirstOrDefault()?.MeetsThreshold,
+            ThirdThreshold = x.Weights.Skip(2).FirstOrDefault()?.MeetsThreshold,
+            FourthThreshold = x.Weights.Skip(3).FirstOrDefault()?.MeetsThreshold,
         });
 
     var outputPath = Path.Combine(@"C:\Users\geeve\Downloads", $"output-destinyArmor-{Guid.NewGuid()}.csv");
@@ -241,7 +264,12 @@ if (makeSpreadsheet)
     Process.Start(@"C:\Program Files\Microsoft Office\root\Office16\EXCEL.EXE", outputPath);
 }
 
-ScratchPad GetBest(IEnumerable<ScratchPad> records)
+IEnumerable<ScratchPad> GetBest(IEnumerable<ScratchPad> records, int count)
 {
-    return records.OrderByDescending(x => x.AbsoluteValue).ThenByDescending(x => x.Item.MasterworkTierInt).First();
+    return records.OrderByDescending(x => x.AbsoluteValue).ThenByDescending(x => x.Item.MasterworkTierInt).Take(count);
+}
+
+ScratchPad GetSingleBest(IEnumerable<ScratchPad> records)
+{
+    return GetBest(records, 1).Single();
 }

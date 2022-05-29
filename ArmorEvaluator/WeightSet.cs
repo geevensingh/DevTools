@@ -29,13 +29,24 @@ namespace ArmorEvaluator
                         new WeightSet()
                         {
                             Name       = "Basic",
-                            Threshold  = 136,    // effectively 68+ total
+                            Threshold  = 142,    // effectively 68+ total
                             Mobility   = 3,
                             Resilience = 1,
                             Recovery   = 2,
                             Discipline = 2,
                             Intellect  = 2,
                             Strength   = 2,
+                        },
+                        new WeightSet()
+                        {
+                            Name       = "Hunter-Survive",
+                            Threshold = 369,
+                            Mobility = 6,
+                            Resilience = 10,
+                            Recovery = 3,
+                            Discipline = 4,
+                            Intellect = 4,
+                            Strength = 4,
                         },
                         new WeightSet()
                         {
@@ -85,18 +96,18 @@ namespace ArmorEvaluator
                         new WeightSet()
                         {
                             Name       = "Basic",
-                            Threshold  = 136,    // effectively 68+ total
-                            Mobility   = 1,
+                            Threshold  = 115.5f,
+                            Mobility   = 0.5f,
                             Resilience = 2,
                             Recovery   = 2,
                             Discipline = 2,
-                            Intellect  = 3,
+                            Intellect  = 2,
                             Strength   = 2,
                         },
                         new WeightSet()
                         {
                             Name       = "Grenade",
-                            Threshold  = 268,
+                            Threshold  = 278,
                             Mobility   = 0.1f,
                             Resilience = 2,
                             Recovery   = 6,
@@ -106,8 +117,19 @@ namespace ArmorEvaluator
                         },
                         new WeightSet()
                         {
+                            Name       = "Survive",
+                            Threshold  = 276,
+                            Mobility   = 0.1f,
+                            Resilience = 8,
+                            Recovery   = 7,
+                            Discipline = 3,
+                            Intellect  = 3,
+                            Strength   = 3,
+                        },
+                        new WeightSet()
+                        {
                             Name       = "Super",
-                            Threshold  = 268,
+                            Threshold  = 285,
                             Mobility   = 0.1f,
                             Resilience = 2,
                             Recovery   = 6,
