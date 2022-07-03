@@ -61,7 +61,6 @@ foreach (var item in appliedWeights
 var toBeEvaluated = appliedWeights
     .Where(x => x.Item.MasterworkTierInt < 10)
     .Where(x => x.Item.Tag != "favorite")
-    .Where(x => !x.Item.IsClassItem)
     .ToHashSet(comparer);
 
 // Assume that everything is junk to start
@@ -197,8 +196,11 @@ foreach (var hash in toBeEvaluated.Where(x => x.IsJunk).GroupBy(x => x.Item.Hash
     }
 }
 
+HashSet<string> classesEffected = new HashSet<string>();
+
 foreach (var reason in appliedWeights.Where(x => x.TagChanged).GroupBy(x => x.NewTagReason))
 {
+    classesEffected.UnionWith(reason.Select(x => x.Item.Equippable).Distinct());
     Console.WriteLine(reason.Key);
     Console.WriteLine("  " + string.Join("\r\n  ", reason.Select(x => x.Item.Name)));
     Console.WriteLine(string.Join(" or ", reason.Select(x => $"id:{x.Item.Id}")));
@@ -208,6 +210,7 @@ Console.WriteLine();
 
 foreach (var tag in appliedWeights.Where(x => x.TagChanged).GroupBy(x => x.NewTag))
 {
+    classesEffected.UnionWith(tag.Select(x => x.Item.Equippable).Distinct());
     Console.WriteLine(tag.Key);
     Console.WriteLine(string.Join(" or ", tag.Select(x => $"id:{x.Item.Id}")));
 
@@ -215,6 +218,7 @@ foreach (var tag in appliedWeights.Where(x => x.TagChanged).GroupBy(x => x.NewTa
 
 if (infusionTargets.Any())
 {
+    classesEffected.UnionWith(infusionTargets.Select(x => x.Item.Equippable).Distinct());
     Console.WriteLine("infusion targets");
     Console.WriteLine("  " + string.Join("\r\n  ", infusionTargets.Select(x => x.Item.Name)));
     Console.WriteLine(string.Join(" or ", infusionTargets.Select(x => $"id:{x.Item.Id}")));
@@ -226,6 +230,11 @@ bool newThresholdSet = false;
 Dictionary<string, Dictionary<Item, int>> considerDeleting = new Dictionary<string, Dictionary<Item, int>>();
 foreach (var c in appliedWeights.Where(x => x.NewTag == "keep").GroupBy(x => x.Item.Equippable))
 {
+    if (!classesEffected.Contains(c.Key))
+    {
+        continue;
+    }
+
     Console.WriteLine(c.Key);
     var weightSet = weights[c.Key];
     foreach (var set in weightSet)
@@ -240,7 +249,7 @@ foreach (var c in appliedWeights.Where(x => x.NewTag == "keep").GroupBy(x => x.I
 
             var appliedSets = type.Where(x => x.Item.Tier != "Exotic").Select(x => x.Weights.Single(y => y.WeightSet == set));
             int count = appliedSets.Count(x => x.MeetsThreshold);
-            consoleLine += ("  " + count).PadRight(6);
+            consoleLine += ($"{count} ({set.GetNormalizedThreshold(type.Key):F})").PadRight(15);
             int excess = count - set.Count;
             if (excess > 0)
             {
@@ -252,6 +261,7 @@ foreach (var c in appliedWeights.Where(x => x.NewTag == "keep").GroupBy(x => x.I
                 }
             }
         }
+        consoleLine += set.OverallNormalizedThreshold.ToString("F3");
         Console.WriteLine(consoleLine);
     }
 }

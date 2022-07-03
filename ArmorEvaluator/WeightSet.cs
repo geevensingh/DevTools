@@ -18,9 +18,16 @@ namespace ArmorEvaluator
         public float Intellect { get; set; }
         public float Strength { get; set; }
 
+        public float Sum => Mobility + Resilience + Recovery + Discipline + Intellect + Strength;
+
         public int Count { get; set; }
 
-        internal HashSet<ScratchPad> Pads { get; } = new HashSet<ScratchPad>();
+        public float OverallNormalizedThreshold => Threshold.Average / Sum;
+
+        public float GetNormalizedThreshold(string itemType)
+        {
+            return Threshold.GetApplicableThreshold(itemType) / Sum;
+        }
 
         public bool Equals(WeightSet? other)
         {

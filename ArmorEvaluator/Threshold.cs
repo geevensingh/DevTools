@@ -12,6 +12,7 @@ namespace ArmorEvaluator
         public float Gauntlets { get; set; } = 1f;
         public float ChestArmor { get; set; } = 1f;
         public float LegArmor { get; set; } = 1f;
+        public float Average => (Helmet + Gauntlets + ChestArmor + LegArmor) / 4.0f;
 
         public float GetApplicableThreshold(Item item)
         {
@@ -20,7 +21,12 @@ namespace ArmorEvaluator
                 return 1f;
             }
 
-            switch (item.Type)
+            return GetApplicableThreshold(item.Type);
+        }
+
+        public float GetApplicableThreshold(string itemType)
+        {
+            switch (itemType)
             {
                 case "Helmet":
                     return this.Helmet;
@@ -31,7 +37,7 @@ namespace ArmorEvaluator
                 case "Leg Armor":
                     return this.LegArmor;
                 default:
-                    throw new ArgumentOutOfRangeException(nameof(item), $"Unknown type {item.Type}");
+                    throw new ArgumentOutOfRangeException(nameof(itemType), $"Unknown type {itemType}");
             }
         }
 
