@@ -3,8 +3,14 @@
 using ArmorEvaluator;
 using CsvHelper;
 using CsvHelper.Configuration;
+using Newtonsoft.Json;
 using System.Diagnostics;
 using System.Globalization;
+
+string exePath = AppDomain.CurrentDomain.BaseDirectory;
+string weightsPath = Path.Combine(exePath, "Weights.json");
+
+var weights = JsonConvert.DeserializeObject<Dictionary<string, HashSet<WeightSet>>>(File.ReadAllText(weightsPath));
 
 var config = new CsvConfiguration(CultureInfo.InvariantCulture)
 {
@@ -42,26 +48,24 @@ using (var csv = new CsvReader(reader, config))
         .ToList();
 }
 
-var weights = WeightSet.GetDefaults();
-
 var comparer = new Comparer();
 var appliedWeights = allItems.Select(item => new ScratchPad(item, AppliedWeightSet.Create(item, weights[item.Equippable]))).ToHashSet(comparer);
 
 
 // Assume we're keeping everything
 foreach (var item in appliedWeights
-    .Where(x => x.MeetsThreshold || x.Item.MasterworkTierInt == 10)
+    .Where(x => x.MeetsThresholdOrIsSpecial || x.Item.MasterworkTierInt == 10)
     .Where(x => x.Item.Tag != "favorite"))
 { item.SetTag("keep", "meets threshold or masterwork"); }
 
 var toBeEvaluated = appliedWeights
-    .Where(x => !x.MeetsThreshold)
     .Where(x => x.Item.MasterworkTierInt < 10)
     .Where(x => x.Item.Tag != "favorite")
+    .Where(x => !x.Item.IsClassItem)
     .ToHashSet(comparer);
 
 // Assume that everything is junk to start
-foreach (var item in toBeEvaluated) { item.SetTag("junk", "does not meet threshold or masterwork"); }
+foreach (var item in toBeEvaluated.Where(x => !x.MeetsThresholdOrIsSpecial)) { item.SetTag("junk", "does not meet threshold or masterwork"); }
 
 // For titan and hunter, keep only the best few in each slot
 foreach (var c in appliedWeights.GroupBy(x => x.Item.Equippable).Where(x => x.Key == "Hunter" || x.Key == "Titan"))
@@ -216,6 +220,62 @@ if (infusionTargets.Any())
     Console.WriteLine(string.Join(" or ", infusionTargets.Select(x => $"id:{x.Item.Id}")));
 }
 
+var longestName = weights.SelectMany(x => x.Value).MaxBy(x => x.Name.Length).Name.Length;
+
+bool newThresholdSet = false;
+Dictionary<string, Dictionary<Item, int>> considerDeleting = new Dictionary<string, Dictionary<Item, int>>();
+foreach (var c in appliedWeights.Where(x => x.NewTag == "keep").GroupBy(x => x.Item.Equippable))
+{
+    Console.WriteLine(c.Key);
+    var weightSet = weights[c.Key];
+    foreach (var set in weightSet)
+    {
+        string consoleLine = ("     " + set.Name).PadRight(longestName + 5);
+        foreach (var type in c.GroupBy(x => x.Item.Type).OrderBy(x => ItemTypeComparer(x.Key)))
+        {
+            if (type.First().Item.IsClassItem)
+            {
+                continue;
+            }
+
+            var appliedSets = type.Where(x => x.Item.Tier != "Exotic").Select(x => x.Weights.Single(y => y.WeightSet == set));
+            int count = appliedSets.Count(x => x.MeetsThreshold);
+            consoleLine += ("  " + count).PadRight(6);
+            int excess = count - set.Count;
+            if (excess > 0)
+            {
+                float newThreshold = appliedSets.Where(x => x.MeetsThreshold).OrderBy(x => x.Sum).Skip(excess).First().Sum;
+                newThresholdSet = set.Threshold.Set(type.Key, newThreshold);
+                if (newThresholdSet)
+                {
+                    Console.WriteLine($"Setting the threshold for {c.Key} - {set.Name} - {type.Key} to {newThreshold}");
+                }
+            }
+        }
+        Console.WriteLine(consoleLine);
+    }
+}
+
+if (newThresholdSet)
+{
+    string json = JsonConvert.SerializeObject(weights);
+    File.WriteAllText(weightsPath, json);
+}
+
+int ItemTypeComparer(string key)
+{
+    return key switch
+    {
+        "Helmet" => 1,
+        "Gauntlets" => 2,
+        "Chest Armor" => 3,
+        "Leg Armor" => 4,
+        "Hunter Cloak" => 5,
+        "Titan Mark" => 6,
+        "Warlock Bond" => 7,
+        _ => throw new ArgumentOutOfRangeException(nameof(key)),
+    };
+}
 
 if (makeSpreadsheet)
 {

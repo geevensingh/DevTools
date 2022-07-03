@@ -17,13 +17,14 @@ namespace ArmorEvaluator
             {
                 if (Item.Tier == "Exotic")
                 {
-                    return WeightSet.Threshold * 0.8f;
+                    return WeightSet.Threshold.GetApplicableThreshold(Item) * 0.8f;
                 }
 
-                return WeightSet.Threshold;
+                return WeightSet.Threshold.GetApplicableThreshold(Item);
             }
         }
-        public bool MeetsThreshold => (Sum >= AdjustedThreshold) || Item.IsSpecial;
+        public bool MeetsThreshold => (Sum >= AdjustedThreshold);
+        public bool MeetsThresholdOrIsSpecial => MeetsThreshold || Item.IsSpecial;
 
         public float Mobility => WeightSet.Mobility * Item.Mobility;
         public float Resilience => WeightSet.Resilience * Item.Resilience;
