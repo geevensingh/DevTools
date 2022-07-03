@@ -1,0 +1,107 @@
+{
+  "Hunter": [
+    {
+      "Name": "Basic",
+      "Threshold": {},
+      "Mobility": 3,
+      "Resilience": 1,
+      "Recovery": 2,
+      "Discipline": 2,
+      "Intellect": 2,
+      "Strength": 2,
+      "Count": 5
+    },
+    {
+      "Name": "Survive",
+      "Threshold": {},
+      "Mobility": 6,
+      "Resilience": 10,
+      "Recovery": 3,
+      "Discipline": 4,
+      "Intellect": 4,
+      "Strength": 4,
+      "Count": 5
+    },
+    {
+      "Name": "Mobility",
+      "Threshold": {},
+      "Mobility": 10,
+      "Resilience": 4,
+      "Recovery": 5,
+      "Discipline": 4,
+      "Intellect": 6,
+      "Strength": 4,
+      "Count": 5
+    }
+  ],
+  "Titan": [
+    {
+      "Name": "Basic",
+      "Threshold": {},
+      "Mobility": 1,
+      "Resilience": 3,
+      "Recovery": 2,
+      "Discipline": 2,
+      "Intellect": 3,
+      "Strength": 2,
+      "Count": 3
+    },
+    {
+      "Name": "Resilience",
+      "Threshold": {},
+      "Mobility": 1,
+      "Resilience": 10,
+      "Recovery": 5,
+      "Discipline": 4,
+      "Intellect": 7,
+      "Strength": 4,
+      "Count": 3
+    }
+  ],
+  "Warlock": [
+    {
+      "Name": "Basic",
+      "Threshold": {},
+      "Mobility": 0.1,
+      "Resilience": 2,
+      "Recovery": 2,
+      "Discipline": 2,
+      "Intellect": 3,
+      "Strength": 2,
+      "Count": 20
+    },
+    {
+      "Name": "Grenade",
+      "Threshold": {},
+      "Mobility": 0.1,
+      "Resilience": 2,
+      "Recovery": 6,
+      "Discipline": 7,
+      "Intellect": 5,
+      "Strength": 4,
+      "Count": 20
+    },
+    {
+      "Name": "Survive",
+      "Threshold": {},
+      "Mobility": 0.1,
+      "Resilience": 8,
+      "Recovery": 7,
+      "Discipline": 3,
+      "Intellect": 3,
+      "Strength": 3,
+      "Count": 20
+    },
+    {
+      "Name": "Super",
+      "Threshold": {},
+      "Mobility": 0.1,
+      "Resilience": 2,
+      "Recovery": 6,
+      "Discipline": 5,
+      "Intellect": 7,
+      "Strength": 4,
+      "Count": 20
+    }
+  ]
+}
