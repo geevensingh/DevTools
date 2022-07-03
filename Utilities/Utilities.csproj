@@ -35,10 +35,11 @@
     <LangVersion>7.2</LangVersion>
   </PropertyGroup>
   <PropertyGroup>
-    <AssemblyOriginatorKeyFile>Utilities_key.pfx</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>
+    </AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <PropertyGroup>
-    <SignAssembly>true</SignAssembly>
+    <SignAssembly>false</SignAssembly>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="PresentationCore" />
@@ -71,9 +72,6 @@
     <Compile Include="StringHelper.cs" />
     <Compile Include="TaskExtensions.cs" />
     <Compile Include="TimeSpanStringify.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Utilities_key.pfx" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
