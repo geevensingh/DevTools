@@ -68,7 +68,7 @@
       "Discipline": 2,
       "Intellect": 3,
       "Strength": 2,
-      "Count": 30
+      "Count": 20
     },
     {
       "Name": "Grenade",
@@ -79,7 +79,18 @@
       "Discipline": 7,
       "Intellect": 5,
       "Strength": 4,
-      "Count": 20
+      "Count": 15
+    },
+    {
+      "Name": "Melee",
+      "Threshold": {},
+      "Mobility": 0.1,
+      "Resilience": 2,
+      "Recovery": 4,
+      "Discipline": 7,
+      "Intellect": 5,
+      "Strength": 6,
+      "Count": 15
     },
     {
       "Name": "Survive",
@@ -90,7 +101,7 @@
       "Discipline": 3,
       "Intellect": 3,
       "Strength": 3,
-      "Count": 20
+      "Count": 15
     },
     {
       "Name": "Super",
@@ -101,7 +112,7 @@
       "Discipline": 5,
       "Intellect": 7,
       "Strength": 4,
-      "Count": 20
+      "Count": 15
     }
   ]
 }

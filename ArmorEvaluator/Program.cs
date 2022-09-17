@@ -10,6 +10,7 @@ using System.Globalization;
 string exePath = AppDomain.CurrentDomain.BaseDirectory;
 string weightsPath = Path.Combine(exePath, "Weights.json");
 
+Console.WriteLine($"Using weights from {weightsPath}");
 var weights = JsonConvert.DeserializeObject<Dictionary<string, HashSet<WeightSet>>>(File.ReadAllText(weightsPath));
 
 var config = new CsvConfiguration(CultureInfo.InvariantCulture)
@@ -230,10 +231,10 @@ bool newThresholdSet = false;
 Dictionary<string, Dictionary<Item, int>> considerDeleting = new Dictionary<string, Dictionary<Item, int>>();
 foreach (var c in appliedWeights.Where(x => x.NewTag == "keep").GroupBy(x => x.Item.Equippable))
 {
-    if (!classesEffected.Contains(c.Key))
-    {
-        continue;
-    }
+    //if (!classesEffected.Contains(c.Key))
+    //{
+    //    continue;
+    //}
 
     Console.WriteLine(c.Key);
     var weightSet = weights[c.Key];
@@ -268,7 +269,7 @@ foreach (var c in appliedWeights.Where(x => x.NewTag == "keep").GroupBy(x => x.I
 
 if (newThresholdSet)
 {
-    string json = JsonConvert.SerializeObject(weights);
+    string json = JsonConvert.SerializeObject(weights, Formatting.Indented);
     File.WriteAllText(weightsPath, json);
 }
 

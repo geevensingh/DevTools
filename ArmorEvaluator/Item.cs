@@ -78,6 +78,11 @@ namespace ArmorEvaluator
             "Uniformed Officer",
             "Iron Lord's Pride",
             "Visage of the Reaper",
+            "No Kindling Added",
+            "Small Kindling",
+            "Large Kindling",
+            "Fully Rekindled",
+            "Plunderer's Trappings",
         };
 
         public HashSet<string> SpecialPerks => Perks.Where(x => AllSpecialPerks.Contains(x.Trim('*'))).ToHashSet(StringComparer.OrdinalIgnoreCase);
