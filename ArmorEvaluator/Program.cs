@@ -85,10 +85,10 @@ foreach (var c in appliedWeights.GroupBy(x => x.Item.Equippable).Where(x => x.Ke
 }
 
 // Look for items that are strictly worse that others
-var evaluated = new HashSet<ScratchPad>();
+var bestDupes = new HashSet<ScratchPad>();
 foreach (var eval in appliedWeights.Where(x => x.Item.Tier == "Legendary" && !x.Item.IsClassItem))
 {
-    if (evaluated.Contains(eval))
+    if (bestDupes.Contains(eval))
     {
         continue;
     }
@@ -108,14 +108,11 @@ foreach (var eval in appliedWeights.Where(x => x.Item.Tier == "Legendary" && !x.
         .Where(x => x.Item.Strength >= eval.Item.Strength);
     if (dupeSet.Count() > 1)
     {
-        evaluated.UnionWith(dupeSet);
         var bestDupe = GetSingleBest(dupeSet);
-        foreach (var dupe in dupeSet.Where(x => x.Item.MasterworkTierInt < 10 && x.Item.Tag != "favorite"))
+        bestDupes.Add(bestDupe);
+        if (bestDupe != eval)
         {
-            if (dupe != bestDupe)
-            {
-                dupe.SetTag("junk", $"strictly worse than {bestDupe.Item.Name}");
-            }
+            eval.SetTag("junk", $"strictly worse than {bestDupe.Item.Name} ({bestDupe.Item.Id})");
         }
     }
 }
