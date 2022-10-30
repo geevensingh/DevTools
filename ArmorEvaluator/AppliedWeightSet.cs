@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -55,5 +56,23 @@ namespace ArmorEvaluator
         //    if (ReferenceEquals(this, other)) return true;
         //    return this.Item.Equals(other.Item);
         //}
+
+        public static bool IsLatterMuchBetter(IEnumerable<AppliedWeightSet> a, IEnumerable<AppliedWeightSet> b, bool isExotic)
+        {
+            float factor = isExotic ? 1.175f : 1.25f;
+            Debug.Assert(a.Count() == b.Count());
+            Debug.Assert(string.Join(", ", a.Select(x => x.WeightSet.Name).Distinct().OrderBy(x => x)) == string.Join(", ", b.Select(x => x.WeightSet.Name).Distinct().OrderBy(x => x)));
+
+            foreach (var weightSetA in a)
+            {
+                var weightSetB = b.Single(x => x.WeightSet.Name == weightSetA.WeightSet.Name);
+                if (weightSetA.Sum * factor > weightSetB.Sum)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
     }
 }

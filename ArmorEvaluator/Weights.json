@@ -2,117 +2,207 @@
   "Hunter": [
     {
       "Name": "Basic",
-      "Threshold": {},
-      "Mobility": 3,
-      "Resilience": 1,
-      "Recovery": 2,
-      "Discipline": 2,
-      "Intellect": 2,
-      "Strength": 2,
-      "Count": 5
+      "Threshold": {
+        "Helmet": 129.0,
+        "Gauntlets": 140.0,
+        "ChestArmor": 138.0,
+        "LegArmor": 130.0,
+        "Average": 134.25
+      },
+      "Mobility": 3.0,
+      "Resilience": 1.0,
+      "Recovery": 2.0,
+      "Discipline": 2.0,
+      "Intellect": 2.0,
+      "Strength": 2.0,
+      "Sum": 12.0,
+      "Count": 5,
+      "ConsiderUpgrading": false,
+      "OverallNormalizedThreshold": 11.1875
     },
     {
       "Name": "Survive",
-      "Threshold": {},
-      "Mobility": 6,
-      "Resilience": 10,
-      "Recovery": 3,
-      "Discipline": 4,
-      "Intellect": 4,
-      "Strength": 4,
-      "Count": 5
+      "Threshold": {
+        "Helmet": 296.0,
+        "Gauntlets": 322.0,
+        "ChestArmor": 296.0,
+        "LegArmor": 297.0,
+        "Average": 302.75
+      },
+      "Mobility": 6.0,
+      "Resilience": 10.0,
+      "Recovery": 3.0,
+      "Discipline": 4.0,
+      "Intellect": 4.0,
+      "Strength": 4.0,
+      "Sum": 31.0,
+      "Count": 5,
+      "ConsiderUpgrading": false,
+      "OverallNormalizedThreshold": 9.7661295
     },
     {
       "Name": "Mobility",
-      "Threshold": {},
-      "Mobility": 10,
-      "Resilience": 4,
-      "Recovery": 5,
-      "Discipline": 4,
-      "Intellect": 6,
-      "Strength": 4,
-      "Count": 5
+      "Threshold": {
+        "Helmet": 390.0,
+        "Gauntlets": 381.0,
+        "ChestArmor": 408.0,
+        "LegArmor": 359.0,
+        "Average": 384.5
+      },
+      "Mobility": 10.0,
+      "Resilience": 4.0,
+      "Recovery": 5.0,
+      "Discipline": 4.0,
+      "Intellect": 6.0,
+      "Strength": 4.0,
+      "Sum": 33.0,
+      "Count": 5,
+      "ConsiderUpgrading": false,
+      "OverallNormalizedThreshold": 11.651515
     }
   ],
   "Titan": [
     {
       "Name": "Basic",
-      "Threshold": {},
-      "Mobility": 1,
-      "Resilience": 3,
-      "Recovery": 2,
-      "Discipline": 2,
-      "Intellect": 3,
-      "Strength": 2,
-      "Count": 3
+      "Threshold": {
+        "Helmet": 150.0,
+        "Gauntlets": 149.0,
+        "ChestArmor": 157.0,
+        "LegArmor": 154.0,
+        "Average": 152.5
+      },
+      "Mobility": 1.0,
+      "Resilience": 3.0,
+      "Recovery": 2.0,
+      "Discipline": 2.0,
+      "Intellect": 3.0,
+      "Strength": 2.0,
+      "Sum": 13.0,
+      "Count": 3,
+      "ConsiderUpgrading": false,
+      "OverallNormalizedThreshold": 11.730769
     },
     {
       "Name": "Resilience",
-      "Threshold": {},
-      "Mobility": 1,
-      "Resilience": 10,
-      "Recovery": 5,
-      "Discipline": 4,
-      "Intellect": 7,
-      "Strength": 4,
-      "Count": 3
+      "Threshold": {
+        "Helmet": 378.0,
+        "Gauntlets": 370.0,
+        "ChestArmor": 398.0,
+        "LegArmor": 396.0,
+        "Average": 385.5
+      },
+      "Mobility": 1.0,
+      "Resilience": 10.0,
+      "Recovery": 5.0,
+      "Discipline": 4.0,
+      "Intellect": 7.0,
+      "Strength": 4.0,
+      "Sum": 31.0,
+      "Count": 3,
+      "ConsiderUpgrading": false,
+      "OverallNormalizedThreshold": 12.435484
     }
   ],
   "Warlock": [
     {
       "Name": "Basic",
-      "Threshold": {},
+      "Threshold": {
+        "Helmet": 132.7,
+        "Gauntlets": 132.2,
+        "ChestArmor": 131.6,
+        "LegArmor": 134.6,
+        "Average": 132.775
+      },
       "Mobility": 0.1,
-      "Resilience": 2,
-      "Recovery": 2,
-      "Discipline": 2,
-      "Intellect": 3,
-      "Strength": 2,
-      "Count": 20
+      "Resilience": 2.0,
+      "Recovery": 2.0,
+      "Discipline": 2.0,
+      "Intellect": 3.0,
+      "Strength": 2.0,
+      "Sum": 11.1,
+      "Count": 20,
+      "ConsiderUpgrading": false,
+      "OverallNormalizedThreshold": 11.961711
     },
     {
       "Name": "Grenade",
-      "Threshold": {},
+      "Threshold": {
+        "Helmet": 297.6,
+        "Gauntlets": 299.6,
+        "ChestArmor": 291.2,
+        "LegArmor": 301.2,
+        "Average": 297.40002
+      },
       "Mobility": 0.1,
-      "Resilience": 2,
-      "Recovery": 6,
-      "Discipline": 7,
-      "Intellect": 5,
-      "Strength": 4,
-      "Count": 15
+      "Resilience": 2.0,
+      "Recovery": 6.0,
+      "Discipline": 7.0,
+      "Intellect": 5.0,
+      "Strength": 4.0,
+      "Sum": 24.1,
+      "Count": 15,
+      "ConsiderUpgrading": true,
+      "OverallNormalizedThreshold": 12.34025
     },
     {
       "Name": "Melee",
-      "Threshold": {},
+      "Threshold": {
+        "Helmet": 284.2,
+        "Gauntlets": 287.2,
+        "ChestArmor": 280.2,
+        "LegArmor": 283.6,
+        "Average": 283.80002
+      },
       "Mobility": 0.1,
-      "Resilience": 2,
-      "Recovery": 4,
-      "Discipline": 7,
-      "Intellect": 5,
-      "Strength": 6,
-      "Count": 15
+      "Resilience": 2.0,
+      "Recovery": 4.0,
+      "Discipline": 7.0,
+      "Intellect": 5.0,
+      "Strength": 6.0,
+      "Sum": 24.1,
+      "Count": 15,
+      "ConsiderUpgrading": true,
+      "OverallNormalizedThreshold": 11.775934
     },
     {
       "Name": "Survive",
-      "Threshold": {},
+      "Threshold": {
+        "Helmet": 318.2,
+        "Gauntlets": 315.2,
+        "ChestArmor": 317.2,
+        "LegArmor": 314.2,
+        "Average": 316.2
+      },
       "Mobility": 0.1,
-      "Resilience": 8,
-      "Recovery": 7,
-      "Discipline": 3,
-      "Intellect": 3,
-      "Strength": 3,
-      "Count": 15
+      "Resilience": 8.0,
+      "Recovery": 7.0,
+      "Discipline": 3.0,
+      "Intellect": 3.0,
+      "Strength": 3.0,
+      "Sum": 24.1,
+      "Count": 15,
+      "ConsiderUpgrading": true,
+      "OverallNormalizedThreshold": 13.120333
     },
     {
       "Name": "Super",
-      "Threshold": {},
+      "Threshold": {
+        "Helmet": 306.2,
+        "Gauntlets": 296.2,
+        "ChestArmor": 298.2,
+        "LegArmor": 305.1,
+        "Average": 301.42502
+      },
       "Mobility": 0.1,
-      "Resilience": 2,
-      "Recovery": 6,
-      "Discipline": 5,
-      "Intellect": 7,
-      "Strength": 4,
-      "Count": 15
+      "Resilience": 2.0,
+      "Recovery": 6.0,
+      "Discipline": 5.0,
+      "Intellect": 7.0,
+      "Strength": 4.0,
+      "Sum": 24.1,
+      "Count": 15,
+      "ConsiderUpgrading": true,
+      "OverallNormalizedThreshold": 12.507262
     }
   ]
 }

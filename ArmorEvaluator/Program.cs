@@ -84,9 +84,43 @@ foreach (var c in appliedWeights.GroupBy(x => x.Item.Equippable).Where(x => x.Ke
     }
 }
 
+foreach (var hash in toBeEvaluated.Where(x => !x.Item.IsClassItem).Select(x => x.Item.Hash).Distinct())
+{
+    var dupes = appliedWeights.Where(x => x.Item.Hash == hash);
+    if (dupes.Count() > 1)
+    {
+        foreach (var dupe in dupes)
+        {
+            var otherDupes = dupes.Where(x => x.Item.Id != dupe.Item.Id);
+            if (dupe.Item.Mobility <= otherDupes.Select(x => x.Item.Mobility).Max() &&
+                dupe.Item.Resilience <= otherDupes.Select(x => x.Item.Resilience).Max() &&
+                dupe.Item.Recovery <= otherDupes.Select(x => x.Item.Recovery).Max() &&
+                dupe.Item.Discipline <= otherDupes.Select(x => x.Item.Discipline).Max() &&
+                dupe.Item.Intellect <= otherDupes.Select(x => x.Item.Intellect).Max() &&
+                dupe.Item.Strength <= otherDupes.Select(x => x.Item.Strength).Max() &&
+                dupe.Item.Total < otherDupes.Select(x => x.Item.Total).Max())
+            {
+                //dupe.SetTag("junk", $"worse than all other {dupe.Item.Name}");
+            }
+            else if (!dupe.Item.IsSpecial)
+            {
+                foreach (var otherDupe in otherDupes)
+                {
+                    if (AppliedWeightSet.IsLatterMuchBetter(dupe.Weights, otherDupe.Weights, dupe.Item.Tier == "Exotic"))
+                    {
+                        dupe.SetTag("junk", $"for every weight set, is worse than another of the same item");
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+
+
 // Look for items that are strictly worse that others
 var bestDupes = new HashSet<ScratchPad>();
-foreach (var eval in appliedWeights.Where(x => x.Item.Tier == "Legendary" && !x.Item.IsClassItem))
+foreach (var eval in appliedWeights.Where(x => !x.Item.IsClassItem))
 {
     if (bestDupes.Contains(eval))
     {
@@ -171,7 +205,7 @@ foreach (var hash in toBeEvaluated.Where(x => x.IsJunk).GroupBy(x => x.Item.Hash
     var masterworkDupe = appliedWeights
         .Where(x => x.Item.Hash == hash.Key)
         .Where(x => x.Item.Power < bestJunk.Item.Power)
-        .Where(x => x.Item.MasterworkTierInt == 10);
+        .Where(x => x.Item.MasterworkTierInt == 10 || (x.Item.Tier == "Exotic" && x.Item.MasterworkTierInt >= 7));
     if (masterworkDupe.Any())
     {
         bestJunk.SetTag("infuse", "use to improve a masterwork");
@@ -200,7 +234,7 @@ foreach (var reason in appliedWeights.Where(x => x.TagChanged).GroupBy(x => x.Ne
 {
     classesEffected.UnionWith(reason.Select(x => x.Item.Equippable).Distinct());
     Console.WriteLine(reason.Key);
-    Console.WriteLine("  " + string.Join("\r\n  ", reason.Select(x => x.Item.Name)));
+    Console.WriteLine("  " + string.Join("\r\n  ", reason.Select(x => $"{x.Item.Name.PadRight(25)}    id:{x.Item.Id}")));
     Console.WriteLine(string.Join(" or ", reason.Select(x => $"id:{x.Item.Id}")));
 
 }
@@ -218,7 +252,7 @@ if (infusionTargets.Any())
 {
     classesEffected.UnionWith(infusionTargets.Select(x => x.Item.Equippable).Distinct());
     Console.WriteLine("infusion targets");
-    Console.WriteLine("  " + string.Join("\r\n  ", infusionTargets.Select(x => x.Item.Name)));
+    Console.WriteLine("  " + string.Join("\r\n  ", infusionTargets.Select(x => $"{x.Item.Name.PadRight(25)}    id:{x.Item.Id}")));
     Console.WriteLine(string.Join(" or ", infusionTargets.Select(x => $"id:{x.Item.Id}")));
 }
 
@@ -226,6 +260,7 @@ var longestName = weights.SelectMany(x => x.Value).MaxBy(x => x.Name.Length).Nam
 
 bool newThresholdSet = false;
 Dictionary<string, Dictionary<Item, int>> considerDeleting = new Dictionary<string, Dictionary<Item, int>>();
+Dictionary<string, float> findUpgrade = new Dictionary<string, float>();
 foreach (var c in appliedWeights.Where(x => x.NewTag == "keep").GroupBy(x => x.Item.Equippable))
 {
     //if (!classesEffected.Contains(c.Key))
@@ -237,7 +272,7 @@ foreach (var c in appliedWeights.Where(x => x.NewTag == "keep").GroupBy(x => x.I
     var weightSet = weights[c.Key];
     foreach (var set in weightSet)
     {
-        string consoleLine = ("     " + set.Name).PadRight(longestName + 5);
+        string consoleLine = ("     " + set.Name).PadRight(longestName + 6);
         foreach (var type in c.GroupBy(x => x.Item.Type).OrderBy(x => ItemTypeComparer(x.Key)))
         {
             if (type.First().Item.IsClassItem)
@@ -247,14 +282,19 @@ foreach (var c in appliedWeights.Where(x => x.NewTag == "keep").GroupBy(x => x.I
 
             var appliedSets = type.Where(x => x.Item.Tier != "Exotic").Select(x => x.Weights.Single(y => y.WeightSet == set));
             int count = appliedSets.Count(x => x.MeetsThreshold);
-            consoleLine += ($"{count} ({set.GetNormalizedThreshold(type.Key):F})").PadRight(15);
+            float score = set.GetNormalizedThreshold(type.Key);
+            consoleLine += ($"{count} ({score:F})").PadRight(15);
+            if (set.ConsiderUpgrading)
+            {
+                findUpgrade.Add($"{c.Key} - {set.Name} - {type.Key}", score);
+            }
             int excess = count - set.Count;
             if (excess > 0)
             {
                 float newThreshold = appliedSets.Where(x => x.MeetsThreshold).OrderBy(x => x.Sum).Skip(excess).First().Sum;
-                newThresholdSet = set.Threshold.Set(type.Key, newThreshold);
-                if (newThresholdSet)
+                if (set.Threshold.Set(type.Key, newThreshold))
                 {
+                    newThresholdSet = true;
                     Console.WriteLine($"Setting the threshold for {c.Key} - {set.Name} - {type.Key} to {newThreshold}");
                 }
             }
@@ -262,6 +302,13 @@ foreach (var c in appliedWeights.Where(x => x.NewTag == "keep").GroupBy(x => x.I
         consoleLine += set.OverallNormalizedThreshold.ToString("F3");
         Console.WriteLine(consoleLine);
     }
+}
+
+Console.WriteLine("\r\nConsider upgrading:");
+longestName = findUpgrade.Keys.MaxBy(x => x.Length).Length + 2;
+foreach (var pair in findUpgrade.OrderBy(x => x.Value).Take(10))
+{
+    Console.WriteLine($"{pair.Key.PadRight(longestName)} : {pair.Value}");
 }
 
 if (newThresholdSet)
@@ -275,6 +322,7 @@ int ItemTypeComparer(string key)
     return key switch
     {
         "Helmet" => 1,
+        "Festival Mask" => 1,
         "Gauntlets" => 2,
         "Chest Armor" => 3,
         "Leg Armor" => 4,

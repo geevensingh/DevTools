@@ -22,6 +22,8 @@ namespace ArmorEvaluator
 
         public int Count { get; set; }
 
+        public bool ConsiderUpgrading { get; set; }
+
         public float OverallNormalizedThreshold => Threshold.Average / Sum;
 
         public float GetNormalizedThreshold(string itemType)

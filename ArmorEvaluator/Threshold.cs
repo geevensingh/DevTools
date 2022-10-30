@@ -28,6 +28,7 @@ namespace ArmorEvaluator
         {
             switch (itemType)
             {
+                case "Festival Mask":
                 case "Helmet":
                     return this.Helmet;
                 case "Gauntlets":
@@ -46,6 +47,7 @@ namespace ArmorEvaluator
             bool result;
             switch (itemType)
             {
+                case "Festival Mask":
                 case "Helmet":
                     result = this.Helmet != newThreshold;
                     this.Helmet = newThreshold;
