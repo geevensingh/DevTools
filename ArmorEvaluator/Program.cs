@@ -7,8 +7,7 @@ using Newtonsoft.Json;
 using System.Diagnostics;
 using System.Globalization;
 
-string exePath = AppDomain.CurrentDomain.BaseDirectory;
-string weightsPath = Path.Combine(exePath, "Weights.json");
+string weightsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Weights.json");
 
 Console.WriteLine($"Using weights from {weightsPath}");
 var weights = JsonConvert.DeserializeObject<Dictionary<string, HashSet<WeightSet>>>(File.ReadAllText(weightsPath));

@@ -6,9 +6,9 @@ using System.Text;
 
 namespace Utilities
 {
-    public class StringHelper
+    public static class StringHelper
     {
-        public static string[] ToLower(string[] input)
+        public static string[] ToLower(this string[] input)
         {
             List<string> output = new List<string>();
             foreach(string str in input)
@@ -18,12 +18,12 @@ namespace Utilities
             return output.ToArray();
         }
 
-        public static string TrimStart(string fullString, string prefix)
+        public static string TrimStart(this string fullString, string prefix)
         {
             return TrimStart(fullString, prefix, StringComparison.CurrentCulture);
         }
 
-        public static string TrimStart(string fullString, string prefix, StringComparison comparisonType)
+        public static string TrimStart(this string fullString, string prefix, StringComparison comparisonType)
         {
             if (fullString.IndexOf(prefix, comparisonType) == 0)
             {
@@ -32,12 +32,12 @@ namespace Utilities
             return fullString;
         }
 
-        public static string TrimEnd(string fullString, string suffix)
+        public static string TrimEnd(this string fullString, string suffix)
         {
             return TrimEnd(fullString, suffix, StringComparison.CurrentCulture);
         }
 
-        public static string TrimEnd(string fullString, string suffix, StringComparison comparisonType)
+        public static string TrimEnd(this string fullString, string suffix, StringComparison comparisonType)
         {
             int index = fullString.LastIndexOf(suffix, comparisonType);
             if (fullString.Length - suffix.Length == index)
@@ -47,7 +47,7 @@ namespace Utilities
             return fullString;
         }
 
-        public static bool AnyLineContains(string[] lines, string str)
+        public static bool AnyLineContains(this string[] lines, string str)
         {
             if (lines != null)
             {
@@ -62,7 +62,7 @@ namespace Utilities
             return false;
         }
 
-        public static bool AnyLineIs(string[] lines, string str)
+        public static bool AnyLineIs(this string[] lines, string str)
         {
             if (lines != null)
             {
@@ -77,7 +77,7 @@ namespace Utilities
             return false;
         }
 
-        public static bool EndsWithAny(string text, string[] suffixes)
+        public static bool EndsWithAny(this string text, string[] suffixes)
         {
             foreach(string suffix in suffixes)
             {
@@ -110,7 +110,7 @@ namespace Utilities
             return parts[1];
         }
 
-        public static IList<string> SplitString(string str, string start, string end)
+        public static IList<string> SplitString(this string str, string start, string end)
         {
             int startIndex = str.IndexOf(start);
             int endIndex = str.LastIndexOf(end);
@@ -127,7 +127,7 @@ namespace Utilities
             return null;
         }
 
-        public static byte[] HexStringToByteArray(string hex)
+        public static byte[] HexStringToByteArray(this string hex)
         {
             if (hex.StartsWith("0x"))
             {
@@ -146,7 +146,7 @@ namespace Utilities
             return bytes;
         }
 
-        public static bool IsHexString(string str)
+        public static bool IsHexString(this string str)
         {
             IEnumerable<char> enumString = str;
 
@@ -159,6 +159,28 @@ namespace Utilities
             {
                 return (ch >= '0' && ch <= '9') || ((ch = Char.ToLower(ch)) >= 'a' && ch <= 'f');
             });
+        }
+
+        public static string TrimUpToAndIncluding(this string source, string trim)
+        {
+            int index = source.IndexOf(trim);
+            if (index == -1)
+            {
+                return null;
+            }
+
+            return source.Substring(index + trim.Length, source.Length - index - trim.Length);
+        }
+
+        public static string TrimAtAndAfter(this string source, string trim)
+        {
+            int index = source.IndexOf(trim);
+            if (index == -1)
+            {
+                return null;
+            }
+
+            return source.Substring(0, index);
         }
     }
 }
