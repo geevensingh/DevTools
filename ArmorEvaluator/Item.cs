@@ -33,10 +33,10 @@ namespace ArmorEvaluator
         public int[] AllStats => new int[] { Mobility, Resilience, Recovery, Discipline, Intellect, Strength };
         public int Total => AllStats.Sum();
         public bool IsSpecial =>
-            AllStats.Any(x => x >= 29) ||
-            AllStats.Count(x => x >= 24) > 1 ||
-            AllStats.Count(x => x >= 16) > 2 ||
-            AllStats.Count(x => x >= 13) > 3 ||
+            AllStats.Any(x => x >= 28) ||
+            AllStats.Count(x => x >= 23) > 1 ||
+            AllStats.Count(x => x >= 15) > 2 ||
+            AllStats.Count(x => x >= 12) > 3 ||
             AllStats.Count(x => x >= 10) > 4 ||
             AllStats.Count(x => x >= 8) > 5;
 

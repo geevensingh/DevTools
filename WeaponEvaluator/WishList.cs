@@ -45,7 +45,7 @@ namespace WeaponEvaluator
             {
                 wishListRawContent = await client.GetStringAsync(@"https://raw.githubusercontent.com/48klocs/dim-wish-list-sources/master/choosy_voltron.txt");
             }
-            await File.WriteAllTextAsync(@"D:\Repos\DevTools\wishlist.txt", wishListRawContent);
+            //await File.WriteAllTextAsync(@"D:\Repos\DevTools\wishlist.txt", wishListRawContent);
 
             IEnumerable<string> wishListRawLines = wishListRawContent.Split(new char[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
             wishListRawLines = wishListRawLines.Select(x =>
