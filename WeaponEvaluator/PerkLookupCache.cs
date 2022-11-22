@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Web;
-using Utilities;
 
 namespace WeaponEvaluator
 {
@@ -33,7 +32,7 @@ namespace WeaponEvaluator
                 return this.cache[perkId];
             }
 
-            string responseContent;
+            string? responseContent;
             using (var client = new HttpClient())
             {
                 HttpResponseMessage responseMessage = await client.GetAsync($"https://www.light.gg/db/items/{perkId}/");

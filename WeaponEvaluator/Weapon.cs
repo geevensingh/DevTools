@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Utilities;
 
 namespace WeaponEvaluator
 {
@@ -40,6 +39,11 @@ namespace WeaponEvaluator
 
         internal int GetPercentage(IEnumerable<string> dimWeaponPerks)
         {
+            if (this.PerkNames.Count() == 0)
+            {
+                return 100;
+            }
+
             int foundCount = 0;
             foreach (string perkName in this.PerkNames)
             {

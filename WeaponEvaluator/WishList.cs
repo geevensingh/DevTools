@@ -1,51 +1,52 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace WeaponEvaluator
 {
-    internal class WeaponList
+    internal class WishList
     {
-        private IEnumerable<Weapon> weapons;
-        private Dictionary<long, IEnumerable<Weapon>> weaponsById = new Dictionary<long, IEnumerable<Weapon>>();
+        private WeaponList wishList;
+        private WeaponList trashList;
 
-        public WeaponList(IEnumerable<string> rawList)
+        public WishList(IEnumerable<string> wishListRaw, IEnumerable<string> trashListRaw)
         {
-            this.weapons = rawList.Select(x => Weapon.FromWishList(x));
-            foreach (var group in this.weapons.GroupBy(x => x.WeaponId))
-            {
-                this.weaponsById[group.Key] = group;
-            }
+            this.wishList = new WeaponList(wishListRaw);
+            this.trashList = new WeaponList(trashListRaw);
         }
 
-        public int GetPercentage(DIMWeapon dimWeapon)
+        public int? GetPercentage(DIMWeapon dimWeapon)
         {
-            int bestPercentage = 0;
-            var dimWeaponPerks = dimWeapon.Perks.ToArray();
-            if (!this.weaponsById.ContainsKey(dimWeapon.HashAsLong))
+            int? wishPercentage = this.wishList.GetPercentage(dimWeapon);
+            int? trashPercentage = this.trashList.GetPercentage(dimWeapon);
+            if (trashPercentage == null)
             {
-                return 0;
+                return wishPercentage;
             }
-            
-            var matches = this.weaponsById[dimWeapon.HashAsLong];
-            foreach (var match in matches)
+
+            if (wishPercentage == null)
             {
-                bestPercentage = Math.Max(bestPercentage, match.GetPercentage(dimWeaponPerks));
+                return trashPercentage.Value * -1;
             }
-            return bestPercentage;
+
+            return wishPercentage.Value - trashPercentage.Value;
         }
 
-        public static async Task<Tuple<WeaponList, WeaponList>> CreateLists()
+        public static async Task<WishList> CreateLists(string? filePath = null)
         {
             string wishListRawContent;
             using (var client = new HttpClient())
             {
-                wishListRawContent = await client.GetStringAsync(@"https://raw.githubusercontent.com/48klocs/dim-wish-list-sources/master/choosy_voltron.txt");
+                //const string wishListUrl = @"https://raw.githubusercontent.com/48klocs/dim-wish-list-sources/master/choosy_voltron.txt";
+                const string wishListUrl = @"https://raw.githubusercontent.com/48klocs/dim-wish-list-sources/master/voltron.txt";
+                wishListRawContent = await client.GetStringAsync(wishListUrl);
             }
-            //await File.WriteAllTextAsync(@"D:\Repos\DevTools\wishlist.txt", wishListRawContent);
+            if (!string.IsNullOrEmpty(filePath))
+            {
+                await File.WriteAllTextAsync(filePath, wishListRawContent);
+            }
 
             IEnumerable<string> wishListRawLines = wishListRawContent.Split(new char[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
             wishListRawLines = wishListRawLines.Select(x =>
@@ -60,7 +61,7 @@ namespace WeaponEvaluator
             IEnumerable<string> wishListRaw = wishListRawLines.Where(x => x.StartsWith("dimwishlist:item=") && !x.StartsWith("dimwishlist:item=-"));
             IEnumerable<string> trashListRaw = wishListRawLines.Where(x => x.StartsWith("dimwishlist:item=-"));
 
-            return new Tuple<WeaponList, WeaponList>(new WeaponList(wishListRaw), new WeaponList(trashListRaw));
+            return new WishList(wishListRaw, trashListRaw);
         }
 
     }

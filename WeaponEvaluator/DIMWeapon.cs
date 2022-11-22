@@ -5,7 +5,7 @@ using WeaponEvaluator;
 
 internal class DIMWeapon
 {
-    private string newTag = null;
+    private string? newTag = null;
 
     public string Name { get; set; }
     public string Hash { get; set; }
@@ -49,7 +49,7 @@ internal class DIMWeapon
     public string ShieldDuration { get; set; }
     public string AirborneEffectiveness { get; set; }
     public bool Crafted { get; set; }
-    public string CraftedLevel { get; set; }
+    public int CraftedLevel { get; set; }
     public string KillTracker { get; set; }
     public string Foundry { get; set; }
     public string Notes { get; set; }
@@ -126,85 +126,102 @@ internal class DIMWeapon
 
     private IEnumerable<string> GetPotentialSpecialPerks()
     {
+        List<string> results = new List<string>()
+        {
+            "Adaptive Munitions",
+            "Voltshot",
+            "Incandescent",
+            "Headstone"
+        };
         switch (this.Type)
         {
             case "Auto Rifle":
-                return new string[]
-                {
-                    "Subsistence",
-                };
+                results.Add("Frenzy");
+                results.Add("Subsistence");
+                break;
             case "Fusion Rifle":
-                return new string[]
-                {
-                    "Reservoir Burst",
-                };
+                results.Add("Auto-Loading Holster");
+                results.Add("Reservoir Burst");
+                break;
             case "Grenade Launcher":
-                if (this.Category == "Power")
-                {
-                    return new string[]
-                    {
-                        "Ambitious Assassin",
-                    };
-                }
-                return new string[]
-                {
-                    "Ambitious Assassin",
-                };
+                results.Add("Auto-Loading Holster");
+                results.Add("Ambitious Assassin");
+                break;
             case "Linear Fusion Rifle":
+                results.Add("Auto-Loading Holster");
                 if (this.Category == "Power")
                 {
-                    return new string[]
-                    {
-                        "Clown Cartridge",
-                        "Auto-Loading Holster",
-                    };
+                    results.Add("Clown Cartridge");
+                    results.Add("Firing Line");
                 }
-                return new string[]
-                {
-                    "Auto-Loading Holster",
-                };
+                break;
             case "Machine Gun":
-                return new string[]
-                {
-                    "Subsistence",
-                    "Auto-Loading Holster",
-                    "Thresh",
-                };
+                results.Add("Subsistence");
+                results.Add("Auto-Loading Holster");
+                results.Add("Thresh");
+                results.Add("Frenzy");
+                break;
             case "Rocket Launcher":
-                return new string[]
-                {
-                    "Ambitious Assassin",
-                    "Auto-Loading Holster",
-                };
+                results.Add("Ambitious Assassin");
+                results.Add("Auto-Loading Holster");
+                break;
             case "Sidearm":
-                return new string[]
-                {
-                    "Surrounded",
-                };
+                results.Add("Frenzy");
+                results.Add("Perpetual Motion");
+                results.Add("Subsistence");
+                results.Add("Threat Detector");
+                results.Add("Surrounded");
+                results.Add("Thresh");
+                break;
             case "Submachine Gun":
-                return new string[]
-                {
-                    "Surrounded",
-                };
+                results.Add("Frenzy");
+                results.Add("Perpetual Motion");
+                results.Add("Subsistence");
+                results.Add("Threat Detector");
+                results.Add("Surrounded");
+                results.Add("Thresh");
+                break;
             case "Sword":
-                return new string[]
-                {
-                    "Surrounded",
-                };
-
+                results.Add("Eager Edge");
+                results.Add("Perpetual Motion");
+                results.Add("Threat Detector");
+                results.Add("Surrounded");
+                break;
+            case "Shotgun":
+                results.Add("Auto-Loading Holster");
+                results.Add("Threat Detector");
+                results.Add("Surrounded");
+                break;
+            case "Sniper Rifle":
+                results.Add("Clown Cartridge");
+                results.Add("Auto-Loading Holster");
+                break;
             case "Combat Bow":
             case "Glaive":
             case "Hand Cannon":
             case "Pulse Rifle":
             case "Scout Rifle":
-            case "Shotgun":
-            case "Sniper Rifle":
             case "Trace Rifle":
-                return new string[] { };
+                break;
             default:
                 throw new ArgumentException($"Unknown weapon type: {this.Type}");
         }
+
+        return results;
     }
 
     public bool HasSpecialPerk => this.GetSpecialPerks().Count() > 0;
+
+    public string FrameStyle
+    {
+        get
+        {
+            if (this.Tier == "Exotic")
+            {
+                return "Exotic";
+            }
+
+            return this.Perks.First();
+        }
+    }
 }
