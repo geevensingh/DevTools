@@ -326,8 +326,8 @@ int ItemTypeComparer(string key)
         "Chest Armor" => 3,
         "Leg Armor" => 4,
         "Hunter Cloak" => 5,
-        "Titan Mark" => 6,
-        "Warlock Bond" => 7,
+        "Titan Mark" => 5,
+        "Warlock Bond" => 5,
         _ => throw new ArgumentOutOfRangeException(nameof(key)),
     };
 }
