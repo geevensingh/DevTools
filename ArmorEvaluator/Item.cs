@@ -33,12 +33,12 @@ namespace ArmorEvaluator
         public int[] AllStats => new int[] { Mobility, Resilience, Recovery, Discipline, Intellect, Strength };
         public int Total => AllStats.Sum();
         public bool IsSpecial =>
-            AllStats.Any(x => x >= 28) ||
-            AllStats.Count(x => x >= 23) > 1 ||
-            AllStats.Count(x => x >= 15) > 2 ||
-            AllStats.Count(x => x >= 12) > 3 ||
-            AllStats.Count(x => x >= 10) > 4 ||
-            AllStats.Count(x => x >= 8) > 5;
+            AllStats.Count(x => x >= 26) >= 1 ||
+            (AllStats.Count(x => x >= 20) >= 1 && AllStats.Count(x => x >= 15) >= 2) ||
+            (AllStats.Count(x => x >= 16) >= 2 && AllStats.Count(x => x >= 12) >= 3) ||
+            (AllStats.Count(x => x >= 14) >= 3 && AllStats.Count(x => x >= 10) >= 4) ||
+            (AllStats.Count(x => x >= 12) >= 4 && AllStats.Count(x => x >= 6) >= 5) ||
+            (AllStats.Count(x => x >= 10) >= 5 && AllStats.Count(x => x >= 6) >= 6);
 
         public bool IsClassItem =>
             (Type == "Hunter Cloak") ||
