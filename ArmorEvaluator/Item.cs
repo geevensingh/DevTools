@@ -83,6 +83,7 @@ namespace ArmorEvaluator
             "Large Kindling",
             "Fully Rekindled",
             "Plunderer's Trappings",
+            "Seraph Sensor Array",
         };
 
         public HashSet<string> SpecialPerks => Perks.Where(x => AllSpecialPerks.Contains(x.Trim('*'))).ToHashSet(StringComparer.OrdinalIgnoreCase);
