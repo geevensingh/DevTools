@@ -50,59 +50,79 @@ using (var csv = new CsvReader(reader, csvReaderConfig))
         .ToList();
 }
 
-IEnumerable<DIMWeapon> untaggedWeapons = allWeapons.Where(x => string.IsNullOrEmpty(x.Tag));
-foreach (DIMWeapon dimWeapon in untaggedWeapons)
+HashSet<DIMWeapon> untaggedWeapons = new HashSet<DIMWeapon>();
+foreach (var weaponGroup in allWeapons.Where(x => string.IsNullOrEmpty(x.Tag)).GroupBy(x => x.Hash))
 {
-    if (dimWeapon.Crafted)
+    if (wishList.GetPercentage(weaponGroup.First()).HasValue)
     {
-        dimWeapon.SetNewTag("keep", "crafted");
+        untaggedWeapons.UnionWith(weaponGroup);
     }
     else
     {
-        int? thisPercentage = wishList.GetPercentage(dimWeapon);
-        if (thisPercentage == null)
+        Console.WriteLine($"No wish list entry for {weaponGroup.First().Name}");
+    }
+}
+
+foreach (var group in untaggedWeapons.GroupBy(x => x.Hash))
+{
+    DIMWeapon firstWeapon = group.First();
+    Console.WriteLine(firstWeapon.Name);
+
+    IEnumerable<DIMWeapon> dupes = firstWeapon.GetDupes(allWeapons);
+    dupes = dupes.Except(group);
+
+    int bestPercentage = 0;
+    foreach (var dupe in dupes)
+    {
+        int dupePercentage = wishList.GetPercentage(dupe).Value;
+        bestPercentage = Math.Max(bestPercentage, dupePercentage);
+        Console.WriteLine($"     existing dupe  --  {dupePercentage,-5}");
+    }
+
+    bool junkDupes = false;
+    foreach (DIMWeapon dimWeapon in group)
+    {
+        if (dimWeapon.Crafted)
         {
-            Console.WriteLine($"No wish list entry for {dimWeapon.Name}");
+            dimWeapon.SetNewTag("keep", "crafted");
+            continue;
         }
-        else if (thisPercentage == 100)
+
+        int thisPercentage = wishList.GetPercentage(dimWeapon).Value;
+        if (thisPercentage == 100)
         {
             dimWeapon.SetNewTag("keep", "strongly recommended");
         }
-        else
+        else if (thisPercentage > bestPercentage)
         {
-            IEnumerable<DIMWeapon> dupes = dimWeapon.GetDupes(allWeapons);
-            if (dimWeapon.HasSpecialPerk)
+            dimWeapon.SetNewTag("keep", "better than all current dupes");
+            junkDupes = true;
+        }
+        else if (bestPercentage - thisPercentage <= 25)
+        {
+            if (bestPercentage == 100 && !dimWeapon.HasSpecialPerk)
             {
-                IEnumerable<string> specialPerks = dimWeapon.GetSpecialPerks();
-                dupes = dupes.Where(x => x.HasAllPerks(specialPerks));
-            }
-            dupes = dupes.Except(new DIMWeapon[] { dimWeapon });
-
-            int bestPercentage = 0;
-            Console.WriteLine($"{dimWeapon.Name,-30}  --  {thisPercentage,-5} -- id:{dimWeapon.Id}");
-            foreach (var dupe in dupes)
-            {
-                int dupePercentage = wishList.GetPercentage(dupe).Value;
-                bestPercentage = Math.Max(bestPercentage, dupePercentage);
-                Console.WriteLine($"{"another dupe",30}  --  {dupePercentage,-5}");
-            }
-
-            if (thisPercentage > bestPercentage)
-            {
-                dimWeapon.SetNewTag("keep", "better than all current dupes");
-                foreach (var dupe in dupes)
-                {
-                    dimWeapon.SetNewTag("junk", "worse than new weapon");
-                }
-            }
-            else if (bestPercentage - thisPercentage <= 25)
-            {
-                dimWeapon.SetNewTag("unknown", "about the same as a dupe");
+                dimWeapon.SetNewTag("junk", "existing item is great");
             }
             else
             {
-                dimWeapon.SetNewTag("junk", "existing weapon is better");
+                dimWeapon.SetNewTag("unknown", "about the same as a dupe");
             }
+        }
+        else
+        {
+            dimWeapon.SetNewTag("junk", "existing weapon is better");
+        }
+
+        Console.WriteLine($"     new            --  {thisPercentage,-5}  --  id:{dimWeapon.Id}  --  {dimWeapon.Tag}  --  {dimWeapon.NewTagReason}");
+    }
+
+    if (junkDupes && dupes.Count() > 0)
+    {
+        Console.WriteLine($"junking all the dupes");
+        foreach (var dupe in dupes)
+        {
+            dupe.SetNewTag("junk", "worse than new weapon");
         }
     }
 }
