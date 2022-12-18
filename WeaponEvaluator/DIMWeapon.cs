@@ -131,13 +131,14 @@ internal class DIMWeapon
             "Adaptive Munitions",
             "Voltshot",
             "Incandescent",
-            "Headstone"
+            "Headstone",
+            "Reconstruction",
+            "Subsistence",
         };
         switch (this.Type)
         {
             case "Auto Rifle":
                 results.Add("Frenzy");
-                results.Add("Subsistence");
                 break;
             case "Fusion Rifle":
                 results.Add("Auto-Loading Holster");
@@ -149,6 +150,7 @@ internal class DIMWeapon
                 break;
             case "Linear Fusion Rifle":
                 results.Add("Auto-Loading Holster");
+                results.Add("Vorpal Weapon");
                 if (this.Category == "Power")
                 {
                     results.Add("Clown Cartridge");
@@ -156,7 +158,6 @@ internal class DIMWeapon
                 }
                 break;
             case "Machine Gun":
-                results.Add("Subsistence");
                 results.Add("Auto-Loading Holster");
                 results.Add("Thresh");
                 results.Add("Frenzy");
@@ -168,7 +169,6 @@ internal class DIMWeapon
             case "Sidearm":
                 results.Add("Frenzy");
                 results.Add("Perpetual Motion");
-                results.Add("Subsistence");
                 results.Add("Threat Detector");
                 results.Add("Surrounded");
                 results.Add("Thresh");
@@ -176,7 +176,6 @@ internal class DIMWeapon
             case "Submachine Gun":
                 results.Add("Frenzy");
                 results.Add("Perpetual Motion");
-                results.Add("Subsistence");
                 results.Add("Threat Detector");
                 results.Add("Surrounded");
                 results.Add("Thresh");
@@ -193,8 +192,10 @@ internal class DIMWeapon
                 results.Add("Surrounded");
                 break;
             case "Sniper Rifle":
-                results.Add("Clown Cartridge");
                 results.Add("Auto-Loading Holster");
+                results.Add("Clown Cartridge");
+                results.Add("Firing Line");
+                results.Add("Vorpal Weapon");
                 break;
             case "Combat Bow":
             case "Glaive":

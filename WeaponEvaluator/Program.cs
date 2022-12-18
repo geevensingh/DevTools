@@ -2,6 +2,7 @@
 
 using CsvHelper;
 using CsvHelper.Configuration;
+using System.Diagnostics;
 using System.Globalization;
 using WeaponEvaluator;
 
@@ -47,8 +48,14 @@ using (var csv = new CsvReader(reader, csvReaderConfig))
 {
     allWeapons = csv.GetRecords<DIMWeapon>()
         .Where(x => x.Tier != "Rare")
+        .Where(x => x.Tier != "Exotic")
         .ToList();
 }
+
+//foreach (DIMWeapon weapon in allWeapons.Where(x => string.IsNullOrEmpty(x.Tag) || x.Tag == "junk" || x.Tag == "keep" || x.Tag == "infuse"))
+//{
+//    weapon.Tag = null;
+//}
 
 HashSet<DIMWeapon> untaggedWeapons = new HashSet<DIMWeapon>();
 foreach (var weaponGroup in allWeapons.Where(x => string.IsNullOrEmpty(x.Tag)).GroupBy(x => x.Hash))
@@ -63,7 +70,25 @@ foreach (var weaponGroup in allWeapons.Where(x => string.IsNullOrEmpty(x.Tag)).G
     }
 }
 
-foreach (var group in untaggedWeapons.GroupBy(x => x.Hash))
+HashSet<DIMWeapon> questionableWeapons = new HashSet<DIMWeapon>();
+foreach (var weapon in untaggedWeapons)
+{
+    if (weapon.Crafted)
+    {
+        weapon.SetNewTag("keep", "crafted");
+        continue;
+    }
+
+    if (wishList.GetPercentage(weapon) == 100)
+    {
+        weapon.SetNewTag("keep", "wishlist roll");
+        continue;
+    }
+
+    questionableWeapons.Add(weapon);
+}
+
+foreach (var group in questionableWeapons.GroupBy(x => x.Hash))
 {
     DIMWeapon firstWeapon = group.First();
     Console.WriteLine(firstWeapon.Name);
@@ -71,38 +96,39 @@ foreach (var group in untaggedWeapons.GroupBy(x => x.Hash))
     IEnumerable<DIMWeapon> dupes = firstWeapon.GetDupes(allWeapons);
     dupes = dupes.Except(group);
 
-    int bestPercentage = 0;
+    int bestDupePercentage = 0;
     foreach (var dupe in dupes)
     {
         int dupePercentage = wishList.GetPercentage(dupe).Value;
-        bestPercentage = Math.Max(bestPercentage, dupePercentage);
+        bestDupePercentage = Math.Max(bestDupePercentage, dupePercentage);
         Console.WriteLine($"     existing dupe  --  {dupePercentage,-5}");
     }
 
     bool junkDupes = false;
     foreach (DIMWeapon dimWeapon in group)
     {
-        if (dimWeapon.Crafted)
-        {
-            dimWeapon.SetNewTag("keep", "crafted");
-            continue;
-        }
+        Debug.Assert(!dimWeapon.Crafted);
 
         int thisPercentage = wishList.GetPercentage(dimWeapon).Value;
-        if (thisPercentage == 100)
-        {
-            dimWeapon.SetNewTag("keep", "strongly recommended");
-        }
-        else if (thisPercentage > bestPercentage)
+        Debug.Assert(thisPercentage != 100);
+
+        if (thisPercentage > bestDupePercentage)
         {
             dimWeapon.SetNewTag("keep", "better than all current dupes");
             junkDupes = true;
         }
-        else if (bestPercentage - thisPercentage <= 25)
+        else if (bestDupePercentage - thisPercentage <= 25)
         {
-            if (bestPercentage == 100 && !dimWeapon.HasSpecialPerk)
+            if (bestDupePercentage == 100)
             {
-                dimWeapon.SetNewTag("junk", "existing item is great");
+                if (dimWeapon.HasSpecialPerk)
+                {
+                    dimWeapon.SetNewTag("unknown", "existing item is great but this has a special perk");
+                }
+                else
+                {
+                    dimWeapon.SetNewTag("junk", "existing item is great");
+                }
             }
             else
             {
@@ -111,18 +137,22 @@ foreach (var group in untaggedWeapons.GroupBy(x => x.Hash))
         }
         else
         {
-            dimWeapon.SetNewTag("junk", "existing weapon is better");
+            dimWeapon.SetNewTag("junk", "existing weapon much is better");
         }
 
-        Console.WriteLine($"     new            --  {thisPercentage,-5}  --  id:{dimWeapon.Id}  --  {dimWeapon.Tag}  --  {dimWeapon.NewTagReason}");
+        Console.WriteLine($"     new            --  {thisPercentage,-5}  --  id:{dimWeapon.Id}  --  {dimWeapon.GetNewTag(),-7}  --  {dimWeapon.NewTagReason}");
     }
 
-    if (junkDupes && dupes.Count() > 0)
+    if (junkDupes)
     {
-        Console.WriteLine($"junking all the dupes");
-        foreach (var dupe in dupes)
+        var dupesToJunk = dupes.Where(x => !x.Crafted);
+        if (dupesToJunk.Count() > 0)
         {
-            dupe.SetNewTag("junk", "worse than new weapon");
+            Console.WriteLine($"junking all the dupes");
+            foreach (var dupe in dupesToJunk)
+            {
+                dupe.SetNewTag("junk", "worse than new weapon");
+            }
         }
     }
 }
@@ -225,50 +255,4 @@ if (showFullList)
             }
         }
     }
-    //foreach (var type in allWeapons.Where(x => x.Tier != "Exotic").Where(x => x.GetNewTag() != "junk" && x.GetNewTag() != "influse" && (!x.Crafted || x.CraftedLevel >= 10)).GroupBy(x => x.Type))
-    //{
-    //    foreach (var typeSlot in type.GroupBy(x => x.Category))
-    //    {
-    //        Console.WriteLine($"{type.Key} - {typeSlot.Key}  ({type.Count()})");
-    //        foreach (var typeSlotElement in typeSlot.GroupBy(x => x.Element))
-    //        {
-    //            if (typeSlotElement.Count() > 1)
-    //            {
-    //                Console.WriteLine($"     {typeSlotElement.Key}   ({typeSlotElement.Count()})");
-    //                foreach (var typeSlotElementFrameStyle in typeSlotElement.GroupBy(x => x.FrameStyle))
-    //                {
-    //                    if (typeSlotElementFrameStyle.Count() > 1)
-    //                    {
-    //                        Console.WriteLine($"          {typeSlotElementFrameStyle.Key.PadLeft(20)}  ({typeSlotElementFrameStyle.Count()})  is:{type.Key.Replace(" ", null)} is:{typeSlotElement.Key} perkname:{typeSlotElementFrameStyle.Key.Foo()}");
-    //                        foreach (var dimWeapon in typeSlotElementFrameStyle)
-    //                        {
-    //                            string description = (wishList.GetPercentage(dimWeapon)?.ToString() ?? "???").PadRight(3);
-    //                            if (dimWeapon.Crafted)
-    //                            {
-    //                                description += $" - crafted:{dimWeapon.CraftedLevel}";
-    //                            }
-
-    //                            if (string.IsNullOrEmpty(dimWeapon.GetNewTag()))
-    //                            {
-    //                                description += $" - no-tag";
-    //                            }
-    //                            else
-    //                            {
-    //                                description += $" - {dimWeapon.GetNewTag()}";
-    //                            }
-
-    //                            if (dimWeapon.GetSpecialPerks().Count() > 0)
-    //                            {
-    //                                description += $" - {string.Join("|", dimWeapon.GetSpecialPerks())}";
-    //                            }
-
-    //                            description = $"({description})".PadRight(50);
-    //                            Console.WriteLine($"               {dimWeapon.Name.PadRight(32)}   {description}     id:{dimWeapon.Id}");
-    //                        }
-    //                    }
-    //                }
-    //            }
-    //        }
-    //    }
-    //}
 }
