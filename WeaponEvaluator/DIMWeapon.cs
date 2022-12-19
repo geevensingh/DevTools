@@ -37,7 +37,7 @@ internal class DIMWeapon
     public string ROF { get; set; }
     public string Reload { get; set; }
     public string Mag { get; set; }
-    public string Equip { get; set; }
+    public string Handling { get; set; }
     public string ChargeTime { get; set; }
     public string DrawTime { get; set; }
     public string Accuracy { get; set; }
