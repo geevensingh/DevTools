@@ -195,6 +195,8 @@ internal class DIMWeapon
                 results.Add("Auto-Loading Holster");
                 results.Add("Clown Cartridge");
                 results.Add("Firing Line");
+                results.Add("No Distractions");
+                results.Add("Snapshot Sights");
                 results.Add("Vorpal Weapon");
                 break;
             case "Combat Bow":

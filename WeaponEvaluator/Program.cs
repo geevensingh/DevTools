@@ -178,7 +178,7 @@ if (showFullList)
 {
     string lastType = null;
     string lastSlot = null;
-    string lastElement = null;
+    string lastFrameStyle = null;
     var weaponGroups = WeaponGroup.CreateGroups(allWeapons);
     Dictionary<DIMWeapon, string> descriptionLookup = new Dictionary<DIMWeapon, string>();
     int maxDescriptionLength = 0;
@@ -223,7 +223,7 @@ if (showFullList)
             Console.WriteLine($"{prefix}{weaponGroup.Type} ({weaponGroups.Where(x => x.Type == weaponGroup.Type).Sum(x => x.Count)})");
             lastType = weaponGroup.Type;
             lastSlot = null;
-            lastElement = null;
+            lastFrameStyle = null;
         }
 
         prefix += indent;
@@ -231,18 +231,18 @@ if (showFullList)
         {
             Console.WriteLine($"{prefix}{weaponGroup.Slot} ({weaponGroups.Where(x => x.Type == weaponGroup.Type && x.Slot == weaponGroup.Slot).Sum(x => x.Count)})");
             lastSlot = weaponGroup.Slot;
-            lastElement = null;
+            lastFrameStyle = null;
         }
 
         prefix += indent;
-        if (lastElement != weaponGroup.Element)
+        if (lastFrameStyle != weaponGroup.FrameStyle)
         {
-            Console.WriteLine($"{prefix}{weaponGroup.Element} ({weaponGroups.Where(x => x.Type == weaponGroup.Type && x.Slot == weaponGroup.Slot && x.Element == weaponGroup.Element).Sum(x => x.Count)})");
-            lastElement = weaponGroup.Element;
+            Console.WriteLine($"{prefix}{weaponGroup.FrameStyle.PadRight(WeaponGroup.MaxFrameStyleLength)} ({weaponGroups.Where(x => x.Type == weaponGroup.Type && x.Slot == weaponGroup.Slot && x.FrameStyle == weaponGroup.FrameStyle).Sum(x => x.Count)})");
+            lastFrameStyle = weaponGroup.FrameStyle;
         }
 
         prefix += indent;
-        Console.WriteLine($"{prefix}{weaponGroup.FrameStyle.PadRight(WeaponGroup.MaxFrameStyleLength)} -- {weaponGroup.Count}{indent}{weaponGroup.DIMQuery}");
+        Console.WriteLine($"{prefix}{weaponGroup.Element} -- {weaponGroup.Count}{indent}{weaponGroup.DIMQuery}");
 
         prefix += indent;
         if (weaponGroup.Count > 1)

@@ -81,11 +81,11 @@ namespace WeaponEvaluator
             {
                 foreach (var slotGroup in typeGroup.GroupBy(x => x.Category).OrderBy(x => GetSlotIndex(x.Key)))
                 {
-                    foreach (var elementGroup in slotGroup.GroupBy(x => x.Element).OrderBy(x => x.Key))
+                    foreach (var frameStyleGroup in slotGroup.GroupBy(x => x.FrameStyle).OrderBy(x => x.Key))
                     {
-                        foreach (var frameStyleGroup in elementGroup.GroupBy(x => x.FrameStyle).OrderBy(x => x.Key))
+                        foreach (var elementGroup in frameStyleGroup.GroupBy(x => x.Element).OrderBy(x => x.Key))
                         {
-                            groups.Add(new WeaponGroup(typeGroup.Key, slotGroup.Key, elementGroup.Key, frameStyleGroup.Key, frameStyleGroup));
+                            groups.Add(new WeaponGroup(typeGroup.Key, slotGroup.Key, elementGroup.Key, frameStyleGroup.Key, elementGroup));
                         }
                     }
                 }
