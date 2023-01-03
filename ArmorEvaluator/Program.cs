@@ -127,7 +127,7 @@ foreach (var eval in appliedWeights.Where(x => !x.Item.IsClassItem))
     }
 
     var dupeSet = appliedWeights
-        .Where(x => x.Item.Equippable == eval.Item.Equippable)
+        .Where(x => x.Item.Tier != "Exotic" || x.Item.Hash == eval.Item.Hash)
         .Where(x => x.Item.Tier == eval.Item.Tier)
         .Where(x => x.Item.Type == eval.Item.Type)
         .Where(x => x.Item.Equippable == eval.Item.Equippable)
