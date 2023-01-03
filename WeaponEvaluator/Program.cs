@@ -242,7 +242,7 @@ if (showFullList)
         }
 
         prefix += indent;
-        Console.WriteLine($"{prefix}{weaponGroup.Element} -- {weaponGroup.Count}{indent}{weaponGroup.DIMQuery}");
+        Console.WriteLine($"{prefix}{weaponGroup.Element.PadRight(8)} -- {weaponGroup.Count}{indent}{weaponGroup.DIMQuery}");
 
         prefix += indent;
         if (weaponGroup.Count > 1)
