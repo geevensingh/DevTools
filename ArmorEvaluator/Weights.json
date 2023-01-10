@@ -120,7 +120,7 @@
       "Intellect": 3.0,
       "Strength": 2.0,
       "Sum": 11.1,
-      "Count": 20,
+      "Count": 15,
       "ConsiderUpgrading": false,
       "OverallNormalizedThreshold": 11.961711
     },
@@ -140,7 +140,7 @@
       "Intellect": 5.0,
       "Strength": 4.0,
       "Sum": 24.1,
-      "Count": 15,
+      "Count": 10,
       "ConsiderUpgrading": true,
       "OverallNormalizedThreshold": 12.34025
     },
@@ -160,7 +160,7 @@
       "Intellect": 5.0,
       "Strength": 6.0,
       "Sum": 24.1,
-      "Count": 15,
+      "Count": 5,
       "ConsiderUpgrading": true,
       "OverallNormalizedThreshold": 11.775934
     },
@@ -200,7 +200,7 @@
       "Intellect": 7.0,
       "Strength": 4.0,
       "Sum": 24.1,
-      "Count": 15,
+      "Count": 5,
       "ConsiderUpgrading": true,
       "OverallNormalizedThreshold": 12.507262
     }
