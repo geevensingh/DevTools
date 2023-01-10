@@ -66,23 +66,6 @@ var toBeEvaluated = appliedWeights
 // Assume that everything is junk to start
 foreach (var item in toBeEvaluated.Where(x => !x.MeetsThresholdOrIsSpecial)) { item.SetTag("junk", "does not meet threshold or masterwork"); }
 
-// For titan and hunter, keep only the best few in each slot
-foreach (var c in appliedWeights.GroupBy(x => x.Item.Equippable).Where(x => x.Key == "Hunter" || x.Key == "Titan"))
-{
-    int count = 3;
-    if (c.Key == "Hunter")
-    {
-        count = 6;
-    }
-
-    foreach (var type in c.Where(x => x.Item.Tier != "Exotic").GroupBy(x => x.Item.Type))
-    {
-        var best = GetBest(type, count);
-        var garbage = type.Where(x => !best.Contains(x));
-        foreach (var item in garbage) { item.SetTag("junk", $"Not high enough for {c.Key} - didn't make the top {count}"); }
-    }
-}
-
 foreach (var hash in toBeEvaluated.Where(x => !x.Item.IsClassItem).Select(x => x.Item.Hash).Distinct())
 {
     var dupes = appliedWeights.Where(x => x.Item.Hash == hash);
@@ -168,16 +151,17 @@ foreach (var c in appliedWeights.GroupBy(x => x.Item.Equippable))
 
 // Make sure we don't delete all of a given exotic
 allJunk = toBeEvaluated.Where(x => x.IsJunk);
-foreach (var name in allJunk.Where(x => x.Item.Tier == "Exotic").Select(x => x.Item.Name).Distinct())
+foreach (var itemHash in allJunk.Where(x => x.Item.Tier == "Exotic").Select(x => x.Item.Hash).Distinct())
 {
-    var items = appliedWeights.Where(x => x.Item.Name == name);
+    var items = appliedWeights.Where(x => x.Item.Hash == itemHash);
     if (items.All(x => allJunk.Contains(x)))
     {
-        GetSingleBest(items).SetTag("keep", $"best exotic {name}");
+        GetSingleBest(items).SetTag("keep", $"best exotic {items.First().Item.Name}");
     }
 }
 
 // Make sure we don't delete the highest power in any slot
+allJunk = toBeEvaluated.Where(x => x.IsJunk);
 foreach (var c in appliedWeights.GroupBy(x => x.Item.Equippable))
 {
     foreach (var type in c.GroupBy(x => x.Item.Type))
@@ -363,10 +347,22 @@ if (makeSpreadsheet)
             ThirdSum = x.Weights.Skip(2).FirstOrDefault()?.Sum,
             FourthName = x.Weights.Skip(3).FirstOrDefault()?.WeightSet.Name,
             FourthSum = x.Weights.Skip(3).FirstOrDefault()?.Sum,
+            FifthName = x.Weights.Skip(4).FirstOrDefault()?.WeightSet.Name,
+            FifthSum = x.Weights.Skip(4).FirstOrDefault()?.Sum,
+            SixthName = x.Weights.Skip(5).FirstOrDefault()?.WeightSet.Name,
+            SixthSum = x.Weights.Skip(5).FirstOrDefault()?.Sum,
+            SeventhName = x.Weights.Skip(6).FirstOrDefault()?.WeightSet.Name,
+            SeventhSum = x.Weights.Skip(6).FirstOrDefault()?.Sum,
+            EighthName = x.Weights.Skip(7).FirstOrDefault()?.WeightSet.Name,
+            EighthSum = x.Weights.Skip(7).FirstOrDefault()?.Sum,
             FirstThreshold = x.Weights.FirstOrDefault()?.MeetsThreshold,
             SecondThreshold = x.Weights.Skip(1).FirstOrDefault()?.MeetsThreshold,
             ThirdThreshold = x.Weights.Skip(2).FirstOrDefault()?.MeetsThreshold,
             FourthThreshold = x.Weights.Skip(3).FirstOrDefault()?.MeetsThreshold,
+            FifthThreshold = x.Weights.Skip(4).FirstOrDefault()?.MeetsThreshold,
+            SixthThreshold = x.Weights.Skip(5).FirstOrDefault()?.MeetsThreshold,
+            SeventhThreshold = x.Weights.Skip(6).FirstOrDefault()?.MeetsThreshold,
+            EighthThreshold = x.Weights.Skip(7).FirstOrDefault()?.MeetsThreshold,
         });
 
     var outputPath = Path.Combine(@"C:\Users\geeve\Downloads", $"output-destinyArmor-{Guid.NewGuid()}.csv");
