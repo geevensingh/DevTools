@@ -31,14 +31,25 @@ namespace ArmorEvaluator
         public string SeasonalMod { get; set; }
 
         public int[] AllStats => new int[] { Mobility, Resilience, Recovery, Discipline, Intellect, Strength };
+        public int[] AllStatsAdjusted
+        {
+            get
+            {
+                if ((Equippable == "Warlock") || (Equippable == "Titan"))
+                {
+                     return new int[] { Mobility * 3 / 5, Resilience, Recovery, Discipline, Intellect, Strength };
+                }
+                return AllStats;
+            }
+        }
         public int Total => AllStats.Sum();
         public bool IsSpecial =>
-            AllStats.Count(x => x >= 26) >= 1 ||
-            (AllStats.Count(x => x >= 20) >= 1 && AllStats.Count(x => x >= 15) >= 2) ||
-            (AllStats.Count(x => x >= 16) >= 2 && AllStats.Count(x => x >= 12) >= 3) ||
-            (AllStats.Count(x => x >= 14) >= 3 && AllStats.Count(x => x >= 10) >= 4) ||
-            (AllStats.Count(x => x >= 12) >= 4 && AllStats.Count(x => x >= 6) >= 5) ||
-            (AllStats.Count(x => x >= 10) >= 5 && AllStats.Count(x => x >= 6) >= 6);
+            AllStatsAdjusted.Count(x => x >= 26) >= 1 ||
+            (AllStatsAdjusted.Count(x => x >= 20) >= 1 && AllStatsAdjusted.Count(x => x >= 15) >= 2) ||
+            (AllStatsAdjusted.Count(x => x >= 16) >= 2 && AllStatsAdjusted.Count(x => x >= 12) >= 3) ||
+            (AllStatsAdjusted.Count(x => x >= 14) >= 3 && AllStatsAdjusted.Count(x => x >= 10) >= 4) ||
+            (AllStatsAdjusted.Count(x => x >= 12) >= 4 && AllStatsAdjusted.Count(x => x >= 6) >= 5) ||
+            (AllStatsAdjusted.Count(x => x >= 10) >= 5 && AllStatsAdjusted.Count(x => x >= 6) >= 6);
 
         public bool IsClassItem =>
             (Type == "Hunter Cloak") ||

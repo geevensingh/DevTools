@@ -56,7 +56,27 @@ var appliedWeights = allItems.Select(item => new ScratchPad(item, AppliedWeightS
 foreach (var item in appliedWeights
     .Where(x => x.MeetsThresholdOrIsSpecial || x.Item.MasterworkTierInt == 10)
     .Where(x => x.Item.Tag != "favorite"))
-{ item.SetTag("keep", "meets threshold or masterwork"); }
+{
+    string reason;
+    if (item.Item.MasterworkTierInt == 10)
+    {
+        reason = "is masterwork already";
+    }
+    else if (item.MeetsThreshold)
+    {
+        reason = "meets threshold";
+    }
+    else if (item.IsSpecial)
+    {
+        reason = "is special";
+    }
+    else
+    {
+        reason = "unknown";
+        Debug.Fail("unknown reason for keeping");
+    }
+    item.SetTag("keep", reason);
+}
 
 var toBeEvaluated = appliedWeights
     .Where(x => x.Item.MasterworkTierInt < 10)

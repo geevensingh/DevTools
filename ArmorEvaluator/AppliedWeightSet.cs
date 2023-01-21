@@ -25,7 +25,6 @@ namespace ArmorEvaluator
             }
         }
         public bool MeetsThreshold => (Sum >= AdjustedThreshold);
-        public bool MeetsThresholdOrIsSpecial => MeetsThreshold || Item.IsSpecial;
 
         public float Mobility => WeightSet.Mobility * Item.Mobility;
         public float Resilience => WeightSet.Resilience * Item.Resilience;
