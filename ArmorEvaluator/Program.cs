@@ -66,9 +66,9 @@ foreach (var item in appliedWeights
     {
         reason = "meets threshold";
     }
-    else if (item.IsSpecial)
+    else if (item.SpecialLevel > 0)
     {
-        reason = "is special";
+        reason = $"is special {item.SpecialLevel}";
     }
     else
     {
@@ -104,7 +104,7 @@ foreach (var hash in toBeEvaluated.Where(x => !x.Item.IsClassItem).Select(x => x
             {
                 //dupe.SetTag("junk", $"worse than all other {dupe.Item.Name}");
             }
-            else if (!dupe.Item.IsSpecial)
+            else if (dupe.Item.SpecialLevel < 0)
             {
                 foreach (var otherDupe in otherDupes)
                 {
@@ -151,6 +151,28 @@ foreach (var eval in appliedWeights.Where(x => !x.Item.IsClassItem))
             eval.SetTag("junk", $"strictly worse than {bestDupe.Item.Name} ({bestDupe.Item.Id})");
         }
     }
+}
+
+// delete only the best "special" for each slot for each attribute
+var specialKeepers = appliedWeights.Where(x => x.NewTagReason.Contains("keep -> is special"));
+var bestKeepers = new HashSet<ScratchPad>();
+foreach (var items in specialKeepers.GroupBy(x => x.NewTagReason + " - " + x.Item.Equippable + " - " + x.Item.Type))
+{
+    int bestTotal = items.Max(x => x.Item.AllStatsAdjusted.Sum());
+    bestKeepers.UnionWith(items.Where(x => x.Item.AllStatsAdjusted.Sum() >= bestTotal * 0.96));
+
+    int statCount = items.First().Item.AllStatsAdjusted.Length;
+    for (int ii = 0; ii < statCount; ii++)
+    {
+        int bestValue = items.Max(x => x.Item.AllStatsAdjusted[ii]);
+        var bestGroup = items.Where(x => x.Item.AllStatsAdjusted[ii] == bestValue);
+        bestTotal = bestGroup.Max(x => x.Item.AllStatsAdjusted.Sum());
+        bestKeepers.UnionWith(bestGroup.Where(x => x.Item.AllStatsAdjusted.Sum() == bestTotal));
+    }
+}
+foreach (var item in specialKeepers.Except(bestKeepers))
+{
+    item.SetTag("junk", $"is special {item.SpecialLevel}, but not the best special");
 }
 
 // Make sure we don't delete everything with a specific seasonal mod slot
@@ -339,6 +361,7 @@ int ItemTypeComparer(string key)
 if (makeSpreadsheet)
 {
     var outputRecords = appliedWeights
+        .OrderBy(x => x.Item.Id)
         .Select(x => new
         {
             x.Item.Name,
@@ -359,6 +382,7 @@ if (makeSpreadsheet)
             x.Item.SeasonalMod,
             SpecialPerks = string.Join(",", x.Item.SpecialPerks),
             x.AbsoluteValue,
+            x.NewTagReason,
             FirstName = x.Weights.FirstOrDefault()?.WeightSet.Name,
             FirstSum = x.Weights.FirstOrDefault()?.Sum,
             SecondName = x.Weights.Skip(1).FirstOrDefault()?.WeightSet.Name,

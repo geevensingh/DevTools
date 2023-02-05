@@ -24,11 +24,11 @@ namespace ArmorEvaluator
         public Item Item { get; set; }
         public HashSet<AppliedWeightSet> Weights { get; set; }
 
-        public bool MeetsThresholdOrIsSpecial => IsSpecial || MeetsThreshold;
+        public bool MeetsThresholdOrIsSpecial => (SpecialLevel > 0) || MeetsThreshold;
 
         public bool MeetsThreshold => Weights.Any(x => x.MeetsThreshold);
 
-        public bool IsSpecial => Item.IsSpecial;
+        public int SpecialLevel => Item.SpecialLevel;
 
         public float AbsoluteValue => Weights.Sum(x => (x.Sum - x.WeightSet.Threshold.GetApplicableThreshold(Item)) / x.WeightSet.Threshold.GetApplicableThreshold(Item));
 

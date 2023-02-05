@@ -43,13 +43,38 @@ namespace ArmorEvaluator
             }
         }
         public int Total => AllStats.Sum();
-        public bool IsSpecial =>
-            AllStatsAdjusted.Count(x => x >= 26) >= 1 ||
-            (AllStatsAdjusted.Count(x => x >= 20) >= 1 && AllStatsAdjusted.Count(x => x >= 15) >= 2) ||
-            (AllStatsAdjusted.Count(x => x >= 16) >= 2 && AllStatsAdjusted.Count(x => x >= 12) >= 3) ||
-            (AllStatsAdjusted.Count(x => x >= 14) >= 3 && AllStatsAdjusted.Count(x => x >= 10) >= 4) ||
-            (AllStatsAdjusted.Count(x => x >= 12) >= 4 && AllStatsAdjusted.Count(x => x >= 6) >= 5) ||
-            (AllStatsAdjusted.Count(x => x >= 10) >= 5 && AllStatsAdjusted.Count(x => x >= 6) >= 6);
+        public int SpecialLevel
+        {
+            get
+            {
+                if (AllStatsAdjusted.Count(x => x >= 26) >= 1)
+                {
+                    return 1;
+                }
+                if (AllStatsAdjusted.Count(x => x >= 20) >= 1 && AllStatsAdjusted.Count(x => x >= 15) >= 2)
+                {
+                    return 2;
+                }
+                if (AllStatsAdjusted.Count(x => x >= 16) >= 2 && AllStatsAdjusted.Count(x => x >= 12) >= 3)
+                {
+                    return 3;
+                }
+                if (AllStatsAdjusted.Count(x => x >= 14) >= 3 && AllStatsAdjusted.Count(x => x >= 10) >= 4)
+                {
+                    return 4;
+                }
+                if (AllStatsAdjusted.Count(x => x >= 12) >= 4 && AllStatsAdjusted.Count(x => x >= 6) >= 5)
+                {
+                    return 5;
+                }
+                if (AllStatsAdjusted.Count(x => x >= 10) >= 5 && AllStatsAdjusted.Count(x => x >= 6) >= 6)
+                {
+                    return 6;
+                }
+
+                return -1;
+            }
+        }
 
         public bool IsClassItem =>
             (Type == "Hunter Cloak") ||
