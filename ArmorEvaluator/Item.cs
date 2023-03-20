@@ -14,8 +14,8 @@ namespace ArmorEvaluator
         public string Type { get; set; }
         public string Equippable { get; set; }
         public int Power { get; set; }
-        public string MasterworkTier { get; set; }
-        public int MasterworkTierInt => string.IsNullOrEmpty(MasterworkTier) ? 0 : int.Parse(MasterworkTier);
+        public string EnergyCapacity { get; set; }
+        public int EnergyCapacityInt => string.IsNullOrEmpty(EnergyCapacity) ? 0 : int.Parse(EnergyCapacity);
         [Name("Mobility (Base)")]
         public int Mobility { get; set; }
         [Name("Resilience (Base)")]

@@ -54,11 +54,11 @@ var appliedWeights = allItems.Select(item => new ScratchPad(item, AppliedWeightS
 
 // Assume we're keeping everything
 foreach (var item in appliedWeights
-    .Where(x => x.MeetsThresholdOrIsSpecial || x.Item.MasterworkTierInt == 10)
+    .Where(x => x.MeetsThresholdOrIsSpecial || x.Item.EnergyCapacityInt == 10)
     .Where(x => x.Item.Tag != "favorite"))
 {
     string reason;
-    if (item.Item.MasterworkTierInt == 10)
+    if (item.Item.EnergyCapacityInt == 10)
     {
         reason = "is masterwork already";
     }
@@ -79,7 +79,7 @@ foreach (var item in appliedWeights
 }
 
 var toBeEvaluated = appliedWeights
-    .Where(x => x.Item.MasterworkTierInt < 10)
+    .Where(x => x.Item.EnergyCapacityInt < 10)
     .Where(x => x.Item.Tag != "favorite")
     .ToHashSet(comparer);
 
@@ -122,7 +122,7 @@ foreach (var hash in toBeEvaluated.Where(x => !x.Item.IsClassItem).Select(x => x
 
 // Look for items that are strictly worse that others
 var bestDupes = new HashSet<ScratchPad>();
-foreach (var eval in appliedWeights.Where(x => !x.Item.IsClassItem))
+foreach (var eval in toBeEvaluated)
 {
     if (bestDupes.Contains(eval))
     {
@@ -230,7 +230,7 @@ foreach (var hash in toBeEvaluated.Where(x => x.IsJunk).GroupBy(x => x.Item.Hash
     var masterworkDupe = appliedWeights
         .Where(x => x.Item.Hash == hash.Key)
         .Where(x => x.Item.Power < bestJunk.Item.Power)
-        .Where(x => x.Item.MasterworkTierInt == 10 || (x.Item.Tier == "Exotic" && x.Item.MasterworkTierInt >= 7));
+        .Where(x => x.Item.EnergyCapacityInt == 10 || (x.Item.Tier == "Exotic" && x.Item.EnergyCapacityInt >= 7));
     if (masterworkDupe.Any())
     {
         bestJunk.SetTag("infuse", "use to improve a masterwork");
@@ -372,7 +372,7 @@ if (makeSpreadsheet)
             x.Item.Type,
             x.Item.Equippable,
             x.Item.Power,
-            x.Item.MasterworkTierInt,
+            x.Item.EnergyCapacityInt,
             x.Item.Mobility,
             x.Item.Resilience,
             x.Item.Recovery,
@@ -421,7 +421,7 @@ if (makeSpreadsheet)
 
 IEnumerable<ScratchPad> GetBest(IEnumerable<ScratchPad> records, int count)
 {
-    return records.OrderByDescending(x => x.AbsoluteValue).ThenByDescending(x => x.Item.MasterworkTierInt).Take(count);
+    return records.OrderByDescending(x => x.AbsoluteValue).ThenByDescending(x => x.Item.EnergyCapacityInt).Take(count);
 }
 
 ScratchPad GetSingleBest(IEnumerable<ScratchPad> records)
