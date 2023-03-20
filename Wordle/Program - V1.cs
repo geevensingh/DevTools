@@ -45,7 +45,8 @@ var badLetters = new HashSet<char>()
     //'n',
 };
 
-string[] words = await File.ReadAllLinesAsync("Scrabble-Words.txt");
+string dictionaryFileName = "valid-wordle-words.txt";
+string[] words = await File.ReadAllLinesAsync(dictionaryFileName);
 words = words
     .Select(x => x.ToLower().Trim())
     .Where(x => x.Length == 5)
@@ -107,3 +108,9 @@ int maxWordScore = wordLookup.Max(x => x.Value);
 Console.WriteLine($"best word is '{string.Join(",", wordLookup.Where(x => x.Value == maxWordScore).Select(x => x.Key))}'");
 
 Console.WriteLine();
+
+foreach (var st in new string[] { "slate", "crane", "slant", "carte", "dream", "cares", })
+{
+    Console.WriteLine($"{st} is '{wordLookup[st]}'");
+}
+

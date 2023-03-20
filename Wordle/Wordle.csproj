@@ -9,10 +9,12 @@
 
   <ItemGroup>
     <Compile Remove="Program - V1.cs" />
+    <Compile Remove="Program - V2.cs" />
   </ItemGroup>
 
   <ItemGroup>
     <None Include="Program - V1.cs" />
+    <None Include="Program - V2.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -20,6 +22,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Simple.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="valid-wordle-words.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
