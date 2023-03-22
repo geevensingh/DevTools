@@ -113,7 +113,10 @@ while (true)
 
     foreach (var pair in wrongPlace)
     {
-        words = words.Where(x => x.Remove(pair.Item2, 1).Contains(pair.Item1)).ToArray();
+        words = words
+            .Where(x => x.Remove(pair.Item2, 1).Contains(pair.Item1))
+            .Where(x => x[pair.Item2] != pair.Item1)
+            .ToArray();
     }
 
     Debug.Assert(words.Any());
