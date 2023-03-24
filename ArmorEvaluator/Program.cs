@@ -54,13 +54,17 @@ var appliedWeights = allItems.Select(item => new ScratchPad(item, AppliedWeightS
 
 // Assume we're keeping everything
 foreach (var item in appliedWeights
-    .Where(x => x.MeetsThresholdOrIsSpecial || x.Item.EnergyCapacityInt == 10)
+    .Where(x => x.MeetsThresholdOrIsSpecial || x.Item.EnergyCapacityInt == 10 || x.Item.SeasonalMod.Contains("artifice"))
     .Where(x => x.Item.Tag != "favorite"))
 {
     string reason;
     if (item.Item.EnergyCapacityInt == 10)
     {
         reason = "is masterwork already";
+    }
+    else if (item.Item.SeasonalMod.Contains("artifice"))
+    {
+        reason = "keep all artifice armor";
     }
     else if (item.MeetsThreshold)
     {
@@ -84,7 +88,7 @@ var toBeEvaluated = appliedWeights
     .ToHashSet(comparer);
 
 // Assume that everything is junk to start
-foreach (var item in toBeEvaluated.Where(x => !x.MeetsThresholdOrIsSpecial)) { item.SetTag("junk", "does not meet threshold or masterwork"); }
+foreach (var item in toBeEvaluated.Where(x => string.IsNullOrEmpty(x.NewTagReason))) { item.SetTag("junk", "does not meet threshold or masterwork"); }
 
 foreach (var hash in toBeEvaluated.Where(x => !x.Item.IsClassItem).Select(x => x.Item.Hash).Distinct())
 {
