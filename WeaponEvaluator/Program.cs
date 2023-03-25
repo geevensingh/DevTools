@@ -166,12 +166,15 @@ foreach (DIMWeapon dimWeapon in allWeapons)
 }
 
 Console.WriteLine();
-foreach (var reason in allWeapons.Where(x => x.TagChanged).GroupBy(x => x.NewTagReason))
+foreach (var newTagGroup in allWeapons.Where(x => x.TagChanged).GroupBy(x => x.GetNewTag()))
 {
-    Console.WriteLine(reason.First().GetNewTag().PadRight(10) + " / " + reason.Key);
-    Console.WriteLine("  " + string.Join("\r\n  ", reason.Select(x => $"{x.Name,-25}    id:{x.Id}")));
-    Console.WriteLine(string.Join(" or ", reason.Select(x => $"id:{x.Id}")));
-    Console.WriteLine();
+    foreach (var reason in newTagGroup.GroupBy(x => x.NewTagReason))
+    {
+        Console.WriteLine(newTagGroup.Key.PadRight(10) + " / " + reason.Key);
+        Console.WriteLine("  " + string.Join("\r\n  ", reason.Select(x => $"{x.Name,-25}    id:{x.Id}")));
+        Console.WriteLine(string.Join(" or ", reason.Select(x => $"id:{x.Id}")));
+        Console.WriteLine();
+    }
 }
 
 if (showFullList)
