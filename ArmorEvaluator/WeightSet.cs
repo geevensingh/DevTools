@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -18,12 +19,14 @@ namespace ArmorEvaluator
         public float Intellect { get; set; }
         public float Strength { get; set; }
 
+        [JsonIgnore]
         public float Sum => Mobility + Resilience + Recovery + Discipline + Intellect + Strength;
 
         public int Count { get; set; }
 
         public bool ConsiderUpgrading { get; set; }
 
+        [JsonIgnore]
         public float OverallNormalizedThreshold => Threshold.Average / Sum;
 
         public float GetNormalizedThreshold(string itemType)

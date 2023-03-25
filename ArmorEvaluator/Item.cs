@@ -37,7 +37,7 @@ namespace ArmorEvaluator
             {
                 if ((Equippable == "Warlock") || (Equippable == "Titan"))
                 {
-                     return new int[] { Mobility * 3 / 5, Resilience, Recovery, Discipline, Intellect, Strength };
+                     return new int[] { Resilience, Recovery, Discipline, Intellect, Strength };
                 }
                 return AllStats;
             }
@@ -47,27 +47,28 @@ namespace ArmorEvaluator
         {
             get
             {
-                if (AllStatsAdjusted.Count(x => x >= 26) >= 1)
+                int[] allStats = this.AllStatsAdjusted;
+                if (allStats.Count(x => x >= 27) >= 1)
                 {
                     return 1;
                 }
-                if (AllStatsAdjusted.Count(x => x >= 20) >= 1 && AllStatsAdjusted.Count(x => x >= 15) >= 2)
+                if (allStats.Count(x => x >= 22) >= 1 && allStats.Count(x => x >= 16) >= 2)
                 {
                     return 2;
                 }
-                if (AllStatsAdjusted.Count(x => x >= 16) >= 2 && AllStatsAdjusted.Count(x => x >= 12) >= 3)
+                if (allStats.Count(x => x >= 17) >= 2 && allStats.Count(x => x >= 12) >= 3)
                 {
                     return 3;
                 }
-                if (AllStatsAdjusted.Count(x => x >= 14) >= 3 && AllStatsAdjusted.Count(x => x >= 10) >= 4)
+                if (allStats.Count(x => x >= 14) >= 3 && allStats.Count(x => x >= 10) >= 4)
                 {
                     return 4;
                 }
-                if (AllStatsAdjusted.Count(x => x >= 12) >= 4 && AllStatsAdjusted.Count(x => x >= 6) >= 5)
+                if (allStats.Count(x => x >= 12) >= 4 && allStats.Count(x => x >= 6) >= 5)
                 {
                     return 5;
                 }
-                if (AllStatsAdjusted.Count(x => x >= 10) >= 5 && AllStatsAdjusted.Count(x => x >= 6) >= 6)
+                if (allStats.Count(x => x >= 10) >= 5 && allStats.Count(x => x >= 6) >= 6)
                 {
                     return 6;
                 }

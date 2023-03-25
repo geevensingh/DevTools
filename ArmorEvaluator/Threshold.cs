@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,6 +13,7 @@ namespace ArmorEvaluator
         public float Gauntlets { get; set; } = 1f;
         public float ChestArmor { get; set; } = 1f;
         public float LegArmor { get; set; } = 1f;
+        [JsonIgnore]
         public float Average => (Helmet + Gauntlets + ChestArmor + LegArmor) / 4.0f;
 
         public float GetApplicableThreshold(Item item)

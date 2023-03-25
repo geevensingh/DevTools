@@ -54,10 +54,9 @@ var appliedWeights = allItems.Select(item => new ScratchPad(item, AppliedWeightS
 
 // Assume we're keeping everything
 foreach (var item in appliedWeights
-    .Where(x => x.MeetsThresholdOrIsSpecial || x.Item.EnergyCapacityInt == 10 || x.Item.SeasonalMod.Contains("artifice"))
     .Where(x => x.Item.Tag != "favorite"))
 {
-    string reason;
+    string reason = null;
     if (item.Item.EnergyCapacityInt == 10)
     {
         reason = "is masterwork already";
@@ -68,18 +67,17 @@ foreach (var item in appliedWeights
     }
     else if (item.MeetsThreshold)
     {
-        reason = "meets threshold";
+        reason = $"meets threshold ({item.WeightsThatMeetThreshold})";
     }
     else if (item.SpecialLevel > 0)
     {
         reason = $"is special {item.SpecialLevel}";
     }
-    else
+
+    if (reason != null)
     {
-        reason = "unknown";
-        Debug.Fail("unknown reason for keeping");
+        item.SetTag("keep", reason);
     }
-    item.SetTag("keep", reason);
 }
 
 var toBeEvaluated = appliedWeights
@@ -89,6 +87,20 @@ var toBeEvaluated = appliedWeights
 
 // Assume that everything is junk to start
 foreach (var item in toBeEvaluated.Where(x => string.IsNullOrEmpty(x.NewTagReason))) { item.SetTag("junk", "does not meet threshold or masterwork"); }
+
+// Look for items that aren't junk, but are worse than all dupes
+foreach (var dupes in appliedWeights.Where(x => !x.Item.IsClassItem).GroupBy(x => x.Item.Hash))
+{
+    var bestAtSomething = new HashSet<ScratchPad>();
+    foreach (var applicableWeightSet in dupes.First().Weights.Select(x => x.WeightSet))
+    {
+        bestAtSomething.Add(dupes.MaxBy(x => x.Weights.Single(y => y.WeightSet == applicableWeightSet).Sum));
+    }
+    foreach (var dupe in dupes.Except(bestAtSomething).Where(x => x.NewTag == "keep" && x.SpecialLevel <= 0))
+    {
+        dupe.SetTag("junk", "is worse than a dup for every weight set");
+    }
+}
 
 foreach (var hash in toBeEvaluated.Where(x => !x.Item.IsClassItem).Select(x => x.Item.Hash).Distinct())
 {

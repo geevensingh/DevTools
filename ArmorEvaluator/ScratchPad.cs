@@ -24,9 +24,8 @@ namespace ArmorEvaluator
         public Item Item { get; set; }
         public HashSet<AppliedWeightSet> Weights { get; set; }
 
-        public bool MeetsThresholdOrIsSpecial => (SpecialLevel > 0) || MeetsThreshold;
-
         public bool MeetsThreshold => Weights.Any(x => x.MeetsThreshold);
+        public string WeightsThatMeetThreshold => string.Join(",", Weights.Where(x => x.MeetsThreshold).Select(x => x.WeightSet.Name));
 
         public int SpecialLevel => Item.SpecialLevel;
 
