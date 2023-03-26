@@ -283,7 +283,7 @@ foreach (var reason in appliedWeights.Where(x => x.TagChanged).GroupBy(x => x.Ne
 }
 Console.WriteLine();
 
-foreach (var tag in appliedWeights.Where(x => x.TagChanged).GroupBy(x => ScratchPad.NewTagToString(x.NewTag)))
+foreach (var tag in appliedWeights.Where(x => x.TagChanged).GroupBy(x => x.NewTag.ToOldTagString()))
 {
     classesEffected.UnionWith(tag.Select(x => x.Item.Equippable).Distinct());
     Console.WriteLine(tag.Key);
