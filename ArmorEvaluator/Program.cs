@@ -53,61 +53,63 @@ var appliedWeights = allItems.Select(item => new ScratchPad(item, AppliedWeightS
 
 
 // Assume we're keeping everything
-foreach (var item in appliedWeights
-    .Where(x => x.Item.Tag != "favorite"))
+foreach (var item in appliedWeights)
 {
-    string reason = null;
+    if (item.Item.Tag == "favorite")
+    {
+        item.SetTag(NewTagKind.Favorite, "already tagged as favorite");
+        continue;
+    }
+
     if (item.Item.EnergyCapacityInt == 10)
     {
-        reason = "is masterwork already";
+        item.SetTag(NewTagKind.AbsoluteKeep, "is masterwork already");
+        continue;
     }
-    else if (item.Item.SeasonalMod.Contains("artifice"))
+    
+    if (item.Item.SeasonalMod.Contains("artifice"))
     {
-        reason = "keep all artifice armor";
+        item.SetTag(NewTagKind.AbsoluteKeep, "keep all artifice armor");
+        continue;
     }
-    else if (item.MeetsThreshold)
+    
+    if (item.MeetsThreshold)
     {
-        reason = $"meets threshold ({item.WeightsThatMeetThreshold})";
+        item.SetTag(NewTagKind.Keep, $"meets threshold ({item.WeightsThatMeetThreshold})");
+        continue;
     }
-    else if (item.SpecialLevel > 0)
+    
+    if (item.SpecialLevel > 0)
     {
-        reason = $"is special {item.SpecialLevel}";
+        item.SetTag(NewTagKind.Keep, $"is special {item.SpecialLevel}");
+        continue;
     }
 
-    if (reason != null)
-    {
-        item.SetTag("keep", reason);
-    }
+    item.SetTag(NewTagKind.Junk, "does not meet threshold or masterwork");
 }
 
-var toBeEvaluated = appliedWeights
-    .Where(x => x.Item.EnergyCapacityInt < 10)
-    .Where(x => x.Item.Tag != "favorite")
-    .ToHashSet(comparer);
-
-// Assume that everything is junk to start
-foreach (var item in toBeEvaluated.Where(x => string.IsNullOrEmpty(x.NewTagReason))) { item.SetTag("junk", "does not meet threshold or masterwork"); }
+var initiallyJunk = appliedWeights.Where(x => x.IsJunk).ToHashSet(comparer);
 
 // Look for items that aren't junk, but are worse than all dupes
 foreach (var dupes in appliedWeights.Where(x => !x.Item.IsClassItem).GroupBy(x => x.Item.Hash))
 {
-    var bestAtSomething = new HashSet<ScratchPad>();
+    var bestAtSomething = new HashSet<ScratchPad>(comparer);
     foreach (var applicableWeightSet in dupes.First().Weights.Select(x => x.WeightSet))
     {
         bestAtSomething.Add(dupes.MaxBy(x => x.Weights.Single(y => y.WeightSet == applicableWeightSet).Sum));
     }
-    foreach (var dupe in dupes.Except(bestAtSomething).Where(x => x.NewTag == "keep" && x.SpecialLevel <= 0))
+    foreach (var dupe in dupes.Except(bestAtSomething).Where(x => x.CanChangeTag && x.SpecialLevel <= 0))
     {
-        dupe.SetTag("junk", "is worse than a dup for every weight set");
+        dupe.SetTag(NewTagKind.Junk, "is worse than a dup for every weight set");
     }
 }
 
-foreach (var hash in toBeEvaluated.Where(x => !x.Item.IsClassItem).Select(x => x.Item.Hash).Distinct())
+foreach (var hash in initiallyJunk.Where(x => !x.Item.IsClassItem).Select(x => x.Item.Hash).Distinct())
 {
     var dupes = appliedWeights.Where(x => x.Item.Hash == hash);
     if (dupes.Count() > 1)
     {
-        foreach (var dupe in dupes)
+        foreach (var dupe in dupes.Where(x => x.CanChangeTag))
         {
             var otherDupes = dupes.Where(x => x.Item.Id != dupe.Item.Id);
             if (dupe.Item.Mobility <= otherDupes.Select(x => x.Item.Mobility).Max() &&
@@ -118,7 +120,7 @@ foreach (var hash in toBeEvaluated.Where(x => !x.Item.IsClassItem).Select(x => x
                 dupe.Item.Strength <= otherDupes.Select(x => x.Item.Strength).Max() &&
                 dupe.Item.Total < otherDupes.Select(x => x.Item.Total).Max())
             {
-                //dupe.SetTag("junk", $"worse than all other {dupe.Item.Name}");
+                dupe.SetTag(NewTagKind.Junk, $"worse than all other {dupe.Item.Name}");
             }
             else if (dupe.Item.SpecialLevel < 0)
             {
@@ -126,7 +128,7 @@ foreach (var hash in toBeEvaluated.Where(x => !x.Item.IsClassItem).Select(x => x
                 {
                     if (AppliedWeightSet.IsLatterMuchBetter(dupe.Weights, otherDupe.Weights, dupe.Item.Tier == "Exotic"))
                     {
-                        dupe.SetTag("junk", $"for every weight set, is worse than another of the same item");
+                        dupe.SetTag(NewTagKind.Junk, $"for every weight set, is worse than another of the same item");
                         break;
                     }
                 }
@@ -138,7 +140,7 @@ foreach (var hash in toBeEvaluated.Where(x => !x.Item.IsClassItem).Select(x => x
 
 // Look for items that are strictly worse that others
 var bestDupes = new HashSet<ScratchPad>();
-foreach (var eval in toBeEvaluated)
+foreach (var eval in initiallyJunk)
 {
     if (bestDupes.Contains(eval))
     {
@@ -164,13 +166,13 @@ foreach (var eval in toBeEvaluated)
         bestDupes.Add(bestDupe);
         if (bestDupe != eval)
         {
-            eval.SetTag("junk", $"strictly worse than {bestDupe.Item.Name} ({bestDupe.Item.Id})");
+            eval.SetTag(NewTagKind.Junk, $"strictly worse than {bestDupe.Item.Name} ({bestDupe.Item.Id})");
         }
     }
 }
 
 // delete only the best "special" for each slot for each attribute
-var specialKeepers = appliedWeights.Where(x => x.NewTagReason.Contains("keep -> is special"));
+var specialKeepers = appliedWeights.Where(x => x.NewTagReason.Contains("Keep -> is special"));
 var bestKeepers = new HashSet<ScratchPad>();
 foreach (var items in specialKeepers.GroupBy(x => x.NewTagReason + " - " + x.Item.Equippable + " - " + x.Item.Type))
 {
@@ -188,11 +190,11 @@ foreach (var items in specialKeepers.GroupBy(x => x.NewTagReason + " - " + x.Ite
 }
 foreach (var item in specialKeepers.Except(bestKeepers))
 {
-    item.SetTag("junk", $"is special {item.SpecialLevel}, but not the best special");
+    item.SetTag(NewTagKind.Junk, $"is special {item.SpecialLevel}, but not the best special");
 }
 
 // Make sure we don't delete everything with a specific seasonal mod slot
-var allJunk = toBeEvaluated.Where(x => x.IsJunk);
+var allJunk = appliedWeights.Where(x => x.IsJunk);
 foreach (var c in appliedWeights.GroupBy(x => x.Item.Equippable))
 {
     foreach (var type in c.GroupBy(x => x.Item.Type))
@@ -201,25 +203,25 @@ foreach (var c in appliedWeights.GroupBy(x => x.Item.Equippable))
         {
             if (modType.All(x => allJunk.Contains(x)))
             {
-                GetSingleBest(modType).SetTag("keep", $"best {c.Key} {type.Key} {modType.Key}");
+                GetSingleBest(modType).SetTag(NewTagKind.Keep, $"best {c.Key} {type.Key} {modType.Key}");
             }
         }
     }
 }
 
 // Make sure we don't delete all of a given exotic
-allJunk = toBeEvaluated.Where(x => x.IsJunk);
+allJunk = appliedWeights.Where(x => x.IsJunk);
 foreach (var itemHash in allJunk.Where(x => x.Item.Tier == "Exotic").Select(x => x.Item.Hash).Distinct())
 {
     var items = appliedWeights.Where(x => x.Item.Hash == itemHash);
     if (items.All(x => allJunk.Contains(x)))
     {
-        GetSingleBest(items).SetTag("keep", $"best exotic {items.First().Item.Name}");
+        GetSingleBest(items).SetTag(NewTagKind.Keep, $"best exotic {items.First().Item.Name}");
     }
 }
 
 // Make sure we don't delete the highest power in any slot
-allJunk = toBeEvaluated.Where(x => x.IsJunk);
+allJunk = appliedWeights.Where(x => x.IsJunk);
 foreach (var c in appliedWeights.GroupBy(x => x.Item.Equippable))
 {
     foreach (var type in c.GroupBy(x => x.Item.Type))
@@ -233,14 +235,14 @@ foreach (var c in appliedWeights.GroupBy(x => x.Item.Equippable))
         if (type.Count(x => x.Item.Power == highestPower) == junkCountAtHighestPower)
         {
             var toInfuse = inSlotJunk.Where(x => x.Item.Power == highestPower);
-            foreach (var item in toInfuse) { item.SetTag("infuse", $"highest power in {c.Key} {type.Key}"); }
+            foreach (var item in toInfuse) { item.SetTag(NewTagKind.Infuse, $"highest power in {c.Key} {type.Key}"); }
         }
     }
 }
 
 // Mark for infusion all junk with a lower power masterwork dupe
 var infusionTargets = new HashSet<ScratchPad>();
-foreach (var hash in toBeEvaluated.Where(x => x.IsJunk).GroupBy(x => x.Item.Hash))
+foreach (var hash in initiallyJunk.Where(x => x.IsJunk).GroupBy(x => x.Item.Hash))
 {
     var bestJunk = hash.MaxBy(x => x.Item.Power);
     var masterworkDupe = appliedWeights
@@ -249,22 +251,22 @@ foreach (var hash in toBeEvaluated.Where(x => x.IsJunk).GroupBy(x => x.Item.Hash
         .Where(x => x.Item.EnergyCapacityInt == 10 || (x.Item.Tier == "Exotic" && x.Item.EnergyCapacityInt >= 7));
     if (masterworkDupe.Any())
     {
-        bestJunk.SetTag("infuse", "use to improve a masterwork");
+        bestJunk.SetTag(NewTagKind.Infuse, "use to improve a masterwork");
         infusionTargets.Add(GetSingleBest(masterworkDupe));
     }
 }
 
 // Mark for infusion all junk with a MUCH lower power dupe
-foreach (var hash in toBeEvaluated.Where(x => x.IsJunk).GroupBy(x => x.Item.Hash))
+foreach (var hash in initiallyJunk.Where(x => x.IsJunk).GroupBy(x => x.Item.Hash))
 {
     var bestJunk = hash.MaxBy(x => x.Item.Power);
     var reallyLowDupe = appliedWeights
         .Where(x => x.Item.Hash == hash.Key)
         .Where(x => bestJunk.Item.Power - x.Item.Power > 25 )
-        .Where(x => x.NewTag != "junk");
+        .Where(x => x.CanChangeTag);
     if (reallyLowDupe.Any())
     {
-        bestJunk.SetTag("infuse", "use to improve something *much* lower");
+        bestJunk.SetTag(NewTagKind.Infuse, "use to improve something *much* lower");
         infusionTargets.Add(GetSingleBest(reallyLowDupe));
     }
 }
@@ -281,7 +283,7 @@ foreach (var reason in appliedWeights.Where(x => x.TagChanged).GroupBy(x => x.Ne
 }
 Console.WriteLine();
 
-foreach (var tag in appliedWeights.Where(x => x.TagChanged).GroupBy(x => x.NewTag))
+foreach (var tag in appliedWeights.Where(x => x.TagChanged).GroupBy(x => ScratchPad.NewTagToString(x.NewTag)))
 {
     classesEffected.UnionWith(tag.Select(x => x.Item.Equippable).Distinct());
     Console.WriteLine(tag.Key);
@@ -302,7 +304,7 @@ var longestName = weights.SelectMany(x => x.Value).MaxBy(x => x.Name.Length).Nam
 bool newThresholdSet = false;
 Dictionary<string, Dictionary<Item, int>> considerDeleting = new Dictionary<string, Dictionary<Item, int>>();
 Dictionary<string, float> findUpgrade = new Dictionary<string, float>();
-foreach (var c in appliedWeights.Where(x => x.NewTag == "keep").GroupBy(x => x.Item.Equippable))
+foreach (var c in appliedWeights.Where(x => x.NewTag == NewTagKind.Keep).GroupBy(x => x.Item.Equippable))
 {
     //if (!classesEffected.Contains(c.Key))
     //{
@@ -431,7 +433,7 @@ if (makeSpreadsheet)
     {
         writer.WriteRecords(outputRecords);
     }
-
+    Console.WriteLine($"Generated sheet: {outputPath}");
     Process.Start(@"C:\Program Files\Microsoft Office\root\Office16\EXCEL.EXE", outputPath);
 }
 

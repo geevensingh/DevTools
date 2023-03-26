@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Diagnostics;
 
 namespace ArmorEvaluator
 {
@@ -18,7 +13,7 @@ namespace ArmorEvaluator
 
             Item = item;
             Weights = appliedWeightSets;
-            NewTag = item.Tag;
+            NewTag = item.Tag.ToNewTag();
         }
 
         public Item Item { get; set; }
@@ -31,19 +26,20 @@ namespace ArmorEvaluator
 
         public float AbsoluteValue => Weights.Sum(x => (x.Sum - x.WeightSet.Threshold.GetApplicableThreshold(Item)) / x.WeightSet.Threshold.GetApplicableThreshold(Item));
 
-        public string NewTag { get; private set; }
+        public NewTagKind NewTag { get; private set; }
 
         public string NewTagReason { get; private set; }
 
-        public bool TagChanged => NewTag != Item.Tag;
+        public bool TagChanged => NewTag.ToOldTagString() != Item.Tag;
 
-        public void SetTag(string newTag, string reason)
+        public void SetTag(NewTagKind newTag, string reason)
         {
             this.NewTag = newTag;
             this.NewTagReason = $"{newTag} -> {reason}";
         }
 
-        public bool IsJunk => NewTag == "junk";
+        public bool IsJunk => NewTag == NewTagKind.Junk;
+        public bool CanChangeTag => NewTag != NewTagKind.Favorite && NewTag != NewTagKind.AbsoluteKeep;
 
         //public bool Equals(ScratchPad? other)
         //{
