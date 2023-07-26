@@ -263,7 +263,8 @@ namespace PlaylistGenerator
                 return false;
             }
 
-            if (spaceSplits[1] == "##[error]" && spaceSplits[2] == "Test" && spaceSplits[3] == "method")
+            if ((spaceSplits[1] == "##[error]" && spaceSplits[2] == "Test" && spaceSplits[3] == "method") ||
+                (spaceSplits[1] == "Test" && spaceSplits[2] == "method"))
             {
                 // Examples:
                 // 2019-04-16T21:57:52.4159231Z ##[error] Test method CIT.Dunning.CaptureSchedule.Processor.VNext.CaptureScheduleTests.Dunning_Processor_LISMessage_Overrides_CaptureResult threw exception:
@@ -296,13 +297,18 @@ namespace PlaylistGenerator
 
         private static bool IsTestFileName(string fileName)
         {
-            List<string> expectedFileSuffix = new List<string>()
+            if (!fileName.ToLower().EndsWith(".txt"))
             {
-                "testassemblies.txt",
-                "vstest.txt"
+                return false;
+            }
+
+            List<string> expectedFileName = new List<string>()
+            {
+                "testassemblies",
+                "vstest"
             };
             string lowerCaseFileName = fileName.ToLower();
-            return expectedFileSuffix.Any(x => lowerCaseFileName.EndsWith(x));
+            return expectedFileName.Any(x => lowerCaseFileName.Contains(x));
         }
 
         private static async Task<Dictionary<ZipArchiveEntry, List<string>>> GetFailedTestsPerArchiveEntry(string zipFilePath)
@@ -321,7 +327,7 @@ namespace PlaylistGenerator
                     while (line != null)
                     {
                         string[] spaceSplits = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                        if (spaceSplits.Length == 3
+                        if (spaceSplits.Length >= 3
                             && DateTime.TryParse(spaceSplits[0], out DateTime lineDateTime)
                             && spaceSplits[1] == "Failed")
                         {
@@ -339,7 +345,7 @@ namespace PlaylistGenerator
                 }
             }
 
-            IEnumerable<string> allFailedTests = failedTests.Values.SelectMany(x => x);
+            IEnumerable<string> allFailedTests = failedTests.Values.SelectMany(x => x).Distinct();
             Logger.Instance.LogLine($"Found {allFailedTests.Count()} failed tests:");
             foreach (string testName in allFailedTests)
             {
