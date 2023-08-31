@@ -48,11 +48,11 @@ namespace ArmorEvaluator
             get
             {
                 int[] allStats = this.AllStatsAdjusted;
-                if (allStats.Count(x => x >= 27) >= 1)
+                if (allStats.Count(x => x >= 28) >= 1)
                 {
                     return 1;
                 }
-                if (allStats.Count(x => x >= 22) >= 1 && allStats.Count(x => x >= 16) >= 2)
+                if (allStats.Count(x => x >= 23) >= 1 && allStats.Count(x => x >= 17) >= 2)
                 {
                     return 2;
                 }
@@ -60,15 +60,15 @@ namespace ArmorEvaluator
                 {
                     return 3;
                 }
-                if (allStats.Count(x => x >= 14) >= 3 && allStats.Count(x => x >= 10) >= 4)
+                if (allStats.Count(x => x >= 13) >= 3 && allStats.Count(x => x >= 9) >= 4)
                 {
                     return 4;
                 }
-                if (allStats.Count(x => x >= 12) >= 4 && allStats.Count(x => x >= 6) >= 5)
+                if (allStats.Count(x => x >= 11) >= 4 && allStats.Count(x => x >= 5) >= 5)
                 {
                     return 5;
                 }
-                if (allStats.Count(x => x >= 10) >= 5 && allStats.Count(x => x >= 6) >= 6)
+                if (allStats.Count(x => x >= 9) >= 5 && allStats.Count(x => x >= 5) >= 6)
                 {
                     return 6;
                 }
@@ -114,14 +114,14 @@ namespace ArmorEvaluator
             "Artifice Armor",
             "Uniformed Officer",
             "Iron Lord's Pride",
-            "Visage of the Reaper",
             "No Kindling Added",
             "Small Kindling",
             "Large Kindling",
             "Fully Rekindled",
             "Plunderer's Trappings",
-            "Seraph Sensor Array",
             "Queen's Favor",
+            "Sonar Amplifier",
+            "Exhumed Excess",
         };
 
         public HashSet<string> SpecialPerks => Perks.Where(x => AllSpecialPerks.Contains(x.Trim('*'))).ToHashSet(StringComparer.OrdinalIgnoreCase);

@@ -9,7 +9,7 @@
       "Discipline": 2.0,
       "Intellect": 2.0,
       "Strength": 2.0,
-      "Count": 3,
+      "Count": 2,
       "ConsiderUpgrading": false
     },
     {
@@ -33,7 +33,7 @@
       "Discipline": 4.0,
       "Intellect": 4.0,
       "Strength": 4.0,
-      "Count": 3,
+      "Count": 2,
       "ConsiderUpgrading": false
     }
   ],
@@ -133,7 +133,7 @@
       "Discipline": 5.0,
       "Intellect": 7.0,
       "Strength": 4.0,
-      "Count": 5,
+      "Count": 4,
       "ConsiderUpgrading": true
     }
   ]
