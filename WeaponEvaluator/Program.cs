@@ -250,12 +250,25 @@ if (showFullList)
         prefix += indent;
         if (weaponGroup.Count > 1)
         {
+            ConsoleColor consoleColor = ConsoleColor.Green;
+            if (weaponGroup.Count >= 3)
+            {
+                consoleColor = ConsoleColor.Yellow;
+            }
+            if (weaponGroup.Count >= 6)
+            {
+                consoleColor = ConsoleColor.Red;
+            }
+
+            ConsoleColor originalColor = Console.ForegroundColor;
+            Console.ForegroundColor = consoleColor;
             foreach (var dimWeapon in weaponGroup.Weapons)
             {
                 string description = descriptionLookup[dimWeapon];
                 description = $"({description})".PadRight(maxDescriptionLength + 3);
                 Console.WriteLine($"{prefix}{dimWeapon.Name.PadRight(maxNameLength + 1)} {description} id:{dimWeapon.Id}");
             }
+            Console.ForegroundColor = originalColor;
         }
     }
 }

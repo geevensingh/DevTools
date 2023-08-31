@@ -128,12 +128,25 @@ internal class DIMWeapon
     {
         List<string> results = new List<string>()
         {
-            "Adaptive Munitions",
+            // Arc
             "Voltshot",
+            // Solar
             "Incandescent",
+            // Void
+            "Repulsor Brace",
+            "Destabilizing Rounds",
+            // Stasis
             "Headstone",
+            // Kinetic
+            "Kinetic Tremors",
+            // Strand
+            "Hatchling",
+
+            // General
             "Reconstruction",
             "Subsistence",
+            "Chain Reaction",
+            "Vorpal Weapon",
         };
         switch (this.Type)
         {
@@ -150,7 +163,6 @@ internal class DIMWeapon
                 break;
             case "Linear Fusion Rifle":
                 results.Add("Auto-Loading Holster");
-                results.Add("Vorpal Weapon");
                 if (this.Category == "Power")
                 {
                     results.Add("Clown Cartridge");
@@ -197,13 +209,15 @@ internal class DIMWeapon
                 results.Add("Firing Line");
                 results.Add("No Distractions");
                 results.Add("Snapshot Sights");
-                results.Add("Vorpal Weapon");
+                results.Add("Keep Away");
+                break;
+            case "Scout Rifle":
+                results.Add("Keep Away");
                 break;
             case "Combat Bow":
             case "Glaive":
             case "Hand Cannon":
             case "Pulse Rifle":
-            case "Scout Rifle":
             case "Trace Rifle":
                 break;
             default:
