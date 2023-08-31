@@ -22,13 +22,13 @@ namespace GitSwitchBranch
 
             OldLogger.LogLine(@"Currently on " + currentBranch);
             OldLogger.LogLine(@"Select from the following:");
-            for (int ii = 0; ii < Math.Min(9, branches.Count); ii++)
+            for (int ii = 0; ii < branches.Count; ii++)
             {
                 OldLogger.LogLine("\t" + (ii + 1) + " : " + branches[ii]);
             }
             OldLogger.LogLine("\tn : Make a new branch");
             OldLogger.LogLine("\tf : Follow an existing remote branch");
-            string input = Console.ReadKey().KeyChar.ToString().Trim().ToLower();
+            string input = Console.ReadLine().Trim().ToLower();
             OldLogger.LogLine(string.Empty);
             if (string.IsNullOrEmpty(input) || (input.ToLower() == "q"))
             {
