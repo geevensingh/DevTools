@@ -31,7 +31,7 @@ namespace WeaponEvaluator
             long[] perkIds = new long[] { };
             if (parts.Length > 1)
             {
-                perkIds = parts[1].Split(",").Select(x => long.Parse(x.Trim())).ToArray();
+                perkIds = parts[1].Split(",").Where(x => !string.IsNullOrEmpty(x)).Select(x => long.Parse(x.Trim())).ToArray();
             }
 
             return new Weapon(weaponId, perkIds);

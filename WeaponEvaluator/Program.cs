@@ -177,6 +177,23 @@ foreach (var newTagGroup in allWeapons.Where(x => x.TagChanged).GroupBy(x => x.G
     }
 }
 
+Console.WriteLine("To infuse:");
+var idsToInfuse = new List<string>();
+foreach (var hash in allWeapons.Where(x => x.GetNewTag() == "junk").GroupBy(x => x.Hash))
+{
+    var bestJunk = hash.MaxBy(x => x.Power);
+    var reallyLowDupe = allWeapons
+        .Where(x => x.Hash == hash.Key)
+        .Where(x => x.GetNewTag() != "junk" && x.GetNewTag() != "influse")
+        .Where(x => bestJunk.Power - x.Power > 2);
+    if (reallyLowDupe.Any())
+    {
+        Console.WriteLine($"{bestJunk.Name,-25}    id:{bestJunk.Id}");
+        idsToInfuse.Add(bestJunk.Id);
+    }
+}
+Console.WriteLine(string.Join(" or ", idsToInfuse.Select(x => $"id:{x}")));
+
 if (showFullList)
 {
     string lastType = null;

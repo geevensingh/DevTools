@@ -16,7 +16,7 @@ internal class DIMWeapon
     public string Source { get; set; }
     public string Category { get; set; }
     public string Element { get; set; }
-    public string Power { get; set; }
+    public int Power { get; set; }
     public string PowerLimit { get; set; }
     public string MasterworkType { get; set; }
     public string MasterworkTier { get; set; }
@@ -66,15 +66,12 @@ internal class DIMWeapon
     public string Perks10 { get; set; }
     public string Perks11 { get; set; }
     public string Perks12 { get; set; }
-    public string Perks13 { get; set; }
-    public string Perks14 { get; set; }
-    public string Perks15 { get; set; }
 
     public string[] Perks
     {
         get
         {
-            string[] perks = new string[] { Perks0, Perks1, Perks2, Perks3, Perks4, Perks5, Perks6, Perks7, Perks8, Perks9, Perks10, Perks11, Perks12, Perks13, Perks14, Perks15 };
+            string[] perks = new string[] { Perks0, Perks1, Perks2, Perks3, Perks4, Perks5, Perks6, Perks7, Perks8, Perks9, Perks10, Perks11, Perks12 };
             perks = perks.Select(x => x.Trim().TrimEnd('*').Trim()).Where(x => !string.IsNullOrEmpty(x)).ToArray();
             perks = perks.Where(x => x != "Kill Tracker" && x != "Crucible Tracker" && x != "Shaped Weapon" && x != "Empty Memento Socket").ToArray();
             return perks;
@@ -139,14 +136,18 @@ internal class DIMWeapon
             "Headstone",
             // Kinetic
             "Kinetic Tremors",
+            "Osmosis",
             // Strand
             "Hatchling",
+            "Slice",
 
             // General
             "Reconstruction",
             "Subsistence",
             "Chain Reaction",
             "Vorpal Weapon",
+            "Rewind Rounds",
+            "Permeability",
         };
         switch (this.Type)
         {
@@ -160,6 +161,7 @@ internal class DIMWeapon
             case "Grenade Launcher":
                 results.Add("Auto-Loading Holster");
                 results.Add("Ambitious Assassin");
+                results.Add("Disorienting Grenades");
                 break;
             case "Linear Fusion Rifle":
                 results.Add("Auto-Loading Holster");
@@ -197,11 +199,14 @@ internal class DIMWeapon
                 results.Add("Perpetual Motion");
                 results.Add("Threat Detector");
                 results.Add("Surrounded");
+                results.Add("Whirlwind Blade");
+                results.Add("Tireless Blade");
                 break;
             case "Shotgun":
                 results.Add("Auto-Loading Holster");
                 results.Add("Threat Detector");
                 results.Add("Surrounded");
+                results.Add("Trench Barrel");
                 break;
             case "Sniper Rifle":
                 results.Add("Auto-Loading Holster");
