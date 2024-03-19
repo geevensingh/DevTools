@@ -9,7 +9,7 @@
       "Discipline": 2.0,
       "Intellect": 2.0,
       "Strength": 2.0,
-      "Count": 2,
+      "Count": 1,
       "ConsiderUpgrading": false
     },
     {
@@ -21,7 +21,7 @@
       "Discipline": 4.0,
       "Intellect": 4.0,
       "Strength": 4.0,
-      "Count": 3,
+      "Count": 2,
       "ConsiderUpgrading": false
     },
     {
@@ -33,7 +33,7 @@
       "Discipline": 4.0,
       "Intellect": 4.0,
       "Strength": 4.0,
-      "Count": 2,
+      "Count": 1,
       "ConsiderUpgrading": false
     }
   ],
@@ -47,7 +47,7 @@
       "Discipline": 2.0,
       "Intellect": 2.0,
       "Strength": 2.0,
-      "Count": 2,
+      "Count": 1,
       "ConsiderUpgrading": false
     },
     {
@@ -85,7 +85,7 @@
       "Discipline": 0.1,
       "Intellect": 0.1,
       "Strength": 0.1,
-      "Count": 2,
+      "Count": 1,
       "ConsiderUpgrading": false
     },
     {

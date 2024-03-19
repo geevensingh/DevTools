@@ -61,12 +61,6 @@ foreach (var item in appliedWeights)
         continue;
     }
 
-    if (item.Item.EnergyCapacityInt == 10)
-    {
-        item.SetTag(NewTagKind.AbsoluteKeep, "is masterwork already");
-        continue;
-    }
-    
     if (item.Item.SeasonalMod.Contains("artifice"))
     {
         item.SetTag(NewTagKind.AbsoluteKeep, "keep all artifice armor");
@@ -262,8 +256,8 @@ foreach (var hash in initiallyJunk.Where(x => x.IsJunk).GroupBy(x => x.Item.Hash
     var bestJunk = hash.MaxBy(x => x.Item.Power);
     var reallyLowDupe = appliedWeights
         .Where(x => x.Item.Hash == hash.Key)
-        .Where(x => bestJunk.Item.Power - x.Item.Power > 25 )
-        .Where(x => x.CanChangeTag);
+        .Where(x => !x.IsJunk)
+        .Where(x => bestJunk.Item.Power - x.Item.Power > 2 );
     if (reallyLowDupe.Any())
     {
         bestJunk.SetTag(NewTagKind.Infuse, "use to improve something *much* lower");

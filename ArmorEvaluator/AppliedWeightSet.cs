@@ -16,12 +16,14 @@ namespace ArmorEvaluator
         {
             get
             {
-                if (Item.Tier == "Exotic")
+
+                float defaultThreshold = WeightSet.Threshold.GetApplicableThreshold(Item);
+                if (Item.Tier == "Exotic" || Item.EnergyCapacityInt == 10)
                 {
-                    return WeightSet.Threshold.GetApplicableThreshold(Item) * 0.8f;
+                    return defaultThreshold * 0.8f;
                 }
 
-                return WeightSet.Threshold.GetApplicableThreshold(Item);
+                return defaultThreshold;
             }
         }
         public bool MeetsThreshold => (Sum >= AdjustedThreshold);

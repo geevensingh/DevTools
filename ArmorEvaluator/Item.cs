@@ -90,9 +90,6 @@ namespace ArmorEvaluator
         public string Perks5 { get; set; }
         public string Perks6 { get; set; }
         public string Perks7 { get; set; }
-        public string Perks8 { get; set; }
-        public string Perks9 { get; set; }
-        public string Perks10 { get; set; }
 
         public List<string> Perks => new List<string>()
         {
@@ -104,9 +101,6 @@ namespace ArmorEvaluator
             Perks5,
             Perks6,
             Perks7,
-            Perks8,
-            Perks9,
-            Perks10
         };
 
         public static HashSet<string> AllSpecialPerks { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -122,6 +116,7 @@ namespace ArmorEvaluator
             "Queen's Favor",
             "Sonar Amplifier",
             "Exhumed Excess",
+            "Ascendant Protector",
         };
 
         public HashSet<string> SpecialPerks => Perks.Where(x => AllSpecialPerks.Contains(x.Trim('*'))).ToHashSet(StringComparer.OrdinalIgnoreCase);
