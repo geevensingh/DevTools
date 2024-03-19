@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Utilities
 {
-    public static class StringHelper
+    public static class StringExtensions
     {
         public static string[] ToLower(this string[] input)
         {

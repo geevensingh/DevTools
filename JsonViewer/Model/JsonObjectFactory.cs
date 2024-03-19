@@ -123,7 +123,7 @@
                             byte[] data;
                             if (jsonString.StartsWith("0x", StringComparison.InvariantCultureIgnoreCase))
                             {
-                                data = StringHelper.HexStringToByteArray(jsonString);
+                                data = StringExtensions.HexStringToByteArray(jsonString);
                             }
                             else
                             {
@@ -263,7 +263,7 @@
 
         private static DeserializeResult TryTrimmedDeserialize(string jsonString, string start, string end, string format)
         {
-            IList<string> parts = StringHelper.SplitString(jsonString, start, end);
+            IList<string> parts = StringExtensions.SplitString(jsonString, start, end);
             if (parts == null)
             {
                 return null;

@@ -38,7 +38,7 @@ namespace Utilities
             {
                 if (newContentEndsWithCRLF)
                 {
-                    contents = StringHelper.TrimEnd(contents, "\r\n");
+                    contents = StringExtensions.TrimEnd(contents, "\r\n");
                 }
                 else
                 {

@@ -87,7 +87,7 @@ namespace Utilities
             {
                 string forkPoint = (new ProcessHelper("git.exe", "merge-base " + masterBranch + " " + branch)).Go()[0];
                 Debug.Assert(forkPoint.Length == 40);
-                string trimmedBranch = StringHelper.TrimStart(branch, @"origin/");
+                string trimmedBranch = StringExtensions.TrimStart(branch, @"origin/");
                 forkpoints[trimmedBranch] = forkPoint;
                 OldLogger.LogLine(trimmedBranch + " seems to have forked from " + masterBranch + " at " + forkpoints[trimmedBranch], OldLogger.LevelValue.Verbose);
             }
@@ -145,7 +145,7 @@ namespace Utilities
 
         public static bool IsReleaseBranchName(string branchName)
         {
-            branchName = StringHelper.TrimStart(branchName.Trim(), "origin/");
+            branchName = StringExtensions.TrimStart(branchName.Trim(), "origin/");
             return branchName.StartsWith("release/");
         }
 
@@ -240,7 +240,7 @@ namespace Utilities
             ProcessHelper proc = new ProcessHelper("git.exe", "merge --strategy recursive --strategy-option patience " + sourceBranch);
             proc.Go();
             string[] lines = proc.AllOutput;
-            if (StringHelper.AnyLineContains(lines, "Automatic merge failed"))
+            if (StringExtensions.AnyLineContains(lines, "Automatic merge failed"))
             {
                 OldLogger.LogLine("Unable to automatically merge " + GetCurrentBranchName(), OldLogger.LevelValue.Warning);
 
@@ -320,7 +320,7 @@ namespace Utilities
             {
                 string[] splits = line.Split(new char[] { '\t' });
                 Debug.Assert(splits.Length == 3);
-                if (StringHelper.EndsWithAny(splits[2], new string[] { "resx", "resw" }))
+                if (StringExtensions.EndsWithAny(splits[2], new string[] { "resx", "resw" }))
                 {
                     continue;
                 }

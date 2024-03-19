@@ -581,7 +581,7 @@
                     }
                     else
                     {
-                        type = StringHelper.TrimStart(value.GetType().ToString(), "System.");
+                        type = StringExtensions.TrimStart(value.GetType().ToString(), "System.");
                     }
 
                     break;
@@ -629,7 +629,7 @@
         private string GetPrettyString(int depth = 0)
         {
             StringBuilder sb = new StringBuilder();
-            sb.Append(StringHelper.GeneratePrefix(depth, "  "));
+            sb.Append(StringExtensions.GeneratePrefix(depth, "  "));
             sb.Append(this.GetPrettyKeySting(depth));
 
             if (this.HasChildren)
@@ -644,7 +644,7 @@
 
                 sb.Append(string.Join(",\r\n", childStrings.ToArray()));
                 sb.Append("\r\n");
-                sb.Append(StringHelper.GeneratePrefix(depth, "  "));
+                sb.Append(StringExtensions.GeneratePrefix(depth, "  "));
                 sb.Append(this.GetWrapString(start: false));
             }
             else

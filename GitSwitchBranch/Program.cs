@@ -85,11 +85,11 @@ namespace GitSwitchBranch
 #if DEBUG
             searchTerm = "personal";
 #endif
-            string[] localBranches = StringHelper.ToLower(GitOperations.GetLocalBranches());
+            string[] localBranches = StringExtensions.ToLower(GitOperations.GetLocalBranches());
             List<string> remoteBranches = new List<string>(GitOperations.GetRemoteBranches("--sort committerdate"));
             for (int ii = 0; ii < remoteBranches.Count; ii++)
             {
-                string lowerRemoteBranch = StringHelper.TrimStart(remoteBranches[ii].ToLower(), "origin/");
+                string lowerRemoteBranch = StringExtensions.TrimStart(remoteBranches[ii].ToLower(), "origin/");
                 if (localBranches.Contains(lowerRemoteBranch))
                 {
                     remoteBranches.RemoveAt(ii--);
@@ -144,7 +144,7 @@ namespace GitSwitchBranch
                 return;
             }
 
-            CreateBranch(StringHelper.TrimStart(basedOn, "origin/"), basedOn);
+            CreateBranch(StringExtensions.TrimStart(basedOn, "origin/"), basedOn);
         }
 
         private static string _defaultBranch = null;

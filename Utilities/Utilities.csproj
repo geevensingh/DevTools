@@ -53,7 +53,8 @@
   <ItemGroup>
     <Compile Include="Change.cs" />
     <Compile Include="Client.cs" />
-    <Compile Include="ColorExtensions.cs" />
+    <Compile Include="Extensions\CollectionExtensions.cs" />
+    <Compile Include="Extensions\ColorExtensions.cs" />
     <Compile Include="Converters.cs" />
     <Compile Include="CSEscape.cs" />
     <Compile Include="Depot.cs" />
@@ -69,8 +70,8 @@
     <Compile Include="SDOperations.cs" />
     <Compile Include="SingularAction.cs" />
     <Compile Include="StreamHelper.cs" />
-    <Compile Include="StringHelper.cs" />
-    <Compile Include="TaskExtensions.cs" />
+    <Compile Include="Extensions\StringExtensions.cs" />
+    <Compile Include="Extensions\TaskExtensions.cs" />
     <Compile Include="TimeSpanStringify.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

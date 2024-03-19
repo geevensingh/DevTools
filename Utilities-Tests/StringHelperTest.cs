@@ -30,33 +30,33 @@ namespace Utilities_Tests
         [TestMethod]
         public void TestToLower()
         {
-            CompareArrays(MakeStringArray(10, "lower-case"), StringHelper.ToLower(MakeStringArray(10, "lower-case")));
-            CompareArrays(MakeStringArray(10, "lower-case"), StringHelper.ToLower(MakeStringArray(10, "LOWER-CASE")));
+            CompareArrays(MakeStringArray(10, "lower-case"), StringExtensions.ToLower(MakeStringArray(10, "lower-case")));
+            CompareArrays(MakeStringArray(10, "lower-case"), StringExtensions.ToLower(MakeStringArray(10, "LOWER-CASE")));
         }
 
         [TestMethod]
         public void TestTrimStart()
         {
-            Assert.AreEqual("foo", StringHelper.TrimStart("foo", "bar"));
-            Assert.AreEqual("bar", StringHelper.TrimStart("foobar", "foo"));
-            Assert.AreEqual("foobar", StringHelper.TrimStart("foobar", "Foo"));
-            Assert.AreEqual("bar", StringHelper.TrimStart("foobar", "Foo", StringComparison.CurrentCultureIgnoreCase));
-            Assert.AreEqual("BAR", StringHelper.TrimStart("FOOBAR", "Foo", StringComparison.CurrentCultureIgnoreCase));
+            Assert.AreEqual("foo", StringExtensions.TrimStart("foo", "bar"));
+            Assert.AreEqual("bar", StringExtensions.TrimStart("foobar", "foo"));
+            Assert.AreEqual("foobar", StringExtensions.TrimStart("foobar", "Foo"));
+            Assert.AreEqual("bar", StringExtensions.TrimStart("foobar", "Foo", StringComparison.CurrentCultureIgnoreCase));
+            Assert.AreEqual("BAR", StringExtensions.TrimStart("FOOBAR", "Foo", StringComparison.CurrentCultureIgnoreCase));
         }
 
         [TestMethod]
         public void TestAnyLine()
         {
             string[] lines = { "abcdefg", "hijklmn", "foobar", "baz" };
-            Assert.IsTrue(StringHelper.AnyLineContains(lines, "a"));
-            Assert.IsTrue(StringHelper.AnyLineContains(lines, "b"));
-            Assert.IsFalse(StringHelper.AnyLineContains(lines, "w"));
-            Assert.IsFalse(StringHelper.AnyLineContains(lines, "x"));
+            Assert.IsTrue(StringExtensions.AnyLineContains(lines, "a"));
+            Assert.IsTrue(StringExtensions.AnyLineContains(lines, "b"));
+            Assert.IsFalse(StringExtensions.AnyLineContains(lines, "w"));
+            Assert.IsFalse(StringExtensions.AnyLineContains(lines, "x"));
 
-            Assert.IsTrue(StringHelper.AnyLineIs(lines, "baz"));
-            Assert.IsTrue(StringHelper.AnyLineIs(lines, "foobar"));
-            Assert.IsFalse(StringHelper.AnyLineIs(lines, "Baz"));
-            Assert.IsFalse(StringHelper.AnyLineIs(lines, "abcd"));
+            Assert.IsTrue(StringExtensions.AnyLineIs(lines, "baz"));
+            Assert.IsTrue(StringExtensions.AnyLineIs(lines, "foobar"));
+            Assert.IsFalse(StringExtensions.AnyLineIs(lines, "Baz"));
+            Assert.IsFalse(StringExtensions.AnyLineIs(lines, "abcd"));
         }
     }
 }
