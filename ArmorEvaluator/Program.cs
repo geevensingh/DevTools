@@ -193,7 +193,7 @@ foreach (var c in appliedWeights.GroupBy(x => x.Item.Equippable))
 {
     foreach (var type in c.GroupBy(x => x.Item.Type))
     {
-        foreach (var modType in type.GroupBy(x => x.Item.UniqueType))
+        foreach (var modType in type.GroupBy(x => x.Item.UniqueType).Where(x => x.Key != "-"))
         {
             if (modType.All(x => allJunk.Contains(x)))
             {
