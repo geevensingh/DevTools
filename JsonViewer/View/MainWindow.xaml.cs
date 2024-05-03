@@ -96,7 +96,7 @@
             });
         }
 
-        public async Task<bool> ReloadAsync(Dictionary<string, object> dictionary)
+        public async Task<bool> ReloadAsync(SortedDictionary<string, object> dictionary)
         {
             RootObject rootObject = await RootObject.Create(dictionary);
             if (rootObject == null)
@@ -177,7 +177,7 @@
             if (this._rawText != newText)
             {
                 DeserializeResult deserializeResult = await JsonObjectFactory.TryAgressiveDeserialize(newText);
-                Dictionary<string, object> dictionary = deserializeResult?.GetEverythingDictionary();
+                SortedDictionary<string, object> dictionary = deserializeResult?.GetEverythingDictionary();
                 string newNormalizedText = new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(dictionary);
                 if (newNormalizedText != _lastText)
                 {

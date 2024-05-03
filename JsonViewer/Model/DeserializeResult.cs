@@ -4,23 +4,23 @@
 
     public class DeserializeResult
     {
-        private Dictionary<string, object> _dictionary;
+        private SortedDictionary<string, object> _dictionary;
         private string _preJsonText = string.Empty;
         private string _postJsonText = string.Empty;
 
         public DeserializeResult(Dictionary<string, object> dictionary)
         {
-            _dictionary = dictionary;
+            _dictionary = new SortedDictionary<string, object>(dictionary, new DictionaryComparer());
         }
 
         public DeserializeResult(Dictionary<string, object> dictionary, string preJsonText, string postJsonText)
         {
-            _dictionary = dictionary;
+            _dictionary = new SortedDictionary<string, object>(dictionary, new DictionaryComparer());
             _preJsonText = preJsonText;
             _postJsonText = postJsonText;
         }
 
-        public Dictionary<string, object> Dictionary { get => _dictionary; }
+        public SortedDictionary<string, object> Dictionary { get => _dictionary; }
 
         public string PreJsonText { get => _preJsonText; }
 
@@ -28,15 +28,15 @@
 
         public bool HasExtraText { get => !string.IsNullOrEmpty(this.PreJsonText) || !string.IsNullOrEmpty(this.PostJsonText); }
 
-        public Dictionary<string, object> GetEverythingDictionary()
+        public SortedDictionary<string, object> GetEverythingDictionary()
         {
-            Dictionary<string, object> dict = this.Dictionary;
+            SortedDictionary<string, object> dict = this.Dictionary;
             if (this.HasExtraText)
             {
-                dict = new Dictionary<string, object>();
+                dict = new SortedDictionary<string, object>(new DictionaryComparer());
                 if (!string.IsNullOrEmpty(this.PreJsonText))
                 {
-                    dict["Pre-JSON text"] = this.PreJsonText;
+                    dict[DictionaryComparer.PreJsonKey] = this.PreJsonText;
                 }
 
                 foreach (string key in this.Dictionary.Keys)
@@ -46,7 +46,7 @@
 
                 if (!string.IsNullOrEmpty(this.PostJsonText))
                 {
-                    dict["Post-JSON text"] = this.PostJsonText;
+                    dict[DictionaryComparer.PostJsonKey] = this.PostJsonText;
                 }
             }
 
@@ -54,11 +54,39 @@
         }
     }
 
-#pragma warning disable SA1402 // File may only contain a single class
-#pragma warning disable SA1204 // Static elements must appear before instance elements
-    public static class DeserializeResultExtensions
-#pragma warning restore SA1204 // Static elements must appear before instance elements
-#pragma warning restore SA1402 // File may only contain a single class
+    internal class DictionaryComparer : IComparer<string>
+    {
+        public const string PreJsonKey = "Pre-JSON text";
+        public const string PostJsonKey = "Post-JSON text";
+
+        public int Compare(string x, string y)
+        {
+            if (x == y)
+            {
+                return 0;
+            }
+
+            switch (x)
+            {
+                case PreJsonKey:
+                    return -1;
+                case PostJsonKey:
+                    return 1;
+            }
+
+            switch (y)
+            {
+                case PreJsonKey:
+                    return 1;
+                case PostJsonKey:
+                    return -1;
+            }
+
+            return x.CompareTo(y);
+        }
+    }
+
+    internal static class DeserializeResultExtensions
     {
         public static bool IsSuccessful(this DeserializeResult deserializeResult)
         {
