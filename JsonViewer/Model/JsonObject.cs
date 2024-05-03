@@ -212,8 +212,7 @@
 
         public Task<bool> CanTreatAsJson()
         {
-            return Task.FromResult<bool>(false);
-            // return IsParsableJsonString();
+            return IsParsableJsonString();
         }
 
         public async Task<bool> IsParsableJsonString()
