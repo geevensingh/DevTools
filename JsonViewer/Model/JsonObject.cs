@@ -212,7 +212,8 @@
 
         public Task<bool> CanTreatAsJson()
         {
-            return IsParsableJsonString();
+            return Task.FromResult<bool>(false);
+            // return IsParsableJsonString();
         }
 
         public async Task<bool> IsParsableJsonString()
@@ -292,7 +293,7 @@
             DeserializeResult deserializeResult = await JsonObjectFactory.TryDeserialize(this.Value as string);
             FileLogger.Assert(deserializeResult != null);
 
-            Dictionary<string, object> dict = deserializeResult.GetEverythingDictionary();
+            SortedDictionary<string, object> dict = deserializeResult.GetEverythingDictionary();
             this.Value = dict;
             this.EnsureValues();
             FileLogger.Assert(_dataType == DataType.Json);
