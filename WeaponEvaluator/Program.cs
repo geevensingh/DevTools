@@ -27,7 +27,7 @@ WishList wishList = await WishList.CreateLists(wishlistFilePath);
 Console.WriteLine("done");
 Console.WriteLine($"wishlist saved to {wishlistFilePath}");
 
-string weaponListFilePath = Directory.EnumerateFiles(Path.Combine(Environment.GetEnvironmentVariable("USERPROFILE"), @"Downloads"), @"destinyWeapons*.csv").MaxBy(x => File.GetCreationTime(x));
+string weaponListFilePath = Directory.EnumerateFiles(Path.Combine(Environment.GetEnvironmentVariable("USERPROFILE"), @"Downloads"), @"destiny*weapon*.csv").MaxBy(x => File.GetCreationTime(x));
 if (!File.Exists(weaponListFilePath))
 {
     Console.WriteLine("Cannot find a weapons file");
@@ -73,7 +73,7 @@ foreach (var weaponGroup in allWeapons.Where(x => string.IsNullOrEmpty(x.Tag)).G
 HashSet<DIMWeapon> questionableWeapons = new HashSet<DIMWeapon>();
 foreach (var weapon in untaggedWeapons)
 {
-    if (weapon.Crafted)
+    if (weapon.IsCrafted)
     {
         weapon.SetNewTag("keep", "crafted");
         continue;
@@ -107,7 +107,7 @@ foreach (var group in questionableWeapons.GroupBy(x => x.Hash))
     bool junkDupes = false;
     foreach (DIMWeapon dimWeapon in group)
     {
-        Debug.Assert(!dimWeapon.Crafted);
+        Debug.Assert(!dimWeapon.IsCrafted);
 
         int thisPercentage = wishList.GetPercentage(dimWeapon).Value;
         Debug.Assert(thisPercentage != 100);
@@ -145,7 +145,7 @@ foreach (var group in questionableWeapons.GroupBy(x => x.Hash))
 
     if (junkDupes)
     {
-        var dupesToJunk = dupes.Where(x => !x.Crafted);
+        var dupesToJunk = dupes.Where(x => !x.IsCrafted);
         if (dupesToJunk.Count() > 0)
         {
             Console.WriteLine($"junking all the dupes");
@@ -209,7 +209,7 @@ if (showFullList)
         foreach (var dimWeapon in weaponGroup.Weapons)
         {
             string description = (wishList.GetPercentage(dimWeapon)?.ToString() ?? "???").PadRight(3);
-            if (dimWeapon.Crafted)
+            if (dimWeapon.IsCrafted)
             {
                 description += $" - crafted:{dimWeapon.CraftedLevel}";
             }

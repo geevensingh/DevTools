@@ -75,7 +75,7 @@ namespace WeaponEvaluator
 
         public static IEnumerable<WeaponGroup> CreateGroups(IEnumerable<DIMWeapon> allWeapons)
         {
-            var weapons = allWeapons.Where(x => x.Tier != "Exotic").Where(x => x.GetNewTag() != "junk" && x.GetNewTag() != "infuse" && (!x.Crafted || x.CraftedLevel >= 10));
+            var weapons = allWeapons.Where(x => x.Tier != "Exotic").Where(x => x.GetNewTag() != "junk" && x.GetNewTag() != "infuse" && (!x.IsCrafted || x.CraftedLevel >= 10));
             List<WeaponGroup> groups = new List<WeaponGroup>();
             foreach (var typeGroup in weapons.GroupBy(x => x.Type).OrderBy(x => x.Key))
             {

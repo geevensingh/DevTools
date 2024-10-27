@@ -17,7 +17,6 @@ internal class DIMWeapon
     public string Category { get; set; }
     public string Element { get; set; }
     public int Power { get; set; }
-    public string PowerLimit { get; set; }
     public string MasterworkType { get; set; }
     public string MasterworkTier { get; set; }
     public string Owner { get; set; }
@@ -43,12 +42,22 @@ internal class DIMWeapon
     public string Accuracy { get; set; }
     public string ChargeRate { get; set; }
     public string GuardResistance { get; set; }
-    public string GuardEfficiency { get; set; }
     public string GuardEndurance { get; set; }
     public string SwingSpeed { get; set; }
     public string ShieldDuration { get; set; }
     public string AirborneEffectiveness { get; set; }
-    public bool Crafted { get; set; }
+    public string Crafted { get; set; }
+    public bool IsCrafted
+    {
+        get
+        {
+            if (bool.TryParse(this.Crafted, out bool result))
+            {
+                return result;
+            }
+            return false;
+        }
+    }
     public int CraftedLevel { get; set; }
     public string KillTracker { get; set; }
     public string Foundry { get; set; }
