@@ -182,5 +182,12 @@ namespace Utilities
 
             return source.Substring(0, index);
         }
+
+        public static string ReplaceAtIndex(this string str, int index, char ch)
+        {
+            var stringBuilder = new StringBuilder(str);
+            stringBuilder[index] = ch;
+            return stringBuilder.ToString();
+        }
     }
 }

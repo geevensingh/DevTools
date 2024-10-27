@@ -58,6 +58,7 @@
     <Compile Include="LogMethodAttribute.cs" />
     <Compile Include="LogType.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ScopeLogger.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
