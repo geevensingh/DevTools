@@ -22,7 +22,7 @@
                 case NewTagKind.Junk:
                     return "junk";
                 case NewTagKind.Favorite:
-                    return "keep";
+                    return "favorite";
                 case NewTagKind.Infuse:
                     return "infuse";
                 case NewTagKind.None:

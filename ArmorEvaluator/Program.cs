@@ -6,6 +6,7 @@ using CsvHelper.Configuration;
 using Newtonsoft.Json;
 using System.Diagnostics;
 using System.Globalization;
+using System.Linq;
 
 string weightsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Weights.json");
 
@@ -34,7 +35,7 @@ foreach (string arg in args)
 
 if (string.IsNullOrEmpty(filePath))
 {
-    filePath = Directory.EnumerateFiles(Path.Combine(Environment.GetEnvironmentVariable("USERPROFILE"), @"Downloads"), @"destinyArmor*.csv").MaxBy(x => File.GetCreationTime(x));
+    filePath = Directory.EnumerateFiles(Path.Combine(Environment.GetEnvironmentVariable("USERPROFILE"), @"Downloads"), @"destiny*armor*.csv").MaxBy(x => File.GetCreationTime(x));
 }
 Console.WriteLine($"Using {filePath}");
 
@@ -87,7 +88,10 @@ var initiallyJunk = appliedWeights.Where(x => x.IsJunk).ToHashSet(comparer);
 // Look for items that aren't junk, but are worse than all dupes
 foreach (var dupes in appliedWeights.Where(x => !x.Item.IsClassItem).GroupBy(x => x.Item.Hash))
 {
-    var bestAtSomething = new HashSet<ScratchPad>(comparer);
+    var bestAtSomething = new HashSet<ScratchPad>(comparer)
+    {
+        dupes.MaxBy(x => x.AbsoluteValue),
+    };
     foreach (var applicableWeightSet in dupes.First().Weights.Select(x => x.WeightSet))
     {
         bestAtSomething.Add(dupes.MaxBy(x => x.Weights.Single(y => y.WeightSet == applicableWeightSet).Sum));
@@ -112,7 +116,8 @@ foreach (var hash in initiallyJunk.Where(x => !x.Item.IsClassItem).Select(x => x
                 dupe.Item.Discipline <= otherDupes.Select(x => x.Item.Discipline).Max() &&
                 dupe.Item.Intellect <= otherDupes.Select(x => x.Item.Intellect).Max() &&
                 dupe.Item.Strength <= otherDupes.Select(x => x.Item.Strength).Max() &&
-                dupe.Item.Total < otherDupes.Select(x => x.Item.Total).Max())
+                dupe.Item.Total < otherDupes.Select(x => x.Item.Total).Max() &&
+                dupe.AbsoluteValue < otherDupes.Select(x => x.AbsoluteValue).Max())
             {
                 dupe.SetTag(NewTagKind.Junk, $"worse than all other {dupe.Item.Name}");
             }

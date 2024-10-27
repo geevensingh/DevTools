@@ -48,15 +48,20 @@ namespace ArmorEvaluator
             get
             {
                 int[] allStats = this.AllStatsAdjusted;
-                if (allStats.Count(x => x >= 28) >= 1)
+                if (this.EnergyCapacityInt == 10)
+                {
+                    allStats = allStats.Select(x => x + 1).ToArray();
+                }
+                
+                if (allStats.Count(x => x >= 30) >= 1)
                 {
                     return 1;
                 }
-                if (allStats.Count(x => x >= 23) >= 1 && allStats.Count(x => x >= 17) >= 2)
+                if (allStats.Count(x => x >= 24) >= 1 && allStats.Count(x => x >= 18) >= 2)
                 {
                     return 2;
                 }
-                if (allStats.Count(x => x >= 17) >= 2 && allStats.Count(x => x >= 12) >= 3)
+                if (allStats.Count(x => x >= 18) >= 2 && allStats.Count(x => x >= 12) >= 3)
                 {
                     return 3;
                 }
@@ -117,6 +122,8 @@ namespace ArmorEvaluator
             "Sonar Amplifier",
             "Exhumed Excess",
             "Ascendant Protector",
+            "Echoes of Glory",
+            "Eido's Apprentice",
         };
 
         public HashSet<string> SpecialPerks => Perks.Where(x => AllSpecialPerks.Contains(x.Trim('*'))).ToHashSet(StringComparer.OrdinalIgnoreCase);
