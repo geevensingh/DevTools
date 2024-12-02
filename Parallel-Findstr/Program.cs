@@ -93,13 +93,31 @@ namespace Parallel_Findstr
         private static IEnumerable<string> SearchFile(string filePath)
         {
             var output = new List<string>();
-            string[] lines = null;
             try
             {
-                lines = File.ReadAllLines(filePath);
+                using (TextReader reader = new StreamReader(filePath))
+                {
+                    string line;
+                    int lineNumber = 0;
+                    while ((line = reader.ReadLine()) != null)
+                    {
+                        lineNumber++;
+                        if (line.ToCharArray().Any(x => (char.IsControl(x) && x != '\t') || x == '\0'))
+                        {
+                            Debug.Assert(output.Count == 0);
+                            return output;
+                        }
+                        line = CaseInsensitive ? line.ToLower() : line;
+                        if (TextSearchPatterns.Any(x => line.Contains(x)))
+                        {
+                            output.Add($"{lineNumber}\t: {line}");
+                        }
+                    }
+                }
             }
             catch (Exception ex)
             {
+                Debug.Assert(output.Count == 0);
                 string message = ex.Message;
                 if (!message.Contains(filePath))
                 {
@@ -108,21 +126,6 @@ namespace Parallel_Findstr
 
                 output.Add(message);
                 return output;
-            }
-
-            for (int lineNumber = 0; lineNumber < lines.Length; lineNumber++)
-            {
-                string line = lines[lineNumber];
-                if (line.ToCharArray().Any(x => (char.IsControl(x) && x != '\t') || x == '\0'))
-                {
-                    Debug.Assert(output.Count == 0);
-                    return output;
-                }
-                line = CaseInsensitive ? line.ToLower() : line;
-                if (TextSearchPatterns.Any(x => line.Contains(x)))
-                {
-                    output.Add($"{lineNumber + 1}\t: {line}");
-                }
             }
 
             return output;
