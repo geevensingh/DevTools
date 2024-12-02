@@ -58,7 +58,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Wordle-Starter", "Wordle-St
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ChristmasList", "ChristmasList\ChristmasList.csproj", "{33C7E4CB-4D49-4E38-9ADD-180BD096BAAD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LetterLongDivision", "LetterLongDivision\LetterLongDivision.csproj", "{448283B3-DF31-4EFE-B42F-13E24F3CE23C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LetterLongDivision", "LetterLongDivision\LetterLongDivision.csproj", "{448283B3-DF31-4EFE-B42F-13E24F3CE23C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Parallel-Findstr", "Parallel-Findstr\Parallel-Findstr.csproj", "{A601D89D-610D-4809-901C-F01BE18C534E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -484,6 +486,22 @@ Global
 		{448283B3-DF31-4EFE-B42F-13E24F3CE23C}.Release|x64.Build.0 = Release|Any CPU
 		{448283B3-DF31-4EFE-B42F-13E24F3CE23C}.Release|x86.ActiveCfg = Release|Any CPU
 		{448283B3-DF31-4EFE-B42F-13E24F3CE23C}.Release|x86.Build.0 = Release|Any CPU
+		{A601D89D-610D-4809-901C-F01BE18C534E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A601D89D-610D-4809-901C-F01BE18C534E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A601D89D-610D-4809-901C-F01BE18C534E}.Debug|ARM.ActiveCfg = Debug|Any CPU
+		{A601D89D-610D-4809-901C-F01BE18C534E}.Debug|ARM.Build.0 = Debug|Any CPU
+		{A601D89D-610D-4809-901C-F01BE18C534E}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{A601D89D-610D-4809-901C-F01BE18C534E}.Debug|x64.Build.0 = Debug|Any CPU
+		{A601D89D-610D-4809-901C-F01BE18C534E}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{A601D89D-610D-4809-901C-F01BE18C534E}.Debug|x86.Build.0 = Debug|Any CPU
+		{A601D89D-610D-4809-901C-F01BE18C534E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A601D89D-610D-4809-901C-F01BE18C534E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A601D89D-610D-4809-901C-F01BE18C534E}.Release|ARM.ActiveCfg = Release|Any CPU
+		{A601D89D-610D-4809-901C-F01BE18C534E}.Release|ARM.Build.0 = Release|Any CPU
+		{A601D89D-610D-4809-901C-F01BE18C534E}.Release|x64.ActiveCfg = Release|Any CPU
+		{A601D89D-610D-4809-901C-F01BE18C534E}.Release|x64.Build.0 = Release|Any CPU
+		{A601D89D-610D-4809-901C-F01BE18C534E}.Release|x86.ActiveCfg = Release|Any CPU
+		{A601D89D-610D-4809-901C-F01BE18C534E}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
