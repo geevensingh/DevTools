@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -41,34 +42,90 @@ namespace Parallel_Findstr
             }
 
             Console.WriteLine($"Files to search : {fileList.Count()}");
+            var output = new ConcurrentDictionary<string, IEnumerable<string>>();
+            var tasks = new List<Task>();
+            var lookup = new Dictionary<int, string>();
             foreach (var filePath in fileList)
             {
-                string[] lines = null;
-                try
+                tasks.Add(Task.Run(() =>
                 {
-                    lines = File.ReadAllLines(filePath);
-                }
-                catch (Exception ex)
-                {
-                    string message = ex.Message;
-                    if (!message.Contains(filePath))
+                    var fileOutput = SearchFile(filePath);
+                    if (fileOutput.Count() > 0)
                     {
-                        message = $"Error reading file {filePath}: {message}";
+                        Debug.Assert(output.TryAdd(filePath, fileOutput));
                     }
+                }));
+                lookup.Add(tasks.Last().Id, filePath);
+            }
 
-                    Console.WriteLine(message);
+            //int ii = 0;
+            while (!Task.WhenAll(tasks).IsCompleted)
+            {
+                Console.WriteLine($"Not done yet : {output.Count} / {tasks.Count(x => x.IsCompleted)}");
+                //ii++;
+                //if (ii > 5)
+                //{
+                //    foreach (var task in tasks.Where(x => !x.IsCompleted))
+                //    {
+                //        Console.WriteLine($"Task {task.Id} is not done");
+                //    }
+                //}
+                await Task.Delay(1000);
+            }
+
+            await Task.WhenAll(tasks);
+            foreach (var kvp in output)
+            {
+                if (kvp.Value.Count() == 0)
+                {
                     continue;
                 }
-                for (int lineNumber = 0; lineNumber < lines.Length; lineNumber++)
+
+                Console.WriteLine(kvp.Key);
+                //Console.WriteLine($"\r\r{kvp.Value.Count()}");
+                foreach (var line in kvp.Value)
                 {
-                    string line = lines[lineNumber];
-                    line = CaseInsensitive ? line.ToLower() : line;
-                    if (TextSearchPatterns.Any(x => line.Contains(x)))
-                    {
-                        Console.WriteLine($"{filePath}({lineNumber + 1}): {line}");
-                    }
+                    Console.WriteLine(line);
                 }
             }
+        }
+
+        private static IEnumerable<string> SearchFile(string filePath)
+        {
+            var output = new List<string>();
+            string[] lines = null;
+            try
+            {
+                lines = File.ReadAllLines(filePath);
+            }
+            catch (Exception ex)
+            {
+                string message = ex.Message;
+                if (!message.Contains(filePath))
+                {
+                    message = $"Error reading file {filePath}: {message}";
+                }
+
+                output.Add(message);
+                return output;
+            }
+
+            for (int lineNumber = 0; lineNumber < lines.Length; lineNumber++)
+            {
+                string line = lines[lineNumber];
+                if (line.ToCharArray().Any(x => (char.IsControl(x) && x != '\t') || x == '\0'))
+                {
+                    Debug.Assert(output.Count == 0);
+                    return output;
+                }
+                line = CaseInsensitive ? line.ToLower() : line;
+                if (TextSearchPatterns.Any(x => line.Contains(x)))
+                {
+                    output.Add($"{lineNumber + 1}\t: {line}");
+                }
+            }
+
+            return output;
         }
 
         private static bool ParseArgs(string[] args)
