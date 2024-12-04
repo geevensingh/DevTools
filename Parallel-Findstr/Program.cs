@@ -10,6 +10,9 @@ using System.Threading.Tasks;
 
 namespace Parallel_Findstr
 {
+    // Commands to try:
+    // /i /s /c aircapi /f * /xbuild
+    // /xbuild /i /c "Not able to find previous unbilled lineItem" /s /f *
     internal class Program
     {
         public static bool CaseInsensitive { get; private set; } = false;
@@ -42,7 +45,7 @@ namespace Parallel_Findstr
             }
 
             Console.WriteLine($"Files to search : {fileList.Count()}");
-            var output = new ConcurrentDictionary<string, IEnumerable<string>>();
+            var output = new ConcurrentDictionary<string, IEnumerable<Match>>();
             var tasks = new List<Task>();
             var lookup = new Dictionary<int, string>();
             foreach (var filePath in fileList)
@@ -52,26 +55,16 @@ namespace Parallel_Findstr
                     var fileOutput = SearchFile(filePath);
                     if (fileOutput.Count() > 0)
                     {
-                        Debug.Assert(output.TryAdd(filePath, fileOutput));
+                        while (!output.TryAdd(filePath, fileOutput))
+                        {
+                            Debug.Fail("Why did TryAdd fail?");
+                        }
                     }
                 }));
                 lookup.Add(tasks.Last().Id, filePath);
             }
 
-            //int ii = 0;
-            while (!Task.WhenAll(tasks).IsCompleted)
-            {
-                Console.WriteLine($"Not done yet : {output.Count} / {tasks.Count(x => x.IsCompleted)}");
-                //ii++;
-                //if (ii > 5)
-                //{
-                //    foreach (var task in tasks.Where(x => !x.IsCompleted))
-                //    {
-                //        Console.WriteLine($"Task {task.Id} is not done");
-                //    }
-                //}
-                await Task.Delay(1000);
-            }
+            await ReportTaskProgress(tasks);
 
             await Task.WhenAll(tasks);
             foreach (var kvp in output)
@@ -83,16 +76,33 @@ namespace Parallel_Findstr
 
                 Console.WriteLine(kvp.Key);
                 //Console.WriteLine($"\r\r{kvp.Value.Count()}");
-                foreach (var line in kvp.Value)
+                foreach (var match in kvp.Value)
                 {
-                    Console.WriteLine(line);
+                    match.ToConsole();
                 }
             }
         }
 
-        private static IEnumerable<string> SearchFile(string filePath)
+        private static async Task ReportTaskProgress(List<Task> tasks)
         {
-            var output = new List<string>();
+            int taskCount = tasks.Count;
+            int tasksCompleted = tasks.Count(x => x.IsCompleted);
+            while (tasksCompleted < taskCount)
+            {
+                string message = $"Tasks completed : {tasksCompleted} / {taskCount}";
+                Console.Write(message);
+                await Task.Delay(1000);
+                string antiMessage = new string('\b', message.Length);
+                Console.Write(antiMessage);
+
+                tasksCompleted = tasks.Count(x => x.IsCompleted);
+            }
+            Console.WriteLine("Tasks complete");
+        }
+
+        private static IEnumerable<Match> SearchFile(string filePath)
+        {
+            var output = new List<Match>();
             try
             {
                 using (TextReader reader = new StreamReader(filePath))
@@ -107,10 +117,23 @@ namespace Parallel_Findstr
                             Debug.Assert(output.Count == 0);
                             return output;
                         }
-                        line = CaseInsensitive ? line.ToLower() : line;
-                        if (TextSearchPatterns.Any(x => line.Contains(x)))
+                        string lineToCompare = CaseInsensitive ? line.ToLower() : line;
+                        foreach (string pattern in TextSearchPatterns)
                         {
-                            output.Add($"{lineNumber}\t: {line}");
+                            int index;
+                            int startIndex = 0;
+                            while ((index = lineToCompare.IndexOf(pattern, startIndex)) != -1)
+                            {
+                                output.Add(new Match
+                                {
+                                    FilePath = filePath,
+                                    LineNumber = lineNumber,
+                                    Line = line,
+                                    StartIndex = index,
+                                    EndIndex = index + pattern.Length
+                                });
+                                startIndex = index + pattern.Length;
+                            }
                         }
                     }
                 }
@@ -124,11 +147,40 @@ namespace Parallel_Findstr
                     message = $"Error reading file {filePath}: {message}";
                 }
 
-                output.Add(message);
+                output.Add(new Match
+                {
+                    FilePath = filePath,
+                    LineNumber = -1,
+                    Line = message,
+                    StartIndex = 0,
+                    EndIndex = message.Length - 1
+                });
                 return output;
             }
 
             return output;
+        }
+
+        private class Match
+        {
+            public string FilePath { get; set; }
+            public int LineNumber { get; set; }
+            public string Line { get; set; }
+            public int StartIndex { get; set; }
+            public int EndIndex { get; set; }
+
+            public void ToConsole()
+            {
+                var originalConsoleForegroundColor = Console.ForegroundColor;
+                string preHighlight = $"{this.LineNumber} \t: {Line.Substring(0, this.StartIndex)}";
+                string highlight = this.Line.Substring(this.StartIndex, this.EndIndex - this.StartIndex);
+                string postHighlight = this.Line.Substring(this.EndIndex);
+                Console.Write(preHighlight);
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.Write(highlight);
+                Console.ForegroundColor = originalConsoleForegroundColor;
+                Console.WriteLine(postHighlight);
+            }
         }
 
         private static bool ParseArgs(string[] args)
@@ -192,20 +244,16 @@ namespace Parallel_Findstr
             return true;
         }
 
-        private static bool IsValidTextSearchPattern(string arg)
-        {
-            return arg.All(c => !char.IsControl(c) && !char.IsSurrogate(c));
-        }
-
-        private static bool IsValidFileSearchPattern(string searchPattern)
-        {
-            var invalidChars = Path.GetInvalidPathChars().Union(Path.GetInvalidFileNameChars()).Except(new char[] { '*' });
-            return !searchPattern.Any(c => invalidChars.Contains(c));
-        }
-
         private static void PrintUsage()
         {
-            throw new NotImplementedException();
+            Console.WriteLine(@"
+/i                        : Case insensitive search
+/s                        : Search subfolders
+/c <search string>        : Text to search for
+/f <file search pattern>  : File search pattern
+/xd <directory exclusion> : Exclude directories
+/xbuild                   : Exclude build directories
+");
         }
     }
 }
