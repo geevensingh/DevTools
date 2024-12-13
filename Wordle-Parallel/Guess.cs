@@ -1,46 +1,86 @@
-﻿using System;
+﻿using Logging;
+using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Wordle_Parallel
 {
-    internal class Guess
+    public class Guess
     {
-        public string Word { get; }
-        public Dictionary<string, Group> Groups { get; }
+        private Task initializationTask = null;
 
-        public Guess(string word)
+        [JsonProperty(Required = Required.Always)]
+        public string Word { get; }
+
+        [JsonProperty(Required = Required.Always)]
+        public bool IsAnswer { get; }
+
+        [JsonProperty(Required = Required.Always)]
+        public Dictionary<string, Group> Groups { get; private set; }
+
+        [JsonProperty(Required = Required.Always)]
+        public int? TotalAnswerCount { get; private set; } = null;
+
+        public Guess(string word, bool isAnswer)
         {
             this.Word = word;
-            this.Groups = new Dictionary<string, Group>();
+            this.IsAnswer = isAnswer;
+            this.Groups = null;
         }
 
-        public double Bits => this.Groups.Values.Sum(group => group.Bits);
-        public double Entropy => this.Groups.Values.Sum(group => group.Entropy);
+        public double GetBits()
+        {
+            return this.EnsureInitialized(() => this.Groups.Values.Sum(group => group.GetBits(this.TotalAnswerCount.Value)));
+        }
+
+        public double GetEntropy()
+        {
+            return this.EnsureInitialized(() => this.Groups.Values.Sum(group => group.GetEntropy(this.TotalAnswerCount.Value)));
+        }
 
         public Task InitializeAsync(IEnumerable<string> answers)
         {
-            return Task.Run(() =>
+            if (this.initializationTask != null)
+            {
+                return this.initializationTask;
+            }
+
+            this.initializationTask = Task.Run(() =>
             {
                 this.Initialize(answers);
             });
+
+            return this.initializationTask;
         }
 
-        public void Initialize(IEnumerable<string> answers)
+        private void Initialize(IEnumerable<string> answers)
         {
-            int total = answers.Count();
+            this.TotalAnswerCount = answers.Count();
+            var groups = new Dictionary<string, Group>();
             foreach (string answer in answers)
             {
-                string comparison = Program.GetComparison(this.Word, answer);
-                if (!this.Groups.ContainsKey(comparison))
+                string comparison = Program.GetComparison(answer, this.Word);
+                if (!groups.ContainsKey(comparison))
                 {
-                    this.Groups.Add(comparison, new Group(this.Word, comparison, total));
+                    groups.Add(comparison, new Group(this.Word, comparison));
                 }
 
-                this.Groups[comparison].Words.Add(answer);
+                groups[comparison].Words.Add(answer);
             }
+
+            this.Groups = groups;
+        }
+
+        private T EnsureInitialized<T>(Func<T> func)
+        {
+            Debug.Assert(this.initializationTask == null || this.initializationTask.IsCompleted);
+            Debug.Assert(this.TotalAnswerCount != null);
+            Debug.Assert(this.Groups != null);
+            return func();
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,27 +7,37 @@ using System.Threading.Tasks;
 
 namespace Wordle_Parallel
 {
-    internal class Group
+    public class Group
     {
-        private int total;
-
-        public Group(string givenWord, string comparison, int total)
+        public Group(string word, string comparison)
         {
-            this.total = total;
-
-            this.GivenWord = givenWord;
+            this.GivenWord = word;
             this.Comparison = comparison;
             this.Words = new HashSet<string>();
         }
 
+        [JsonProperty(Required = Required.Always)]
         public string GivenWord { get; }
 
+        [JsonProperty(Required = Required.Always)]
         public string Comparison { get; }
 
+        [JsonProperty(Required = Required.Always)]
         public HashSet<string> Words { get; }
 
-        public double Probability => (double)this.Words.Count / this.total;
-        public double Bits => -1.0 * Math.Log(this.Probability, 2);
-        public double Entropy => this.Probability * this.Bits;
+        public double GetProbability(int totalAnswers)
+        {
+            return (double)this.Words.Count / totalAnswers;
+        }
+
+        public double GetBits(int totalAnswers)
+        {
+            return -1.0 * Math.Log(this.GetProbability(totalAnswers), 2);
+        }
+
+        public double GetEntropy(int totalAnswers)
+        {
+            return this.GetProbability(totalAnswers) * this.GetBits(totalAnswers);
+        }
     }
 }

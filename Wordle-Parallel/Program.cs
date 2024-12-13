@@ -1,4 +1,5 @@
 ﻿using Logging;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -6,6 +7,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Utilities;
 
@@ -13,6 +15,13 @@ namespace Wordle_Parallel
 {
     public class Program
     {
+        private static float Sigmoid(float x)
+        {
+            double exp = 1.000005d;
+            double offset = 70000.0d;
+            return (float)(1.0 / (1.0 + Math.Pow(exp, offset - x)));
+        }
+
         static async Task Main(string[] args)
         {
             ConsoleLogger.Instance.MinLevel = LogLevel.Verbose;
@@ -55,22 +64,156 @@ namespace Wordle_Parallel
 
             Debug.Assert(GetComparison("zaazz", "aaacd") == "02200");
 
-            string[] words = File.ReadAllLines("wordle-words.txt");
-            string[] answers = File.ReadAllLines("wordle-answers.txt");
+            Dictionary<string, float> answerChance = await GenerateAnswerChance();
 
-            var guesses = words.Select(word => new Guess(word)).ToList();
-            var tasks = guesses.Select(guess => guess.InitializeAsync(answers));
-            await Task.WhenAll(tasks);
+            //char[] badLetters = "slantcodeugby".ToCharArray();
+            //List<string> answersTemp = answerChance.Keys.ToList();
+            //answersTemp = answersTemp.Where(x => !ContainsAny(x, badLetters)).ToList();
+            //Debug.Assert(!answersTemp.Contains("there"));
+            //answersTemp = answersTemp.Where(x => x.Contains("r") && x[0] != 'r' && x[4] != 'r').ToList();
+            //answersTemp.ForEach(x => Console.WriteLine($"{x}\t:\t{answerChance[x]}"));
 
-            int counter = 1;
-            foreach (var guess in guesses.OrderByDescending(x => x.Bits))
+            //answerChance = answerChance.OrderByDescending(x => x.Value).Take(5000).ToDictionary(x => x.Key, x => x.Value);
+
+            float minThreshold = 0.91f;
+            minThreshold = 0.5010774f;
+            int maxAnswers = int.MaxValue;
+            Console.WriteLine("possible answers : " + answerChance.Count(x => x.Value > minThreshold));
+
+            HashSet<string> answers = answerChance.OrderByDescending(x => x.Value).Where(x => x.Value > minThreshold).Take(maxAnswers).Select(x => x.Key).ToHashSet();
+            int maxWords = answers.Count * 4;
+            HashSet<string> words = answerChance.OrderByDescending(x => x.Value).Take(maxWords).Select(x => x.Key).ToHashSet();
+
+            //HashSet<string> answers = answerChance.OrderByDescending(x => x.Value).Take(1500).Select(x => x.Key).ToHashSet();
+            Logger.Instance.LogLine($"words: {words.Count}, answers: {answers.Count}");
+
+            foreach (var word in new string[] { "talky", "tally"})
             {
-                Console.WriteLine($"{counter++}\t{guess.Word} - {guess.Entropy} - {guess.Bits} - keys: {guess.Groups.Count} , values: {guess.Groups.Values.Sum(x => x.Words.Count)}");
-                if (guess.Word == "slant")
+                Console.WriteLine($"{word} : {answerChance[word]}");
+            }
+
+#if false
+            List<Guess> guesses = await GenerateAllGuesses(words, answers);
+            WriteGuesses(guesses);
+            foreach (var example in new[] {
+                "plate",
+                "plane",
+                "trope",
+                "place",
+                "plant",
+                "caret",
+                "dealt",
+                "table",
+                "trace",
+                "crane",
+                "carte",
+                "split",
+                "leapt",
+                "slice",
+                "slate",
+                "slant",
+                "salet"
+            })
+            {
+                try
                 {
-                    break;
+                    Logger.Instance.LogLine($"index of '{example}': {guesses.IndexOf(guesses.Single(x => x.Word == example))}");
+                }
+                catch (Exception ex)
+                {
+                    Logger.Instance.LogLine($"error finding '{example}': {ex.Message}", LogLevel.Error);
                 }
             }
+            Guess bestWord = guesses.First(x => x.IsAnswer);
+            Logger.Instance.LogLine($"best valid answer is '{bestWord.Word}'");
+            Logger.Instance.LogLine($"index of '{bestWord.Word}': {guesses.IndexOf(bestWord)}");
+#endif
+
+            //
+            // Second step
+            //
+
+            string firstWord = "slant";
+            //string firstResponse = "01101";
+            GetInput("first response", out string firstResponse);
+            //var firstGroup = guesses.First(x => x.Word == firstWord).Groups[firstResponse];
+            if (TryReadGuess(answers.Count, firstWord, out Guess firstGuess, out _))
+            {
+                Logger.Instance.LogLine($"loaded existing guess for '{firstWord}'");
+            }
+            else
+            {
+                Logger.Instance.LogLine($"failed to load existing guess for '{firstWord}'", LogLevel.Error);
+                firstGuess = new Guess(firstWord, answers.Contains(firstWord));
+                firstGuess = (await GenerateAllGuesses(new string[] { firstWord }, answers)).Single();
+            }
+
+
+            var firstGroup = firstGuess.Groups[firstResponse];
+            answers = firstGroup.Words;
+
+            List<Guess> guesses = null;
+            {
+                using var logScope = new ScopeLogger("building second guesses");
+                guesses = words.Select(word => new Guess(word, answers.Contains(word))).ToList();
+                await Task.WhenAll(guesses.Select(guess => guess.InitializeAsync(answers)).ToList());
+            }
+            guesses = guesses.OrderByDescending(x => x.GetEntropy()).ToList();
+            WriteGuesses(guesses);
+
+            //
+            // third step
+            //
+
+            GetInput("second word", out string secondWord, guesses.First(x => x.IsAnswer).Word);
+            GetInput("second response", out string secondResponse);
+            //string secondWord = "latte";
+            //string secondResponse = "12100";
+            var secondGroup = guesses.Single(x => x.Word == secondWord).Groups[secondResponse];
+            answers = secondGroup.Words;
+
+            {
+                using var logScope = new ScopeLogger("building third guesses");
+                guesses = words.Select(word => new Guess(word, answers.Contains(word))).ToList();
+                await Task.WhenAll(guesses.Select(guess => guess.InitializeAsync(answers)).ToList());
+            }
+            guesses = guesses.OrderByDescending(x => x.GetEntropy()).ToList();
+            WriteGuesses(guesses);
+
+            //
+            // fourth step
+            //
+
+            GetInput("third word", out string thirdWord, guesses.First(x => x.IsAnswer).Word);
+            GetInput("third response", out string thirdResponse);
+            var thirdGroup = guesses.Single(x => x.Word == thirdWord).Groups[thirdResponse];
+            answers = thirdGroup.Words;
+
+            {
+                using var logScope = new ScopeLogger("building fourth guesses");
+                guesses = words.Select(word => new Guess(word, answers.Contains(word))).ToList();
+                await Task.WhenAll(guesses.Select(guess => guess.InitializeAsync(answers)).ToList());
+            }
+            guesses = guesses.OrderByDescending(x => x.GetEntropy()).ToList();
+            WriteGuesses(guesses);
+
+            //
+            // fifth step
+            //
+
+            GetInput("fourth word", out string fourthWord, guesses.First(x => x.IsAnswer).Word);
+            GetInput("fourth response", out string fourthResponse);
+            var fourthGroup = guesses.Single(x => x.Word == fourthWord).Groups[fourthResponse];
+            answers = fourthGroup.Words;
+
+            {
+                using var logScope = new ScopeLogger("building fourth guesses");
+                guesses = words.Select(word => new Guess(word, answers.Contains(word))).ToList();
+                await Task.WhenAll(guesses.Select(guess => guess.InitializeAsync(answers)).ToList());
+            }
+            guesses = guesses.OrderByDescending(x => x.GetEntropy()).ToList();
+            WriteGuesses(guesses);
+
 
             ////var uberResults = new ConcurrentDictionary<string, Dictionary<string, HashSet<string>>>();
             ////var tasks = words.Select(word => GetComparisonsAsync(uberResults, answers, word));
@@ -85,6 +228,214 @@ namespace Wordle_Parallel
             ////        break;
             ////    }
             ////}
+        }
+
+
+        private static void GetInput(string name, out string response, string defaultResponse = null)
+        {
+            if (string.IsNullOrEmpty(defaultResponse))
+            {
+                Console.WriteLine($"Enter {name}: ");
+            }
+            else
+            {
+                Console.WriteLine($"Enter {name} (default: {defaultResponse}): ");
+            }
+            response = Console.ReadLine();
+            if (string.IsNullOrEmpty(response) && !string.IsNullOrEmpty(defaultResponse))
+            {
+                response = defaultResponse;
+            }
+        }
+
+        private static async Task<Dictionary<string, float>> GenerateAnswerChance()
+        {
+            bool readFrequenciesFromFile = false;
+            Dictionary<string, float> answerChance = null;
+            if (File.Exists("wordle-frequencies.json"))
+            {
+                using var logScope = new ScopeLogger("reading existing frequencies");
+                using var jsonReader = new JsonTextReader(new StringReader(File.ReadAllText("wordle-frequencies.json")));
+                var serializer = JsonSerializer.Create();
+                try
+                {
+                    answerChance = serializer.Deserialize<Dictionary<string, float>>(jsonReader);
+                    readFrequenciesFromFile = true;
+                }
+                catch (Exception ex)
+                {
+                    Logger.Instance.LogLine($"Error deserializing JSON: {ex.Message}", LogLevel.Error);
+                }
+            }
+
+            if (answerChance == null)
+            {
+                using var logScope = new ScopeLogger("building frequencies");
+
+                Dictionary<string, long> answerFrequency = File.ReadAllLines("wordle-answers.txt").ToDictionary((string x) => x, (string x) => -1L);
+                string[] lines = File.ReadAllLines(@"C:\Users\geeve\Downloads\frequency-alpha-alldicts.txt");
+                var wordFrequency = new Dictionary<string, long>();
+                foreach (string line in lines)
+                {
+                    string[] parts = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                    Debug.Assert(parts.Length == 5);
+                    string word = parts[1];
+                    if (word.Length != 5)
+                    {
+                        continue;
+                    }
+
+                    word = word.ToLower();
+                    int raking = int.Parse(parts[0]);
+                    long count = long.Parse(parts[2].Replace(",", ""));
+                    wordFrequency[word] = count;
+                    //Console.WriteLine($"{raking}\t{word}\t{count}\t");
+
+                    if (answerFrequency.ContainsKey(word))
+                    {
+                        answerFrequency[word] = count;
+                    }
+                }
+
+                long minAnswerFrequency = answerFrequency.Where(x => x.Value > 0L).Min(x => x.Value);
+                foreach (var pair in answerFrequency.Where(x => x.Value <= 0L).ToList())
+                {
+                    answerFrequency[pair.Key] = minAnswerFrequency;
+                }
+
+                Logger.Instance.LogLine($"sigmoid of {minAnswerFrequency} (min answer) is {Sigmoid(minAnswerFrequency)}", LogLevel.Verbose);
+
+                string[] words = File.ReadAllLines("wordle-words.txt");
+                long minWordFrequency = wordFrequency.Min(x => x.Value);
+                foreach (string w in words)
+                {
+                    if (!wordFrequency.ContainsKey(w))
+                    {
+                        //Console.WriteLine($"'{w}' unknown frequency");
+                        wordFrequency[w] = minWordFrequency;
+                    }
+                }
+
+                Logger.Instance.LogLine($"sigmoid of {minWordFrequency} (min word) is {Sigmoid(minWordFrequency)}", LogLevel.Verbose);
+
+                // make sure *everything* is in wordFrequency
+                foreach (var pair in answerFrequency)
+                {
+                    wordFrequency[pair.Key] = pair.Value;
+                }
+
+                answerChance = new Dictionary<string, float>();
+                foreach (var pair in wordFrequency)
+                {
+                    answerChance[pair.Key] = Sigmoid(pair.Value);
+                }
+            }
+
+            if (!readFrequenciesFromFile)
+            {
+                using var jsonWritingScope = new ScopeLogger("Writing JSON");
+                Logger.Instance.LogLine($"word frequencies: {answerChance.Count()}");
+                var serializer = JsonSerializer.Create();
+                using var writer = new StringWriter();
+                using var jsonWriter = new JsonTextWriter(writer);
+                serializer.Serialize(jsonWriter, answerChance);
+                string fileContents = writer.ToString();
+                Logger.Instance.LogLine($"file size: {fileContents.Length}");
+                File.WriteAllText("wordle-frequencies.json", fileContents);
+            }
+
+            return answerChance;
+        }
+
+        private static async Task<List<Guess>> GenerateAllGuesses(IEnumerable<string> words, HashSet<string> answers)
+        {
+            using var fullScope = new ScopeLogger("GenerateAllGuesses - overall");
+            if (!Directory.Exists("wordle-map"))
+            {
+                Directory.CreateDirectory("wordle-map");
+            }
+
+            int expectedTotalCount = answers.Count();
+            ConcurrentDictionary<Guess, int> guesses = new ConcurrentDictionary<Guess, int>();
+            List<Task> tasks = new List<Task>();
+            using (var logScope = new ScopeLogger("GenerateAllGuesses - creating tasks"))
+            {
+                foreach (var word in words)
+                {
+                    tasks.Add(Task.Run(async () =>
+                    {
+                        bool readGuessFromFile = TryReadGuess(expectedTotalCount, word, out Guess guess, out string filePath);
+
+                        if (guess == null)
+                        {
+                            readGuessFromFile = false;
+                            guess = new Guess(word, answers.Contains(word));
+                            await guess.InitializeAsync(answers);
+                        }
+
+                        if (!readGuessFromFile)
+                        {
+                            var serializer = JsonSerializer.Create();
+                            using var writer = new StringWriter();
+                            using var jsonWriter = new JsonTextWriter(writer);
+                            serializer.Serialize(jsonWriter, guess);
+                            File.WriteAllText(filePath, writer.ToString());
+                        }
+
+                        Debug.Assert(guesses.TryAdd(guess, 0));
+                    }));
+                }
+            }
+
+            using (var logScope = new ScopeLogger($"GenerateAllGuesses - waiting for tasks ({tasks.Count}) to complete"))
+            {
+                await Task.WhenAll(tasks);
+            }
+
+            return guesses.Keys.OrderByDescending(x => x.GetEntropy()).ToList();
+        }
+
+
+        private static bool TryReadGuess(int totalAnswerCount, string word, out Guess guess, out string filePath)
+        {
+            guess = null;
+            filePath = Path.Combine("wordle-map", $"{word}.json");
+            if (File.Exists(filePath))
+            {
+                using var jsonReader = new JsonTextReader(new StringReader(File.ReadAllText(filePath)));
+                var serializer = JsonSerializer.Create();
+                try
+                {
+                    Guess tempGuess = serializer.Deserialize<Guess>(jsonReader);
+                    if (tempGuess.TotalAnswerCount == totalAnswerCount)
+                    {
+                        guess = tempGuess;
+                        return true;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Instance.LogLine($"File '{filePath}' Error deserializing JSON: {ex.Message}", LogLevel.Error);
+                }
+            }
+
+            return false;
+        }
+
+        private static void WriteGuesses(IEnumerable<Guess> guesses, bool forceShowAll = false)
+        {
+            int counter = 1;
+            ConsoleColor originalColor = Console.ForegroundColor;
+            foreach (var guess in guesses)
+            {
+                if (guess.IsAnswer || forceShowAll)
+                {
+                    Console.WriteLine($"{counter}\t{guess.Word} - {guess.GetEntropy():0.0000} - keys: {guess.Groups.Count}\t - values: {guess.Groups.Values.Sum(x => x.Words.Count)}");
+                }
+
+                counter++;
+            }
+            Console.ForegroundColor = originalColor;
         }
 
         private static Task GetComparisonsAsync(ConcurrentDictionary<string, Dictionary<string, HashSet<string>>> uberResults, string[] answers, string word)
@@ -140,6 +491,18 @@ namespace Wordle_Parallel
             }
 
             return result;
+        }
+
+        public static bool ContainsAny(string str, char[] chars)
+        {
+            foreach (char c in chars)
+            {
+                if (str.Contains(c))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 }
