@@ -207,13 +207,29 @@ namespace Wordle_Parallel
             answers = fourthGroup.Words;
 
             {
-                using var logScope = new ScopeLogger("building fourth guesses");
+                using var logScope = new ScopeLogger("building fifth guesses");
                 guesses = words.Select(word => new Guess(word, answers.Contains(word))).ToList();
                 await Task.WhenAll(guesses.Select(guess => guess.InitializeAsync(answers)).ToList());
             }
             guesses = guesses.OrderByDescending(x => x.GetEntropy()).ToList();
             WriteGuesses(guesses);
 
+            //
+            // sixth step
+            //
+
+            GetInput("fifth word", out string fifthWord, guesses.First(x => x.IsAnswer).Word);
+            GetInput("fifth response", out string fifthResponse);
+            var fifthGroup = guesses.Single(x => x.Word == fifthWord).Groups[fifthResponse];
+            answers = fifthGroup.Words;
+
+            {
+                using var logScope = new ScopeLogger("building sixth guesses");
+                guesses = words.Select(word => new Guess(word, answers.Contains(word))).ToList();
+                await Task.WhenAll(guesses.Select(guess => guess.InitializeAsync(answers)).ToList());
+            }
+            guesses = guesses.OrderByDescending(x => x.GetEntropy()).ToList();
+            WriteGuesses(guesses);
 
             ////var uberResults = new ConcurrentDictionary<string, Dictionary<string, HashSet<string>>>();
             ////var tasks = words.Select(word => GetComparisonsAsync(uberResults, answers, word));
