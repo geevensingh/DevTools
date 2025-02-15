@@ -53,6 +53,7 @@
   <ItemGroup>
     <Compile Include="Change.cs" />
     <Compile Include="Client.cs" />
+    <Compile Include="EqualityBase.cs" />
     <Compile Include="Extensions\CollectionExtensions.cs" />
     <Compile Include="Extensions\ColorExtensions.cs" />
     <Compile Include="Converters.cs" />
