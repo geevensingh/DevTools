@@ -7,7 +7,15 @@
         public BranchInfo(string name)
         {
             this.Name = name;
-            this.ParentBranchName = GitOperations.GetBranchBase(name);
+            var parentBranchName = GitOperations.GetBranchBase(name);
+            if (parentBranchName == "root")
+            {
+                this.IsRoot = true;
+            }
+            else
+            {
+                this.ParentBranchName = parentBranchName;
+            }
         }
 
         public string Name
@@ -18,6 +26,11 @@
         public string ParentBranchName
         {
             get;
+        }
+        public bool IsRoot
+        {
+            get;
+            internal set;
         }
 
         public bool IsParented => !string.IsNullOrEmpty(this.ParentBranchName);

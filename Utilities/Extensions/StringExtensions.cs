@@ -189,5 +189,27 @@ namespace Utilities
             stringBuilder[index] = ch;
             return stringBuilder.ToString();
         }
+
+        public static string StartAfter(this string source, string trim)
+        {
+            int index = source.IndexOf(trim);
+            if (index == -1)
+            {
+                return source;
+            }
+
+            return source.Substring(index + trim.Length);
+        }
+
+        public static string EndBefore(this string source, string trim)
+        {
+            int index = source.IndexOf(trim);
+            if (index == -1)
+            {
+                return source;
+            }
+
+            return source.Substring(0, index);
+        }
     }
 }
