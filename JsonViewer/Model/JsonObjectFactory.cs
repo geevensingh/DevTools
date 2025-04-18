@@ -196,7 +196,7 @@
             });
         }
 
-        public static void Flatten(ref List<JsonObject> items, Dictionary<string, object> dictionary, JsonObject parent)
+        public static void Flatten(ref List<JsonObject> items, SortedDictionary<string, object> dictionary, JsonObject parent)
         {
             List<JsonObject> children = new List<JsonObject>();
             foreach (string key in dictionary.Keys)
@@ -213,13 +213,17 @@
 
                 if (rawObject != null)
                 {
-                    if (rawObject is Dictionary<string, object>)
+                    if (rawObject is SortedDictionary<string, object> sortedDictionary)
                     {
-                        Flatten(ref items, rawObject as Dictionary<string, object>, data);
+                        Flatten(ref items, sortedDictionary, data);
                     }
-                    else if (rawObject is System.Collections.ArrayList)
+                    else if (rawObject is Dictionary<string, object> unsortedDictionary)
                     {
-                        Flatten(ref items, rawObject as System.Collections.ArrayList, data);
+                        Flatten(ref items, new SortedDictionary<string, object>(unsortedDictionary, new DictionaryComparer()), data);
+                    }
+                    else if (rawObject is System.Collections.ArrayList arrayList)
+                    {
+                        Flatten(ref items, arrayList, data);
                     }
                 }
             }
@@ -242,9 +246,9 @@
                     items.Add(data);
                 }
 
-                if (rawObject is Dictionary<string, object>)
+                if (rawObject is SortedDictionary<string, object>)
                 {
-                    Flatten(ref items, rawObject as Dictionary<string, object>, data);
+                    Flatten(ref items, rawObject as SortedDictionary<string, object>, data);
                 }
                 else if (rawObject is System.Collections.ArrayList)
                 {
