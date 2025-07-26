@@ -18,7 +18,7 @@ namespace ArmorEvaluator
             {
 
                 float defaultThreshold = WeightSet.Threshold.GetApplicableThreshold(Item);
-                if (Item.Tier == "Exotic" || Item.EnergyCapacityInt == 10)
+                if (Item.Rarity == "Exotic" || Item.EnergyCapacityInt == 10)
                 {
                     return defaultThreshold * 0.8f;
                 }
@@ -28,13 +28,13 @@ namespace ArmorEvaluator
         }
         public bool MeetsThreshold => (Sum >= AdjustedThreshold);
 
-        public float Mobility => WeightSet.Mobility * Item.Mobility;
-        public float Resilience => WeightSet.Resilience * Item.Resilience;
-        public float Recovery => WeightSet.Recovery * Item.Recovery;
-        public float Discipline => WeightSet.Discipline * Item.Discipline;
-        public float Intellect => WeightSet.Intellect * Item.Intellect;
-        public float Strength => WeightSet.Strength * Item.Strength;
-        public float[] AllStats => new float[] { Mobility, Resilience, Recovery, Discipline, Intellect, Strength };
+        public float Weapons => WeightSet.Weapons * Item.Weapons;
+        public float Health => WeightSet.Health * Item.Health;
+        public float Class => WeightSet.Class * Item.Class;
+        public float Grenade => WeightSet.Grenade * Item.Grenade;
+        public float Super => WeightSet.Super * Item.Super;
+        public float Melee => WeightSet.Melee * Item.Melee;
+        public float[] AllStats => new float[] { Weapons, Health, Class, Grenade, Super, Melee };
         public float Sum => AllStats.Sum();
 
         public static AppliedWeightSet Create(Item item, WeightSet weightSet)

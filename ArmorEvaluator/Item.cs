@@ -10,34 +10,40 @@ namespace ArmorEvaluator
         public string Hash { get; set; }
         public string Id { get; set; }
         public string Tag { get; set; }
+        public string Rarity { get; set; }
         public string Tier { get; set; }
         public string Type { get; set; }
+        public string Source { get; set; }
         public string Equippable { get; set; }
+        public string Featured { get; set; }
+        public string Year { get; set; }
+        public string Season { get; set; }
+        public string Event { get; set; }
         public int Power { get; set; }
         public string EnergyCapacity { get; set; }
         public int EnergyCapacityInt => string.IsNullOrEmpty(EnergyCapacity) ? 0 : int.Parse(EnergyCapacity);
-        [Name("Mobility (Base)")]
-        public int Mobility { get; set; }
-        [Name("Resilience (Base)")]
-        public int Resilience { get; set; }
-        [Name("Recovery (Base)")]
-        public int Recovery { get; set; }
-        [Name("Discipline (Base)")]
-        public int Discipline { get; set; }
-        [Name("Intellect (Base)")]
-        public int Intellect { get; set; }
-        [Name("Strength (Base)")]
-        public int Strength { get; set; }
+        [Name("Weapons (Base)")]
+        public int Weapons { get; set; }
+        [Name("Health (Base)")]
+        public int Health { get; set; }
+        [Name("Class (Base)")]
+        public int Class { get; set; }
+        [Name("Grenade (Base)")]
+        public int Grenade { get; set; }
+        [Name("Super (Base)")]
+        public int Super { get; set; }
+        [Name("Melee (Base)")]
+        public int Melee { get; set; }
         public string SeasonalMod { get; set; }
 
-        public int[] AllStats => new int[] { Mobility, Resilience, Recovery, Discipline, Intellect, Strength };
+        public int[] AllStats => new int[] { Weapons, Health, Class, Grenade, Super, Melee };
         public int[] AllStatsAdjusted
         {
             get
             {
                 if ((Equippable == "Warlock") || (Equippable == "Titan"))
                 {
-                     return new int[] { Resilience, Recovery, Discipline, Intellect, Strength };
+                     return new int[] { Health, Class, Grenade, Super, Melee };
                 }
                 return AllStats;
             }

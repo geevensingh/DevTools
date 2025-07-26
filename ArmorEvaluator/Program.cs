@@ -44,7 +44,7 @@ using (var reader = new StreamReader(filePath))
 using (var csv = new CsvReader(reader, config))
 {
     allItems = csv.GetRecords<Item>()
-        .Where(x => x.Tier != "Rare")
+        .Where(x => x.Rarity != "Rare")
         //.Where(x => !x.IsClassItem)
         .ToList();
 }
@@ -110,12 +110,12 @@ foreach (var hash in initiallyJunk.Where(x => !x.Item.IsClassItem).Select(x => x
         foreach (var dupe in dupes.Where(x => x.CanChangeTag))
         {
             var otherDupes = dupes.Where(x => x.Item.Id != dupe.Item.Id);
-            if (dupe.Item.Mobility <= otherDupes.Select(x => x.Item.Mobility).Max() &&
-                dupe.Item.Resilience <= otherDupes.Select(x => x.Item.Resilience).Max() &&
-                dupe.Item.Recovery <= otherDupes.Select(x => x.Item.Recovery).Max() &&
-                dupe.Item.Discipline <= otherDupes.Select(x => x.Item.Discipline).Max() &&
-                dupe.Item.Intellect <= otherDupes.Select(x => x.Item.Intellect).Max() &&
-                dupe.Item.Strength <= otherDupes.Select(x => x.Item.Strength).Max() &&
+            if (dupe.Item.Weapons <= otherDupes.Select(x => x.Item.Weapons).Max() &&
+                dupe.Item.Health <= otherDupes.Select(x => x.Item.Health).Max() &&
+                dupe.Item.Class <= otherDupes.Select(x => x.Item.Class).Max() &&
+                dupe.Item.Grenade <= otherDupes.Select(x => x.Item.Grenade).Max() &&
+                dupe.Item.Super <= otherDupes.Select(x => x.Item.Super).Max() &&
+                dupe.Item.Melee <= otherDupes.Select(x => x.Item.Melee).Max() &&
                 dupe.Item.Total < otherDupes.Select(x => x.Item.Total).Max() &&
                 dupe.AbsoluteValue < otherDupes.Select(x => x.AbsoluteValue).Max())
             {
@@ -125,7 +125,7 @@ foreach (var hash in initiallyJunk.Where(x => !x.Item.IsClassItem).Select(x => x
             {
                 foreach (var otherDupe in otherDupes)
                 {
-                    if (AppliedWeightSet.IsLatterMuchBetter(dupe.Weights, otherDupe.Weights, dupe.Item.Tier == "Exotic"))
+                    if (AppliedWeightSet.IsLatterMuchBetter(dupe.Weights, otherDupe.Weights, dupe.Item.Rarity == "Exotic"))
                     {
                         dupe.SetTag(NewTagKind.Junk, $"for every weight set, is worse than another of the same item");
                         break;
@@ -147,18 +147,18 @@ foreach (var eval in initiallyJunk)
     }
 
     var dupeSet = appliedWeights
-        .Where(x => x.Item.Tier != "Exotic" || x.Item.Hash == eval.Item.Hash)
-        .Where(x => x.Item.Tier == eval.Item.Tier)
+        .Where(x => x.Item.Rarity != "Exotic" || x.Item.Hash == eval.Item.Hash)
+        .Where(x => x.Item.Rarity == eval.Item.Rarity)
         .Where(x => x.Item.Type == eval.Item.Type)
         .Where(x => x.Item.Equippable == eval.Item.Equippable)
         .Where(x => x.Item.UniqueType == eval.Item.UniqueType)
         .Where(x => x.Item.Total >= eval.Item.Total)
-        .Where(x => x.Item.Mobility >= eval.Item.Mobility)
-        .Where(x => x.Item.Resilience >= eval.Item.Resilience)
-        .Where(x => x.Item.Recovery >= eval.Item.Recovery)
-        .Where(x => x.Item.Discipline >= eval.Item.Discipline)
-        .Where(x => x.Item.Intellect >= eval.Item.Intellect)
-        .Where(x => x.Item.Strength >= eval.Item.Strength);
+        .Where(x => x.Item.Weapons >= eval.Item.Weapons)
+        .Where(x => x.Item.Health >= eval.Item.Health)
+        .Where(x => x.Item.Class >= eval.Item.Class)
+        .Where(x => x.Item.Grenade >= eval.Item.Grenade)
+        .Where(x => x.Item.Super >= eval.Item.Super)
+        .Where(x => x.Item.Melee >= eval.Item.Melee);
     if (dupeSet.Count() > 1)
     {
         var bestDupe = GetSingleBest(dupeSet);
@@ -210,7 +210,7 @@ foreach (var c in appliedWeights.GroupBy(x => x.Item.Equippable))
 
 // Make sure we don't delete all of a given exotic
 allJunk = appliedWeights.Where(x => x.IsJunk);
-foreach (var itemHash in allJunk.Where(x => x.Item.Tier == "Exotic").Select(x => x.Item.Hash).Distinct())
+foreach (var itemHash in allJunk.Where(x => x.Item.Rarity == "Exotic").Select(x => x.Item.Hash).Distinct())
 {
     var items = appliedWeights.Where(x => x.Item.Hash == itemHash);
     if (items.All(x => allJunk.Contains(x)))
@@ -247,7 +247,7 @@ foreach (var hash in initiallyJunk.Where(x => x.IsJunk).GroupBy(x => x.Item.Hash
     var masterworkDupe = appliedWeights
         .Where(x => x.Item.Hash == hash.Key)
         .Where(x => x.Item.Power < bestJunk.Item.Power)
-        .Where(x => x.Item.EnergyCapacityInt == 10 || (x.Item.Tier == "Exotic" && x.Item.EnergyCapacityInt >= 7));
+        .Where(x => x.Item.EnergyCapacityInt == 10 || (x.Item.Rarity == "Exotic" && x.Item.EnergyCapacityInt >= 7));
     if (masterworkDupe.Any())
     {
         bestJunk.SetTag(NewTagKind.Infuse, "use to improve a masterwork");
@@ -322,7 +322,7 @@ foreach (var c in appliedWeights.Where(x => x.NewTag == NewTagKind.Keep).GroupBy
                 continue;
             }
 
-            var appliedSets = type.Where(x => x.Item.Tier != "Exotic").Select(x => x.Weights.Single(y => y.WeightSet == set));
+            var appliedSets = type.Where(x => x.Item.Rarity != "Exotic").Select(x => x.Weights.Single(y => y.WeightSet == set));
             int count = appliedSets.Count(x => x.MeetsThreshold);
             float score = set.GetNormalizedThreshold(type.Key);
             consoleLine += ($"{count} ({score:F})").PadRight(15);
@@ -385,17 +385,17 @@ if (makeSpreadsheet)
             x.Item.Id,
             x.Item.Tag,
             x.NewTag,
-            x.Item.Tier,
+            x.Item.Rarity,
             x.Item.Type,
             x.Item.Equippable,
             x.Item.Power,
             x.Item.EnergyCapacityInt,
-            x.Item.Mobility,
-            x.Item.Resilience,
-            x.Item.Recovery,
-            x.Item.Discipline,
-            x.Item.Intellect,
-            x.Item.Strength,
+            x.Item.Weapons,
+            x.Item.Health,
+            x.Item.Class,
+            x.Item.Grenade,
+            x.Item.Super,
+            x.Item.Melee,
             x.Item.SeasonalMod,
             SpecialPerks = string.Join(",", x.Item.SpecialPerks),
             x.AbsoluteValue,

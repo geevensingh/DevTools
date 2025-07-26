@@ -12,15 +12,15 @@ namespace ArmorEvaluator
         public string Name { get; set; }
         public Threshold Threshold { get; set; }
 
-        public float Mobility { get; set; }
-        public float Resilience { get; set; }
-        public float Recovery { get; set; }
-        public float Discipline { get; set; }
-        public float Intellect { get; set; }
-        public float Strength { get; set; }
+        public float Weapons { get; set; }
+        public float Health { get; set; }
+        public float Class { get; set; }
+        public float Grenade { get; set; }
+        public float Super { get; set; }
+        public float Melee { get; set; }
 
         [JsonIgnore]
-        public float Sum => Mobility + Resilience + Recovery + Discipline + Intellect + Strength;
+        public float Sum => Weapons + Health + Class + Grenade + Super + Melee;
 
         public int Count { get; set; }
 
@@ -47,12 +47,12 @@ namespace ArmorEvaluator
             }
 
             return this.Name == other.Name &&
-                this.Mobility == other.Mobility &&
-                this.Resilience == other.Resilience &&
-                this.Recovery == other.Recovery &&
-                this.Discipline == other.Discipline &&
-                this.Intellect == other.Intellect &&
-                this.Strength == other.Strength;
+                this.Weapons == other.Weapons &&
+                this.Health == other.Health &&
+                this.Class == other.Class &&
+                this.Grenade == other.Grenade &&
+                this.Super == other.Super &&
+                this.Melee == other.Melee;
         }
 
         public override bool Equals(object obj)
