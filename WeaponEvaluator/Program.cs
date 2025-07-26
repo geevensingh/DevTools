@@ -47,8 +47,8 @@ using (var reader = new StreamReader(weaponListFilePath))
 using (var csv = new CsvReader(reader, csvReaderConfig))
 {
     allWeapons = csv.GetRecords<DIMWeapon>()
-        .Where(x => x.Tier != "Rare")
-        .Where(x => x.Tier != "Exotic")
+        .Where(x => x.Rarity != "Rare")
+        .Where(x => x.Rarity != "Exotic")
         .ToList();
 }
 

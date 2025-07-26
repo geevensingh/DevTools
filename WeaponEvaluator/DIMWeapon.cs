@@ -11,17 +11,20 @@ internal class DIMWeapon
     public string Hash { get; set; }
     public string Id { get; set; }
     public string Tag { get; set; }
+    public string Rarity { get; set; }
     public string Tier { get; set; }
     public string Type { get; set; }
     public string Source { get; set; }
     public string Category { get; set; }
     public string Element { get; set; }
+    public string Ammo { get; set; }
     public int Power { get; set; }
     public string MasterworkType { get; set; }
     public string MasterworkTier { get; set; }
     public string Owner { get; set; }
     public string Locked { get; set; }
     public string Equipped { get; set; }
+    public string Featured { get; set; }
     public string Year { get; set; }
     public string Season { get; set; }
     public string Event { get; set; }
@@ -46,6 +49,7 @@ internal class DIMWeapon
     public string SwingSpeed { get; set; }
     public string ShieldDuration { get; set; }
     public string AirborneEffectiveness { get; set; }
+    public string AmmoGeneration { get; set; }
     public string Crafted { get; set; }
     public bool IsCrafted
     {
@@ -247,7 +251,7 @@ internal class DIMWeapon
     {
         get
         {
-            if (this.Tier == "Exotic")
+            if (this.Rarity == "Exotic")
             {
                 return "Exotic";
             }
