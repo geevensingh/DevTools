@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 
 namespace Utilities
 {
@@ -357,6 +358,73 @@ namespace Utilities
             ProcessHelper proc = new ProcessHelper("git.exe", $"diff --name-only {masterBranch}");
             proc.Go();
             return proc.AllOutput;
+        }
+
+        public static CommitDescription GetCommitDescription(string commit)
+        {
+            // %H is full hash
+            ProcessHelper proc = new ProcessHelper("git.exe", $"log --max-count=1 --abbrev-commit --date=iso-strict {commit}");
+            return CommitDescription.Create(proc.Go());
+        }
+
+        public static CommitDescription[] GetCommits(string startingCommit, string endingCommit)
+        {
+            // %H is full hash
+            ProcessHelper proc = new ProcessHelper("git.exe", $"log --format=%H {startingCommit}..{endingCommit}");
+            var descriptions = new List<CommitDescription>();
+            string[] lines = proc.Go();
+            for (int ii = 0; ii < lines.Length; ii++)
+            {
+                string commitHash = lines[ii];
+                descriptions.Add(GetCommitDescription(commitHash));
+            }
+            return descriptions.ToArray();
+        }
+
+        public class CommitDescription
+        {
+            public string CommitHash { get; set; }
+            public string Author { get; set; }
+            public string Title { get; set; }
+            public string[] Description { get; set; }
+            public DateTime Date { get; private set; }
+            public string AuthorName {
+                get
+                {
+                    return Author.Split('<')[0].Trim();
+                }
+            }
+
+            internal static CommitDescription Create(string[] strings)
+            {
+                Debug.Assert(strings.Length > 0);
+                string[] parts = strings[0].Split(' ', '(', ')');
+                Debug.Assert(parts.Length > 1);
+                Debug.Assert(parts[0] == "commit");
+                Debug.Assert(parts[1].IsHexString());
+                CommitDescription commit = new CommitDescription();
+                commit.CommitHash = parts[1];
+
+                Debug.Assert(strings[1].StartsWith("Author: "));
+                commit.Author = strings[1].Substring(8).Trim();
+
+                Debug.Assert(strings[2].StartsWith("Date: "));
+                commit.Date = DateTime.Parse(strings[2].Substring(6).Trim());
+
+                int ii = 3;
+                for (; ii < strings.Length; ii++)
+                {
+                    if (!string.IsNullOrWhiteSpace(strings[ii].Trim()))
+                    {
+                        commit.Title = strings[ii].Trim();
+                        break;
+                    }
+                }
+
+                commit.Description = strings.Skip(ii).ToArray();
+
+                return commit;
+            }
         }
     }
 }

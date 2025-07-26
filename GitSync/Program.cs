@@ -12,7 +12,7 @@
         {
             bool forceDelete = false;
 #if DEBUG
-            OldLogger.Level = OldLogger.LevelValue.Verbose;
+            OldLogger.Level = OldLogger.LevelValue.SuperChatty;
             OldLogger.AnnounceStartStopActions = true;
 #endif
             for (int ii = 0; ii < args.Length; ii++)
@@ -68,6 +68,7 @@
             else
             {
                 localDefaultBranch.IsDefault = true;
+                localDefaultBranch.IsRoot = true;
             }
 
             List<string> remoteBranches = new List<string>(GitOperations.GetRemoteBranches());
@@ -80,7 +81,7 @@
                 }
             }
 
-            List<BranchInfo> unparentedBranches = localBranches.Where(x => !x.IsParented && !x.IsDefault).ToList();
+            List<BranchInfo> unparentedBranches = localBranches.Where(x => !x.IsParented && !x.IsRoot).ToList();
             if (unparentedBranches.Count > 0)
             {
                 foreach (BranchInfo branch in unparentedBranches)
