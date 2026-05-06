@@ -140,6 +140,15 @@ internal static class SelfTests
             return SessionStateMachine.Classify(s) == SessionStatus.Yellow;
         });
 
+        Check("offline when alive with no events but CreatedAt is past threshold", () =>
+        {
+            var s = MakeAlive();
+            s.LastEventAt = null;
+            s.UpdatedAt = null;
+            s.CreatedAt = DateTimeOffset.UtcNow - TimeSpan.FromDays(2);
+            return SessionStateMachine.Classify(s) == SessionStatus.Offline;
+        });
+
         Check("worst-state ranking: red > blue > yellow > green > offline", () =>
         {
             return SessionStatus.Red > SessionStatus.Blue

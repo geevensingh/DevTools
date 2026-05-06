@@ -39,8 +39,14 @@ public static class SessionStateMachine
         // Exception: never treat as stale while the agent is actively working —
         // an in-flight turn or tool is unambiguous proof of life regardless of
         // how long it has been since the last event was flushed.
+        //
+        // Fall back to UpdatedAt / CreatedAt when LastEventAt is null. Without
+        // this, a session whose CLI process is alive but never wrote an event
+        // (e.g. crashed mid-startup, or sat unused since creation) had no
+        // recency signal at all and was misclassified as Green forever.
         bool agentBusy = s.InFlightTurn || s.InFlightTools.Count > 0;
-        if (!agentBusy && s.LastEventAt is { } last && now - last > StaleThreshold)
+        var lastSignal = s.LastEventAt ?? s.UpdatedAt ?? s.CreatedAt;
+        if (!agentBusy && lastSignal is { } last && now - last > StaleThreshold)
             return SessionStatus.Offline;
 
         // Blue: any in-flight ask_user beats everything else.
