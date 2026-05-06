@@ -27,6 +27,35 @@ public static class SessionStateMachine
     /// </summary>
     public static TimeSpan StaleThreshold { get; set; } = TimeSpan.FromHours(4);
 
+    /// <summary>
+    /// Upper bound on how long a session can appear "in-flight" (open turn,
+    /// or unresolved <c>tool.execution_start</c>) before we override that
+    /// signal and treat the session as crashed. Without this, a session that
+    /// exited mid-tool — leaving a <c>tool.execution_start</c> with no
+    /// matching <c>_complete</c> in <c>events.jsonl</c> — would be considered
+    /// "agent busy" forever and never go Offline regardless of how long ago
+    /// the orphaned event was written.
+    ///
+    /// 24 hours covers the worst legitimate long-running tool (overnight
+    /// builds, big migrations, multi-hour test suites) while still catching
+    /// genuinely abandoned sessions by the next day. Tweak here if needed.
+    ///
+    /// Effective threshold at runtime is
+    /// <c>max(WorkingStaleConstant, StaleThreshold + 4h)</c> so that any
+    /// future tweak of the idle threshold cannot accidentally make working
+    /// less than idle and re-introduce the never-stale bug.
+    /// </summary>
+    public static TimeSpan WorkingStaleConstant { get; set; } = TimeSpan.FromHours(24);
+
+    public static TimeSpan EffectiveWorkingStaleThreshold
+    {
+        get
+        {
+            var minBound = StaleThreshold + TimeSpan.FromHours(4);
+            return WorkingStaleConstant >= minBound ? WorkingStaleConstant : minBound;
+        }
+    }
+
     public static SessionStatus Classify(SessionState s) => Classify(s, DateTimeOffset.UtcNow);
 
     public static SessionStatus Classify(SessionState s, DateTimeOffset now)
@@ -35,19 +64,29 @@ public static class SessionStateMachine
         if (!s.LockFilePresent || s.LockPid is null || !s.PidAlive)
             return SessionStatus.Offline;
 
-        // Stale: alive process but no event traffic for a while -> treat as offline.
-        // Exception: never treat as stale while the agent is actively working —
-        // an in-flight turn or tool is unambiguous proof of life regardless of
-        // how long it has been since the last event was flushed.
+        // Stale-detection has two thresholds depending on whether we have
+        // reason to believe the agent is doing real work:
         //
-        // Fall back to UpdatedAt / CreatedAt when LastEventAt is null. Without
-        // this, a session whose CLI process is alive but never wrote an event
-        // (e.g. crashed mid-startup, or sat unused since creation) had no
-        // recency signal at all and was misclassified as Green forever.
+        //   1. Working threshold (default 24h): even when the agent appears
+        //      busy (turn or tool in flight), if events.jsonl hasn't been
+        //      written for this long, the session has crashed mid-tool. The
+        //      orphaned in-flight state is just leftover residue — treat
+        //      as Offline.
+        //   2. Idle threshold (default 4h): when the agent is NOT in any
+        //      in-flight state, we can be more aggressive. No event in 4h
+        //      with no work in progress = the session was abandoned.
+        //
+        // Falls back to UpdatedAt / CreatedAt when LastEventAt is null so
+        // a session whose CLI never wrote an event still gets classified.
         bool agentBusy = s.InFlightTurn || s.InFlightTools.Count > 0;
         var lastSignal = s.LastEventAt ?? s.UpdatedAt ?? s.CreatedAt;
-        if (!agentBusy && lastSignal is { } last && now - last > StaleThreshold)
-            return SessionStatus.Offline;
+
+        if (lastSignal is { } last)
+        {
+            var age = now - last;
+            if (age > EffectiveWorkingStaleThreshold) return SessionStatus.Offline;
+            if (!agentBusy && age > StaleThreshold) return SessionStatus.Offline;
+        }
 
         // Blue: any in-flight ask_user beats everything else.
         foreach (var t in s.InFlightTools.Values)

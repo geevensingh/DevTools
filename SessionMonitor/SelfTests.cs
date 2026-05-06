@@ -124,20 +124,58 @@ internal static class SelfTests
             return SessionStateMachine.Classify(s) == SessionStatus.Green;
         });
 
-        Check("not stale while a turn is in flight, even past threshold", () =>
+        Check("not stale while a turn is in flight just past the idle threshold", () =>
         {
             var s = MakeAlive();
-            s.LastEventAt = DateTimeOffset.UtcNow - TimeSpan.FromDays(1);
+            s.LastEventAt = DateTimeOffset.UtcNow - TimeSpan.FromHours(6); // > idle (4h), << working (24h)
             s.InFlightTurn = true;
             return SessionStateMachine.Classify(s) == SessionStatus.Yellow;
         });
 
-        Check("not stale while a tool is in flight, even past threshold", () =>
+        Check("offline when in-flight turn but past WORKING stale threshold", () =>
         {
             var s = MakeAlive();
-            s.LastEventAt = DateTimeOffset.UtcNow - TimeSpan.FromDays(1);
+            s.LastEventAt = DateTimeOffset.UtcNow - TimeSpan.FromHours(36); // > working (24h)
+            s.InFlightTurn = true;
+            return SessionStateMachine.Classify(s) == SessionStatus.Offline;
+        });
+
+        Check("offline when in-flight tool but past WORKING stale threshold", () =>
+        {
+            var s = MakeAlive();
+            s.LastEventAt = DateTimeOffset.UtcNow - TimeSpan.FromHours(36);
+            s.InFlightTools["t1"] = new InFlightTool("t1", "powershell", null, DateTimeOffset.UtcNow);
+            return SessionStateMachine.Classify(s) == SessionStatus.Offline;
+        });
+
+        Check("not stale while a tool is in flight just past the idle threshold", () =>
+        {
+            var s = MakeAlive();
+            s.LastEventAt = DateTimeOffset.UtcNow - TimeSpan.FromHours(6);
             s.InFlightTools["t1"] = new InFlightTool("t1", "powershell", null, DateTimeOffset.UtcNow);
             return SessionStateMachine.Classify(s) == SessionStatus.Yellow;
+        });
+
+        Check("working threshold defaults to 24 hours", () =>
+        {
+            return SessionStateMachine.WorkingStaleConstant == TimeSpan.FromHours(24);
+        });
+
+        Check("effective working threshold clamps to idle + 4h", () =>
+        {
+            var savedIdle = SessionStateMachine.StaleThreshold;
+            var savedWorking = SessionStateMachine.WorkingStaleConstant;
+            try
+            {
+                SessionStateMachine.StaleThreshold = TimeSpan.FromHours(48);
+                SessionStateMachine.WorkingStaleConstant = TimeSpan.FromHours(1);
+                return SessionStateMachine.EffectiveWorkingStaleThreshold == TimeSpan.FromHours(52);
+            }
+            finally
+            {
+                SessionStateMachine.StaleThreshold = savedIdle;
+                SessionStateMachine.WorkingStaleConstant = savedWorking;
+            }
         });
 
         Check("offline when alive with no events but CreatedAt is past threshold", () =>
