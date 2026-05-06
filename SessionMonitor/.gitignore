@@ -1,0 +1,8 @@
+# SessionMonitor-local gitignore overrides.
+#
+# The repo-level .gitignore catches *.pubxml across the whole tree, which
+# would swallow our intentional publish profile. Re-include it here.
+!Properties/PublishProfiles/*.pubxml
+
+# Per-user state lives outside the repo (%LOCALAPPDATA%\CopilotSessionMonitor)
+# and the temp self-test log lives in %TEMP%, so neither needs to be listed.
