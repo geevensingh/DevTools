@@ -64,6 +64,7 @@ public static class TerminalFocuser
         {
             // Single window — only the tab needs picking.
             TrySelectMatchingTab(candidates[0], summary, cwd, knownTabTitles);
+            FocusTermControl(candidates[0]);
             return candidates[0];
         }
 
@@ -85,12 +86,44 @@ public static class TerminalFocuser
         if (bestTab is not null && bestScore >= 6)
         {
             TryInvokeSelect(bestTab);
+            FocusTermControl(bestHwnd);
             return bestHwnd;
         }
 
         // No confident match across windows. Fall back to whichever window is
         // currently foreground-most among the candidates (least disruptive).
         return PickMostRecentlyActive(candidates);
+    }
+
+    /// <summary>
+    /// After switching to the right tab, move keyboard focus into the
+    /// TermControl pane itself so the user can immediately start typing.
+    /// Without this, focus often stays on the tab strip and the user has
+    /// to click the content area before keystrokes are received.
+    /// </summary>
+    private static void FocusTermControl(IntPtr wtHwnd)
+    {
+        try
+        {
+            var root = AutomationElement.FromHandle(wtHwnd);
+            if (root is null) return;
+
+            // TermControl is only present in the UIA tree for the *currently
+            // active* tab — which is exactly the one we just selected — so a
+            // descendant search finds the right pane.
+            var term = root.FindFirst(TreeScope.Descendants,
+                new PropertyCondition(AutomationElement.ClassNameProperty, "TermControl"));
+
+            if (term is not null)
+            {
+                term.SetFocus();
+            }
+        }
+        catch
+        {
+            // SetFocus throws if the element disappeared mid-call (e.g. user
+            // closed the tab between our Select and our Focus). Best-effort.
+        }
     }
 
     private static void TrySelectMatchingTab(IntPtr wtHwnd, string? summary, string? cwd, IReadOnlyCollection<string>? knownTabTitles)
