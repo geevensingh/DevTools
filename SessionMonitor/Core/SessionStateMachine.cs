@@ -95,20 +95,29 @@ public static class SessionStateMachine
                 return SessionStatus.Blue;
         }
 
-        // Red: ONLY while a change-making tool is currently in flight. We
-        // intentionally do NOT use GitDirty here — once the edit completes the
-        // tree typically remains dirty until the user commits, but the agent
-        // is no longer "actively making changes," it's idle. GitDirty is still
-        // surfaced in the row preview/tooltip for context.
+        // Red conditions, in order:
+        //   (a) An edit/create tool is currently in flight — unambiguous, the
+        //       agent is mid-edit right now.
+        //   (b) The agent is otherwise busy (any in-flight tool or turn) AND
+        //       the working tree is dirty. Captures the "made changes earlier
+        //       this session, now running tests / further commands to verify"
+        //       case. We require agent-busy so that an idle session sitting
+        //       on a dirty tree (waiting on the user's next message) drops
+        //       back to Green instead of staying sticky-Red forever.
+        bool inFlightChange = false;
         foreach (var t in s.InFlightTools.Values)
         {
             if (ChangeMakingTools.Contains(t.ToolName))
-                return SessionStatus.Red;
+            {
+                inFlightChange = true;
+                break;
+            }
         }
+        if (inFlightChange) return SessionStatus.Red;
+        if (s.GitDirty && agentBusy) return SessionStatus.Red;
 
         // Yellow: agent is busy (turn in flight or any non-ask/edit tool running).
-        if (s.InFlightTurn || s.InFlightTools.Count > 0)
-            return SessionStatus.Yellow;
+        if (agentBusy) return SessionStatus.Yellow;
 
         // Otherwise idle.
         return SessionStatus.Green;

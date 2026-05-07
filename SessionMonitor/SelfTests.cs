@@ -75,11 +75,35 @@ internal static class SelfTests
             return SessionStateMachine.Classify(s) == SessionStatus.Red;
         });
 
-        Check("green when alive, idle, dirty tree (dirty alone is not Red)", () =>
+        Check("green when alive, idle, dirty tree (dirty alone with no in-flight is not Red)", () =>
         {
             var s = MakeAlive();
             s.GitDirty = true;
             return SessionStateMachine.Classify(s) == SessionStatus.Green;
+        });
+
+        Check("red when agent busy AND tree dirty (running tests after edits)", () =>
+        {
+            var s = MakeAlive();
+            s.GitDirty = true;
+            s.InFlightTools["t1"] = new InFlightTool("t1", "powershell", null, DateTimeOffset.UtcNow);
+            return SessionStateMachine.Classify(s) == SessionStatus.Red;
+        });
+
+        Check("red when turn in flight AND tree dirty", () =>
+        {
+            var s = MakeAlive();
+            s.GitDirty = true;
+            s.InFlightTurn = true;
+            return SessionStateMachine.Classify(s) == SessionStatus.Red;
+        });
+
+        Check("yellow when busy with clean tree (no edits yet)", () =>
+        {
+            var s = MakeAlive();
+            s.LastEventAt = DateTimeOffset.UtcNow;
+            s.InFlightTools["t1"] = new InFlightTool("t1", "powershell", null, DateTimeOffset.UtcNow);
+            return SessionStateMachine.Classify(s) == SessionStatus.Yellow;
         });
 
         Check("yellow when turn in flight, clean tree", () =>
