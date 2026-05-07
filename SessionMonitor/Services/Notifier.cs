@@ -36,9 +36,20 @@ public sealed class Notifier
     private readonly Dictionary<string, DateTimeOffset> _lastFiredPerSession = new(StringComparer.OrdinalIgnoreCase);
     private static readonly TimeSpan DedupeWindow = TimeSpan.FromSeconds(8);
     private static readonly TimeSpan CoalesceWindow = TimeSpan.FromMilliseconds(500);
+    private static readonly TimeSpan RedToGreenSettleWindow = TimeSpan.FromSeconds(5);
 
     private readonly List<StatusTransition> _buffer = new();
     private readonly DispatcherTimer _coalesceTimer;
+
+    /// <summary>
+    /// Pending Red→Green toasts that we're holding until the session has
+    /// been stable in Green for <see cref="RedToGreenSettleWindow"/>. A
+    /// session that flips back to Red or Yellow during the window has its
+    /// pending toast cancelled — Copilot CLI fires multiple turn_end events
+    /// per user→agent cycle, and without this we'd fire a "finished its
+    /// changes" toast on every sub-turn boundary.
+    /// </summary>
+    private readonly Dictionary<string, PendingRedToGreen> _pendingRedToGreen = new(StringComparer.OrdinalIgnoreCase);
 
     public bool BlueEnabled { get; set; } = true;
     public bool RedToGreenEnabled { get; set; } = true;
@@ -78,6 +89,21 @@ public sealed class Notifier
         {
             if (IsRelevant(t)) PreExpandRow?.Invoke(t.Session.SessionId);
         }
+
+        // Cancel any pending Red→Green toast for sessions that have just
+        // flipped away from Green (a new sub-turn started, or another tool
+        // fired). Run on the dispatcher because the timers live there.
+        System.Windows.Application.Current?.Dispatcher.Invoke(() =>
+        {
+            foreach (var t in transitions)
+            {
+                if (t.To != SessionStatus.Green && _pendingRedToGreen.TryGetValue(t.Session.SessionId, out var pending))
+                {
+                    pending.Timer.Stop();
+                    _pendingRedToGreen.Remove(t.Session.SessionId);
+                }
+            }
+        });
 
         lock (_buffer)
         {
@@ -138,8 +164,6 @@ public sealed class Notifier
         // when they come back.
         if (!UserAcceptsNotifications()) return;
 
-        foreach (var t in snapshot) _lastFiredPerSession[t.Session.SessionId] = now;
-
         // Group by toast type, then either fire single or aggregate per group.
         var blueGroup = snapshot.Where(t => t.To == SessionStatus.Blue && t.From != SessionStatus.Blue).ToList();
         var greenGroup = snapshot.Where(t => t.From == SessionStatus.Red && t.To == SessionStatus.Green).ToList();
@@ -158,28 +182,94 @@ public sealed class Notifier
                 $"{blueGroup.Count} sessions need your input",
                 string.Join('\n', blueGroup.Select(t => $"\u2022 {t.Session.DisplayTitle}")),
                 BlueSound);
+            // Mark every aggregated session as recently-fired.
+            foreach (var t in blueGroup) _lastFiredPerSession[t.Session.SessionId] = now;
         }
 
         if (greenGroup.Count == 1)
         {
             var t = greenGroup[0];
-            ShowSingle(t.Session.SessionId,
-                "Session finished its changes",
-                $"{t.Session.DisplayTitle} went idle in {t.Session.DisplayRepo}.",
-                RedToGreenSound);
+            ScheduleRedToGreenToast(t.Session, RedToGreenSound, isAggregate: false, aggregateBody: null);
         }
         else if (greenGroup.Count > 1)
         {
-            ShowAggregate(
-                $"{greenGroup.Count} sessions finished their changes",
-                string.Join('\n', greenGroup.Select(t => $"\u2022 {t.Session.DisplayTitle}")),
-                RedToGreenSound);
+            // Multi-session aggregate: still apply the settle window per
+            // session, but if all of them are still Green at flush time we
+            // emit a single aggregate toast.
+            var body = string.Join('\n', greenGroup.Select(t => $"\u2022 {t.Session.DisplayTitle}"));
+            foreach (var t in greenGroup)
+            {
+                ScheduleRedToGreenToast(t.Session, RedToGreenSound, isAggregate: true, aggregateBody: body);
+            }
         }
     }
+
+    /// <summary>
+    /// Hold a Red→Green toast for <see cref="RedToGreenSettleWindow"/>. If
+    /// the session goes back to Red/Yellow during that window
+    /// (HandleTransitions cancels), we never fire. Otherwise on tick we
+    /// fire the original (single or aggregate) toast.
+    /// </summary>
+    private void ScheduleRedToGreenToast(SessionState session, NotificationSound sound, bool isAggregate, string? aggregateBody)
+    {
+        // Cancel any prior pending fire for this session and start fresh.
+        if (_pendingRedToGreen.TryGetValue(session.SessionId, out var prev))
+        {
+            prev.Timer.Stop();
+        }
+
+        var timer = new DispatcherTimer { Interval = RedToGreenSettleWindow };
+        var entry = new PendingRedToGreen(timer, session, sound, isAggregate, aggregateBody);
+        _pendingRedToGreen[session.SessionId] = entry;
+
+        timer.Tick += (_, _) =>
+        {
+            timer.Stop();
+            // Remove ourselves from the pending map; if a different toast
+            // got scheduled for this session in the meantime, it has its
+            // own timer and entry.
+            if (_pendingRedToGreen.TryGetValue(session.SessionId, out var current) && current.Timer == timer)
+            {
+                _pendingRedToGreen.Remove(session.SessionId);
+            }
+
+            if (entry.IsAggregate && entry.AggregateBody is not null)
+            {
+                // For aggregate toasts we only fire from the FIRST session
+                // whose timer survives — the body already lists everyone.
+                // Suppress duplicates by checking if any other pending
+                // entry has the same body.
+                foreach (var other in _pendingRedToGreen.Values)
+                {
+                    if (other.AggregateBody == entry.AggregateBody) return;
+                }
+                ShowAggregate(
+                    $"Multiple sessions finished their changes",
+                    entry.AggregateBody!,
+                    entry.Sound);
+            }
+            else
+            {
+                ShowSingle(session.SessionId,
+                    "Session finished its changes",
+                    $"{session.DisplayTitle} went idle in {session.DisplayRepo}.",
+                    entry.Sound);
+            }
+        };
+        timer.Start();
+    }
+
+    private sealed record PendingRedToGreen(
+        DispatcherTimer Timer,
+        SessionState Session,
+        NotificationSound Sound,
+        bool IsAggregate,
+        string? AggregateBody);
 
     private void ShowSingle(string sessionId, string title, string body, NotificationSound sound)
     {
         LastToastSessionId = sessionId;
+        _lastFiredPerSession[sessionId] = DateTimeOffset.UtcNow;
         ShowToast(title, body, sound);
     }
 
