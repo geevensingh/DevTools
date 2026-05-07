@@ -55,8 +55,12 @@ public sealed class TrayHost : IDisposable
         // embarrassing amount of debugging the first time around.
         _tray.ForceCreate(enablesEfficiencyMode: false);
 
-        // Toast click handler: bring the user to the session that triggered
-        // the most recent notification.
+        // Toast click routing:
+        //   - welcome toast (no LastToastSessionId): show the main window
+        //   - aggregate toast (LastToastSessionId is null because >1 session
+        //     coalesced): also show the main window — there's no single
+        //     terminal to focus
+        //   - single session toast: focus that session's terminal tab
         _tray.TrayBalloonTipClicked += (_, _) =>
         {
             var sid = _notifier?.LastToastSessionId;
@@ -65,7 +69,7 @@ public sealed class TrayHost : IDisposable
                 ToggleWindow();
                 return;
             }
-            _window?.RevealSession(sid!);
+            FocusSessionTerminal(sid!);
         };
 
         _notifier = new Notifier(_tray);
@@ -155,6 +159,37 @@ public sealed class TrayHost : IDisposable
 
     private static NotificationSound ParseSound(string value, NotificationSound fallback) =>
         Enum.TryParse<NotificationSound>(value, ignoreCase: true, out var s) ? s : fallback;
+
+    /// <summary>
+    /// Routes a toast click for a specific session to its terminal.
+    /// We look up the row VM (which already carries the live snapshot of
+    /// summary, cwd, known tab titles, and the PID) and call the same
+    /// TerminalFocuser the per-row Focus button uses. Falls back to
+    /// revealing the row in the main window if the session has dropped
+    /// out of the live list (e.g. process exited between toast and click).
+    /// </summary>
+    private void FocusSessionTerminal(string sessionId)
+    {
+        if (_vm is null) return;
+        SessionRowViewModel? row = null;
+        foreach (var r in _vm.Sessions)
+        {
+            if (string.Equals(r.SessionId, sessionId, StringComparison.OrdinalIgnoreCase))
+            {
+                row = r;
+                break;
+            }
+        }
+        if (row?.Pid is { } pid)
+        {
+            CopilotSessionMonitor.Services.TerminalFocuser.TryFocus(
+                pid, row.Summary ?? row.DisplayTitle, row.Cwd, row.KnownTabTitles);
+            return;
+        }
+        // Session no longer alive (or never made it into the VM): fall back
+        // to opening the main window and revealing whatever row exists.
+        _window?.RevealSession(sessionId);
+    }
 
     private void OnAggregatorUpdated(object? sender, SessionsUpdatedEventArgs e)
     {
