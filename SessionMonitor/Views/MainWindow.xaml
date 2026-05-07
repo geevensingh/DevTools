@@ -221,11 +221,30 @@
                         <TextBlock Text="{Binding TokensText}" Foreground="{StaticResource TextMuteBrush}" FontSize="11" Margin="0,4,0,0"
                                    Visibility="{Binding TokensText, Converter={StaticResource NonEmptyToVisible}}"/>
 
-                        <!-- Recent-events timeline -->
-                        <ItemsControl ItemsSource="{Binding Timeline}" Margin="0,6,8,0">
+                        <!-- Recent-events timeline: collapsed by default. Click the affordance to expand. -->
+                        <Button Command="{Binding ToggleTimelineCommand}" Margin="0,8,0,0"
+                                HorizontalAlignment="Left" Background="Transparent" BorderThickness="0"
+                                Padding="0" Cursor="Hand" Foreground="{StaticResource TextDimBrush}">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}" CornerRadius="3" Padding="2,1">
+                                        <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Button.Template>
+                            <TextBlock Text="{Binding TimelineToggleLabel}" FontSize="11" Foreground="{StaticResource TextDimBrush}"/>
+                        </Button>
+
+                        <ItemsControl ItemsSource="{Binding Timeline}" Margin="0,4,8,0"
+                                      Visibility="{Binding IsTimelineExpanded, Converter={StaticResource BoolToVisible}}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Grid Margin="0,1">
+                                    <Grid Margin="0,1" ToolTip="{Binding Text}" Cursor="Hand">
+                                        <Grid.InputBindings>
+                                            <MouseBinding MouseAction="LeftClick"
+                                                          Command="{Binding DataContext.CopyTimelineEntryCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                          CommandParameter="{Binding Text}"/>
+                                        </Grid.InputBindings>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="60"/>
                                             <ColumnDefinition Width="22"/>

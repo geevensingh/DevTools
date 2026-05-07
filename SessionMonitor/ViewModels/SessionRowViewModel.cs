@@ -20,6 +20,8 @@ public sealed partial class SessionRowViewModel : ObservableObject
     [ObservableProperty] private string _timeInStateText = "";
     [ObservableProperty] private string _tokensText = "";
     [ObservableProperty] private DateTimeOffset _lastActivity = DateTimeOffset.MinValue;
+    [ObservableProperty] private bool _isTimelineExpanded;
+    [ObservableProperty] private string _timelineToggleLabel = "▶ Recent activity";
     [ObservableProperty] private System.Collections.ObjectModel.ObservableCollection<TimelineEntry> _timeline = new();
 
     /// <summary>Mute service (set by the parent VM after construction).</summary>
@@ -73,8 +75,9 @@ public sealed partial class SessionRowViewModel : ObservableObject
         LastActivity = s.LastActivity;
 
         // Project the recent-events queue onto the bound timeline only when
-        // expanded — keeps cost off the hot path for collapsed rows.
-        if (wasExpanded)
+        // the row is expanded AND the user has opted into the timeline view —
+        // keeps cost off the hot path.
+        if (wasExpanded && IsTimelineExpanded)
         {
             Timeline.Clear();
             foreach (var e in s.RecentEvents)
@@ -91,6 +94,11 @@ public sealed partial class SessionRowViewModel : ObservableObject
                     e.Text));
             }
         }
+
+        // Keep the toggle label up-to-date with the event count even when
+        // the timeline itself is collapsed, so users can see how active the
+        // session has been at a glance.
+        TimelineToggleLabel = $"{(IsTimelineExpanded ? "▼" : "▶")} Recent activity ({s.RecentEvents.Count})";
         Pid = s.LockPid;
         Cwd = s.Cwd;
         Summary = s.Summary;
@@ -195,6 +203,21 @@ public sealed partial class SessionRowViewModel : ObservableObject
         SessionStatus.Green => new SolidColorBrush(Color.FromRgb(0x6C, 0xCB, 0x5F)),
         _ => new SolidColorBrush(Color.FromRgb(0x6E, 0x71, 0x77)),
     };
+
+    [RelayCommand]
+    private void ToggleTimeline()
+    {
+        IsTimelineExpanded = !IsTimelineExpanded;
+        TimelineToggleLabel = (IsTimelineExpanded ? "▼" : "▶") +
+            TimelineToggleLabel.Substring(1);
+    }
+
+    [RelayCommand]
+    private static void CopyTimelineEntry(string? text)
+    {
+        if (string.IsNullOrEmpty(text)) return;
+        try { System.Windows.Clipboard.SetText(text); } catch { /* clipboard sometimes flakes */ }
+    }
 
     [RelayCommand]
     private void ToggleMute()
