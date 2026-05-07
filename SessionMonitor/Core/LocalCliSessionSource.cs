@@ -103,12 +103,19 @@ public sealed class LocalCliSessionSource : ISessionSource
         {
             var sw = System.Diagnostics.Stopwatch.StartNew();
             int tickNo = (int)Interlocked.Increment(ref _heartbeatCount);
-            foreach (var entry in _entries.Values)
-            {
-                RefreshEntry(entry);
-            }
-            // Always raise: stale-session detection in the state machine depends on
-            // "now", which changes every tick even if no per-entry data did.
+
+            // Rescan the disk every tick. The root FileSystemWatcher fires on
+            // Created/Deleted/Renamed but is famously unreliable under heavy
+            // IO load — Windows can drop events when its internal buffer
+            // overflows. Without this rescan, a missed Created event hid a
+            // new session for 24 minutes (until an unrelated event happened
+            // to fire and trigger ScheduleRescan). The heartbeat is now the
+            // source-of-truth for directory contents; the watcher remains
+            // only as a low-latency optimization for "show new sessions
+            // within ms" UX. Rescan iterates Directory.EnumerateDirectories
+            // on the root and per-folder runs RefreshEntry, so this single
+            // call replaces the previous _entries.Values loop.
+            Rescan();
             RaiseChanged();
 
             if (tickNo % 12 == 1)
@@ -133,11 +140,12 @@ public sealed class LocalCliSessionSource : ISessionSource
 
     private void ScheduleRescan()
     {
-        // Coalesce rapid-fire FSW events; rescan happens on the next heartbeat anyway,
-        // but kick a full rescan immediately so new sessions show fast.
+        // Rapid-fire FSW events coalesce into a single Refresh on a worker
+        // thread. The Refresh path takes _refreshGate so this never races
+        // with the heartbeat tick.
         Task.Run(() =>
         {
-            try { Rescan(); RaiseChanged(); } catch { /* ignore */ }
+            try { Refresh(); } catch { /* logged inside Refresh's children */ }
         });
     }
 
