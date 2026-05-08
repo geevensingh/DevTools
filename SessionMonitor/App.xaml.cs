@@ -32,6 +32,38 @@ public partial class App : System.Windows.Application
             return;
         }
 
+        if (e.Args.Any(a => string.Equals(a, "--build-icon", StringComparison.OrdinalIgnoreCase)))
+        {
+            // Design-time helper: regenerate Assets\app.ico from the inlined
+            // IconBuilder. Output path is relative to the .exe so running
+            // from bin\Debug\net8.0-windows\ produces a file we can copy
+            // back to source. We resolve the project root by walking up
+            // from the .exe location.
+            AttachConsole(-1);
+            try
+            {
+                var exeDir = AppContext.BaseDirectory;
+                // exe is in bin\Debug\net8.0-windows\, project root is four
+                // levels up.
+                var projectRoot = exeDir;
+                for (int i = 0; i < 4 && projectRoot is not null; i++)
+                {
+                    projectRoot = System.IO.Path.GetDirectoryName(projectRoot);
+                }
+                var outPath = System.IO.Path.Combine(projectRoot ?? exeDir, "Assets", "app.ico");
+                IconBuilder.Build(outPath);
+                Console.WriteLine($"Wrote {outPath}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Icon build failed: {ex.Message}");
+                Shutdown(1);
+                return;
+            }
+            Shutdown(0);
+            return;
+        }
+
         DebugLog.Info($"Startup pid={Environment.ProcessId} args=[{string.Join(' ', e.Args)}]");
 
         AppDomain.CurrentDomain.UnhandledException += (_, ev) =>

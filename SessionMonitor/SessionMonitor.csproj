@@ -13,6 +13,7 @@
     <Version>0.1.0</Version>
     <Product>Copilot Session Monitor</Product>
     <Description>Tray app that monitors local Copilot CLI sessions.</Description>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
