@@ -18,7 +18,7 @@
         {
         }
 
-        public static async Task<RootObject> Create(Dictionary<string, object> jsonObj)
+        public static async Task<RootObject> Create(SortedDictionary<string, object> jsonObj)
         {
             if (jsonObj == null)
             {
