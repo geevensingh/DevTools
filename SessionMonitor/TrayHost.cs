@@ -45,6 +45,13 @@ public sealed class TrayHost : IDisposable
         _tray.LeftClickCommand = new RelayCommandSimple(ToggleWindow);
         _tray.NoLeftClickDelay = true;
 
+        // Double-click is a dedicated "make sure the window is open" gesture:
+        // hidden -> shows; already visible -> stays put. Note that with
+        // NoLeftClickDelay=true the first click of the double has already
+        // toggled the window via LeftClickCommand, so we need to undo that
+        // toggle when the window was visible before the double-click started.
+        _tray.TrayMouseDoubleClick += (_, _) => OnTrayDoubleClick();
+
         // We must give the icon an initial image before ForceCreate, otherwise
         // Shell_NotifyIcon refuses to register a "blank" icon and we get a
         // silent no-op (no icon ever appears).
@@ -229,6 +236,29 @@ public sealed class TrayHost : IDisposable
         else
         {
             _window.ShowAtTray();
+        }
+    }
+
+    /// <summary>
+    /// Double-click handler: by the time this fires, the first click has
+    /// already toggled the window via <see cref="ToggleWindow"/> through
+    /// <c>LeftClickCommand</c> (because <c>NoLeftClickDelay = true</c>).
+    /// So whatever state the window is in NOW, we just need to ensure it's
+    /// shown. If the first click hid it, ShowAtTray re-opens it; if the
+    /// first click showed it, ShowAtTray is a (cheap) no-op call to
+    /// Show()/Activate(). Net effect: visible regardless of start state,
+    /// and we never close the window via a double-click.
+    /// </summary>
+    private void OnTrayDoubleClick()
+    {
+        if (_window is null) return;
+        if (!_window.IsVisible)
+        {
+            _window.ShowAtTray();
+        }
+        else
+        {
+            _window.Activate();
         }
     }
 
