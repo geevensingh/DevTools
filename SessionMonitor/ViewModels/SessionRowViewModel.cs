@@ -167,6 +167,7 @@ public sealed partial class SessionRowViewModel : ObservableObject
         }
         if (s.BaseCommit is not null) sb.Append("baseCommit: ").AppendLine(s.BaseCommit[..Math.Min(8, s.BaseCommit.Length)]);
         if (s.GitDirty) sb.AppendLine("git: working tree dirty");
+        if (!string.IsNullOrEmpty(s.Cwd)) sb.Append("cwd: ").AppendLine(s.Cwd);
         if (s.LockPid is { } pid) sb.Append("pid: ").AppendLine(pid.ToString());
         sb.Append("session: ").Append(s.SessionId);
         return sb.ToString();
