@@ -47,6 +47,11 @@ public sealed class SessionState
     /// </summary>
     public HashSet<string> KnownTabTitles { get; } = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>Live branch name read from git in the cwd (overrides the
+    /// stale value baked into workspace.yaml). Null if no probe yet or
+    /// outside a git repo.</summary>
+    public string? LiveBranch { get; set; }
+
     /// <summary>Output (completion) tokens consumed across all assistant messages
     /// in this session. <c>events.jsonl</c> doesn't carry input tokens — those
     /// only exist in the global <c>session-store.db</c> — so this is a partial

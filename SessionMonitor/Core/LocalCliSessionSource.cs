@@ -224,15 +224,20 @@ public sealed class LocalCliSessionSource : ISessionSource
             entry.InitialOfflineFoldDone = true;
         }
 
-        // Git status (cached; only refresh for live sessions to avoid spinning up git
-        // for every historical offline session on every heartbeat tick).
+        // Git status + live branch (cached; only refresh for live sessions to avoid
+        // spinning up git for every historical offline session on every heartbeat tick).
         if (!string.IsNullOrEmpty(s.Cwd) && s.LockFilePresent && s.PidAlive)
         {
-            if (_git.TryGetCached(s.Cwd!, out var dirty, out var at))
+            if (_git.TryGetCached(s.Cwd!, out var dirty, out var liveBranch, out var at))
             {
                 if (dirty != s.GitDirty)
                 {
                     s.GitDirty = dirty;
+                    changed = true;
+                }
+                if (liveBranch != s.LiveBranch)
+                {
+                    s.LiveBranch = liveBranch;
                     changed = true;
                 }
                 s.GitDirtyCheckedAt = at;

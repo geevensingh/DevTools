@@ -56,7 +56,7 @@ public sealed partial class SessionRowViewModel : ObservableObject
     {
         DisplayTitle = s.DisplayTitle;
         Repository = s.DisplayRepo;
-        Branch = s.Branch ?? "";
+        Branch = !string.IsNullOrEmpty(s.LiveBranch) ? s.LiveBranch! : (s.Branch ?? "");
         Status = s.DerivedStatus;
         IsOffline = s.DerivedStatus == SessionStatus.Offline;
         IsAttention = s.DerivedStatus == SessionStatus.Red || s.DerivedStatus == SessionStatus.Blue;
