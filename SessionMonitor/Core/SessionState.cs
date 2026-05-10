@@ -52,6 +52,15 @@ public sealed class SessionState
     /// outside a git repo.</summary>
     public string? LiveBranch { get; set; }
 
+    /// <summary>Cloud-side session id from <c>workspace.yaml</c>'s
+    /// <c>mc_session_id</c>. Keys into <c>~/.copilot/session-store.db</c>'s
+    /// events table for full input+output token / cost lookup.</summary>
+    public string? CloudSessionId { get; set; }
+
+    /// <summary>Cloud-side task id from <c>workspace.yaml</c>'s
+    /// <c>mc_task_id</c>. Separate identifier from CloudSessionId.</summary>
+    public string? CloudTaskId { get; set; }
+
     /// <summary>Output (completion) tokens consumed across all assistant messages
     /// in this session. <c>events.jsonl</c> doesn't carry input tokens — those
     /// only exist in the global <c>session-store.db</c> — so this is a partial

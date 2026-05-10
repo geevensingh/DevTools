@@ -31,6 +31,8 @@ public static class WorkspaceLoader
             target.Summary = dto.Summary;
             target.CreatedAt = dto.CreatedAt;
             target.UpdatedAt = dto.UpdatedAt;
+            target.CloudSessionId = dto.McSessionId;
+            target.CloudTaskId = dto.McTaskId;
 
             if (!string.IsNullOrWhiteSpace(dto.Summary))
                 target.KnownTabTitles.Add(SessionTailer.NormalizeTitle(dto.Summary!));
@@ -57,5 +59,7 @@ public static class WorkspaceLoader
         public string? Summary { get; set; }
         public DateTimeOffset? CreatedAt { get; set; }
         public DateTimeOffset? UpdatedAt { get; set; }
+        public string? McSessionId { get; set; }
+        public string? McTaskId { get; set; }
     }
 }

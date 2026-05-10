@@ -116,7 +116,8 @@ public sealed partial class SessionRowViewModel : ObservableObject
         // (rather than in a getter) keeps the filter predicate cheap.
         SearchHaystack = string.Join(' ',
             DisplayTitle, Repository, Branch, StatusLine,
-            s.Cwd ?? "", s.SessionId).ToLowerInvariant();
+            s.Cwd ?? "", s.SessionId,
+            s.CloudSessionId ?? "", s.CloudTaskId ?? "").ToLowerInvariant();
     }
 
     private static string BuildStatusLine(SessionState s)
@@ -169,7 +170,10 @@ public sealed partial class SessionRowViewModel : ObservableObject
         if (s.GitDirty) sb.AppendLine("git: working tree dirty");
         if (!string.IsNullOrEmpty(s.Cwd)) sb.Append("cwd: ").AppendLine(s.Cwd);
         if (s.LockPid is { } pid) sb.Append("pid: ").AppendLine(pid.ToString());
-        sb.Append("session: ").Append(s.SessionId);
+        sb.Append("session: ").AppendLine(s.SessionId);
+        if (!string.IsNullOrEmpty(s.CloudSessionId)) sb.Append("cloud session: ").AppendLine(s.CloudSessionId);
+        if (!string.IsNullOrEmpty(s.CloudTaskId)) sb.Append("cloud task: ").Append(s.CloudTaskId);
+        else sb.Length -= Environment.NewLine.Length; // strip trailing newline from session line if no task id follows
         return sb.ToString();
     }
 
