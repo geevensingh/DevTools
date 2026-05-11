@@ -29,6 +29,7 @@ public sealed partial class SessionRowViewModel : ObservableObject
 
     [ObservableProperty] private string _displayTitle = "";
     [ObservableProperty] private string _repository = "";
+    [ObservableProperty] private string _repoGroupKey = "";
     [ObservableProperty] private string _branch = "";
     [ObservableProperty] private string _statusLine = "";
     [ObservableProperty] private SessionStatus _status;
@@ -56,6 +57,13 @@ public sealed partial class SessionRowViewModel : ObservableObject
     {
         DisplayTitle = s.DisplayTitle;
         Repository = s.DisplayRepo;
+        // Two clones of the same repo at different paths have the same
+        // Repository (owner/name from workspace.yaml) but different git_root.
+        // Group by git_root so they end up in distinct groups; the per-row
+        // Repository label still shows owner/name for context.
+        RepoGroupKey = !string.IsNullOrWhiteSpace(s.GitRoot) ? s.GitRoot!
+                     : !string.IsNullOrWhiteSpace(s.Cwd)    ? s.Cwd!
+                     : s.DisplayRepo;
         Branch = !string.IsNullOrEmpty(s.LiveBranch) ? s.LiveBranch! : (s.Branch ?? "");
         Status = s.DerivedStatus;
         IsOffline = s.DerivedStatus == SessionStatus.Offline;

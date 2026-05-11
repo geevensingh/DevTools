@@ -54,7 +54,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         if (value)
         {
             SessionsView.GroupDescriptions.Add(
-                new PropertyGroupDescription(nameof(SessionRowViewModel.Repository)));
+                new PropertyGroupDescription(nameof(SessionRowViewModel.RepoGroupKey)));
         }
         SessionsView.Refresh();
     }
