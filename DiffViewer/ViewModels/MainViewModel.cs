@@ -29,7 +29,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _right = right ?? throw new ArgumentNullException(nameof(right));
         _isCommitVsCommit = left is DiffSide.CommitIsh && right is DiffSide.CommitIsh;
 
-        DiffPane = new DiffPaneViewModel(_repository, diffService);
+        DiffPane = new DiffPaneViewModel(_repository, diffService, _isCommitVsCommit);
 
         WindowTitle = $"DiffViewer — {repository.Shape.RepoRoot} ({left} ⇢ {right})";
 

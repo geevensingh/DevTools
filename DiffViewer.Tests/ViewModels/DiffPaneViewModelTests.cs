@@ -177,7 +177,7 @@ public class DiffPaneViewModelTests
         {
             var vm = new DiffPaneViewModel(repo, diff)
             {
-                DiffOptions = new DiffOptions(IgnoreWhitespace: true),
+                IgnoreWhitespace = true,
             };
             await vm.LoadAsync(Entry(ModifiedTextFile("a.cs")));
             bannerVisible = vm.IsWhitespaceOnlyBannerVisible;
@@ -201,10 +201,7 @@ public class DiffPaneViewModelTests
         bool? bannerVisible = null;
         await RunOnUiSyncContextAsync(async () =>
         {
-            var vm = new DiffPaneViewModel(repo, diff)
-            {
-                DiffOptions = new DiffOptions(IgnoreWhitespace: false),
-            };
+            var vm = new DiffPaneViewModel(repo, diff);
             await vm.LoadAsync(Entry(ModifiedTextFile("a.cs")));
             bannerVisible = vm.IsWhitespaceOnlyBannerVisible;
         });
@@ -227,13 +224,208 @@ public class DiffPaneViewModelTests
         {
             var vm = new DiffPaneViewModel(repo, diff)
             {
-                DiffOptions = new DiffOptions(IgnoreWhitespace: true),
+                IgnoreWhitespace = true,
             };
             await vm.LoadAsync(Entry(ModifiedTextFile("a.cs")));
             bannerVisible = vm.IsWhitespaceOnlyBannerVisible;
         });
 
         bannerVisible.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task IgnoreWhitespaceToggle_AfterLoad_RecomputesDiffAndUpdatesBanner()
+    {
+        var repo = new FakeRepository
+        {
+            LeftText = "alpha\nbeta\n",
+            RightText = "alpha   \nbeta\n",
+        };
+        var diff = new DiffService();
+
+        bool? bannerAfterToggleOn = null;
+        bool? bannerAfterToggleOff = null;
+        int eventCount = 0;
+        await RunOnUiSyncContextAsync(async () =>
+        {
+            var vm = new DiffPaneViewModel(repo, diff);
+            await vm.LoadAsync(Entry(ModifiedTextFile("a.cs")));
+            vm.HighlightMapChanged += (_, _) => eventCount++;
+
+            vm.IgnoreWhitespace = true;
+            bannerAfterToggleOn = vm.IsWhitespaceOnlyBannerVisible;
+
+            vm.IgnoreWhitespace = false;
+            bannerAfterToggleOff = vm.IsWhitespaceOnlyBannerVisible;
+        });
+
+        bannerAfterToggleOn.Should().BeTrue();
+        bannerAfterToggleOff.Should().BeFalse();
+        eventCount.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task ShowIntraLineDiff_DefaultsToTrue()
+    {
+        var repo = new FakeRepository();
+        var diff = new DiffService();
+
+        bool? intra = null;
+        await RunOnUiSyncContextAsync(() =>
+        {
+            var vm = new DiffPaneViewModel(repo, diff);
+            intra = vm.ShowIntraLineDiff;
+            return Task.CompletedTask;
+        });
+
+        intra.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task IsSideBySide_FalseFlipsShowInline()
+    {
+        var repo = new FakeRepository { LeftText = "a\n", RightText = "b\n" };
+        var diff = new DiffService();
+
+        bool? sideBefore = null, inlineBefore = null, sideAfter = null, inlineAfter = null;
+        await RunOnUiSyncContextAsync(async () =>
+        {
+            var vm = new DiffPaneViewModel(repo, diff);
+            await vm.LoadAsync(Entry(ModifiedTextFile("a.cs")));
+            sideBefore = vm.ShowSideBySide;
+            inlineBefore = vm.ShowInline;
+
+            vm.IsSideBySide = false;
+            sideAfter = vm.ShowSideBySide;
+            inlineAfter = vm.ShowInline;
+        });
+
+        sideBefore.Should().BeTrue();
+        inlineBefore.Should().BeFalse();
+        sideAfter.Should().BeFalse();
+        inlineAfter.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task IsLiveUpdatesAvailable_ReflectsCommitVsCommitFlag()
+    {
+        var repo = new FakeRepository();
+
+        bool? wtAvailable = null;
+        bool? cvcAvailable = null;
+        await RunOnUiSyncContextAsync(() =>
+        {
+            var workingTreeVm = new DiffPaneViewModel(repo, isCommitVsCommit: false);
+            var commitVsCommitVm = new DiffPaneViewModel(repo, isCommitVsCommit: true);
+            wtAvailable = workingTreeVm.IsLiveUpdatesAvailable;
+            cvcAvailable = commitVsCommitVm.IsLiveUpdatesAvailable;
+            return Task.CompletedTask;
+        });
+
+        wtAvailable.Should().BeTrue();
+        cvcAvailable.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task NavigateNextHunk_CyclesThroughHunksAndRaisesEvent()
+    {
+        var repo = new FakeRepository
+        {
+            LeftText = "one\ntwo\nthree\nfour\nfive\nsix\nseven\neight\n",
+            RightText = "ONE\ntwo\nthree\nfour\nfive\nsix\nseven\nEIGHT\n",
+        };
+        var diff = new DiffService();
+
+        var visited = new List<int>();
+        var leftLines = new List<int>();
+        await RunOnUiSyncContextAsync(async () =>
+        {
+            var vm = new DiffPaneViewModel(repo, diff);
+            vm.HunkNavigationRequested += (_, args) =>
+            {
+                visited.Add(args.HunkIndex);
+                leftLines.Add(args.LeftLine);
+            };
+            await vm.LoadAsync(Entry(ModifiedTextFile("a.cs")));
+            int hunkCount = vm.CurrentHunks.Count;
+            // Walk forward (hunkCount + 1) steps to prove we cycle back to 0.
+            for (int i = 0; i < hunkCount + 1; i++)
+            {
+                vm.NavigateNextHunkCommand.Execute(null);
+            }
+        });
+
+        visited.Should().NotBeEmpty();
+        // Last visited should equal index 0 (cycle).
+        visited[^1].Should().Be(0);
+    }
+
+    [Fact]
+    public async Task NavigatePreviousHunk_OnFreshLoad_GoesToLastHunk()
+    {
+        var repo = new FakeRepository
+        {
+            LeftText = "one\ntwo\nthree\nfour\nfive\nsix\nseven\neight\n",
+            RightText = "ONE\ntwo\nthree\nfour\nfive\nsix\nseven\nEIGHT\n",
+        };
+        var diff = new DiffService();
+
+        int? lastVisited = null;
+        int? hunkCount = null;
+        await RunOnUiSyncContextAsync(async () =>
+        {
+            var vm = new DiffPaneViewModel(repo, diff);
+            vm.HunkNavigationRequested += (_, args) => lastVisited = args.HunkIndex;
+            await vm.LoadAsync(Entry(ModifiedTextFile("a.cs")));
+            hunkCount = vm.CurrentHunks.Count;
+            vm.NavigatePreviousHunkCommand.Execute(null);
+        });
+
+        hunkCount.Should().BeGreaterThan(0);
+        lastVisited.Should().Be(hunkCount!.Value - 1);
+    }
+
+    [Fact]
+    public async Task NavigateNextHunk_WithNoHunks_DoesNotRaiseEvent()
+    {
+        var repo = new FakeRepository();
+        var diff = new DiffService();
+
+        bool eventFired = false;
+        await RunOnUiSyncContextAsync(() =>
+        {
+            var vm = new DiffPaneViewModel(repo, diff);
+            vm.HunkNavigationRequested += (_, _) => eventFired = true;
+            vm.NavigateNextHunkCommand.Execute(null);
+            return Task.CompletedTask;
+        });
+
+        eventFired.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task LoadAsync_TextFile_PopulatesInlineDocument()
+    {
+        var repo = new FakeRepository
+        {
+            LeftText = "alpha\nbeta\n",
+            RightText = "alpha\ngamma\n",
+        };
+        var diff = new DiffService();
+
+        string? inlineText = null;
+        int? lineKindCount = null;
+        await RunOnUiSyncContextAsync(async () =>
+        {
+            var vm = new DiffPaneViewModel(repo, diff);
+            await vm.LoadAsync(Entry(ModifiedTextFile("a.cs")));
+            inlineText = vm.InlineDocument.Text;
+            lineKindCount = vm.InlineLineKinds.Count;
+        });
+
+        inlineText.Should().NotBeNullOrEmpty();
+        inlineText.Should().Contain("@@");
+        lineKindCount.Should().BeGreaterThan(0);
     }
 
     /// <summary>
