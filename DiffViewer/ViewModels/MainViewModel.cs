@@ -13,6 +13,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 {
     private readonly IRepositoryService _repository;
     private readonly IRepositoryWatcher? _watcher;
+    private readonly IPreDiffPass? _preDiffPass;
     private readonly DiffSide _left;
     private readonly DiffSide _right;
     private readonly bool _isCommitVsCommit;
@@ -36,13 +37,15 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         DiffSide left,
         DiffSide right,
         IDiffService? diffService = null,
-        IRepositoryWatcher? watcher = null)
+        IRepositoryWatcher? watcher = null,
+        IPreDiffPass? preDiffPass = null)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         _left = left ?? throw new ArgumentNullException(nameof(left));
         _right = right ?? throw new ArgumentNullException(nameof(right));
         _isCommitVsCommit = left is DiffSide.CommitIsh && right is DiffSide.CommitIsh;
         _watcher = watcher;
+        _preDiffPass = preDiffPass;
 
         DiffPane = new DiffPaneViewModel(_repository, diffService, _isCommitVsCommit);
 
@@ -64,6 +67,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     {
         var changes = _repository.EnumerateChanges(_left, _right);
         FileList.LoadFromChanges(changes, _repository.Shape.RepoRoot, _isCommitVsCommit);
+        StartPreDiffPass();
     }
 
     /// <summary>
@@ -76,6 +80,15 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _repository.RefreshIndex();
         var changes = _repository.EnumerateChanges(_left, _right);
         FileList.LoadFromChanges(changes, _repository.Shape.RepoRoot, _isCommitVsCommit);
+        StartPreDiffPass();
+    }
+
+    private void StartPreDiffPass()
+    {
+        _preDiffPass?.Start(
+            FileList.FlatEntries.ToList(),
+            FileList.SelectedEntry,
+            DiffPane.BuildDiffOptions());
     }
 
     private void OnFileListPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -83,6 +96,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (e.PropertyName != nameof(FileListViewModel.SelectedEntry)) return;
         // Fire-and-forget: the VM serialises in-flight loads via its own CTS.
         _ = DiffPane.LoadAsync(FileList.SelectedEntry);
+        // Reprioritise the pre-diff pass so the new selection jumps the queue.
+        _preDiffPass?.OnSelectionChanged(FileList.SelectedEntry);
     }
 
     private void OnDiffPanePropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -96,6 +111,18 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         {
             _missedChangeKindWhilePaused = RepositoryChangeKind.None;
             MarshalToUi(RefreshChangeList);
+            return;
+        }
+
+        // Toolbar option toggle that changes the diff result - re-stamp
+        // every entry's HasVisibleDifferences. Today only IgnoreWhitespace
+        // affects the result; the others are display-only.
+        if (e.PropertyName == nameof(DiffPaneViewModel.IgnoreWhitespace))
+        {
+            _preDiffPass?.OnOptionsChanged(
+                FileList.FlatEntries.ToList(),
+                FileList.SelectedEntry,
+                DiffPane.BuildDiffOptions());
         }
     }
 
@@ -114,7 +141,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     private void OnChangeListUpdated(object? sender, ChangeListUpdatedEventArgs e)
     {
-        MarshalToUi(() => FileList.LoadFromChanges(e.Changes, _repository.Shape.RepoRoot, _isCommitVsCommit));
+        MarshalToUi(() =>
+        {
+            FileList.LoadFromChanges(e.Changes, _repository.Shape.RepoRoot, _isCommitVsCommit);
+            StartPreDiffPass();
+        });
     }
 
     private static void MarshalToUi(Action action)
@@ -137,6 +168,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             _watcher.Changed -= OnRepositoryChanged;
             _watcher.Dispose();
         }
+        _preDiffPass?.Dispose();
         DiffPane.Dispose();
         _repository.Dispose();
     }

@@ -67,7 +67,9 @@ internal static class CompositionRoot
             }
         }
 
-        var vm = new MainViewModel(repo, parsed.Left, parsed.Right, diffService, watcher);
+        var vm = new MainViewModel(
+            repo, parsed.Left, parsed.Right, diffService, watcher,
+            preDiffPass: new PreDiffPass(repo, diffService));
         vm.LoadInitialChanges();
         return vm;
     }
