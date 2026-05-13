@@ -233,6 +233,11 @@
                                           BorderThickness="0"
                                           VirtualizingStackPanel.IsVirtualizing="True"
                                           VirtualizingStackPanel.VirtualizationMode="Recycling">
+                                    <TreeView.ItemContainerStyle>
+                                        <Style TargetType="TreeViewItem">
+                                            <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                                        </Style>
+                                    </TreeView.ItemContainerStyle>
                                     <TreeView.Resources>
                                         <HierarchicalDataTemplate DataType="{x:Type vm:DirectoryNodeViewModel}"
                                                                   ItemsSource="{Binding ChildrenAndFiles}">

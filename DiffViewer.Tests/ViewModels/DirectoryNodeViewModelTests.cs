@@ -96,4 +96,80 @@ public class DirectoryNodeViewModelTests
         combined[0].Should().BeOfType<DirectoryNodeViewModel>();
         combined[1].Should().BeOfType<FileEntryViewModel>();
     }
+
+    [Fact]
+    public void Build_DefaultsAllNodesToExpanded()
+    {
+        var roots = DirectoryNodeViewModel.Build(new[]
+        {
+            Entry("a/b/x.cs"),
+            Entry("a/b/y.cs"),
+        }).ToList();
+
+        roots[0].IsExpanded.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Build_WithStore_CollapsedStateSurvivesRebuild()
+    {
+        var store = new DirectoryExpansionStore();
+
+        var first = DirectoryNodeViewModel.Build(
+            new[] { Entry("src/a.cs"), Entry("docs/readme.md") },
+            sectionKey: "Unstaged",
+            store: store).ToList();
+
+        // User collapses "src".
+        var src = first.Single(r => r.Label == "src");
+        src.IsExpanded = false;
+
+        // Simulate a watcher-fired reload: a new file appears, sections rebuild.
+        var second = DirectoryNodeViewModel.Build(
+            new[] { Entry("src/a.cs"), Entry("docs/readme.md"), Entry("src/c.cs") },
+            sectionKey: "Unstaged",
+            store: store).ToList();
+
+        second.Single(r => r.Label == "src").IsExpanded.Should().BeFalse();
+        second.Single(r => r.Label == "docs").IsExpanded.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Build_WithStore_CollapsingNestedNodeSurvivesRebuild()
+    {
+        var store = new DirectoryExpansionStore();
+
+        var first = DirectoryNodeViewModel.Build(
+            new[] { Entry("a/x.cs"), Entry("a/b/c/leaf.cs") },
+            sectionKey: "Unstaged",
+            store: store).ToList();
+
+        // User collapses the chained "b\c" child of "a".
+        first[0].Children.Single().IsExpanded = false;
+
+        var second = DirectoryNodeViewModel.Build(
+            new[] { Entry("a/x.cs"), Entry("a/b/c/leaf.cs"), Entry("a/b/c/another.cs") },
+            sectionKey: "Unstaged",
+            store: store).ToList();
+
+        second[0].Children.Single().IsExpanded.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Build_WithStore_DifferentSectionsHaveIndependentExpansionState()
+    {
+        var store = new DirectoryExpansionStore();
+
+        var staged = DirectoryNodeViewModel.Build(
+            new[] { Entry("src/a.cs") },
+            sectionKey: "Staged",
+            store: store).ToList();
+        staged.Single().IsExpanded = false;
+
+        var unstaged = DirectoryNodeViewModel.Build(
+            new[] { Entry("src/b.cs") },
+            sectionKey: "Unstaged",
+            store: store).ToList();
+
+        unstaged.Single().IsExpanded.Should().BeTrue();
+    }
 }

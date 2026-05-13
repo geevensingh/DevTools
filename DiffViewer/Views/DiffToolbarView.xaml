@@ -81,7 +81,8 @@
             <Button Grid.Column="1"
                     Style="{StaticResource ToolbarButtonStyle}"
                     Command="{Binding DataContext.ShowSettingsCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                    Content="⚙"
+                    Content="&#xE713;"
+                    FontFamily="Segoe MDL2 Assets"
                     FontSize="14"
                     ToolTip="Settings (Ctrl+,)"/>
         </Grid>

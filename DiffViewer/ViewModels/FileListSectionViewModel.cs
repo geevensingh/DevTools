@@ -20,11 +20,17 @@ public sealed partial class FileListSectionViewModel : ObservableObject
     private bool _isExpanded = true;
 
     public FileListSectionViewModel(WorkingTreeLayer layer, string header, IEnumerable<FileEntryViewModel> entries)
+        : this(layer, header, entries, store: null) { }
+
+    public FileListSectionViewModel(
+        WorkingTreeLayer layer, string header,
+        IEnumerable<FileEntryViewModel> entries,
+        DirectoryExpansionStore? store)
     {
         Layer = layer;
         Header = header;
         Entries = new ObservableCollection<FileEntryViewModel>(entries);
         RootDirectories = new ObservableCollection<DirectoryNodeViewModel>(
-            DirectoryNodeViewModel.Build(Entries));
+            DirectoryNodeViewModel.Build(Entries, sectionKey: layer.ToString(), store: store));
     }
 }

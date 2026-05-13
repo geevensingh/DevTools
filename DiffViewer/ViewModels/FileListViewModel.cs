@@ -15,6 +15,14 @@ public sealed partial class FileListViewModel : ObservableObject
     private readonly Services.ISettingsService? _settingsService;
     private bool _suppressSettingsWrite;
 
+    /// <summary>
+    /// Per-process directory expansion memory. Keeps track of which
+    /// directory nodes the user has explicitly collapsed so that adding
+    /// or removing a file (which triggers a full <see cref="LoadFromChanges"/>)
+    /// doesn't reset the tree to all-expanded.
+    /// </summary>
+    private readonly DirectoryExpansionStore _expansionStore = new();
+
     public FileListViewModel(Services.ISettingsService? settingsService = null)
     {
         _settingsService = settingsService;
@@ -104,7 +112,7 @@ public sealed partial class FileListViewModel : ObservableObject
         {
             // No section grouping for commit-vs-commit - flat list under one synthetic section.
             IsFlatLayout = true;
-            Sections.Add(new FileListSectionViewModel(WorkingTreeLayer.None, "Changes", entries));
+            Sections.Add(new FileListSectionViewModel(WorkingTreeLayer.None, "Changes", entries, _expansionStore));
             return;
         }
 
@@ -124,6 +132,6 @@ public sealed partial class FileListViewModel : ObservableObject
                         .OrderBy(e => e.RepoRelativePath, StringComparer.OrdinalIgnoreCase)
                         .ToList();
         if (subset.Count == 0) return;
-        Sections.Add(new FileListSectionViewModel(layer, header, subset));
+        Sections.Add(new FileListSectionViewModel(layer, header, subset, _expansionStore));
     }
 }
