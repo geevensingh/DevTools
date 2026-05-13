@@ -12,6 +12,20 @@ namespace DiffViewer.ViewModels;
 /// </summary>
 public sealed partial class FileListViewModel : ObservableObject
 {
+    private readonly Services.ISettingsService? _settingsService;
+    private bool _suppressSettingsWrite;
+
+    public FileListViewModel(Services.ISettingsService? settingsService = null)
+    {
+        _settingsService = settingsService;
+        if (_settingsService is not null)
+        {
+            _suppressSettingsWrite = true;
+            try { DisplayMode = _settingsService.Current.DisplayMode; }
+            finally { _suppressSettingsWrite = false; }
+        }
+    }
+
     public ObservableCollection<FileListSectionViewModel> Sections { get; } = new();
 
     /// <summary>
@@ -61,6 +75,10 @@ public sealed partial class FileListViewModel : ObservableObject
         OnPropertyChanged(nameof(IsFullPathMode));
         OnPropertyChanged(nameof(IsRepoRelativeMode));
         OnPropertyChanged(nameof(IsGroupedByDirectoryMode));
+        if (_settingsService is not null && !_suppressSettingsWrite)
+        {
+            _settingsService.Update(s => s with { DisplayMode = value });
+        }
     }
 
     /// <summary>

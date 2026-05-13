@@ -18,7 +18,7 @@ public sealed class PreDiffPass : IPreDiffPass
     private readonly IRepositoryService _repository;
     private readonly IDiffService _diffService;
     private readonly int _maxConcurrency;
-    private readonly long _largeFileThresholdBytes;
+    private readonly Func<long> _getLargeFileThresholdBytes;
     private readonly Action<Action> _uiMarshaller;
     private readonly object _lock = new();
 
@@ -42,15 +42,24 @@ public sealed class PreDiffPass : IPreDiffPass
         int maxConcurrency = DefaultMaxConcurrency,
         long largeFileThresholdBytes = DefaultLargeFileThresholdBytes,
         Action<Action>? uiMarshaller = null)
+        : this(repository, diffService, maxConcurrency, () => largeFileThresholdBytes, uiMarshaller) { }
+
+    public PreDiffPass(
+        IRepositoryService repository,
+        IDiffService diffService,
+        int maxConcurrency,
+        Func<long> getLargeFileThresholdBytes,
+        Action<Action>? uiMarshaller = null)
     {
         ArgumentNullException.ThrowIfNull(repository);
         ArgumentNullException.ThrowIfNull(diffService);
+        ArgumentNullException.ThrowIfNull(getLargeFileThresholdBytes);
         if (maxConcurrency < 1) throw new ArgumentOutOfRangeException(nameof(maxConcurrency));
 
         _repository = repository;
         _diffService = diffService;
         _maxConcurrency = maxConcurrency;
-        _largeFileThresholdBytes = largeFileThresholdBytes;
+        _getLargeFileThresholdBytes = getLargeFileThresholdBytes;
         _uiMarshaller = uiMarshaller ?? DefaultUiMarshaller;
     }
 
@@ -251,8 +260,9 @@ public sealed class PreDiffPass : IPreDiffPass
         var c = entry.Change;
         if (c.IsBinary || c.IsLfsPointer || c.IsSparseNotCheckedOut || c.IsModeOnlyChange) return false;
         if (c.Status == Models.FileStatus.SubmoduleMoved || c.Status == Models.FileStatus.Conflicted) return false;
-        if (c.LeftFileSizeBytes is { } l && l > _largeFileThresholdBytes) return false;
-        if (c.RightFileSizeBytes is { } r && r > _largeFileThresholdBytes) return false;
+        var threshold = _getLargeFileThresholdBytes();
+        if (c.LeftFileSizeBytes is { } l && l > threshold) return false;
+        if (c.RightFileSizeBytes is { } r && r > threshold) return false;
         return true;
     }
 

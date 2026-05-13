@@ -1,0 +1,153 @@
+<Window x:Class="DiffViewer.Views.SettingsDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:DiffViewer.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        d:DataContext="{d:DesignInstance Type=vm:SettingsViewModel}"
+        mc:Ignorable="d"
+        Title="DiffViewer settings"
+        Width="560" Height="640"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        ResizeMode="NoResize">
+    <Window.Resources>
+        <Style TargetType="TextBlock" x:Key="SectionHeader">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Margin" Value="0,12,0,6"/>
+        </Style>
+        <Style TargetType="TextBlock" x:Key="FieldLabel">
+            <Setter Property="Margin" Value="0,4,8,2"/>
+        </Style>
+    </Window.Resources>
+
+    <DockPanel Margin="14">
+
+        <!-- Footer -->
+        <Border DockPanel.Dock="Bottom" BorderBrush="#DDD" BorderThickness="0,1,0,0" Padding="0,10,0,0" Margin="0,12,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <Button Content="Open settings.json" Margin="0,0,8,0" Padding="10,4"
+                            Command="{Binding OpenSettingsJsonCommand}"/>
+                    <Button Content="Reset all to defaults" Padding="10,4"
+                            Command="{Binding ResetAllToDefaultsCommand}"/>
+                </StackPanel>
+                <Button Grid.Column="1" Content="Close" Padding="16,4" IsCancel="True" IsDefault="True"
+                        Click="OnCloseClick"/>
+            </Grid>
+        </Border>
+
+        <!-- Status line -->
+        <TextBlock DockPanel.Dock="Bottom" Margin="0,8,0,0" FontStyle="Italic" Foreground="#666"
+                   Text="{Binding StatusMessage}"/>
+
+        <!-- Body -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+
+                <!-- Diff appearance -->
+                <TextBlock Text="Diff appearance" Style="{StaticResource SectionHeader}"/>
+
+                <Grid Margin="0,2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="160"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition/><RowDefinition/><RowDefinition/>
+                        <RowDefinition/><RowDefinition/><RowDefinition/>
+                        <RowDefinition/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Font family"/>
+                    <TextBox   Grid.Row="0" Grid.Column="1" Margin="0,4" Text="{Binding FontFamily, UpdateSourceTrigger=LostFocus}"
+                               LostFocus="OnTextOrNumericLostFocus" KeyDown="OnTextOrNumericKeyDown"/>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Font size (pt)"/>
+                    <TextBox   Grid.Row="1" Grid.Column="1" Margin="0,4" Width="80" HorizontalAlignment="Left"
+                               Text="{Binding FontSize, UpdateSourceTrigger=LostFocus}"
+                               LostFocus="OnTextOrNumericLostFocus" KeyDown="OnTextOrNumericKeyDown"/>
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Tab width"/>
+                    <TextBox   Grid.Row="2" Grid.Column="1" Margin="0,4" Width="80" HorizontalAlignment="Left"
+                               Text="{Binding TabWidth, UpdateSourceTrigger=LostFocus}"
+                               LostFocus="OnTextOrNumericLostFocus" KeyDown="OnTextOrNumericKeyDown"/>
+
+                    <TextBlock Grid.Row="3" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Show line numbers"/>
+                    <CheckBox  Grid.Row="3" Grid.Column="1" Margin="0,6" IsChecked="{Binding ShowLineNumbers}"/>
+
+                    <TextBlock Grid.Row="4" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Word wrap"/>
+                    <CheckBox  Grid.Row="4" Grid.Column="1" Margin="0,6" IsChecked="{Binding WordWrap}"/>
+
+                    <TextBlock Grid.Row="5" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Highlight current line"/>
+                    <CheckBox  Grid.Row="5" Grid.Column="1" Margin="0,6" IsChecked="{Binding HighlightCurrentLine}"/>
+
+                    <TextBlock Grid.Row="6" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Color scheme"/>
+                    <StackPanel Grid.Row="6" Grid.Column="1" Orientation="Horizontal" Margin="0,4">
+                        <ComboBox Width="220" ItemsSource="{Binding ColorSchemePresets}"
+                                  SelectedItem="{Binding SelectedColorPreset}"
+                                  IsEnabled="{Binding IsCustomColorScheme, Converter={x:Static vm:InverseBoolConverter.Instance}}"/>
+                        <TextBlock Margin="10,4,0,0" Foreground="#888" FontStyle="Italic"
+                                   Visibility="{Binding IsCustomColorScheme, Converter={x:Static vm:BoolToVisibilityConverter.Instance}}"
+                                   Text="Custom (edit settings.json)"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- External editor -->
+                <TextBlock Text="External editor" Style="{StaticResource SectionHeader}"/>
+
+                <Grid Margin="0,2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="160"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition/><RowDefinition/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Editor executable"/>
+                    <TextBox   Grid.Row="0" Grid.Column="1" Margin="0,4"
+                               Text="{Binding ExternalEditorPath, UpdateSourceTrigger=LostFocus}"
+                               LostFocus="OnTextOrNumericLostFocus" KeyDown="OnTextOrNumericKeyDown"
+                               ToolTip="Empty = auto-detect (where.exe code, then well-known install paths)"/>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Line-arg format"/>
+                    <TextBox   Grid.Row="1" Grid.Column="1" Margin="0,4"
+                               Text="{Binding ExternalEditorLineArgFormat, UpdateSourceTrigger=LostFocus}"
+                               LostFocus="OnTextOrNumericLostFocus" KeyDown="OnTextOrNumericKeyDown"
+                               ToolTip="e.g. --goto {path}:{line}; empty = use the resolved editor's default"/>
+                </Grid>
+
+                <!-- Limits -->
+                <TextBlock Text="Limits" Style="{StaticResource SectionHeader}"/>
+
+                <Grid Margin="0,2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="160"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Skip files larger than"/>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,4">
+                        <TextBox Width="80"
+                                 Text="{Binding LargeFileThresholdMb, UpdateSourceTrigger=LostFocus}"
+                                 LostFocus="OnTextOrNumericLostFocus" KeyDown="OnTextOrNumericKeyDown"/>
+                        <TextBlock Text=" MB (1 – 2048)" Margin="6,4,0,0" Foreground="#666"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Confirmations -->
+                <TextBlock Text="Confirmations" Style="{StaticResource SectionHeader}"/>
+
+                <CheckBox Content="Confirm before reverting a hunk" Margin="0,4"
+                          IsChecked="{Binding ConfirmRevertHunk}"/>
+                <CheckBox Content="Confirm before deleting an untracked file" Margin="0,4"
+                          IsChecked="{Binding ConfirmDeleteFile}"/>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</Window>

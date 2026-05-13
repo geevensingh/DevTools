@@ -19,7 +19,9 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
 {
     private readonly IRepositoryService _repository;
     private readonly IDiffService? _diffService;
+    private readonly ISettingsService? _settingsService;
     private readonly bool _isCommitVsCommit;
+    private bool _suppressSettingsWrite;
     private CancellationTokenSource? _loadCts;
 
     // Cached blobs from the last successful load - lets us recompute the
@@ -98,11 +100,34 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private int _currentHunkIndex = -1;
 
-    public DiffPaneViewModel(IRepositoryService repository, IDiffService? diffService = null, bool isCommitVsCommit = false)
+    public DiffPaneViewModel(
+        IRepositoryService repository,
+        IDiffService? diffService = null,
+        bool isCommitVsCommit = false,
+        ISettingsService? settingsService = null)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         _diffService = diffService;
         _isCommitVsCommit = isCommitVsCommit;
+        _settingsService = settingsService;
+
+        // Seed toolbar state from persisted settings if present. Suppress
+        // the OnXxxChanged callbacks during the seed so we don't immediately
+        // round-trip the same values back to disk.
+        if (_settingsService is not null)
+        {
+            _suppressSettingsWrite = true;
+            try
+            {
+                var s = _settingsService.Current;
+                IgnoreWhitespace = s.IgnoreWhitespace;
+                ShowIntraLineDiff = s.ShowIntraLineDiff;
+                IsSideBySide = s.IsSideBySide;
+                ShowVisibleWhitespace = s.ShowVisibleWhitespace;
+                LiveUpdates = s.LiveUpdates;
+            }
+            finally { _suppressSettingsWrite = false; }
+        }
     }
 
     /// <summary>
@@ -283,13 +308,41 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
     {
         OnPropertyChanged(nameof(ShowSideBySide));
         OnPropertyChanged(nameof(ShowInline));
+        PersistToolbarToSettings();
     }
 
-    partial void OnIgnoreWhitespaceChanged(bool value) => ScheduleOptionRefresh();
-    partial void OnShowIntraLineDiffChanged(bool value) => ScheduleOptionRefresh();
+    partial void OnIgnoreWhitespaceChanged(bool value)
+    {
+        ScheduleOptionRefresh();
+        PersistToolbarToSettings();
+    }
 
-    partial void OnLiveUpdatesChanged(bool value) =>
+    partial void OnShowIntraLineDiffChanged(bool value)
+    {
+        ScheduleOptionRefresh();
+        PersistToolbarToSettings();
+    }
+
+    partial void OnShowVisibleWhitespaceChanged(bool value) => PersistToolbarToSettings();
+
+    partial void OnLiveUpdatesChanged(bool value)
+    {
         OnPropertyChanged(nameof(LiveUpdatesEffective));
+        PersistToolbarToSettings();
+    }
+
+    private void PersistToolbarToSettings()
+    {
+        if (_settingsService is null || _suppressSettingsWrite) return;
+        _settingsService.Update(s => s with
+        {
+            IgnoreWhitespace = IgnoreWhitespace,
+            ShowIntraLineDiff = ShowIntraLineDiff,
+            IsSideBySide = IsSideBySide,
+            ShowVisibleWhitespace = ShowVisibleWhitespace,
+            LiveUpdates = LiveUpdates,
+        });
+    }
 
     /// <summary>
     /// Coalesce rapid toggle clicks (e.g. spinning the same checkbox) into

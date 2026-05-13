@@ -1,4 +1,4 @@
-namespace DiffViewer.ViewModels;
+namespace DiffViewer.Models;
 
 /// <summary>
 /// Mutually-exclusive display modes for paths in the left-pane file list.

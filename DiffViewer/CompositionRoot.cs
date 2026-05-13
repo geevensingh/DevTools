@@ -44,6 +44,7 @@ internal static class CompositionRoot
         }
 
         error = null;
+        var settingsService = new SettingsService();
         var diffService = new DiffService();
 
         // Construct the watcher only when at least one side is the working
@@ -67,9 +68,15 @@ internal static class CompositionRoot
             }
         }
 
+        var preDiffPass = new PreDiffPass(
+            repo, diffService,
+            maxConcurrency: PreDiffPass.DefaultMaxConcurrency,
+            getLargeFileThresholdBytes: () => settingsService.Current.LargeFileThresholdBytes);
+
         var vm = new MainViewModel(
             repo, parsed.Left, parsed.Right, diffService, watcher,
-            preDiffPass: new PreDiffPass(repo, diffService));
+            preDiffPass: preDiffPass,
+            settingsService: settingsService);
         vm.LoadInitialChanges();
         return vm;
     }

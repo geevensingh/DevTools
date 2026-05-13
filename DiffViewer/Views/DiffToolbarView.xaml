@@ -34,42 +34,56 @@
             BorderBrush="#DDD"
             BorderThickness="0,0,0,1"
             Padding="6,4">
-        <StackPanel Orientation="Horizontal">
-            <ToggleButton Style="{StaticResource ToolbarToggleStyle}"
-                          IsChecked="{Binding IgnoreWhitespace}"
-                          Content="Ignore WS"
-                          ToolTip="Ignore whitespace differences (Ctrl+W)"/>
-            <ToggleButton Style="{StaticResource ToolbarToggleStyle}"
-                          IsChecked="{Binding ShowIntraLineDiff}"
-                          Content="Intra-line"
-                          ToolTip="Show word-level highlights inside modified lines (Ctrl+D)"/>
-            <ToggleButton Style="{StaticResource ToolbarToggleStyle}"
-                          IsChecked="{Binding IsSideBySide}"
-                          Content="Side-by-side"
-                          ToolTip="Toggle between side-by-side and inline diff layout (Ctrl+I)"/>
-            <ToggleButton Style="{StaticResource ToolbarToggleStyle}"
-                          IsChecked="{Binding ShowVisibleWhitespace}"
-                          Content="Show WS"
-                          ToolTip="Render spaces, tabs, and end-of-line markers (Ctrl+Shift+W)"/>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
 
-            <Separator Margin="6,2" Width="1" Background="#CCC"/>
+            <StackPanel Grid.Column="0" Orientation="Horizontal">
+                <ToggleButton Style="{StaticResource ToolbarToggleStyle}"
+                              IsChecked="{Binding IgnoreWhitespace}"
+                              Content="Ignore WS"
+                              ToolTip="Ignore whitespace differences (Ctrl+W)"/>
+                <ToggleButton Style="{StaticResource ToolbarToggleStyle}"
+                              IsChecked="{Binding ShowIntraLineDiff}"
+                              Content="Intra-line"
+                              ToolTip="Show word-level highlights inside modified lines (Ctrl+D)"/>
+                <ToggleButton Style="{StaticResource ToolbarToggleStyle}"
+                              IsChecked="{Binding IsSideBySide}"
+                              Content="Side-by-side"
+                              ToolTip="Toggle between side-by-side and inline diff layout (Ctrl+I)"/>
+                <ToggleButton Style="{StaticResource ToolbarToggleStyle}"
+                              IsChecked="{Binding ShowVisibleWhitespace}"
+                              Content="Show WS"
+                              ToolTip="Render spaces, tabs, and end-of-line markers (Ctrl+Shift+W)"/>
 
-            <Button Style="{StaticResource ToolbarButtonStyle}"
-                    Command="{Binding NavigatePreviousHunkCommand}"
-                    Content="Prev"
-                    ToolTip="Previous change (F7)"/>
-            <Button Style="{StaticResource ToolbarButtonStyle}"
-                    Command="{Binding NavigateNextHunkCommand}"
-                    Content="Next"
-                    ToolTip="Next change (F8)"/>
+                <Separator Margin="6,2" Width="1" Background="#CCC"/>
 
-            <Separator Margin="6,2" Width="1" Background="#CCC"/>
+                <Button Style="{StaticResource ToolbarButtonStyle}"
+                        Command="{Binding NavigatePreviousHunkCommand}"
+                        Content="Prev"
+                        ToolTip="Previous change (F7)"/>
+                <Button Style="{StaticResource ToolbarButtonStyle}"
+                        Command="{Binding NavigateNextHunkCommand}"
+                        Content="Next"
+                        ToolTip="Next change (F8)"/>
 
-            <ToggleButton Style="{StaticResource ToolbarToggleStyle}"
-                          IsChecked="{Binding LiveUpdates}"
-                          IsEnabled="{Binding IsLiveUpdatesAvailable}"
-                          Content="Live"
-                          ToolTip="Auto-refresh when the working tree changes (Ctrl+L; greyed for commit-vs-commit)"/>
-        </StackPanel>
+                <Separator Margin="6,2" Width="1" Background="#CCC"/>
+
+                <ToggleButton Style="{StaticResource ToolbarToggleStyle}"
+                              IsChecked="{Binding LiveUpdates}"
+                              IsEnabled="{Binding IsLiveUpdatesAvailable}"
+                              Content="Live"
+                              ToolTip="Auto-refresh when the working tree changes (Ctrl+L; greyed for commit-vs-commit)"/>
+            </StackPanel>
+
+            <Button Grid.Column="1"
+                    Style="{StaticResource ToolbarButtonStyle}"
+                    Command="{Binding DataContext.ShowSettingsCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                    Content="⚙"
+                    FontSize="14"
+                    ToolTip="Settings (Ctrl+,)"/>
+        </Grid>
     </Border>
 </UserControl>

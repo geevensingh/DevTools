@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using DiffViewer.Models;
 using DiffViewer.Services;
 
@@ -14,6 +15,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private readonly IRepositoryService _repository;
     private readonly IRepositoryWatcher? _watcher;
     private readonly IPreDiffPass? _preDiffPass;
+    private readonly ISettingsService? _settingsService;
     private readonly DiffSide _left;
     private readonly DiffSide _right;
     private readonly bool _isCommitVsCommit;
@@ -26,11 +28,27 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     /// </summary>
     private RepositoryChangeKind _missedChangeKindWhilePaused;
 
-    public FileListViewModel FileList { get; } = new();
+    public FileListViewModel FileList { get; }
     public DiffPaneViewModel DiffPane { get; }
+
+    /// <summary>
+    /// Hook for the View layer to display the modal Settings dialog.
+    /// Tests / headless contexts leave it null and the
+    /// <see cref="ShowSettingsCommand"/> becomes a no-op.
+    /// </summary>
+    public Action? ShowSettingsHandler { get; set; }
 
     [ObservableProperty]
     private string _windowTitle = "DiffViewer";
+
+    [RelayCommand]
+    private void ShowSettings() => ShowSettingsHandler?.Invoke();
+
+    /// <summary>
+    /// Settings service the View can use to construct a
+    /// <see cref="SettingsViewModel"/> for the Settings dialog.
+    /// </summary>
+    public ISettingsService? SettingsService => _settingsService;
 
     public MainViewModel(
         IRepositoryService repository,
@@ -38,7 +56,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         DiffSide right,
         IDiffService? diffService = null,
         IRepositoryWatcher? watcher = null,
-        IPreDiffPass? preDiffPass = null)
+        IPreDiffPass? preDiffPass = null,
+        ISettingsService? settingsService = null)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         _left = left ?? throw new ArgumentNullException(nameof(left));
@@ -46,8 +65,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _isCommitVsCommit = left is DiffSide.CommitIsh && right is DiffSide.CommitIsh;
         _watcher = watcher;
         _preDiffPass = preDiffPass;
+        _settingsService = settingsService;
 
-        DiffPane = new DiffPaneViewModel(_repository, diffService, _isCommitVsCommit);
+        FileList = new FileListViewModel(settingsService);
+        DiffPane = new DiffPaneViewModel(_repository, diffService, _isCommitVsCommit, settingsService);
 
         WindowTitle = $"DiffViewer — {repository.Shape.RepoRoot} ({left} ⇢ {right})";
 
