@@ -45,6 +45,51 @@ public sealed partial class FileEntryViewModel : ObservableObject
     /// <summary>Repo-relative directory of the entry; empty for repo-root files.</summary>
     public string DirectoryPath => Path.GetDirectoryName(RepoRelativePath) ?? string.Empty;
 
+    // ---- Context-menu visibility predicates ----
+    // These drive MenuItem.Visibility via BoolToVisibilityConverter so the
+    // View doesn't need any code-behind branching.
+
+    /// <summary>True iff the file actually exists on disk right now.</summary>
+    public bool ExistsOnDisk => File.Exists(FullPath);
+
+    /// <summary>
+    /// True for staged-section rows whose index blob differs from the
+    /// working-tree file content. Per the plan, *Open in external editor*
+    /// is hidden in that case (the user might think they're opening the
+    /// staged version when they'd actually open the working-tree version).
+    /// </summary>
+    public bool ShouldHideOpenInExternalEditor =>
+        Change.Layer == WorkingTreeLayer.Staged && IndexBlobDiffersFromDisk();
+
+    private bool IndexBlobDiffersFromDisk()
+    {
+        if (!ExistsOnDisk) return true;
+        if (Change.RightBlobSha is null) return false;
+        try
+        {
+            // Quick file-size sanity first (cheap; right size matches index
+            // blob size most of the time on legit staged-then-edited rows).
+            var info = new FileInfo(FullPath);
+            return Change.RightFileSizeBytes is { } indexSize && info.Length != indexSize;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>True for Untracked-layer rows - <c>git add</c> applies.</summary>
+    public bool IsUntracked => Change.Layer == WorkingTreeLayer.Untracked;
+
+    /// <summary>True when <em>Copy diff (unified)</em> is meaningful.</summary>
+    public bool CanCopyDiffAsUnified => !Change.IsBinary && !Change.IsLfsPointer;
+
+    /// <summary>True when *Copy blob SHA (left)* should appear (left side is a real committed blob).</summary>
+    public bool HasLeftBlobSha => !string.IsNullOrEmpty(Change.LeftBlobSha);
+
+    /// <summary>True when *Copy blob SHA (right)* should appear.</summary>
+    public bool HasRightBlobSha => !string.IsNullOrEmpty(Change.RightBlobSha);
+
     /// <summary>Re-render <see cref="DisplayPath"/> for the supplied display mode.</summary>
     public void ApplyDisplayMode(FileListDisplayMode mode)
     {

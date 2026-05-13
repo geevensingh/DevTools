@@ -18,6 +18,39 @@
         <SolidColorBrush x:Key="BannerBgBrush"   Color="#FFF8E1"/>
         <SolidColorBrush x:Key="BannerFgBrush"   Color="#5C4500"/>
         <SolidColorBrush x:Key="BannerBorder"    Color="#E8C46A"/>
+
+        <!-- Right-click menu shared by all three AvalonEdit panes. The menu's
+             Tag is set in the editor's ContextMenuOpening handler to a
+             HunkActionContext (Side + OneBasedLine), which the items pick
+             up via CommandParameter. Stage/Unstage/Revert hunk visibility
+             keys off properties that the same handler refreshes on the
+             pane VM, so they reflect the right-click target rather than
+             the F7/F8 navigation cursor. -->
+        <ContextMenu x:Key="DiffEditorContextMenu"
+                     d:DataContext="{d:DesignInstance Type=vm:DiffPaneViewModel}">
+            <MenuItem Header="Stage hunk"
+                      Command="{Binding PlacementTarget.Tag.StageHunkAtCaretCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}, FallbackValue={x:Null}}"
+                      CommandParameter="{Binding PlacementTarget.ContextMenu.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                      Visibility="{Binding CanStageHunkAtCaret, Converter={x:Static vm:BoolToVisibilityConverter.Instance}}"/>
+            <MenuItem Header="Unstage hunk"
+                      Command="{Binding PlacementTarget.Tag.UnstageHunkAtCaretCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}, FallbackValue={x:Null}}"
+                      CommandParameter="{Binding PlacementTarget.ContextMenu.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                      Visibility="{Binding CanUnstageHunkAtCaret, Converter={x:Static vm:BoolToVisibilityConverter.Instance}}"/>
+            <MenuItem Header="Revert hunk…"
+                      Command="{Binding PlacementTarget.Tag.RevertHunkAtCaretCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}, FallbackValue={x:Null}}"
+                      CommandParameter="{Binding PlacementTarget.ContextMenu.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                      Visibility="{Binding CanRevertHunkAtCaret, Converter={x:Static vm:BoolToVisibilityConverter.Instance}}"/>
+            <Separator Visibility="{Binding IsCaretInHunk, Converter={x:Static vm:BoolToVisibilityConverter.Instance}}"/>
+            <MenuItem Header="Copy"
+                      Command="ApplicationCommands.Copy"
+                      InputGestureText="Ctrl+C"/>
+            <MenuItem Header="Select all"
+                      Command="ApplicationCommands.SelectAll"
+                      InputGestureText="Ctrl+A"/>
+            <MenuItem Header="Find…"
+                      Command="ApplicationCommands.Find"
+                      InputGestureText="Ctrl+F"/>
+        </ContextMenu>
     </UserControl.Resources>
 
     <Grid>
@@ -62,7 +95,10 @@
                                    WordWrap="False"
                                    Background="{StaticResource EditorBgBrush}"
                                    HorizontalScrollBarVisibility="Auto"
-                                   VerticalScrollBarVisibility="Auto"/>
+                                   VerticalScrollBarVisibility="Auto"
+                                   ContextMenu="{StaticResource DiffEditorContextMenu}"
+                                   ContextMenuOpening="OnLeftEditorContextMenuOpening"
+                                   Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}"/>
 
                 <GridSplitter Grid.Column="1"
                               Width="5"
@@ -80,7 +116,10 @@
                                    WordWrap="False"
                                    Background="{StaticResource EditorBgBrush}"
                                    HorizontalScrollBarVisibility="Auto"
-                                   VerticalScrollBarVisibility="Auto"/>
+                                   VerticalScrollBarVisibility="Auto"
+                                   ContextMenu="{StaticResource DiffEditorContextMenu}"
+                                   ContextMenuOpening="OnRightEditorContextMenuOpening"
+                                   Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}"/>
             </Grid>
 
             <!-- Inline view (visible when no placeholder AND IsSideBySide=false) -->
@@ -94,7 +133,10 @@
                                WordWrap="False"
                                Background="{StaticResource EditorBgBrush}"
                                HorizontalScrollBarVisibility="Auto"
-                               VerticalScrollBarVisibility="Auto"/>
+                               VerticalScrollBarVisibility="Auto"
+                               ContextMenu="{StaticResource DiffEditorContextMenu}"
+                               ContextMenuOpening="OnInlineEditorContextMenuOpening"
+                               Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}"/>
 
             <!-- Placeholder view -->
             <Border Visibility="{Binding ShowPlaceholder, Converter={x:Static vm:BoolToVisibilityConverter.Instance}}"

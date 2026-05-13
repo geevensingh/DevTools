@@ -428,6 +428,156 @@ public class DiffPaneViewModelTests
         lineKindCount.Should().BeGreaterThan(0);
     }
 
+    [Fact]
+    public async Task HunkAtLine_ReturnsHunkContainingCaret_AndNullInContext()
+    {
+        // 16 lines, head + tail edits with 12 lines of unchanged middle
+        // wide enough that DiffPlex's 3-line context can't bridge them —
+        // produces two hunks. Line 8 sits in the middle gap.
+        var leftMid = string.Concat(Enumerable.Range(2, 14).Select(i => $"line{i}\n"));
+        var rightMid = string.Concat(Enumerable.Range(2, 14).Select(i => $"line{i}\n"));
+        var repo = new FakeRepository
+        {
+            LeftText = "one\n" + leftMid + "sixteen\n",
+            RightText = "ONE\n" + rightMid + "SIXTEEN\n",
+        };
+        var diff = new DiffService();
+
+        DiffHunk? hitHead = null;
+        DiffHunk? hitTail = null;
+        DiffHunk? missMid = null;
+        int hunkCount = 0;
+        await RunOnUiSyncContextAsync(async () =>
+        {
+            var vm = new DiffPaneViewModel(repo, diff);
+            await vm.LoadAsync(Entry(ModifiedTextFile("a.cs")));
+            hunkCount = vm.CurrentHunks.Count;
+            hitHead = vm.HunkAtLine(ChangeSide.Right, 1);
+            missMid = vm.HunkAtLine(ChangeSide.Right, 8);
+            hitTail = vm.HunkAtLine(ChangeSide.Right, 16);
+        });
+
+        hunkCount.Should().BeGreaterThan(1);
+        hitHead.Should().NotBeNull();
+        hitTail.Should().NotBeNull();
+        missMid.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task BuildHunkPatchInputs_PopulatesPathAndCachedSources()
+    {
+        var repo = new FakeRepository
+        {
+            LeftText = "alpha\nbeta\n",
+            RightText = "alpha\ngamma\n",
+        };
+        var diff = new DiffService();
+
+        HunkPatchInputs? inputs = null;
+        await RunOnUiSyncContextAsync(async () =>
+        {
+            var vm = new DiffPaneViewModel(repo, diff);
+            await vm.LoadAsync(Entry(ModifiedTextFile("a.cs")));
+            var hunk = vm.CurrentHunks.First();
+            inputs = vm.BuildHunkPatchInputs(hunk);
+        });
+
+        inputs.Should().NotBeNull();
+        inputs!.FilePath.Should().Be("a.cs");
+        inputs.LeftSource.Should().Be("alpha\nbeta\n");
+        inputs.RightSource.Should().Be("alpha\ngamma\n");
+    }
+
+    [Fact]
+    public async Task UpdateRightClickContext_OnUnstagedHunk_EnablesStageAndRevert()
+    {
+        var repo = new FakeRepository
+        {
+            LeftText = "alpha\nbeta\n",
+            RightText = "alpha\ngamma\n",
+        };
+        var diff = new DiffService();
+
+        bool? canStage = null, canUnstage = null, canRevert = null, isInHunk = null;
+        await RunOnUiSyncContextAsync(async () =>
+        {
+            var vm = new DiffPaneViewModel(repo, diff);
+            await vm.LoadAsync(Entry(ModifiedTextFile("a.cs")));      // Layer = Unstaged
+            var hunk = vm.CurrentHunks.First();
+            int line = hunk.NewStartLine;
+            vm.UpdateRightClickContext(new HunkActionContext(ChangeSide.Right, line));
+            canStage = vm.CanStageHunkAtCaret;
+            canUnstage = vm.CanUnstageHunkAtCaret;
+            canRevert = vm.CanRevertHunkAtCaret;
+            isInHunk = vm.IsCaretInHunk;
+        });
+
+        isInHunk.Should().BeTrue();
+        canStage.Should().BeTrue();
+        canRevert.Should().BeTrue();
+        canUnstage.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task UpdateRightClickContext_OnStagedHunk_EnablesUnstageOnly()
+    {
+        var repo = new FakeRepository
+        {
+            LeftText = "alpha\nbeta\n",
+            RightText = "alpha\ngamma\n",
+        };
+        var diff = new DiffService();
+
+        bool? canStage = null, canUnstage = null, canRevert = null;
+        await RunOnUiSyncContextAsync(async () =>
+        {
+            var vm = new DiffPaneViewModel(repo, diff);
+            var staged = ModifiedTextFile("a.cs") with { Layer = WorkingTreeLayer.Staged };
+            await vm.LoadAsync(Entry(staged));
+            var hunk = vm.CurrentHunks.First();
+            vm.UpdateRightClickContext(new HunkActionContext(ChangeSide.Right, hunk.NewStartLine));
+            canStage = vm.CanStageHunkAtCaret;
+            canUnstage = vm.CanUnstageHunkAtCaret;
+            canRevert = vm.CanRevertHunkAtCaret;
+        });
+
+        canStage.Should().BeFalse();
+        canUnstage.Should().BeTrue();
+        canRevert.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task UpdateRightClickContext_OnContextLine_AllHunkActionsDisabled()
+    {
+        // Same wide-gap fixture as HunkAtLine test — line 8 is in the
+        // middle context, between the head and tail hunks.
+        var leftMid = string.Concat(Enumerable.Range(2, 14).Select(i => $"line{i}\n"));
+        var rightMid = string.Concat(Enumerable.Range(2, 14).Select(i => $"line{i}\n"));
+        var repo = new FakeRepository
+        {
+            LeftText = "one\n" + leftMid + "sixteen\n",
+            RightText = "ONE\n" + rightMid + "SIXTEEN\n",
+        };
+        var diff = new DiffService();
+
+        bool? canStage = null, canUnstage = null, canRevert = null, isInHunk = null;
+        await RunOnUiSyncContextAsync(async () =>
+        {
+            var vm = new DiffPaneViewModel(repo, diff);
+            await vm.LoadAsync(Entry(ModifiedTextFile("a.cs")));
+            vm.UpdateRightClickContext(new HunkActionContext(ChangeSide.Right, 8));
+            canStage = vm.CanStageHunkAtCaret;
+            canUnstage = vm.CanUnstageHunkAtCaret;
+            canRevert = vm.CanRevertHunkAtCaret;
+            isInHunk = vm.IsCaretInHunk;
+        });
+
+        isInHunk.Should().BeFalse();
+        canStage.Should().BeFalse();
+        canUnstage.Should().BeFalse();
+        canRevert.Should().BeFalse();
+    }
+
     /// <summary>
     /// DiffPaneViewModel.LoadAsync uses TaskScheduler.FromCurrentSynchronizationContext()
     /// for its continuation; awaiting it from a plain xunit thread without a

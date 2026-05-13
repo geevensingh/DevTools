@@ -21,9 +21,90 @@
             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
         </Style>
 
+        <!-- Right-click context menu shared by every file row. The menu's
+             DataContext is the FileEntryViewModel (because the row is the
+             PlacementTarget). Commands live on MainViewModel - we walk up
+             through the Window's DataContext via PlacementTarget.Tag, which
+             we set to the row's ListBoxItem so the visual tree is rooted
+             at a known anchor regardless of which presentation (flat or
+             tree) the user is in. -->
+        <ContextMenu x:Key="FileEntryContextMenu"
+                     d:DataContext="{d:DesignInstance Type=vm:FileEntryViewModel}">
+            <MenuItem Header="Show in Explorer"
+                      Command="{Binding PlacementTarget.Tag.ShowInExplorerCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                      CommandParameter="{Binding}"
+                      Visibility="{Binding ExistsOnDisk, Converter={x:Static vm:BoolToVisibilityConverter.Instance}}"/>
+            <MenuItem Header="Open with default app"
+                      Command="{Binding PlacementTarget.Tag.OpenWithDefaultAppCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                      CommandParameter="{Binding}"
+                      Visibility="{Binding ExistsOnDisk, Converter={x:Static vm:BoolToVisibilityConverter.Instance}}"/>
+            <MenuItem Header="Open in external editor…"
+                      Command="{Binding PlacementTarget.Tag.OpenInExternalEditorCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                      CommandParameter="{Binding}">
+                <MenuItem.Style>
+                    <Style TargetType="MenuItem">
+                        <Setter Property="Visibility" Value="Visible"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ExistsOnDisk}" Value="False">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding ShouldHideOpenInExternalEditor}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </MenuItem.Style>
+            </MenuItem>
+
+            <Separator>
+                <Separator.Visibility>
+                    <Binding Path="IsUntracked" Converter="{x:Static vm:BoolToVisibilityConverter.Instance}"/>
+                </Separator.Visibility>
+            </Separator>
+            <MenuItem Header="Stage file"
+                      Command="{Binding PlacementTarget.Tag.StageFileCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                      CommandParameter="{Binding}"
+                      Visibility="{Binding IsUntracked, Converter={x:Static vm:BoolToVisibilityConverter.Instance}}"/>
+            <MenuItem Header="Delete file…"
+                      Command="{Binding PlacementTarget.Tag.DeleteFileCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                      CommandParameter="{Binding}"
+                      Visibility="{Binding IsUntracked, Converter={x:Static vm:BoolToVisibilityConverter.Instance}}"/>
+            <MenuItem Header="Add to .gitignore"
+                      Command="{Binding PlacementTarget.Tag.AddToGitignoreCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                      CommandParameter="{Binding}"
+                      Visibility="{Binding IsUntracked, Converter={x:Static vm:BoolToVisibilityConverter.Instance}}"/>
+
+            <Separator/>
+            <MenuItem Header="Copy file name"
+                      Command="{Binding PlacementTarget.Tag.CopyFileNameCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                      CommandParameter="{Binding}"/>
+            <MenuItem Header="Copy repo-relative path"
+                      Command="{Binding PlacementTarget.Tag.CopyRepoRelativePathCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                      CommandParameter="{Binding}"/>
+            <MenuItem Header="Copy full path"
+                      Command="{Binding PlacementTarget.Tag.CopyFullPathCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                      CommandParameter="{Binding}"/>
+
+            <Separator/>
+            <MenuItem Header="Copy blob SHA (left)"
+                      Command="{Binding PlacementTarget.Tag.CopyLeftBlobShaCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                      CommandParameter="{Binding}"
+                      Visibility="{Binding HasLeftBlobSha, Converter={x:Static vm:BoolToVisibilityConverter.Instance}}"/>
+            <MenuItem Header="Copy blob SHA (right)"
+                      Command="{Binding PlacementTarget.Tag.CopyRightBlobShaCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                      CommandParameter="{Binding}"
+                      Visibility="{Binding HasRightBlobSha, Converter={x:Static vm:BoolToVisibilityConverter.Instance}}"/>
+
+            <Separator/>
+            <MenuItem Header="Refresh"
+                      Command="{Binding PlacementTarget.Tag.RefreshListCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                      InputGestureText="F5"/>
+        </ContextMenu>
+
         <!-- Row template - shared by both the flat ListBox and the directory tree. -->
         <DataTemplate x:Key="EntryTemplate" DataType="{x:Type vm:FileEntryViewModel}">
-            <Grid>
+            <Grid ContextMenu="{StaticResource FileEntryContextMenu}"
+                  Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>

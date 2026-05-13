@@ -77,7 +77,8 @@ internal static class CompositionRoot
             repo, parsed.Left, parsed.Right, diffService, watcher,
             preDiffPass: preDiffPass,
             settingsService: settingsService,
-            gitWriteService: new GitWriteService());
+            gitWriteService: new GitWriteService(),
+            externalAppLauncher: new ExternalAppLauncher(settingsService));
         vm.LoadInitialChanges();
         return vm;
     }

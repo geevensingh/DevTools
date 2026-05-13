@@ -413,6 +413,77 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
         _loadCts?.Dispose();
         _optionDebounceTimer?.Stop();
     }
+
+    /// <summary>
+    /// Returns the hunk that contains the supplied 1-based caret line, or
+    /// <c>null</c> if the caret is in a pure-context region. Side picks
+    /// which line numbering to use (left = old, right / inline = new).
+    /// </summary>
+    public DiffHunk? HunkAtLine(ChangeSide side, int oneBasedLine)
+    {
+        if (oneBasedLine < 1) return null;
+        foreach (var h in _currentHunks)
+        {
+            int start = side == ChangeSide.Left ? h.OldStartLine : h.NewStartLine;
+            int count = side == ChangeSide.Left ? h.OldLineCount : h.NewLineCount;
+            if (count == 0)
+            {
+                // Pure-insert (count=0 on left) / pure-delete (count=0 on
+                // right) hunks anchor at start; caret is "in" the hunk if
+                // it sits exactly on the anchor line.
+                if (oneBasedLine == start) return h;
+            }
+            else if (oneBasedLine >= start && oneBasedLine < start + count)
+            {
+                return h;
+            }
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Build the inputs for an <see cref="IGitWriteService"/> hunk apply
+    /// against the current file. Returns null if no file is loaded or the
+    /// underlying file is in a placeholder layer.
+    /// </summary>
+    public HunkPatchInputs? BuildHunkPatchInputs(DiffHunk hunk)
+    {
+        if (_currentEntry is null) return null;
+        return new HunkPatchInputs(
+            FilePath: _currentEntry.Change.Path,
+            Hunk: hunk,
+            LeftSource: _cachedLeftText,
+            RightSource: _cachedRightText);
+    }
+
+    /// <summary>The file currently shown in the diff pane (null if none).</summary>
+    public FileEntryViewModel? CurrentEntry => _currentEntry;
+
+    /// <summary>
+    /// Updates the per-pane "what was right-clicked" snapshot and the
+    /// derived visibility flags below. Called by the View on
+    /// <c>ContextMenuOpening</c> for each editor.
+    /// </summary>
+    public void UpdateRightClickContext(HunkActionContext ctx)
+    {
+        RightClickContext = ctx;
+        var hunk = HunkAtLine(ctx.Side, ctx.OneBasedLine);
+        var layer = _currentEntry?.Change.Layer;
+
+        IsCaretInHunk = hunk is not null;
+        CanStageHunkAtCaret  = hunk is not null && layer == WorkingTreeLayer.Unstaged;
+        CanUnstageHunkAtCaret = hunk is not null && layer == WorkingTreeLayer.Staged;
+        CanRevertHunkAtCaret  = hunk is not null && layer == WorkingTreeLayer.Unstaged;
+    }
+
+    /// <summary>Most recent right-click snapshot; bound by MenuItem.CommandParameter.</summary>
+    [ObservableProperty]
+    private HunkActionContext? _rightClickContext;
+
+    [ObservableProperty] private bool _isCaretInHunk;
+    [ObservableProperty] private bool _canStageHunkAtCaret;
+    [ObservableProperty] private bool _canUnstageHunkAtCaret;
+    [ObservableProperty] private bool _canRevertHunkAtCaret;
 }
 
 public sealed record HunkNavigationEventArgs(int HunkIndex, int LeftLine, int RightLine);

@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Windows.Controls;
 using DiffViewer.Rendering;
+using DiffViewer.Services;
 using DiffViewer.ViewModels;
 using ICSharpCode.AvalonEdit;
 using ICSharpCode.AvalonEdit.Document;
@@ -138,6 +139,34 @@ public partial class DiffPaneView : UserControl
             ApplyVisibleWhitespace();
         }
     }
+
+    /// <summary>
+    /// Stash the right-click target line + side on the ContextMenu's
+    /// <c>Tag</c> as a <see cref="HunkActionContext"/> so each MenuItem's
+    /// <c>CommandParameter</c> binding can pick it up. Run also evaluates
+    /// per-hunk-action visibility flags on the pane VM so the menu items
+    /// hide cleanly when the caret isn't in a hunk.
+    /// </summary>
+    private void HandleEditorContextMenuOpening(TextEditor editor, ChangeSide side, ContextMenuEventArgs e)
+    {
+        if (editor.ContextMenu is null || _vm is null) return;
+        int line = editor.TextArea.Caret.Line; // 1-based
+        var ctx = new HunkActionContext(side, line);
+        editor.ContextMenu.Tag = ctx;
+
+        // Push state into the pane VM so the visibility bindings update
+        // before the menu actually pops up.
+        _vm.UpdateRightClickContext(ctx);
+    }
+
+    private void OnLeftEditorContextMenuOpening(object sender, ContextMenuEventArgs e) =>
+        HandleEditorContextMenuOpening(LeftEditor, ChangeSide.Left, e);
+
+    private void OnRightEditorContextMenuOpening(object sender, ContextMenuEventArgs e) =>
+        HandleEditorContextMenuOpening(RightEditor, ChangeSide.Right, e);
+
+    private void OnInlineEditorContextMenuOpening(object sender, ContextMenuEventArgs e) =>
+        HandleEditorContextMenuOpening(InlineEditor, ChangeSide.Right, e);
 
     private void ApplyHighlightMap()
     {
