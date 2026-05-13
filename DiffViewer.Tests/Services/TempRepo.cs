@@ -23,6 +23,13 @@ internal sealed class TempRepo : IDisposable
             "diffviewer-test-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_tempPath);
         Repository.Init(_tempPath);
+
+        // Pin core.autocrlf=false so tests get byte-exact line endings
+        // regardless of the user's global git config (Git for Windows
+        // installer default is autocrlf=true, which would confuse round-
+        // trip assertions in GitWriteServiceTests).
+        using var repo = new Repository(_tempPath);
+        repo.Config.Set("core.autocrlf", "false");
     }
 
     public void WriteFile(string relativePath, string content, Encoding? encoding = null)

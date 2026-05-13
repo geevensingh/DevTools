@@ -76,7 +76,8 @@ internal static class CompositionRoot
         var vm = new MainViewModel(
             repo, parsed.Left, parsed.Right, diffService, watcher,
             preDiffPass: preDiffPass,
-            settingsService: settingsService);
+            settingsService: settingsService,
+            gitWriteService: new GitWriteService());
         vm.LoadInitialChanges();
         return vm;
     }
