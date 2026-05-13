@@ -44,7 +44,8 @@ internal static class CompositionRoot
         }
 
         error = null;
-        var vm = new MainViewModel(repo, parsed.Left, parsed.Right);
+        var diffService = new DiffService();
+        var vm = new MainViewModel(repo, parsed.Left, parsed.Right, diffService);
         vm.LoadInitialChanges();
         return vm;
     }

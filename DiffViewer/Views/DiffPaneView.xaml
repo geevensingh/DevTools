@@ -14,70 +14,93 @@
         <SolidColorBrush x:Key="GutterBgBrush"   Color="#F5F5F5"/>
         <SolidColorBrush x:Key="PlaceholderFg"   Color="#666"/>
         <SolidColorBrush x:Key="DividerBrush"    Color="#DDDDDD"/>
+        <SolidColorBrush x:Key="BannerBgBrush"   Color="#FFF8E1"/>
+        <SolidColorBrush x:Key="BannerFgBrush"   Color="#5C4500"/>
+        <SolidColorBrush x:Key="BannerBorder"    Color="#E8C46A"/>
     </UserControl.Resources>
 
     <Grid>
-        <!-- Two-editor view (visible when no placeholder) -->
-        <Grid Visibility="{Binding ShowEditors, Converter={x:Static vm:BoolToVisibilityConverter.Instance}}">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="5"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
-            <avalon:TextEditor x:Name="LeftEditor"
-                               Grid.Column="0"
-                               Document="{Binding LeftDocument, Mode=OneWay}"
-                               IsReadOnly="True"
-                               ShowLineNumbers="True"
-                               FontFamily="Consolas"
-                               FontSize="12"
-                               WordWrap="False"
-                               Background="{StaticResource EditorBgBrush}"
-                               HorizontalScrollBarVisibility="Auto"
-                               VerticalScrollBarVisibility="Auto"/>
+        <!-- Whitespace-only banner (visible only when the file differs only in whitespace) -->
+        <Border Grid.Row="0"
+                Background="{StaticResource BannerBgBrush}"
+                BorderBrush="{StaticResource BannerBorder}"
+                BorderThickness="0,0,0,1"
+                Padding="12,6"
+                Visibility="{Binding IsWhitespaceOnlyBannerVisible, Converter={x:Static vm:BoolToVisibilityConverter.Instance}}">
+            <TextBlock Foreground="{StaticResource BannerFgBrush}"
+                       FontFamily="Segoe UI"
+                       FontSize="12"
+                       Text="Files differ only in whitespace. Ignore whitespace is on."/>
+        </Border>
 
-            <GridSplitter Grid.Column="1"
-                          Width="5"
-                          HorizontalAlignment="Stretch"
-                          VerticalAlignment="Stretch"
-                          Background="{StaticResource DividerBrush}"/>
+        <Grid Grid.Row="1">
+            <!-- Two-editor view (visible when no placeholder) -->
+            <Grid Visibility="{Binding ShowEditors, Converter={x:Static vm:BoolToVisibilityConverter.Instance}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="5"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
 
-            <avalon:TextEditor x:Name="RightEditor"
-                               Grid.Column="2"
-                               Document="{Binding RightDocument, Mode=OneWay}"
-                               IsReadOnly="True"
-                               ShowLineNumbers="True"
-                               FontFamily="Consolas"
-                               FontSize="12"
-                               WordWrap="False"
-                               Background="{StaticResource EditorBgBrush}"
-                               HorizontalScrollBarVisibility="Auto"
-                               VerticalScrollBarVisibility="Auto"/>
+                <avalon:TextEditor x:Name="LeftEditor"
+                                   Grid.Column="0"
+                                   Document="{Binding LeftDocument, Mode=OneWay}"
+                                   IsReadOnly="True"
+                                   ShowLineNumbers="True"
+                                   FontFamily="Consolas"
+                                   FontSize="12"
+                                   WordWrap="False"
+                                   Background="{StaticResource EditorBgBrush}"
+                                   HorizontalScrollBarVisibility="Auto"
+                                   VerticalScrollBarVisibility="Auto"/>
+
+                <GridSplitter Grid.Column="1"
+                              Width="5"
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Stretch"
+                              Background="{StaticResource DividerBrush}"/>
+
+                <avalon:TextEditor x:Name="RightEditor"
+                                   Grid.Column="2"
+                                   Document="{Binding RightDocument, Mode=OneWay}"
+                                   IsReadOnly="True"
+                                   ShowLineNumbers="True"
+                                   FontFamily="Consolas"
+                                   FontSize="12"
+                                   WordWrap="False"
+                                   Background="{StaticResource EditorBgBrush}"
+                                   HorizontalScrollBarVisibility="Auto"
+                                   VerticalScrollBarVisibility="Auto"/>
+            </Grid>
+
+            <!-- Placeholder view (binary / LFS / submodule / "select a file" / load error) -->
+            <Border Visibility="{Binding ShowPlaceholder, Converter={x:Static vm:BoolToVisibilityConverter.Instance}}"
+                    Background="White"
+                    Padding="40">
+                <TextBlock Text="{Binding PlaceholderMessage}"
+                           Foreground="{StaticResource PlaceholderFg}"
+                           FontFamily="Consolas"
+                           FontSize="13"
+                           TextWrapping="Wrap"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"/>
+            </Border>
+
+            <!-- Loading overlay -->
+            <Border Visibility="{Binding IsLoading, Converter={x:Static vm:BoolToVisibilityConverter.Instance}}"
+                    Background="#80FFFFFF"
+                    IsHitTestVisible="False">
+                <TextBlock Text="Loading..."
+                           Foreground="#666"
+                           FontFamily="Consolas"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"/>
+            </Border>
         </Grid>
-
-        <!-- Placeholder view (binary / LFS / submodule / "select a file" / load error) -->
-        <Border Visibility="{Binding ShowPlaceholder, Converter={x:Static vm:BoolToVisibilityConverter.Instance}}"
-                Background="White"
-                Padding="40">
-            <TextBlock Text="{Binding PlaceholderMessage}"
-                       Foreground="{StaticResource PlaceholderFg}"
-                       FontFamily="Consolas"
-                       FontSize="13"
-                       TextWrapping="Wrap"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Center"/>
-        </Border>
-
-        <!-- Loading overlay -->
-        <Border Visibility="{Binding IsLoading, Converter={x:Static vm:BoolToVisibilityConverter.Instance}}"
-                Background="#80FFFFFF"
-                IsHitTestVisible="False">
-            <TextBlock Text="Loading..."
-                       Foreground="#666"
-                       FontFamily="Consolas"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Center"/>
-        </Border>
     </Grid>
 </UserControl>

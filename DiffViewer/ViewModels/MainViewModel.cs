@@ -22,14 +22,14 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private string _windowTitle = "DiffViewer";
 
-    public MainViewModel(IRepositoryService repository, DiffSide left, DiffSide right)
+    public MainViewModel(IRepositoryService repository, DiffSide left, DiffSide right, IDiffService? diffService = null)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         _left = left ?? throw new ArgumentNullException(nameof(left));
         _right = right ?? throw new ArgumentNullException(nameof(right));
         _isCommitVsCommit = left is DiffSide.CommitIsh && right is DiffSide.CommitIsh;
 
-        DiffPane = new DiffPaneViewModel(_repository);
+        DiffPane = new DiffPaneViewModel(_repository, diffService);
 
         WindowTitle = $"DiffViewer — {repository.Shape.RepoRoot} ({left} ⇢ {right})";
 

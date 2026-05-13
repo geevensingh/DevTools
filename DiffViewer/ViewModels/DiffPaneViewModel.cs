@@ -1,25 +1,47 @@
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using DiffViewer.Models;
+using DiffViewer.Rendering;
 using DiffViewer.Services;
 using ICSharpCode.AvalonEdit.Document;
 
 namespace DiffViewer.ViewModels;
 
 /// <summary>
-/// Backs the right-pane skeleton view: two AvalonEdit documents (left/right
-/// blob text) plus a placeholder message for binary / LFS / submodule /
-/// mode-only / sparse-not-checked-out / load-error cases. Hunk rendering,
-/// the toolbar toggles, and the whitespace-only banner are added in later
-/// phases — this VM only owns the raw text + placeholder state.
+/// Backs the right-pane view: two AvalonEdit documents (left/right blob
+/// text), a placeholder message for binary / LFS / submodule / mode-only /
+/// sparse-not-checked-out / load-error cases, the per-side line highlight
+/// maps consumed by <see cref="DiffBackgroundRenderer"/> and
+/// <see cref="IntraLineColorizer"/>, and the whitespace-only banner.
 /// </summary>
 public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
 {
     private readonly IRepositoryService _repository;
+    private readonly IDiffService? _diffService;
     private CancellationTokenSource? _loadCts;
 
     public TextDocument LeftDocument { get; } = new();
     public TextDocument RightDocument { get; } = new();
+
+    /// <summary>
+    /// Per-side line highlights for the currently-loaded file. Refreshed
+    /// after every load (and, in later phases, every toolbar option change).
+    /// The view subscribes to <c>HighlightMapChanged</c> to refresh its
+    /// renderers.
+    /// </summary>
+    public DiffHighlightMap HighlightMap { get; private set; } = DiffHighlightMap.Empty;
+
+    /// <summary>
+    /// Raised on the UI thread after <see cref="HighlightMap"/> is replaced.
+    /// The view re-points its renderers and triggers a redraw.
+    /// </summary>
+    public event EventHandler? HighlightMapChanged;
+
+    [ObservableProperty]
+    private bool _isWhitespaceOnlyBannerVisible;
+
+    [ObservableProperty]
+    private DiffOptions _diffOptions = new();
 
     /// <summary>
     /// Non-null when the diff pane should show its placeholder chrome instead
@@ -38,9 +60,10 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
     /// <summary>True when both editors should be visible (no placeholder).</summary>
     public bool ShowEditors => PlaceholderMessage is null;
 
-    public DiffPaneViewModel(IRepositoryService repository)
+    public DiffPaneViewModel(IRepositoryService repository, IDiffService? diffService = null)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+        _diffService = diffService;
     }
 
     /// <summary>
@@ -55,7 +78,7 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
 
         if (entry is null)
         {
-            ApplyResult(string.Empty, string.Empty, "Select a file to see its diff.");
+            ApplyResult(string.Empty, string.Empty, "Select a file to see its diff.", DiffHighlightMap.Empty, false);
             return Task.CompletedTask;
         }
 
@@ -63,28 +86,57 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
         var earlyPlaceholder = ResolvePlaceholderForShape(change);
         if (earlyPlaceholder is not null)
         {
-            ApplyResult(string.Empty, string.Empty, earlyPlaceholder);
+            ApplyResult(string.Empty, string.Empty, earlyPlaceholder, DiffHighlightMap.Empty, false);
             return Task.CompletedTask;
         }
 
         IsLoading = true;
+        var options = DiffOptions;
         return Task.Run(() =>
         {
             string left = SafeReadSide(change, ChangeSide.Left);
             string right = SafeReadSide(change, ChangeSide.Right);
-            return (left, right);
+
+            DiffHighlightMap map = DiffHighlightMap.Empty;
+            bool whitespaceOnly = false;
+
+            if (_diffService is not null)
+            {
+                var computation = _diffService.ComputeDiff(left, right, options);
+                map = DiffHighlightMap.FromHunks(
+                    computation.Hunks,
+                    _diffService,
+                    enableIntraLine: true,
+                    ignoreWhitespace: options.IgnoreWhitespace);
+
+                // Whitespace-only banner: zero visible hunks under current
+                // options, but a re-probe with whitespace honoured shows
+                // there *would* be differences without the filter.
+                if (options.IgnoreWhitespace && computation.Hunks.Count == 0)
+                {
+                    whitespaceOnly = _diffService.HasVisibleDifferences(
+                        left, right, options with { IgnoreWhitespace = false });
+                }
+            }
+
+            return (left, right, map, whitespaceOnly);
         }, ct).ContinueWith(t =>
         {
             if (ct.IsCancellationRequested) return;
 
             if (t.IsFaulted)
             {
-                ApplyResult(string.Empty, string.Empty, $"Failed to read blobs: {t.Exception?.GetBaseException().Message}");
+                ApplyResult(
+                    string.Empty,
+                    string.Empty,
+                    $"Failed to read blobs: {t.Exception?.GetBaseException().Message}",
+                    DiffHighlightMap.Empty,
+                    false);
             }
             else
             {
-                var (left, right) = t.Result;
-                ApplyResult(left, right, null);
+                var (left, right, map, ws) = t.Result;
+                ApplyResult(left, right, null, map, ws);
             }
 
             IsLoading = false;
@@ -129,21 +181,30 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>
-    /// Apply the load result to the documents and the placeholder field.
-    /// <see cref="TextDocument"/> is a <c>DispatcherObject</c> so the
-    /// assignment must run on the UI thread; we marshal if necessary.
+    /// Apply the load result to the documents, highlight map, banner and
+    /// placeholder fields. <see cref="TextDocument"/> is a
+    /// <c>DispatcherObject</c> so the assignment must run on the UI
+    /// thread; we marshal if necessary.
     /// </summary>
-    private void ApplyResult(string left, string right, string? placeholder)
+    private void ApplyResult(
+        string left,
+        string right,
+        string? placeholder,
+        DiffHighlightMap highlightMap,
+        bool whitespaceOnly)
     {
         if (Application.Current is { Dispatcher: { } d } && !d.CheckAccess())
         {
-            d.BeginInvoke(() => ApplyResult(left, right, placeholder));
+            d.BeginInvoke(() => ApplyResult(left, right, placeholder, highlightMap, whitespaceOnly));
             return;
         }
 
         LeftDocument.Text = left;
         RightDocument.Text = right;
         PlaceholderMessage = placeholder;
+        HighlightMap = highlightMap;
+        IsWhitespaceOnlyBannerVisible = whitespaceOnly;
+        HighlightMapChanged?.Invoke(this, EventArgs.Empty);
     }
 
     partial void OnPlaceholderMessageChanged(string? value)

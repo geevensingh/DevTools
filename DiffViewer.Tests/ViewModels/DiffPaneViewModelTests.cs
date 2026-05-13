@@ -133,6 +133,109 @@ public class DiffPaneViewModelTests
         showPlaceholder.Should().BeFalse();
     }
 
+    [Fact]
+    public async Task LoadAsync_TextFile_WithDiffService_PopulatesHighlightMap()
+    {
+        var repo = new FakeRepository
+        {
+            LeftText = "alpha\nbeta\n",
+            RightText = "alpha\nBETA\n",
+        };
+        var diff = new DiffService();
+
+        int leftLineCount = 0;
+        int rightLineCount = 0;
+        int eventFireCount = 0;
+
+        await RunOnUiSyncContextAsync(async () =>
+        {
+            var vm = new DiffPaneViewModel(repo, diff);
+            vm.HighlightMapChanged += (_, _) => eventFireCount++;
+            await vm.LoadAsync(Entry(ModifiedTextFile("a.cs")));
+            leftLineCount = vm.HighlightMap.LeftLines.Count;
+            rightLineCount = vm.HighlightMap.RightLines.Count;
+        });
+
+        leftLineCount.Should().BeGreaterThan(0);
+        rightLineCount.Should().BeGreaterThan(0);
+        eventFireCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task LoadAsync_WhitespaceOnlyDiff_WithIgnoreWhitespace_ShowsBanner()
+    {
+        var repo = new FakeRepository
+        {
+            LeftText = "alpha\nbeta\n",
+            RightText = "alpha   \nbeta\n",
+        };
+        var diff = new DiffService();
+
+        bool? bannerVisible = null;
+        int? hunkCount = null;
+        await RunOnUiSyncContextAsync(async () =>
+        {
+            var vm = new DiffPaneViewModel(repo, diff)
+            {
+                DiffOptions = new DiffOptions(IgnoreWhitespace: true),
+            };
+            await vm.LoadAsync(Entry(ModifiedTextFile("a.cs")));
+            bannerVisible = vm.IsWhitespaceOnlyBannerVisible;
+            hunkCount = vm.HighlightMap.LeftLines.Count + vm.HighlightMap.RightLines.Count;
+        });
+
+        bannerVisible.Should().BeTrue();
+        hunkCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task LoadAsync_WhitespaceOnlyDiff_WithoutIgnoreWhitespace_HidesBanner()
+    {
+        var repo = new FakeRepository
+        {
+            LeftText = "alpha\nbeta\n",
+            RightText = "alpha   \nbeta\n",
+        };
+        var diff = new DiffService();
+
+        bool? bannerVisible = null;
+        await RunOnUiSyncContextAsync(async () =>
+        {
+            var vm = new DiffPaneViewModel(repo, diff)
+            {
+                DiffOptions = new DiffOptions(IgnoreWhitespace: false),
+            };
+            await vm.LoadAsync(Entry(ModifiedTextFile("a.cs")));
+            bannerVisible = vm.IsWhitespaceOnlyBannerVisible;
+        });
+
+        bannerVisible.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task LoadAsync_NoActualDifference_DoesNotShowBanner()
+    {
+        var repo = new FakeRepository
+        {
+            LeftText = "alpha\nbeta\n",
+            RightText = "alpha\nbeta\n",
+        };
+        var diff = new DiffService();
+
+        bool? bannerVisible = null;
+        await RunOnUiSyncContextAsync(async () =>
+        {
+            var vm = new DiffPaneViewModel(repo, diff)
+            {
+                DiffOptions = new DiffOptions(IgnoreWhitespace: true),
+            };
+            await vm.LoadAsync(Entry(ModifiedTextFile("a.cs")));
+            bannerVisible = vm.IsWhitespaceOnlyBannerVisible;
+        });
+
+        bannerVisible.Should().BeFalse();
+    }
+
     /// <summary>
     /// DiffPaneViewModel.LoadAsync uses TaskScheduler.FromCurrentSynchronizationContext()
     /// for its continuation; awaiting it from a plain xunit thread without a
