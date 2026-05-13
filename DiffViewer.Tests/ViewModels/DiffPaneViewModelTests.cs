@@ -101,6 +101,67 @@ public class DiffPaneViewModelTests
     }
 
     [Fact]
+    public async Task LoadAsync_FileExceedingThreshold_ShowsTooLargePlaceholder()
+    {
+        var repo = new FakeRepository { LeftText = "x", RightText = "y" };
+        var settings = new InMemorySettingsServiceForPane(new AppSettings { LargeFileThresholdBytes = 1024 });
+        var vm = new DiffPaneViewModel(repo, settingsService: settings);
+
+        var change = ModifiedTextFile("huge.bin") with
+        {
+            LeftFileSizeBytes = 5L * 1024 * 1024,
+            RightFileSizeBytes = 5L * 1024 * 1024,
+        };
+
+        await vm.LoadAsync(Entry(change));
+
+        vm.ShowPlaceholder.Should().BeTrue();
+        vm.PlaceholderMessage.Should().Contain("too large");
+        repo.ReadCount.Should().Be(0, "we should not read blobs above the threshold");
+    }
+
+    [Fact]
+    public async Task LoadAsync_FileBelowThreshold_DoesNotTriggerTooLargePlaceholder()
+    {
+        var repo = new FakeRepository { LeftText = "alpha\n", RightText = "beta\n" };
+        var settings = new InMemorySettingsServiceForPane(new AppSettings { LargeFileThresholdBytes = 1024 * 1024 });
+
+        await RunOnUiSyncContextAsync(async () =>
+        {
+            var vm = new DiffPaneViewModel(repo, new DiffService(), settingsService: settings);
+            var change = ModifiedTextFile("small.cs") with
+            {
+                LeftFileSizeBytes = 32,
+                RightFileSizeBytes = 32,
+            };
+
+            await vm.LoadAsync(Entry(change));
+
+            vm.PlaceholderMessage.Should().BeNull();
+        });
+    }
+
+    private sealed class InMemorySettingsServiceForPane : ISettingsService
+    {
+        private AppSettings _current;
+        public InMemorySettingsServiceForPane(AppSettings initial) => _current = initial;
+        public AppSettings Current => _current;
+        public SettingsLoadOutcome LastLoadOutcome => SettingsLoadOutcome.Loaded;
+        public event EventHandler<SettingsChangedEventArgs>? Changed;
+        public void Save(AppSettings updated)
+        {
+            var prev = _current;
+            _current = updated;
+            Changed?.Invoke(this, new SettingsChangedEventArgs(prev, _current));
+        }
+        public AppSettings Update(Func<AppSettings, AppSettings> mutate)
+        {
+            Save(mutate(_current));
+            return _current;
+        }
+    }
+
+    [Fact]
     public async Task LoadAsync_TextFile_PopulatesBothDocuments()
     {
         var repo = new FakeRepository

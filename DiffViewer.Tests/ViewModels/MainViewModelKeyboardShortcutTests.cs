@@ -483,6 +483,27 @@ public class MainViewModelKeyboardShortcutTests
         hookFired.Should().Be(1);
     }
 
+    [Fact]
+    public void WindowTitle_FormatsWorkingTreeAsHumanFriendlyString()
+    {
+        using var fixture = new KeyboardFixture();
+
+        // Default fixture is working tree -> HEAD.
+        fixture.Vm.WindowTitle.Should().Contain("working tree");
+        fixture.Vm.WindowTitle.Should().Contain("HEAD");
+        fixture.Vm.WindowTitle.Should().NotContain("<working-tree>",
+            "the angle-bracketed sentinel from DiffSide.WorkingTree.ToString() should not appear in the title bar");
+    }
+
+    [Fact]
+    public void WindowTitle_FormatsCommitVsCommit_WithBothRefs()
+    {
+        using var fixture = new KeyboardFixture(commitVsCommit: true);
+
+        fixture.Vm.WindowTitle.Should().Contain("HEAD~1");
+        fixture.Vm.WindowTitle.Should().Contain("HEAD");
+    }
+
     // ===================== Helpers =====================
 
     private sealed class KeyboardFixture : IDisposable

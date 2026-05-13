@@ -462,7 +462,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         FileList = new FileListViewModel(settingsService);
         DiffPane = new DiffPaneViewModel(_repository, diffService, _isCommitVsCommit, settingsService);
 
-        WindowTitle = $"DiffViewer — {repository.Shape.RepoRoot} ({left} ⇢ {right})";
+        WindowTitle = $"DiffViewer — {repository.Shape.RepoRoot} ({FormatSideForTitle(left)} ⇢ {FormatSideForTitle(right)})";
 
         _repository.ChangeListUpdated += OnChangeListUpdated;
         FileList.PropertyChanged += OnFileListPropertyChanged;
@@ -488,6 +488,19 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         FileList.LoadFromChanges(changes, _repository.Shape.RepoRoot, _isCommitVsCommit);
         StartPreDiffPass();
     }
+
+    /// <summary>
+    /// Format a <see cref="DiffSide"/> for inclusion in the window title.
+    /// Renders <c>WorkingTree</c> as the human-friendly "working tree" string
+    /// rather than the bracketed sentinel <c>&lt;working-tree&gt;</c>, which
+    /// would clutter the title bar.
+    /// </summary>
+    private static string FormatSideForTitle(DiffSide side) => side switch
+    {
+        DiffSide.WorkingTree => "working tree",
+        DiffSide.CommitIsh c => c.Reference,
+        _ => side.ToString() ?? "?",
+    };
 
     /// <summary>
     /// Refresh the change list (re-enumerate). Public so F5 / write-op

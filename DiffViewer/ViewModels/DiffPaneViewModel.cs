@@ -199,7 +199,8 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
         }
 
         var change = entry.Change;
-        var earlyPlaceholder = ResolvePlaceholderForShape(change);
+        var earlyPlaceholder = ResolvePlaceholderForShape(change)
+            ?? ResolveLargeFilePlaceholder(change);
         if (earlyPlaceholder is not null)
         {
             ApplyResult(string.Empty, string.Empty, earlyPlaceholder,
@@ -301,6 +302,30 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
         if (change.Status == Models.FileStatus.Conflicted)
             return "Conflicted file - 3-way view will be implemented in a later phase.";
         return null;
+    }
+
+    private string? ResolveLargeFilePlaceholder(FileChange change)
+    {
+        var threshold = _settingsService?.Current.LargeFileThresholdBytes ?? long.MaxValue;
+        if (threshold <= 0) return null;
+
+        long? larger = null;
+        if (change.LeftFileSizeBytes is long l && l > threshold) larger = l;
+        if (change.RightFileSizeBytes is long r && r > threshold &&
+            (larger is null || r > larger.Value)) larger = r;
+        if (larger is null) return null;
+
+        return $"File too large to diff ({FormatBytes(larger.Value)}; threshold {FormatBytes(threshold)}). " +
+               "Adjust the limit in Settings if needed.";
+    }
+
+    private static string FormatBytes(long bytes)
+    {
+        const long Mb = 1024L * 1024;
+        const long Kb = 1024L;
+        if (bytes >= Mb) return $"{bytes / (double)Mb:0.##} MB";
+        if (bytes >= Kb) return $"{bytes / (double)Kb:0.##} KB";
+        return $"{bytes} B";
     }
 
     private static string ShortSha(string? sha) =>
