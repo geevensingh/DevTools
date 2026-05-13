@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:DiffViewer.ViewModels"
              xmlns:views="clr-namespace:DiffViewer.Views"
+             xmlns:rendering="clr-namespace:DiffViewer.Rendering"
              xmlns:avalon="http://icsharpcode.net/sharpdevelop/avalonedit"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -81,6 +82,7 @@
             <Grid Visibility="{Binding ShowSideBySide, Converter={x:Static vm:BoolToVisibilityConverter.Instance}}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="14"/>
                     <ColumnDefinition Width="5"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
@@ -100,14 +102,17 @@
                                    ContextMenuOpening="OnLeftEditorContextMenuOpening"
                                    Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}"/>
 
-                <GridSplitter Grid.Column="1"
+                <rendering:HunkOverviewBar Grid.Column="1"
+                                           UseInlineGeometry="False"/>
+
+                <GridSplitter Grid.Column="2"
                               Width="5"
                               HorizontalAlignment="Stretch"
                               VerticalAlignment="Stretch"
                               Background="{StaticResource DividerBrush}"/>
 
                 <avalon:TextEditor x:Name="RightEditor"
-                                   Grid.Column="2"
+                                   Grid.Column="3"
                                    Document="{Binding RightDocument, Mode=OneWay}"
                                    IsReadOnly="True"
                                    ShowLineNumbers="True"
@@ -123,20 +128,30 @@
             </Grid>
 
             <!-- Inline view (visible when no placeholder AND IsSideBySide=false) -->
-            <avalon:TextEditor x:Name="InlineEditor"
-                               Visibility="{Binding ShowInline, Converter={x:Static vm:BoolToVisibilityConverter.Instance}}"
-                               Document="{Binding InlineDocument, Mode=OneWay}"
-                               IsReadOnly="True"
-                               ShowLineNumbers="False"
-                               FontFamily="Consolas"
-                               FontSize="{Binding FontSize, Mode=OneWay}"
-                               WordWrap="False"
-                               Background="{StaticResource EditorBgBrush}"
-                               HorizontalScrollBarVisibility="Auto"
-                               VerticalScrollBarVisibility="Auto"
-                               ContextMenu="{StaticResource DiffEditorContextMenu}"
-                               ContextMenuOpening="OnInlineEditorContextMenuOpening"
-                               Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}"/>
+            <Grid Visibility="{Binding ShowInline, Converter={x:Static vm:BoolToVisibilityConverter.Instance}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="14"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <rendering:HunkOverviewBar Grid.Column="0"
+                                           UseInlineGeometry="True"/>
+
+                <avalon:TextEditor x:Name="InlineEditor"
+                                   Grid.Column="1"
+                                   Document="{Binding InlineDocument, Mode=OneWay}"
+                                   IsReadOnly="True"
+                                   ShowLineNumbers="False"
+                                   FontFamily="Consolas"
+                                   FontSize="{Binding FontSize, Mode=OneWay}"
+                                   WordWrap="False"
+                                   Background="{StaticResource EditorBgBrush}"
+                                   HorizontalScrollBarVisibility="Auto"
+                                   VerticalScrollBarVisibility="Auto"
+                                   ContextMenu="{StaticResource DiffEditorContextMenu}"
+                                   ContextMenuOpening="OnInlineEditorContextMenuOpening"
+                                   Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}"/>
+            </Grid>
 
             <!-- Placeholder view -->
             <Border Visibility="{Binding ShowPlaceholder, Converter={x:Static vm:BoolToVisibilityConverter.Instance}}"

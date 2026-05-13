@@ -519,6 +519,54 @@ public class DiffPaneViewModelTests
     }
 
     [Fact]
+    public async Task JumpToHunk_NavigatesToTheGivenIndexAndRaisesEvent()
+    {
+        var repo = new FakeRepository
+        {
+            LeftText = "one\ntwo\nthree\nfour\nfive\nsix\nseven\neight\n",
+            RightText = "ONE\ntwo\nthree\nfour\nfive\nsix\nseven\nEIGHT\n",
+        };
+        var diff = new DiffService();
+
+        int? visitedIndex = null;
+        int? hunkCount = null;
+        await RunOnUiSyncContextAsync(async () =>
+        {
+            var vm = new DiffPaneViewModel(repo, diff);
+            vm.HunkNavigationRequested += (_, args) => visitedIndex = args.HunkIndex;
+            await vm.LoadAsync(Entry(ModifiedTextFile("a.cs")));
+            hunkCount = vm.CurrentHunks.Count;
+            vm.JumpToHunk(0);
+        });
+
+        hunkCount.Should().BeGreaterThan(0);
+        visitedIndex.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task JumpToHunk_WithOutOfRangeIndex_DoesNothing()
+    {
+        var repo = new FakeRepository
+        {
+            LeftText = "one\ntwo\nthree\nfour\nfive\nsix\nseven\neight\n",
+            RightText = "ONE\ntwo\nthree\nfour\nfive\nsix\nseven\nEIGHT\n",
+        };
+        var diff = new DiffService();
+
+        bool eventFired = false;
+        await RunOnUiSyncContextAsync(async () =>
+        {
+            var vm = new DiffPaneViewModel(repo, diff);
+            await vm.LoadAsync(Entry(ModifiedTextFile("a.cs")));
+            vm.HunkNavigationRequested += (_, _) => eventFired = true;
+            vm.JumpToHunk(-1);
+            vm.JumpToHunk(int.MaxValue);
+        });
+
+        eventFired.Should().BeFalse();
+    }
+
+    [Fact]
     public async Task LoadAsync_TextFile_PopulatesInlineDocument()
     {
         var repo = new FakeRepository

@@ -555,6 +555,20 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
         RaiseHunkNav();
     }
 
+    /// <summary>
+    /// Move the caret to a specific hunk by index, raising the navigation
+    /// event. Called from <see cref="DiffViewer.Rendering.HunkOverviewBar"/>
+    /// when the user clicks a marker. Out-of-range indices are clamped to a
+    /// no-op rather than throwing — the overview bar's hit-test math can
+    /// briefly disagree with the VM's hunk list mid-reload.
+    /// </summary>
+    public void JumpToHunk(int index)
+    {
+        if (index < 0 || index >= _currentHunks.Count) return;
+        CurrentHunkIndex = index;
+        RaiseHunkNav();
+    }
+
     private void RaiseHunkNav()
     {
         if (CurrentHunkIndex < 0 || CurrentHunkIndex >= _currentHunks.Count) return;
