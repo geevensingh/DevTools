@@ -17,6 +17,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private readonly bool _isCommitVsCommit;
 
     public FileListViewModel FileList { get; } = new();
+    public DiffPaneViewModel DiffPane { get; }
 
     [ObservableProperty]
     private string _windowTitle = "DiffViewer";
@@ -28,9 +29,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _right = right ?? throw new ArgumentNullException(nameof(right));
         _isCommitVsCommit = left is DiffSide.CommitIsh && right is DiffSide.CommitIsh;
 
+        DiffPane = new DiffPaneViewModel(_repository);
+
         WindowTitle = $"DiffViewer — {repository.Shape.RepoRoot} ({left} ⇢ {right})";
 
         _repository.ChangeListUpdated += OnChangeListUpdated;
+        FileList.PropertyChanged += OnFileListPropertyChanged;
     }
 
     /// <summary>Trigger the initial change-list load (called once at startup).</summary>
@@ -38,6 +42,13 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     {
         var changes = _repository.EnumerateChanges(_left, _right);
         FileList.LoadFromChanges(changes, _repository.Shape.RepoRoot, _isCommitVsCommit);
+    }
+
+    private void OnFileListPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(FileListViewModel.SelectedEntry)) return;
+        // Fire-and-forget: the VM serialises in-flight loads via its own CTS.
+        _ = DiffPane.LoadAsync(FileList.SelectedEntry);
     }
 
     private void OnChangeListUpdated(object? sender, ChangeListUpdatedEventArgs e)
@@ -54,7 +65,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
+        FileList.PropertyChanged -= OnFileListPropertyChanged;
         _repository.ChangeListUpdated -= OnChangeListUpdated;
+        DiffPane.Dispose();
         _repository.Dispose();
     }
 }

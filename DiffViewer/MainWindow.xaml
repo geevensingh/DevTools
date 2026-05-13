@@ -28,18 +28,8 @@
                       Background="#DDDDDD"/>
 
         <Border Grid.Column="2"
-                Background="White"
-                Padding="20">
-            <TextBlock TextWrapping="Wrap"
-                       Foreground="#666"
-                       FontFamily="Consolas"
-                       FontSize="13">
-                <Run Text="Selected: "/>
-                <Run Text="{Binding FileList.SelectedEntry.RepoRelativePath, FallbackValue='(none)', TargetNullValue='(none)'}"/>
-                <LineBreak/>
-                <LineBreak/>
-                <Run Text="Right-pane diff view will be implemented in the next phase." Foreground="#999"/>
-            </TextBlock>
+                Background="White">
+            <views:DiffPaneView DataContext="{Binding DiffPane}"/>
         </Border>
     </Grid>
 </Window>

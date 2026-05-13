@@ -1,0 +1,83 @@
+<UserControl x:Class="DiffViewer.Views.DiffPaneView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:DiffViewer.ViewModels"
+             xmlns:avalon="http://icsharpcode.net/sharpdevelop/avalonedit"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             d:DataContext="{d:DesignInstance Type=vm:DiffPaneViewModel}"
+             mc:Ignorable="d"
+             Background="White">
+
+    <UserControl.Resources>
+        <SolidColorBrush x:Key="EditorBgBrush"   Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="GutterBgBrush"   Color="#F5F5F5"/>
+        <SolidColorBrush x:Key="PlaceholderFg"   Color="#666"/>
+        <SolidColorBrush x:Key="DividerBrush"    Color="#DDDDDD"/>
+    </UserControl.Resources>
+
+    <Grid>
+        <!-- Two-editor view (visible when no placeholder) -->
+        <Grid Visibility="{Binding ShowEditors, Converter={x:Static vm:BoolToVisibilityConverter.Instance}}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="5"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <avalon:TextEditor x:Name="LeftEditor"
+                               Grid.Column="0"
+                               Document="{Binding LeftDocument, Mode=OneWay}"
+                               IsReadOnly="True"
+                               ShowLineNumbers="True"
+                               FontFamily="Consolas"
+                               FontSize="12"
+                               WordWrap="False"
+                               Background="{StaticResource EditorBgBrush}"
+                               HorizontalScrollBarVisibility="Auto"
+                               VerticalScrollBarVisibility="Auto"/>
+
+            <GridSplitter Grid.Column="1"
+                          Width="5"
+                          HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch"
+                          Background="{StaticResource DividerBrush}"/>
+
+            <avalon:TextEditor x:Name="RightEditor"
+                               Grid.Column="2"
+                               Document="{Binding RightDocument, Mode=OneWay}"
+                               IsReadOnly="True"
+                               ShowLineNumbers="True"
+                               FontFamily="Consolas"
+                               FontSize="12"
+                               WordWrap="False"
+                               Background="{StaticResource EditorBgBrush}"
+                               HorizontalScrollBarVisibility="Auto"
+                               VerticalScrollBarVisibility="Auto"/>
+        </Grid>
+
+        <!-- Placeholder view (binary / LFS / submodule / "select a file" / load error) -->
+        <Border Visibility="{Binding ShowPlaceholder, Converter={x:Static vm:BoolToVisibilityConverter.Instance}}"
+                Background="White"
+                Padding="40">
+            <TextBlock Text="{Binding PlaceholderMessage}"
+                       Foreground="{StaticResource PlaceholderFg}"
+                       FontFamily="Consolas"
+                       FontSize="13"
+                       TextWrapping="Wrap"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"/>
+        </Border>
+
+        <!-- Loading overlay -->
+        <Border Visibility="{Binding IsLoading, Converter={x:Static vm:BoolToVisibilityConverter.Instance}}"
+                Background="#80FFFFFF"
+                IsHitTestVisible="False">
+            <TextBlock Text="Loading..."
+                       Foreground="#666"
+                       FontFamily="Consolas"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"/>
+        </Border>
+    </Grid>
+</UserControl>
