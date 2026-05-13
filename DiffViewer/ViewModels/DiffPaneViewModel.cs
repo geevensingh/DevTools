@@ -301,7 +301,10 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
         var computation = _diffService.ComputeDiff(left, right, options);
         var map = DiffHighlightMap.FromHunks(
             computation.Hunks, _diffService, intraLineEnabled, options.IgnoreWhitespace);
-        var inline = InlineDiffBuilder.Build(computation.Hunks);
+        // Inline-mode view shows the FULL file with hunks woven in (not the
+        // 3-line-context summary that Build emits) so the user can read the
+        // surrounding code, matching what side-by-side already shows.
+        var inline = InlineDiffBuilder.BuildFullFile(left, right, computation.Hunks);
 
         bool whitespaceOnly = false;
         if (options.IgnoreWhitespace && computation.Hunks.Count == 0)

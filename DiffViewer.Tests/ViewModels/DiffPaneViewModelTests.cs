@@ -539,7 +539,13 @@ public class DiffPaneViewModelTests
         });
 
         inlineText.Should().NotBeNullOrEmpty();
-        inlineText.Should().Contain("@@");
+        // Full-file inline view: `alpha` survives as context, `beta` is
+        // removed (-), `gamma` is inserted (+). No @@ headers — that's
+        // the BuildFullFile contract that fixed the screenshot bug.
+        inlineText.Should().Contain("alpha");
+        inlineText.Should().Contain("-beta");
+        inlineText.Should().Contain("+gamma");
+        inlineText.Should().NotContain("@@");
         lineKindCount.Should().BeGreaterThan(0);
     }
 
