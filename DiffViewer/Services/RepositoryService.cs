@@ -208,6 +208,29 @@ public sealed class RepositoryService : IRepositoryService
         }
     }
 
+    public bool IsPathIgnored(string repoRelativeForwardSlashPath)
+    {
+        if (string.IsNullOrEmpty(repoRelativeForwardSlashPath)) return false;
+        try
+        {
+            lock (_lock)
+            {
+                // LibGit2Sharp.Ignore.IsPathIgnored handles core.excludesFile,
+                // .git/info/exclude, AND every nested .gitignore with the
+                // same precedence as `git check-ignore`. Hand-rolling this
+                // would miss the global file at minimum.
+                return _repo.Ignore.IsPathIgnored(repoRelativeForwardSlashPath);
+            }
+        }
+        catch
+        {
+            // Repo lost while resolving - safest to treat as not-ignored
+            // so the watcher still fires; the next refresh will surface
+            // the loss.
+            return false;
+        }
+    }
+
     // --------- enumeration internals ---------
 
     private List<FileChange> EnumerateCommitVsCommit(string leftRef, string rightRef)

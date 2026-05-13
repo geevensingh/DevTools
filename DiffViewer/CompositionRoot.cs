@@ -45,7 +45,29 @@ internal static class CompositionRoot
 
         error = null;
         var diffService = new DiffService();
-        var vm = new MainViewModel(repo, parsed.Left, parsed.Right, diffService);
+
+        // Construct the watcher only when at least one side is the working
+        // tree. Commit-vs-commit comparisons can't change.
+        IRepositoryWatcher? watcher = null;
+        bool isCommitVsCommit = parsed.Left is DiffSide.CommitIsh && parsed.Right is DiffSide.CommitIsh;
+        if (!isCommitVsCommit && repo.Shape.WorkingDirectory is { } workingDir)
+        {
+            try
+            {
+                watcher = new RepositoryWatcher(
+                    workingDir,
+                    repo.Shape.GitDir,
+                    repo.IsPathIgnored);
+            }
+            catch
+            {
+                // If FSW construction fails (rare; e.g. permissions), fall
+                // back to no live updates rather than refusing to launch.
+                watcher = null;
+            }
+        }
+
+        var vm = new MainViewModel(repo, parsed.Left, parsed.Right, diffService, watcher);
         vm.LoadInitialChanges();
         return vm;
     }

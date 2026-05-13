@@ -62,6 +62,16 @@ public interface IRepositoryService : IDisposable
     /// <summary>Atomic snapshot of the current change list under the same lock that wires up the subscription.</summary>
     (IReadOnlyList<FileChange> Snapshot, IDisposable Subscription) SnapshotAndSubscribe(
         EventHandler<ChangeListUpdatedEventArgs> handler);
+
+    /// <summary>
+    /// True if the supplied repo-relative forward-slash path is ignored
+    /// per the repo's <c>.gitignore</c> rules (including
+    /// <c>core.excludesFile</c> and any nested <c>.gitignore</c> files).
+    /// Used by the watcher to drop noise from <c>bin\</c>, <c>obj\</c>,
+    /// <c>node_modules\</c>, etc. Returns <c>false</c> if the repo is
+    /// inaccessible.
+    /// </summary>
+    bool IsPathIgnored(string repoRelativeForwardSlashPath);
 }
 
 /// <summary>Which side of a <see cref="FileChange"/> to read.</summary>

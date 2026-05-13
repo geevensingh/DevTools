@@ -481,6 +481,7 @@ public class DiffPaneViewModelTests
         public void RefreshIndex() { }
         public FileChange? TryResolveCurrent(string path, WorkingTreeLayer layer) => null;
         public bool TryReopen() => true;
+        public bool IsPathIgnored(string repoRelativeForwardSlashPath) => false;
         public (IReadOnlyList<FileChange> Snapshot, IDisposable Subscription) SnapshotAndSubscribe(
             EventHandler<ChangeListUpdatedEventArgs> handler) =>
             (CurrentChanges, new DummyDisposable());
