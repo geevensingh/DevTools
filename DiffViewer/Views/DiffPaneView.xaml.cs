@@ -42,8 +42,14 @@ public partial class DiffPaneView : UserControl
     {
         _scrollSync ??= new TextEditorScrollSync(LeftEditor, RightEditor);
 
-        var scheme = DiffColorScheme.Classic;
+        var scheme = (DataContext as DiffPaneViewModel)?.CurrentColorScheme ?? DiffColorScheme.Classic;
+        InstallRenderers(scheme);
 
+        AttachToViewModel(DataContext as DiffPaneViewModel);
+    }
+
+    private void InstallRenderers(DiffColorScheme scheme)
+    {
         if (_leftBg is null)
         {
             _leftBg = new DiffBackgroundRenderer(DiffSide.Left, scheme);
@@ -69,8 +75,24 @@ public partial class DiffPaneView : UserControl
             _inlineBg = new InlineDiffBackgroundRenderer(scheme);
             InlineEditor.TextArea.TextView.BackgroundRenderers.Add(_inlineBg);
         }
+    }
 
-        AttachToViewModel(DataContext as DiffPaneViewModel);
+    /// <summary>
+    /// Tear down all renderers and rebuild them with <paramref name="scheme"/>.
+    /// Used when the user picks a new color-scheme preset in the Settings
+    /// dialog - <see cref="DiffPaneViewModel.ColorSchemeChanged"/> fires and
+    /// the view rebuilds the renderers with the new palette, then re-applies
+    /// the current highlight map so the redraw picks up the new colors.
+    /// </summary>
+    private void ReinstallRenderers(DiffColorScheme scheme)
+    {
+        RemoveRenderer(LeftEditor, ref _leftBg);
+        RemoveRenderer(RightEditor, ref _rightBg);
+        RemoveColorizer(LeftEditor, ref _leftIntra);
+        RemoveColorizer(RightEditor, ref _rightIntra);
+        RemoveRenderer(InlineEditor, ref _inlineBg);
+        InstallRenderers(scheme);
+        ApplyHighlightMap();
     }
 
     private void OnUnloaded(object sender, System.Windows.RoutedEventArgs e)
@@ -115,6 +137,7 @@ public partial class DiffPaneView : UserControl
         if (_vm is null) return;
         _vm.HighlightMapChanged += OnHighlightMapChanged;
         _vm.HunkNavigationRequested += OnHunkNavigationRequested;
+        _vm.ColorSchemeChanged += OnColorSchemeChanged;
         _vm.PropertyChanged += OnVmPropertyChanged;
 
         ApplyHighlightMap();
@@ -126,8 +149,15 @@ public partial class DiffPaneView : UserControl
         if (_vm is null) return;
         _vm.HighlightMapChanged -= OnHighlightMapChanged;
         _vm.HunkNavigationRequested -= OnHunkNavigationRequested;
+        _vm.ColorSchemeChanged -= OnColorSchemeChanged;
         _vm.PropertyChanged -= OnVmPropertyChanged;
         _vm = null;
+    }
+
+    private void OnColorSchemeChanged(object? sender, EventArgs e)
+    {
+        if (_vm is null) return;
+        ReinstallRenderers(_vm.CurrentColorScheme);
     }
 
     private void OnHighlightMapChanged(object? sender, EventArgs e) => ApplyHighlightMap();

@@ -126,8 +126,34 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
                 ShowVisibleWhitespace = s.ShowVisibleWhitespace;
                 LiveUpdates = s.LiveUpdates;
                 FontSize = s.FontSize;
+                CurrentColorScheme = DiffColorScheme.From(s.ColorScheme);
             }
             finally { _suppressSettingsWrite = false; }
+
+            _settingsService.Changed += OnSettingsChanged;
+        }
+    }
+
+    /// <summary>
+    /// Resolved diff color scheme from current settings. Replaced (and
+    /// <see cref="ColorSchemeChanged"/> raised) whenever the user picks a
+    /// new preset in the Settings dialog or hand-edits the JSON.
+    /// </summary>
+    public DiffColorScheme CurrentColorScheme { get; private set; } = DiffColorScheme.Classic;
+
+    /// <summary>
+    /// Raised on the UI thread after <see cref="CurrentColorScheme"/> has
+    /// been swapped. The view rebuilds its background renderers and
+    /// colorizers with the new palette.
+    /// </summary>
+    public event EventHandler? ColorSchemeChanged;
+
+    private void OnSettingsChanged(object? sender, SettingsChangedEventArgs e)
+    {
+        if (!Equals(e.Previous.ColorScheme, e.Current.ColorScheme))
+        {
+            CurrentColorScheme = DiffColorScheme.From(e.Current.ColorScheme);
+            ColorSchemeChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 
@@ -538,6 +564,10 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
+        if (_settingsService is not null)
+        {
+            _settingsService.Changed -= OnSettingsChanged;
+        }
         _loadCts?.Cancel();
         _loadCts?.Dispose();
         _optionDebounceTimer?.Stop();

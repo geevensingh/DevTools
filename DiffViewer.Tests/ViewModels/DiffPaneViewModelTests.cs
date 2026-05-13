@@ -141,6 +141,60 @@ public class DiffPaneViewModelTests
         });
     }
 
+    [Fact]
+    public void ColorScheme_SeededFromSettingsOnConstruction()
+    {
+        var repo = new FakeRepository();
+        var settings = new InMemorySettingsServiceForPane(new AppSettings
+        {
+            ColorScheme = ColorSchemeChoice.Preset(ColorSchemePresetName.HighContrast),
+        });
+
+        var vm = new DiffPaneViewModel(repo, settingsService: settings);
+
+        vm.CurrentColorScheme.Should().BeSameAs(DiffViewer.Rendering.DiffColorScheme.HighContrast);
+    }
+
+    [Fact]
+    public void ColorScheme_SettingsChange_FiresColorSchemeChangedAndUpdatesCurrent()
+    {
+        var repo = new FakeRepository();
+        var settings = new InMemorySettingsServiceForPane(new AppSettings
+        {
+            ColorScheme = ColorSchemeChoice.Preset(ColorSchemePresetName.Classic),
+        });
+        var vm = new DiffPaneViewModel(repo, settingsService: settings);
+
+        int eventCount = 0;
+        vm.ColorSchemeChanged += (_, _) => eventCount++;
+
+        settings.Update(s => s with
+        {
+            ColorScheme = ColorSchemeChoice.Preset(ColorSchemePresetName.GitHub),
+        });
+
+        eventCount.Should().Be(1);
+        vm.CurrentColorScheme.Should().BeSameAs(DiffViewer.Rendering.DiffColorScheme.GitHub);
+    }
+
+    [Fact]
+    public void ColorScheme_UnrelatedSettingsChange_DoesNotFireColorSchemeChanged()
+    {
+        var repo = new FakeRepository();
+        var settings = new InMemorySettingsServiceForPane(new AppSettings
+        {
+            ColorScheme = ColorSchemeChoice.Preset(ColorSchemePresetName.Classic),
+        });
+        var vm = new DiffPaneViewModel(repo, settingsService: settings);
+
+        int eventCount = 0;
+        vm.ColorSchemeChanged += (_, _) => eventCount++;
+
+        settings.Update(s => s with { FontSize = 14.0 });
+
+        eventCount.Should().Be(0);
+    }
+
     private sealed class InMemorySettingsServiceForPane : ISettingsService
     {
         private AppSettings _current;
