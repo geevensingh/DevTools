@@ -125,16 +125,62 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
                 IsSideBySide = s.IsSideBySide;
                 ShowVisibleWhitespace = s.ShowVisibleWhitespace;
                 LiveUpdates = s.LiveUpdates;
+                FontSize = s.FontSize;
             }
             finally { _suppressSettingsWrite = false; }
         }
     }
+
+    // Default editor font size when no settings service is wired (mirrors
+    // AppSettings.FontSize default). Editor controls bind to FontSize.
+    [ObservableProperty] private double _fontSize = 11.0;
+
+    /// <summary>Lower clamp for <see cref="FontSize"/>. Below this AvalonEdit's
+    /// rendering becomes unusable. Matches the Settings dialog's input range.</summary>
+    public const double MinFontSize = 6.0;
+
+    /// <summary>Upper clamp for <see cref="FontSize"/>. Above this WPF text
+    /// formatting becomes glitchy. Matches the Settings dialog.</summary>
+    public const double MaxFontSize = 72.0;
+
+    partial void OnFontSizeChanged(double value)
+    {
+        var clamped = Math.Clamp(value, MinFontSize, MaxFontSize);
+        if (Math.Abs(clamped - value) > double.Epsilon)
+        {
+            // Re-entrant: setting the property here triggers another
+            // OnFontSizeChanged with the clamped value, which then no-ops.
+            FontSize = clamped;
+            return;
+        }
+        if (_settingsService is not null && !_suppressSettingsWrite)
+        {
+            _settingsService.Update(s => s with { FontSize = value });
+        }
+    }
+
+    [RelayCommand]
+    private void ZoomIn()  => FontSize = Math.Min(MaxFontSize, FontSize + 1.0);
+
+    [RelayCommand]
+    private void ZoomOut() => FontSize = Math.Max(MinFontSize, FontSize - 1.0);
+
+    [RelayCommand]
+    private void ZoomReset() => FontSize = 11.0;
 
     /// <summary>
     /// Build the immutable <see cref="DiffOptions"/> consumed by
     /// <see cref="IDiffService"/> from the toolbar's observable state.
     /// </summary>
     public DiffOptions BuildDiffOptions() => new(IgnoreWhitespace: IgnoreWhitespace);
+
+    /// <summary>
+    /// Most-recent in-flight load Task. Cross-file navigation orchestrators
+    /// (e.g. <see cref="MainViewModel.NavigateNextChange"/>) await this
+    /// before issuing a follow-up <see cref="JumpToFirstHunk"/> so the
+    /// jump lands after the new file's hunks are populated.
+    /// </summary>
+    public Task LastLoadTask { get; private set; } = Task.CompletedTask;
 
     public Task LoadAsync(FileEntryViewModel? entry)
     {
@@ -148,7 +194,8 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
         {
             ApplyResult(string.Empty, string.Empty, "Select a file to see its diff.",
                 Array.Empty<DiffHunk>(), DiffHighlightMap.Empty, InlineDiffBuilder.Build(Array.Empty<DiffHunk>()), false);
-            return Task.CompletedTask;
+            LastLoadTask = Task.CompletedTask;
+            return LastLoadTask;
         }
 
         var change = entry.Change;
@@ -157,14 +204,15 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
         {
             ApplyResult(string.Empty, string.Empty, earlyPlaceholder,
                 Array.Empty<DiffHunk>(), DiffHighlightMap.Empty, InlineDiffBuilder.Build(Array.Empty<DiffHunk>()), false);
-            return Task.CompletedTask;
+            LastLoadTask = Task.CompletedTask;
+            return LastLoadTask;
         }
 
         IsLoading = true;
         var options = BuildDiffOptions();
         bool intraLine = ShowIntraLineDiff;
 
-        return Task.Run(() =>
+        var task = Task.Run(() =>
         {
             string left = SafeReadSide(change, ChangeSide.Left);
             string right = SafeReadSide(change, ChangeSide.Right);
@@ -195,6 +243,9 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
 
             IsLoading = false;
         }, TaskScheduler.FromCurrentSynchronizationContext());
+
+        LastLoadTask = task;
+        return task;
     }
 
     /// <summary>
@@ -394,6 +445,59 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
         int prev = CurrentHunkIndex - 1;
         if (prev < 0) prev = _currentHunks.Count - 1;
         CurrentHunkIndex = prev;
+        RaiseHunkNav();
+    }
+
+    /// <summary>
+    /// Non-cycling step to the next hunk in the current file. Returns true
+    /// if a step was made; false when the caret is already at (or past) the
+    /// last hunk, signalling the orchestrator to advance to the next file.
+    /// </summary>
+    public bool TryNavigateNextHunkInFile()
+    {
+        if (_currentHunks.Count == 0) return false;
+        int next = CurrentHunkIndex + 1;
+        if (next >= _currentHunks.Count) return false;
+        CurrentHunkIndex = next;
+        RaiseHunkNav();
+        return true;
+    }
+
+    /// <summary>Non-cycling step backwards (mirror of <see cref="TryNavigateNextHunkInFile"/>).</summary>
+    public bool TryNavigatePreviousHunkInFile()
+    {
+        if (_currentHunks.Count == 0) return false;
+        int prev = CurrentHunkIndex - 1;
+        if (prev < 0) return false;
+        CurrentHunkIndex = prev;
+        RaiseHunkNav();
+        return true;
+    }
+
+    /// <summary>True when caret/cursor is on the last visible hunk (or no hunks exist).</summary>
+    public bool IsAtLastHunk =>
+        _currentHunks.Count == 0 || CurrentHunkIndex >= _currentHunks.Count - 1;
+
+    /// <summary>True when caret/cursor is on the first visible hunk (or no hunks exist).</summary>
+    public bool IsAtFirstHunk =>
+        _currentHunks.Count == 0 || CurrentHunkIndex <= 0;
+
+    /// <summary>
+    /// Move the caret to the first hunk in the current file, raising the
+    /// navigation event. No-op when the file has no visible hunks.
+    /// </summary>
+    public void JumpToFirstHunk()
+    {
+        if (_currentHunks.Count == 0) return;
+        CurrentHunkIndex = 0;
+        RaiseHunkNav();
+    }
+
+    /// <summary>Move the caret to the last hunk in the current file.</summary>
+    public void JumpToLastHunk()
+    {
+        if (_currentHunks.Count == 0) return;
+        CurrentHunkIndex = _currentHunks.Count - 1;
         RaiseHunkNav();
     }
 

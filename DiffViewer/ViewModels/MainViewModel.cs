@@ -226,6 +226,177 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (!r.Success) ToastHandler?.Invoke(r.ErrorMessage ?? "Editor launch failed.");
     }
 
+    // ---------------- Keyboard-shortcut commands ----------------
+    // Cross-file / cross-section hunk navigation (F7/F8 family).
+    // Toggle aliases for toolbar state (Ctrl+W, Ctrl+I, etc.).
+    // Display-mode setters (Ctrl+1/2/3).
+    // Manual refresh (F5).
+
+    /// <summary>
+    /// Hook for the View to perform F6 focus cycling. The focus mechanics
+    /// (FocusManager.SetFocusedElement on file list / left editor / right
+    /// editor) live in the View; the VM just requests the next stop.
+    /// </summary>
+    public Action? FocusCycleRequested { get; set; }
+
+    /// <summary>F6 — cycle focus across the 3 stops (file list / left / right).</summary>
+    [RelayCommand]
+    private void CycleFocus() => FocusCycleRequested?.Invoke();
+
+    [RelayCommand]
+    private void Refresh()
+    {
+        if (_isCommitVsCommit && !_repository.ValidateRevisions(
+                (_left as DiffSide.CommitIsh)?.Reference ?? "",
+                (_right as DiffSide.CommitIsh)?.Reference ?? ""))
+        {
+            ToastHandler?.Invoke("Comparison source is no longer reachable.");
+            return;
+        }
+        RefreshChangeList();
+        ToastHandler?.Invoke(FileList.FlatEntries.Count == 0 ? "No changes." : "Refreshed.");
+    }
+
+    [RelayCommand] private void ToggleIgnoreWhitespace()  => DiffPane.IgnoreWhitespace  = !DiffPane.IgnoreWhitespace;
+    [RelayCommand] private void ToggleVisibleWhitespace() => DiffPane.ShowVisibleWhitespace = !DiffPane.ShowVisibleWhitespace;
+    [RelayCommand] private void ToggleSideBySide()        => DiffPane.IsSideBySide      = !DiffPane.IsSideBySide;
+    [RelayCommand] private void ToggleIntraLineDiff()     => DiffPane.ShowIntraLineDiff = !DiffPane.ShowIntraLineDiff;
+
+    [RelayCommand]
+    private void ToggleLiveUpdates()
+    {
+        if (!DiffPane.IsLiveUpdatesAvailable) return;  // greyed out for commit-vs-commit
+        DiffPane.LiveUpdates = !DiffPane.LiveUpdates;
+    }
+
+    [RelayCommand] private void SetDisplayModeFullPath()     => FileList.DisplayMode = FileListDisplayMode.FullPath;
+    [RelayCommand] private void SetDisplayModeRepoRelative() => FileList.DisplayMode = FileListDisplayMode.RepoRelative;
+    [RelayCommand] private void SetDisplayModeGrouped()      => FileList.DisplayMode = FileListDisplayMode.GroupedByDirectory;
+
+    /// <summary>
+    /// F8 — step to the next visible change. Within a file, advances to the
+    /// next hunk; at the last hunk, advances to the first hunk of the next
+    /// file. Crosses section boundaries naturally; cycles around at the
+    /// last file in the last section. Whitespace-only files (no visible
+    /// hunks) are skipped.
+    /// </summary>
+    [RelayCommand]
+    private async Task NavigateNextChange()
+    {
+        if (DiffPane.TryNavigateNextHunkInFile()) return;
+        await StepFile(forward: true, jumpToFirst: true).ConfigureAwait(true);
+    }
+
+    /// <summary>F7 — symmetric mirror of <see cref="NavigateNextChange"/>.</summary>
+    [RelayCommand]
+    private async Task NavigatePreviousChange()
+    {
+        if (DiffPane.TryNavigatePreviousHunkInFile()) return;
+        await StepFile(forward: false, jumpToFirst: false).ConfigureAwait(true);
+    }
+
+    /// <summary>Shift+F8 — skip the per-hunk steps; cycle through files.</summary>
+    [RelayCommand]
+    private Task NavigateNextFile() => StepFile(forward: true, jumpToFirst: true);
+
+    /// <summary>Shift+F7 — symmetric mirror of <see cref="NavigateNextFile"/>.</summary>
+    [RelayCommand]
+    private Task NavigatePreviousFile() => StepFile(forward: false, jumpToFirst: true);
+
+    /// <summary>Ctrl+F8 — jump to the first file of the next section.</summary>
+    [RelayCommand]
+    private Task NavigateNextSection() => StepSection(forward: true);
+
+    /// <summary>Ctrl+F7 — jump to the first file of the previous section.</summary>
+    [RelayCommand]
+    private Task NavigatePreviousSection() => StepSection(forward: false);
+
+    /// <summary>
+    /// Move the file-list selection by one in <see cref="FileList.FlatEntries"/>,
+    /// skipping rows whose pre-diff pass marked them as having no visible
+    /// differences (e.g., whitespace-only when *Ignore whitespace* is on).
+    /// On no-change-anywhere, no-op. After selection change, awaits the
+    /// resulting <see cref="DiffPaneViewModel.LastLoadTask"/> and seeks to
+    /// the first/last hunk per <paramref name="jumpToFirst"/>.
+    /// </summary>
+    private async Task StepFile(bool forward, bool jumpToFirst)
+    {
+        var entries = FileList.FlatEntries;
+        if (entries.Count == 0) return;
+
+        int start = entries.IndexOf(FileList.SelectedEntry!);
+        if (start < 0) start = forward ? -1 : entries.Count;  // pre-first / post-last
+
+        var next = FindNextWithChanges(entries, start, forward);
+        if (next is null) return;
+
+        FileList.SelectedEntry = next;
+        // The PropertyChanged handler kicks off DiffPane.LoadAsync; await
+        // it before issuing the jump so CurrentHunks is populated.
+        await DiffPane.LastLoadTask.ConfigureAwait(true);
+        if (jumpToFirst) DiffPane.JumpToFirstHunk();
+        else             DiffPane.JumpToLastHunk();
+    }
+
+    private async Task StepSection(bool forward)
+    {
+        var sections = FileList.Sections;
+        if (sections.Count == 0) return;
+
+        var currentEntry = FileList.SelectedEntry;
+        int currentSec = currentEntry is null ? -1
+            : IndexOfSectionContaining(sections, currentEntry);
+
+        for (int hop = 1; hop <= sections.Count; hop++)
+        {
+            int idx = forward
+                ? (currentSec + hop) % sections.Count
+                : ((currentSec - hop) % sections.Count + sections.Count) % sections.Count;
+            var sec = sections[idx];
+            var first = sec.Entries.FirstOrDefault(e =>
+                e.HasVisibleDifferences ?? true);  // unknown counts as eligible
+            if (first is not null)
+            {
+                FileList.SelectedEntry = first;
+                await DiffPane.LastLoadTask.ConfigureAwait(true);
+                DiffPane.JumpToFirstHunk();
+                return;
+            }
+        }
+    }
+
+    private static int IndexOfSectionContaining(
+        IReadOnlyList<FileListSectionViewModel> sections,
+        FileEntryViewModel entry)
+    {
+        for (int i = 0; i < sections.Count; i++)
+            if (sections[i].Entries.Contains(entry)) return i;
+        return -1;
+    }
+
+    /// <summary>
+    /// Walk <paramref name="entries"/> from <paramref name="from"/> in
+    /// <paramref name="forward"/> direction, returning the first row with
+    /// visible differences (or unknown). Cycles around. Returns null when
+    /// every row has been confirmed whitespace-only.
+    /// </summary>
+    private static FileEntryViewModel? FindNextWithChanges(
+        IReadOnlyList<FileEntryViewModel> entries, int from, bool forward)
+    {
+        int n = entries.Count;
+        for (int hop = 1; hop <= n; hop++)
+        {
+            int idx = forward
+                ? (from + hop) % n
+                : ((from - hop) % n + n) % n;
+            var e = entries[idx];
+            // null = pre-diff hasn't run yet; treat as eligible so the user
+            // doesn't get stuck early in the load. Confirmed-false skips.
+            if (e.HasVisibleDifferences ?? true) return e;
+        }
+        return null;
+    }
+
     private bool TryGetHunkAction(HunkActionContext? ctx, out FileEntryViewModel entry, out HunkPatchInputs inputs)
     {
         entry = null!;
