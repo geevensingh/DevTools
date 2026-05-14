@@ -47,8 +47,9 @@ public class InlineDiffBuilderTests
 
         var doc = BuildFullFile(left, right, hunk);
 
-        doc.Text.Should().Be("a\nb\n-c\n+X\nd\ne\n");
-        // Output line 3 = '-c', line 4 = '+X' (1-based).
+        doc.Text.Should().Be("a\nb\nc\nX\nd\ne\n");
+        // Output line 3 = deleted 'c', line 4 = inserted 'X' (1-based).
+        // No prefix character — kind is signalled via LineHighlights only.
         doc.LineHighlights[3].Kind.Should().Be(DiffLineKind.Deleted);
         doc.LineHighlights[4].Kind.Should().Be(DiffLineKind.Inserted);
         doc.LineHighlights.Should().HaveCount(2, "context lines are not tinted");
@@ -67,7 +68,7 @@ public class InlineDiffBuilderTests
 
         var doc = BuildFullFile(left, right, hunk);
 
-        doc.Text.Should().Be("-a\n+X\nb\nc\n");
+        doc.Text.Should().Be("a\nX\nb\nc\n");
         doc.LineHighlights[1].Kind.Should().Be(DiffLineKind.Deleted);
         doc.LineHighlights[2].Kind.Should().Be(DiffLineKind.Inserted);
     }
@@ -85,7 +86,7 @@ public class InlineDiffBuilderTests
 
         var doc = BuildFullFile(left, right, hunk);
 
-        doc.Text.Should().Be("a\nb\n-c\n+X\n");
+        doc.Text.Should().Be("a\nb\nc\nX\n");
     }
 
     [Fact]
@@ -106,8 +107,8 @@ public class InlineDiffBuilderTests
 
         var doc = BuildFullFile(left, right, h1, h2);
 
-        // Expected: a, -b, +B, c, d, e, f, g, h, -i, +I, j
-        doc.Text.Should().Be("a\n-b\n+B\nc\nd\ne\nf\ng\nh\n-i\n+I\nj\n");
+        // Expected: a, b(deleted), B(inserted), c, d, e, f, g, h, i(deleted), I(inserted), j
+        doc.Text.Should().Be("a\nb\nB\nc\nd\ne\nf\ng\nh\ni\nI\nj\n");
         doc.LineHighlights[2].Kind.Should().Be(DiffLineKind.Deleted);
         doc.LineHighlights[3].Kind.Should().Be(DiffLineKind.Inserted);
         doc.LineHighlights[10].Kind.Should().Be(DiffLineKind.Deleted);
@@ -127,7 +128,7 @@ public class InlineDiffBuilderTests
 
         var doc = BuildFullFile(left, right, hunk);
 
-        doc.Text.Should().Be("+X\n+Y\na\nb\n");
+        doc.Text.Should().Be("X\nY\na\nb\n");
         doc.LineHighlights[1].Kind.Should().Be(DiffLineKind.Inserted);
         doc.LineHighlights[2].Kind.Should().Be(DiffLineKind.Inserted);
     }
@@ -145,7 +146,7 @@ public class InlineDiffBuilderTests
 
         var doc = BuildFullFile(left, right, hunk);
 
-        doc.Text.Should().Be("a\n-b\n-c\nd\n");
+        doc.Text.Should().Be("a\nb\nc\nd\n");
         doc.LineHighlights[2].Kind.Should().Be(DiffLineKind.Deleted);
         doc.LineHighlights[3].Kind.Should().Be(DiffLineKind.Deleted);
     }
@@ -165,7 +166,7 @@ public class InlineDiffBuilderTests
 
         // Output normalises to LF; the surrounding 'a' and 'c' are picked
         // up cleanly without trailing CR characters.
-        doc.Text.Should().Be("a\n-b\n+X\nc\n");
+        doc.Text.Should().Be("a\nb\nX\nc\n");
     }
 
     [Fact]
@@ -196,9 +197,9 @@ public class InlineDiffBuilderTests
 
         var doc = InlineDiffBuilder.BuildFullFile(left, right, new[] { hunk }, map);
 
-        doc.Text.Should().Be("-foo bar baz\n+foo XYZ baz\n");
+        doc.Text.Should().Be("foo bar baz\nfoo XYZ baz\n");
 
-        // Line 1 = '-foo bar baz' (Deleted), should carry the LEFT-side spans
+        // Line 1 = 'foo bar baz' (Deleted), should carry the LEFT-side spans
         // (intra-line Deleted spans covering 'bar').
         var deleted = doc.LineHighlights[1];
         deleted.Kind.Should().Be(DiffLineKind.Deleted);
@@ -206,7 +207,7 @@ public class InlineDiffBuilderTests
         deleted.IntraLineSpans!.Should().NotBeEmpty();
         deleted.IntraLineSpans.Should().OnlyContain(s => s.Kind == IntraLineSpanKind.Deleted);
 
-        // Line 2 = '+foo XYZ baz' (Inserted), should carry the RIGHT-side spans
+        // Line 2 = 'foo XYZ baz' (Inserted), should carry the RIGHT-side spans
         // (intra-line Inserted spans covering 'XYZ').
         var inserted = doc.LineHighlights[2];
         inserted.Kind.Should().Be(DiffLineKind.Inserted);
@@ -214,17 +215,17 @@ public class InlineDiffBuilderTests
         inserted.IntraLineSpans!.Should().NotBeEmpty();
         inserted.IntraLineSpans.Should().OnlyContain(s => s.Kind == IntraLineSpanKind.Inserted);
 
-        // Spans must be shifted by +1 column to account for the 1-char
-        // prefix the inline builder prepends to every line. Without the
-        // shift the colorizer paints one character to the left of the
-        // actual changed content. "bar" / "XYZ" sit at columns 4..7 in the
-        // raw line text but at 5..8 once the '-' / '+' prefix is added.
+        // Spans are NOT shifted: BuildFullFile emits lines verbatim (no
+        // +/- prefix), so the colorizer's lineStart + StartColumn arithmetic
+        // lands exactly on the changed characters. "bar" / "XYZ" sit at
+        // columns 4..7 in the raw line text — and the displayed text IS the
+        // raw line text.
         deleted.IntraLineSpans.Should().ContainSingle()
-            .Which.StartColumn.Should().Be(5);
-        deleted.IntraLineSpans.Single().EndColumn.Should().Be(8);
+            .Which.StartColumn.Should().Be(4);
+        deleted.IntraLineSpans.Single().EndColumn.Should().Be(7);
         inserted.IntraLineSpans.Should().ContainSingle()
-            .Which.StartColumn.Should().Be(5);
-        inserted.IntraLineSpans.Single().EndColumn.Should().Be(8);
+            .Which.StartColumn.Should().Be(4);
+        inserted.IntraLineSpans.Single().EndColumn.Should().Be(7);
     }
 
     [Fact]
@@ -253,5 +254,51 @@ public class InlineDiffBuilderTests
         doc.LineHighlights[2].IntraLineSpans.Should().BeNull();
         doc.LineHighlights[3].Kind.Should().Be(DiffLineKind.Inserted);
         doc.LineHighlights[3].IntraLineSpans.Should().BeNull();
+    }
+
+    [Fact]
+    public void BuildFullFile_HunkWithInternalContextLines_EmitsThemVerbatim_NoIndent()
+    {
+        // Regression: when a hunk's Lines list contains DiffLineKind.Context
+        // entries (this happens when DiffPlex's hunk-merging combines two
+        // nearby change-blocks separated by a few unchanged lines), the
+        // earlier builder gave them a single-space prefix while emitting
+        // outside-hunk lines verbatim. Result: indented-by-1 context lines
+        // around the diff, which is exactly the bug the screenshot caught.
+        //
+        // The contract now: every line — context, deleted, inserted —
+        // is emitted verbatim with no prefix. Original column positions
+        // are preserved, so context inside the hunk lines up with context
+        // outside the hunk.
+        var left = "    one\n    two\n    three\n    four\n    five\n    six\n";
+        var right = "    one\n    two\n    THREE\n    four\n    five\n    six\n";
+
+        // Hunk synthesised to cover lines 2..5 with an internal Context
+        // line at output position 'two'. This is the shape DiffService
+        // produces when merging produces a hunk wider than the change.
+        var hunk = new DiffHunk(
+            OldStartLine: 2, OldLineCount: 3,
+            NewStartLine: 2, NewLineCount: 3,
+            Lines: new[]
+            {
+                new DiffLine(DiffLineKind.Context,  OldLineNumber: 2,    NewLineNumber: 2,    Text: "    two"),
+                new DiffLine(DiffLineKind.Deleted,  OldLineNumber: 3,    NewLineNumber: null, Text: "    three"),
+                new DiffLine(DiffLineKind.Inserted, OldLineNumber: null, NewLineNumber: 3,    Text: "    THREE"),
+                new DiffLine(DiffLineKind.Context,  OldLineNumber: 4,    NewLineNumber: 4,    Text: "    four"),
+            },
+            FunctionContext: null);
+
+        var doc = InlineDiffBuilder.BuildFullFile(left, right, new[] { hunk }, DiffHighlightMap.Empty);
+
+        // No line has a leading prefix character. The "    two" / "    four"
+        // context lines INSIDE the hunk are indented identically to "    one"
+        // / "    five" / "    six" OUTSIDE the hunk — no off-by-one.
+        doc.Text.Should().Be("    one\n    two\n    three\n    THREE\n    four\n    five\n    six\n");
+
+        // Deleted/inserted lines still get LineHighlight entries (renderer
+        // tints them); context lines do not.
+        doc.LineHighlights.Should().HaveCount(2);
+        doc.LineHighlights[3].Kind.Should().Be(DiffLineKind.Deleted);
+        doc.LineHighlights[4].Kind.Should().Be(DiffLineKind.Inserted);
     }
 }

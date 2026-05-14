@@ -677,12 +677,16 @@ public class DiffPaneViewModelTests
 
         inlineText.Should().NotBeNullOrEmpty();
         // Full-file inline view: `alpha` survives as context, `beta` is
-        // removed (-), `gamma` is inserted (+). No @@ headers — that's
-        // the BuildFullFile contract that fixed the screenshot bug.
+        // removed, `gamma` is inserted. Lines are emitted verbatim — no
+        // +/- prefix and no @@ headers (the InlineDiffBackgroundRenderer
+        // tints removed/inserted lines, the same channel side-by-side mode
+        // uses). That's the BuildFullFile contract.
         inlineText.Should().Contain("alpha");
-        inlineText.Should().Contain("-beta");
-        inlineText.Should().Contain("+gamma");
+        inlineText.Should().Contain("beta");
+        inlineText.Should().Contain("gamma");
         inlineText.Should().NotContain("@@");
+        inlineText.Should().NotContain("-beta");
+        inlineText.Should().NotContain("+gamma");
         lineKindCount.Should().BeGreaterThan(0);
     }
 

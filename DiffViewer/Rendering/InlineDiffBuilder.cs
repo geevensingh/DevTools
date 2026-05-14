@@ -4,12 +4,16 @@ using DiffViewer.Models;
 namespace DiffViewer.Rendering;
 
 /// <summary>
-/// Builds the inline-mode document: a single text buffer where each hunk
-/// is preceded by a <c>@@ -OldStart,OldLen +NewStart,NewLen @@</c> header
-/// and lines are prefixed with <c> </c> (context), <c>-</c> (deleted) or
-/// <c>+</c> (inserted). Returns both the rendered text and a per-line
-/// <see cref="LineHighlight"/> (kind + optional intra-line spans) for the
-/// renderer + colorizer.
+/// Builds the document that the inline-mode editor renders: the full
+/// right-side file with hunks woven in. Lines are emitted verbatim, with
+/// no <c>@@</c> headers and no <c>+</c>/<c>-</c>/space prefix character.
+/// Added / removed / modified lines are signalled exclusively by per-line
+/// background tints (<see cref="InlineDiffBackgroundRenderer"/>) and
+/// intra-line word spans (<see cref="IntraLineColorizer"/>), so columns
+/// line up with the underlying file and the inline view matches the
+/// side-by-side view's "show the file, mark diffs by color" model.
+/// Returns the rendered text plus a per-line <see cref="LineHighlight"/>
+/// (kind + optional intra-line spans) for the renderer + colorizer.
 /// </summary>
 public static class InlineDiffBuilder
 {
@@ -20,74 +24,26 @@ public static class InlineDiffBuilder
     private static readonly InlineDocument _empty =
         new(string.Empty, new Dictionary<int, LineHighlight>());
 
-    public static InlineDocument Build(IReadOnlyList<DiffHunk> hunks)
-        => Build(hunks, DiffHighlightMap.Empty);
-
-    public static InlineDocument Build(IReadOnlyList<DiffHunk> hunks, DiffHighlightMap map)
-    {
-        if (hunks.Count == 0)
-        {
-            return _empty;
-        }
-
-        var sb = new StringBuilder();
-        var lineHighlights = new Dictionary<int, LineHighlight>();
-        int currentLine = 1;
-
-        for (int h = 0; h < hunks.Count; h++)
-        {
-            var hunk = hunks[h];
-
-            // Hunk header line - rendered without a tint so the renderer
-            // skips it (no entry in lineHighlights).
-            sb.Append("@@ -")
-              .Append(hunk.OldStartLine).Append(',').Append(hunk.OldLineCount)
-              .Append(" +")
-              .Append(hunk.NewStartLine).Append(',').Append(hunk.NewLineCount)
-              .Append(" @@");
-            if (hunk.FunctionContext is { Length: > 0 })
-            {
-                sb.Append(' ').Append(hunk.FunctionContext);
-            }
-            sb.Append('\n');
-            currentLine++;
-
-            foreach (var line in hunk.Lines)
-            {
-                char prefix = line.Kind switch
-                {
-                    DiffLineKind.Inserted => '+',
-                    DiffLineKind.Deleted => '-',
-                    DiffLineKind.Modified => '~', // unused in current builder
-                    _ => ' ',
-                };
-
-                sb.Append(prefix).Append(line.Text).Append('\n');
-                if (line.Kind != DiffLineKind.Context)
-                {
-                    lineHighlights[currentLine] = BuildHighlight(line, map);
-                }
-                currentLine++;
-            }
-
-            // Blank separator between hunks (skip after the last).
-            if (h < hunks.Count - 1)
-            {
-                sb.Append('\n');
-                currentLine++;
-            }
-        }
-
-        return new InlineDocument(sb.ToString(), lineHighlights);
-    }
+    /// <summary>
+    /// The empty inline document. Returned when there's no file selected,
+    /// a placeholder is showing, or the diff is otherwise unavailable.
+    /// </summary>
+    public static InlineDocument Empty => _empty;
 
     /// <summary>
     /// Build an inline document showing the <em>full</em> right-side file with
-    /// hunks woven in. Unchanged regions outside hunks are emitted verbatim
-    /// (no @@ header, no prefix); inside hunks each line gets the usual
-    /// <c>+</c> / <c>-</c> / <c>(space)</c> prefix and added/removed lines
-    /// pick up a <see cref="LineHighlight"/> entry for the renderer to tint
-    /// and the colorizer to overlay intra-line spans.
+    /// hunks woven in. Every line — both inside and outside hunks — is
+    /// emitted <em>verbatim</em>, with no <c>+</c>/<c>-</c>/space prefix
+    /// character. The user sees the file as-is; added / removed / modified
+    /// lines are tinted via the inline background renderer (full-line
+    /// red / green / yellow) and word-level intra-line spans are overlaid by
+    /// the intra-line colorizer. Same channel as side-by-side mode — both
+    /// views look like the file with diffs coloured rather than a unified-
+    /// diff text dump.
+    ///
+    /// <para>Removed lines are interleaved into the right-side flow (they're
+    /// not in the right blob); the user identifies them by their red tint,
+    /// not by a leading <c>-</c>.</para>
     ///
     /// <para><paramref name="map"/> supplies the per-line intra-line spans
     /// computed by <see cref="DiffHighlightMap.FromHunks"/>; pass
@@ -135,18 +91,18 @@ public static class InlineDiffBuilder
                 currentOutputLine++;
             }
 
-            // Emit the hunk content with prefixes; each non-context line gets
-            // a LineHighlight built from the map's intra-line spans.
+            // Emit the hunk content verbatim — no +/-/space prefix character.
+            // Each line keeps the column positions it has in the underlying
+            // file, so context lines around the diff align visually with
+            // lines emitted from outside the hunk (which are also verbatim).
+            // Added / removed / modified lines are signalled to the user
+            // exclusively by the InlineDiffBackgroundRenderer's per-line
+            // tint and the IntraLineColorizer's word-level spans — i.e. the
+            // same channel side-by-side mode uses, keeping the two views
+            // visually consistent.
             foreach (var line in hunk.Lines)
             {
-                char prefix = line.Kind switch
-                {
-                    DiffLineKind.Inserted => '+',
-                    DiffLineKind.Deleted => '-',
-                    DiffLineKind.Modified => '~',
-                    _ => ' ',
-                };
-                sb.Append(prefix).Append(line.Text).Append('\n');
+                sb.Append(line.Text).Append('\n');
                 if (line.Kind != DiffLineKind.Context)
                 {
                     lineHighlights[currentOutputLine] = BuildHighlight(line, map);
@@ -177,12 +133,10 @@ public static class InlineDiffBuilder
     /// paired lines) so the inline background renderer keeps tinting red/green
     /// rather than the side-by-side modified yellow.
     ///
-    /// <para>Intra-line span columns are computed against the original line
-    /// text; the inline builder prepends a single <c>+</c> / <c>-</c> /
-    /// <c>(space)</c> prefix to every line, so the displayed line is one
-    /// character wider. Shift each span by +1 so the colorizer's
-    /// <c>lineStart + StartColumn</c> arithmetic lands on the right
-    /// character.</para>
+    /// <para>Spans are returned unchanged: <see cref="BuildFullFile"/> emits
+    /// each line verbatim with no prefix character, so the colorizer's
+    /// <c>lineStart + StartColumn</c> arithmetic lands directly on the
+    /// changed characters.</para>
     /// </summary>
     private static LineHighlight BuildHighlight(DiffLine line, DiffHighlightMap map)
     {
@@ -204,23 +158,7 @@ public static class InlineDiffBuilder
                 }
                 break;
         }
-        return new LineHighlight(line.Kind, ShiftSpansForPrefix(spans));
-    }
-
-    /// <summary>
-    /// Shift every span by +1 column to account for the 1-char prefix the
-    /// inline builder prepends to every line.
-    /// </summary>
-    private static IReadOnlyList<IntraLineSpan>? ShiftSpansForPrefix(IReadOnlyList<IntraLineSpan>? spans)
-    {
-        if (spans is null || spans.Count == 0) return spans;
-        var shifted = new IntraLineSpan[spans.Count];
-        for (int i = 0; i < spans.Count; i++)
-        {
-            var s = spans[i];
-            shifted[i] = new IntraLineSpan(s.StartColumn + 1, s.EndColumn + 1, s.Kind);
-        }
-        return shifted;
+        return new LineHighlight(line.Kind, spans);
     }
 
     private static List<string> SplitLines(string text)

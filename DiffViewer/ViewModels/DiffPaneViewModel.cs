@@ -269,7 +269,7 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
         if (entry is null)
         {
             ApplyResult(string.Empty, string.Empty, "Select a file to see its diff.",
-                Array.Empty<DiffHunk>(), DiffHighlightMap.Empty, InlineDiffBuilder.Build(Array.Empty<DiffHunk>()), false);
+                Array.Empty<DiffHunk>(), DiffHighlightMap.Empty, InlineDiffBuilder.Empty, false);
             LastLoadTask = Task.CompletedTask;
             return LastLoadTask;
         }
@@ -280,7 +280,7 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
         if (earlyPlaceholder is not null)
         {
             ApplyResult(string.Empty, string.Empty, earlyPlaceholder,
-                Array.Empty<DiffHunk>(), DiffHighlightMap.Empty, InlineDiffBuilder.Build(Array.Empty<DiffHunk>()), false);
+                Array.Empty<DiffHunk>(), DiffHighlightMap.Empty, InlineDiffBuilder.Empty, false);
             LastLoadTask = Task.CompletedTask;
             return LastLoadTask;
         }
@@ -307,7 +307,7 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
                     $"Failed to read blobs: {t.Exception?.GetBaseException().Message}",
                     Array.Empty<DiffHunk>(),
                     DiffHighlightMap.Empty,
-                    InlineDiffBuilder.Build(Array.Empty<DiffHunk>()),
+                    InlineDiffBuilder.Empty,
                     false);
             }
             else
@@ -345,17 +345,16 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
         if (_diffService is null)
         {
             return (Array.Empty<DiffHunk>(), DiffHighlightMap.Empty,
-                InlineDiffBuilder.Build(Array.Empty<DiffHunk>()), false);
+                InlineDiffBuilder.Empty, false);
         }
 
         var computation = _diffService.ComputeDiff(left, right, options);
         var map = DiffHighlightMap.FromHunks(
             computation.Hunks, _diffService, intraLineEnabled, options.IgnoreWhitespace);
-        // Inline-mode view shows the FULL file with hunks woven in (not the
-        // 3-line-context summary that Build emits) so the user can read the
-        // surrounding code, matching what side-by-side already shows. We
-        // pass the map so each non-context inline line picks up its
-        // intra-line spans — the inline IntraLineColorizer reads those.
+        // Inline-mode view shows the FULL file with hunks woven in so the
+        // user can read the surrounding code, matching what side-by-side
+        // already shows. Lines are emitted verbatim (no +/- prefix) and the
+        // map drives per-line tints + intra-line span colorization.
         var inline = InlineDiffBuilder.BuildFullFile(left, right, computation.Hunks, map);
 
         bool whitespaceOnly = false;
