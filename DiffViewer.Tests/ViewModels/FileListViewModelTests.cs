@@ -99,6 +99,100 @@ public class FileListViewModelTests
     }
 
     [Fact]
+    public void LoadFromChanges_PreservesSelection_WhenSameFileStillInList()
+    {
+        var vm = new FileListViewModel();
+        vm.LoadFromChanges(
+            new[] { MakeChange("src/a.cs"), MakeChange("src/b.cs") },
+            @"C:\repo", isCommitVsCommit: false);
+        vm.SelectedEntry = vm.FlatEntries.Single(e => e.Change.Path == "src/b.cs");
+
+        // Same file list (e.g. a no-op file-system event). New VMs but the
+        // selection should still resolve to "src/b.cs".
+        vm.LoadFromChanges(
+            new[] { MakeChange("src/a.cs"), MakeChange("src/b.cs") },
+            @"C:\repo", isCommitVsCommit: false);
+
+        vm.SelectedEntry.Should().NotBeNull();
+        vm.SelectedEntry!.Change.Path.Should().Be("src/b.cs");
+        // The instance must be one of the new entries, not a dangling old ref.
+        vm.FlatEntries.Should().Contain(vm.SelectedEntry);
+    }
+
+    [Fact]
+    public void LoadFromChanges_PreservesSelection_AcrossUnrelatedAddRemove()
+    {
+        var vm = new FileListViewModel();
+        vm.LoadFromChanges(
+            new[] { MakeChange("src/a.cs"), MakeChange("src/b.cs") },
+            @"C:\repo", isCommitVsCommit: false);
+        vm.SelectedEntry = vm.FlatEntries.Single(e => e.Change.Path == "src/b.cs");
+
+        // a.cs goes away, c.cs appears, but b.cs is still selected.
+        vm.LoadFromChanges(
+            new[] { MakeChange("src/b.cs"), MakeChange("src/c.cs") },
+            @"C:\repo", isCommitVsCommit: false);
+
+        vm.SelectedEntry.Should().NotBeNull();
+        vm.SelectedEntry!.Change.Path.Should().Be("src/b.cs");
+    }
+
+    [Fact]
+    public void LoadFromChanges_ClearsSelection_WhenSelectedFileFallsOut()
+    {
+        var vm = new FileListViewModel();
+        vm.LoadFromChanges(
+            new[] { MakeChange("src/a.cs"), MakeChange("src/b.cs") },
+            @"C:\repo", isCommitVsCommit: false);
+        vm.SelectedEntry = vm.FlatEntries.Single(e => e.Change.Path == "src/b.cs");
+
+        // b.cs no longer in the list (e.g. user reverted it).
+        vm.LoadFromChanges(
+            new[] { MakeChange("src/a.cs") },
+            @"C:\repo", isCommitVsCommit: false);
+
+        vm.SelectedEntry.Should().BeNull();
+    }
+
+    [Fact]
+    public void LoadFromChanges_ClearsSelection_WhenFileMovesToDifferentLayer()
+    {
+        // The same path appearing under a different layer is a genuinely
+        // different diff (e.g. an Unstaged modification became a Staged
+        // modification once the user ran git add). Treat it as a fall-out
+        // so the diff pane reloads with the new layer's content.
+        var vm = new FileListViewModel();
+        vm.LoadFromChanges(
+            new[] { MakeChange("src/a.cs", layer: WorkingTreeLayer.Unstaged) },
+            @"C:\repo", isCommitVsCommit: false);
+        vm.SelectedEntry = vm.FlatEntries[0];
+
+        vm.LoadFromChanges(
+            new[] { MakeChange("src/a.cs", layer: WorkingTreeLayer.Staged) },
+            @"C:\repo", isCommitVsCommit: false);
+
+        vm.SelectedEntry.Should().BeNull();
+    }
+
+    [Fact]
+    public void LoadFromChanges_LeavesSelectionNull_WhenNothingWasSelected()
+    {
+        var vm = new FileListViewModel();
+        vm.LoadFromChanges(
+            new[] { MakeChange("src/a.cs") },
+            @"C:\repo", isCommitVsCommit: false);
+
+        // No prior selection -> nothing to preserve, nothing to clear.
+        vm.SelectedEntry.Should().BeNull();
+
+        vm.LoadFromChanges(
+            new[] { MakeChange("src/a.cs"), MakeChange("src/b.cs") },
+            @"C:\repo", isCommitVsCommit: false);
+
+        vm.SelectedEntry.Should().BeNull();
+    }
+
+    [Fact]
     public void DisplayMode_Switching_RecomputesEntryDisplayPaths()
     {
         var vm = new FileListViewModel();

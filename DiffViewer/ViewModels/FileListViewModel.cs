@@ -92,10 +92,24 @@ public sealed partial class FileListViewModel : ObservableObject
     /// <summary>
     /// Replace all sections / entries with the supplied change list. Called
     /// from the UI thread.
+    ///
+    /// <para>Preserves <see cref="SelectedEntry"/> across the rebuild when
+    /// the previously-selected file is still present in the new list at
+    /// the same <see cref="WorkingTreeLayer"/>. If the file fell out of
+    /// the list entirely (deleted, staged elsewhere, branch switched,
+    /// etc.), the selection is cleared -- the diff pane will swap to its
+    /// placeholder via the normal <c>SelectedEntry</c>-change pipeline.</para>
     /// </summary>
     public void LoadFromChanges(IReadOnlyList<FileChange> changes, string repoRoot, bool isCommitVsCommit)
     {
         ArgumentNullException.ThrowIfNull(changes);
+
+        // Snapshot the prior selection's identity BEFORE we clear the
+        // collections. The ListBox's TwoWay SelectedItem binding nulls
+        // SelectedEntry as soon as its ItemsSource empties, so a direct
+        // reference comparison below would always come up empty.
+        string? priorPath = SelectedEntry?.Change.Path;
+        WorkingTreeLayer? priorLayer = SelectedEntry?.Change.Layer;
 
         Sections.Clear();
         FlatEntries.Clear();
@@ -113,17 +127,36 @@ public sealed partial class FileListViewModel : ObservableObject
             // No section grouping for commit-vs-commit - flat list under one synthetic section.
             IsFlatLayout = true;
             Sections.Add(new FileListSectionViewModel(WorkingTreeLayer.None, "Changes", entries, _expansionStore));
-            return;
+        }
+        else
+        {
+            IsFlatLayout = false;
+
+            // Order: Conflicted, CommittedSinceCommit, Staged, Unstaged, Untracked.
+            AddIfNonEmpty(WorkingTreeLayer.Conflicted, "Conflicted", entries);
+            AddIfNonEmpty(WorkingTreeLayer.CommittedSinceCommit, "Committed since baseline", entries);
+            AddIfNonEmpty(WorkingTreeLayer.Staged, "Staged", entries);
+            AddIfNonEmpty(WorkingTreeLayer.Unstaged, "Unstaged", entries);
+            AddIfNonEmpty(WorkingTreeLayer.Untracked, "Untracked", entries);
         }
 
-        IsFlatLayout = false;
-
-        // Order: Conflicted, CommittedSinceCommit, Staged, Unstaged, Untracked.
-        AddIfNonEmpty(WorkingTreeLayer.Conflicted, "Conflicted", entries);
-        AddIfNonEmpty(WorkingTreeLayer.CommittedSinceCommit, "Committed since baseline", entries);
-        AddIfNonEmpty(WorkingTreeLayer.Staged, "Staged", entries);
-        AddIfNonEmpty(WorkingTreeLayer.Unstaged, "Unstaged", entries);
-        AddIfNonEmpty(WorkingTreeLayer.Untracked, "Untracked", entries);
+        // Restore selection (or explicitly clear it if the prior file
+        // fell out of the list -- otherwise the diff pane stays stale
+        // showing a file that no longer appears anywhere on the left).
+        if (priorPath is not null)
+        {
+            FileEntryViewModel? match = null;
+            foreach (var e in FlatEntries)
+            {
+                if (string.Equals(e.Change.Path, priorPath, StringComparison.OrdinalIgnoreCase)
+                    && e.Change.Layer == priorLayer)
+                {
+                    match = e;
+                    break;
+                }
+            }
+            SelectedEntry = match;
+        }
     }
 
     private void AddIfNonEmpty(WorkingTreeLayer layer, string header, IEnumerable<FileEntryViewModel> all)
