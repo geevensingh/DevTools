@@ -82,7 +82,7 @@
             <Grid Visibility="{Binding ShowSideBySide, Converter={x:Static vm:BoolToVisibilityConverter.Instance}}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="14"/>
+                    <ColumnDefinition Width="32"/>
                     <ColumnDefinition Width="5"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
@@ -102,8 +102,7 @@
                                    ContextMenuOpening="OnLeftEditorContextMenuOpening"
                                    Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}"/>
 
-                <rendering:HunkOverviewBar Grid.Column="1"
-                                           UseInlineGeometry="False"/>
+                <rendering:HunkOverviewBar Grid.Column="1"/>
 
                 <GridSplitter Grid.Column="2"
                               Width="5"
@@ -130,12 +129,11 @@
             <!-- Inline view (visible when no placeholder AND IsSideBySide=false) -->
             <Grid Visibility="{Binding ShowInline, Converter={x:Static vm:BoolToVisibilityConverter.Instance}}">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="14"/>
+                    <ColumnDefinition Width="32"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <rendering:HunkOverviewBar Grid.Column="0"
-                                           UseInlineGeometry="True"/>
+                <rendering:HunkOverviewBar Grid.Column="0"/>
 
                 <avalon:TextEditor x:Name="InlineEditor"
                                    Grid.Column="1"
