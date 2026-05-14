@@ -1,10 +1,12 @@
 using System.ComponentModel;
+using System.IO;
 using System.Windows.Controls;
 using DiffViewer.Rendering;
 using DiffViewer.Services;
 using DiffViewer.ViewModels;
 using ICSharpCode.AvalonEdit;
 using ICSharpCode.AvalonEdit.Document;
+using ICSharpCode.AvalonEdit.Highlighting;
 
 namespace DiffViewer.Views;
 
@@ -232,9 +234,45 @@ public partial class DiffPaneView : UserControl
         if (_inlineBg is not null) _inlineBg.LineHighlights = _vm.InlineLineHighlights;
         if (_inlineIntra is not null) _inlineIntra.LineHighlights = _vm.InlineLineHighlights;
 
+        ApplySyntaxHighlighting();
+
         LeftEditor.TextArea.TextView.Redraw();
         RightEditor.TextArea.TextView.Redraw();
         InlineEditor.TextArea.TextView.Redraw();
+    }
+
+    /// <summary>
+    /// Pick a <see cref="IHighlightingDefinition"/> for each editor based on
+    /// the current file's extension. The right / inline editors get the
+    /// new-side extension; the left editor gets the old-side extension (the
+    /// two only differ for renames, and the extension usually doesn't change
+    /// across a rename, but this is the principled choice). Unknown
+    /// extensions resolve to <c>null</c>, which renders plain text.
+    ///
+    /// <para>The diff-coloring renderers paint cell backgrounds, so they
+    /// compose cleanly on top of the foreground colors that syntax
+    /// highlighting applies. The intra-line colorizer also sets a foreground
+    /// (so changed words win over the language coloring), which is the
+    /// intended ranking — diff signal trumps language signal.</para>
+    /// </summary>
+    private void ApplySyntaxHighlighting()
+    {
+        if (_vm is null) return;
+        var change = _vm.CurrentEntry?.Change;
+        string newPath = change?.Path ?? string.Empty;
+        string oldPath = change?.OldPath ?? newPath;
+
+        LeftEditor.SyntaxHighlighting = ResolveHighlighting(oldPath);
+        RightEditor.SyntaxHighlighting = ResolveHighlighting(newPath);
+        InlineEditor.SyntaxHighlighting = ResolveHighlighting(newPath.Length > 0 ? newPath : oldPath);
+    }
+
+    private static IHighlightingDefinition? ResolveHighlighting(string path)
+    {
+        if (string.IsNullOrEmpty(path)) return null;
+        string ext = Path.GetExtension(path);
+        if (string.IsNullOrEmpty(ext)) return null;
+        return HighlightingManager.Instance.GetDefinitionByExtension(ext);
     }
 
     private void ApplyVisibleWhitespace()
