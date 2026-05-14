@@ -60,12 +60,16 @@
 
                 <Separator Margin="6,2" Width="1" Background="#CCC"/>
 
+                <!-- Bound to the MainViewModel commands (same ones F7/F8 fire)
+                     so toolbar clicks and keyboard shortcuts share one
+                     code path: step within file, then cross file/section
+                     boundaries, skipping whitespace-only files. -->
                 <Button Style="{StaticResource ToolbarButtonStyle}"
-                        Command="{Binding NavigatePreviousHunkCommand}"
+                        Command="{Binding DataContext.NavigatePreviousChangeCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                         Content="Prev"
                         ToolTip="Previous change (F7)"/>
                 <Button Style="{StaticResource ToolbarButtonStyle}"
-                        Command="{Binding NavigateNextHunkCommand}"
+                        Command="{Binding DataContext.NavigateNextChangeCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                         Content="Next"
                         ToolTip="Next change (F8)"/>
 

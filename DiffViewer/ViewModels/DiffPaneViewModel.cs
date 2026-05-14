@@ -62,8 +62,8 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
     public event EventHandler? HighlightMapChanged;
 
     /// <summary>
-    /// Raised when <see cref="NavigateNextHunkCommand"/> /
-    /// <see cref="NavigatePreviousHunkCommand"/> moves the cursor; the view
+    /// Raised when the cross-file navigation orchestrator (F7/F8 family on
+    /// <see cref="MainViewModel"/>) moves the cursor to a hunk; the view
     /// scrolls its editors to the requested 1-based line numbers.
     /// </summary>
     public event EventHandler<HunkNavigationEventArgs>? HunkNavigationRequested;
@@ -116,8 +116,11 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
     /// <summary>The hunks for the currently-loaded file (empty if none).</summary>
     public IReadOnlyList<DiffHunk> CurrentHunks => _currentHunks;
 
-    /// <summary>Last hunk visited via <see cref="NavigateNextHunkCommand"/> /
-    /// <see cref="NavigatePreviousHunkCommand"/>. <c>-1</c> when none yet.</summary>
+    /// <summary>Last hunk visited via the cross-file F7/F8 navigation
+    /// orchestrator (<see cref="MainViewModel.NavigateNextChangeCommand"/> /
+    /// <see cref="MainViewModel.NavigatePreviousChangeCommand"/>) or a direct
+    /// <see cref="JumpToHunk(int)"/> call from the overview bar.
+    /// <c>-1</c> when none yet.</summary>
     [ObservableProperty]
     private int _currentHunkIndex = -1;
 
@@ -586,28 +589,6 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
 
         _optionDebounceTimer.Stop();
         _optionDebounceTimer.Start();
-    }
-
-    [RelayCommand]
-    private void NavigateNextHunk()
-    {
-        if (_currentHunks.Count == 0) return;
-
-        int next = CurrentHunkIndex + 1;
-        if (next >= _currentHunks.Count) next = 0; // cycle within file
-        CurrentHunkIndex = next;
-        RaiseHunkNav();
-    }
-
-    [RelayCommand]
-    private void NavigatePreviousHunk()
-    {
-        if (_currentHunks.Count == 0) return;
-
-        int prev = CurrentHunkIndex - 1;
-        if (prev < 0) prev = _currentHunks.Count - 1;
-        CurrentHunkIndex = prev;
-        RaiseHunkNav();
     }
 
     /// <summary>

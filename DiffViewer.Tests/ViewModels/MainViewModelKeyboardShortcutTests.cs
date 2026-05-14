@@ -162,8 +162,7 @@ public class MainViewModelKeyboardShortcutTests
 
             // After load we expect 2 hunks; navigate to the last one,
             // then verify the cross-file primitive returns false.
-            vm.NavigateNextHunkCommand.Execute(null); // 1st hunk
-            vm.NavigateNextHunkCommand.Execute(null); // 2nd hunk
+            vm.JumpToLastHunk();
             // We are now at the last hunk.
             vm.IsAtLastHunk.Should().BeTrue();
             vm.TryNavigateNextHunkInFile().Should().BeFalse();
@@ -193,7 +192,7 @@ public class MainViewModelKeyboardShortcutTests
             var vm = new DiffPaneViewModel(repo, diff);
             await vm.LoadAsync(EntryFor("a.cs"));
 
-            vm.NavigateNextHunkCommand.Execute(null); // 1st hunk
+            vm.JumpToFirstHunk();
             vm.IsAtFirstHunk.Should().BeTrue();
             vm.TryNavigatePreviousHunkInFile().Should().BeFalse();
         });
