@@ -86,6 +86,67 @@ public class HunkOverviewBarGeometryTests
     }
 
     [Fact]
+    public void ComputeLayouts_PureDeleteHunkWithContext_OmitsRightRect()
+    {
+        // Regression: DiffService inflates Old/NewLineCount with context
+        // lines (default 3 above/below), so a pure-delete hunk reports a
+        // non-zero NewLineCount. Without consulting Shape the renderer
+        // would paint a phantom green column on the right side.
+        var hunk = Hunk(newStart: 50, newCount: 6, oldStart: 50, oldCount: 7,
+            kinds: new[]
+            {
+                DiffLineKind.Context, DiffLineKind.Context, DiffLineKind.Context,
+                DiffLineKind.Deleted,
+                DiffLineKind.Context, DiffLineKind.Context, DiffLineKind.Context,
+            });
+
+        var layouts = Layouts(new[] { hunk }, leftTotalLines: 100, rightTotalLines: 100, barHeight: 200);
+
+        layouts[0].Shape.Should().Be(HunkChangeShape.PureDelete);
+        layouts[0].LeftRect.Should().NotBeNull();
+        layouts[0].RightRect.Should().BeNull();
+    }
+
+    [Fact]
+    public void ComputeLayouts_PureInsertHunkWithContext_OmitsLeftRect()
+    {
+        // Symmetric regression: pure-insert hunk with surrounding context
+        // would otherwise paint a phantom red column on the left side.
+        var hunk = Hunk(newStart: 50, newCount: 7, oldStart: 50, oldCount: 6,
+            kinds: new[]
+            {
+                DiffLineKind.Context, DiffLineKind.Context, DiffLineKind.Context,
+                DiffLineKind.Inserted,
+                DiffLineKind.Context, DiffLineKind.Context, DiffLineKind.Context,
+            });
+
+        var layouts = Layouts(new[] { hunk }, leftTotalLines: 100, rightTotalLines: 100, barHeight: 200);
+
+        layouts[0].Shape.Should().Be(HunkChangeShape.PureInsert);
+        layouts[0].LeftRect.Should().BeNull();
+        layouts[0].RightRect.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void ComputeLayouts_ModifiedOnlyHunk_StaysMixed()
+    {
+        // ClassifyHunk doesn't check Modified — only Inserted/Deleted. A
+        // hunk that's nothing but Modified lines must therefore stay Mixed
+        // (both columns drawn). This locks down the fallthrough behavior.
+        var hunk = Hunk(newStart: 50, newCount: 5, oldStart: 50, oldCount: 5,
+            kinds: new[]
+            {
+                DiffLineKind.Modified, DiffLineKind.Modified, DiffLineKind.Modified,
+            });
+
+        var layouts = Layouts(new[] { hunk }, leftTotalLines: 100, rightTotalLines: 100, barHeight: 200);
+
+        layouts[0].Shape.Should().Be(HunkChangeShape.Mixed);
+        layouts[0].LeftRect.Should().NotBeNull();
+        layouts[0].RightRect.Should().NotBeNull();
+    }
+
+    [Fact]
     public void ComputeLayouts_RectsAreAnchoredToTheirOwnColumns()
     {
         // Left rect must hug x=0; right rect must hug barWidth-columnWidth.
@@ -294,6 +355,32 @@ public class HunkOverviewBarGeometryTests
         // x=16 is between the columns; for a pure-add there's no ribbon
         // there, so the hit-test must miss.
         HunkOverviewBarGeometry.HitTest(layouts, new Point(16, 108)).Should().Be(-1);
+    }
+
+    [Fact]
+    public void HitTest_PureDeleteHunkWithContext_RightColumnClickMisses()
+    {
+        // Regression: with context lines around a pure-delete the right
+        // rect used to be emitted (NewLineCount > 0), making clicks in
+        // the right column register a false hit. After gating by Shape
+        // the right rect is null and the click must miss.
+        var hunks = new[]
+        {
+            Hunk(newStart: 50, newCount: 6, oldStart: 50, oldCount: 7,
+                kinds: new[]
+                {
+                    DiffLineKind.Context, DiffLineKind.Context, DiffLineKind.Context,
+                    DiffLineKind.Deleted,
+                    DiffLineKind.Context, DiffLineKind.Context, DiffLineKind.Context,
+                }),
+        };
+        var layouts = Layouts(hunks, 100, 100, barHeight: 200);
+
+        // Right column spans x=22..32; click at x=25 in the middle of the
+        // hunk's vertical range.
+        HunkOverviewBarGeometry.HitTest(layouts, new Point(25, 105)).Should().Be(-1);
+        // Left column click (x=2) still hits the deletion marker.
+        HunkOverviewBarGeometry.HitTest(layouts, new Point(2, 105)).Should().Be(0);
     }
 
     [Fact]

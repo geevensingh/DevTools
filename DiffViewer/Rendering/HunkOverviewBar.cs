@@ -254,7 +254,7 @@ public sealed class HunkOverviewBar : FrameworkElement
             return;
         }
         var h = hunks[idx];
-        ToolTip = FormatTooltip(idx, hunks.Count, h);
+        ToolTip = FormatTooltip(idx, hunks.Count, h, layouts[idx].Shape);
     }
 
     private IReadOnlyList<HunkOverviewBarGeometry.HunkBarLayout> ComputeLayouts()
@@ -268,25 +268,67 @@ public sealed class HunkOverviewBar : FrameworkElement
 
     /// <summary>
     /// Builds a tooltip showing the hunk's index plus the per-side line
-    /// ranges. Pure-add and pure-delete hunks only show the side that has
-    /// content; mixed hunks show both ranges so the user can correlate
-    /// the bar with the diff text.
+    /// ranges that actually changed. Pure-add and pure-delete hunks only
+    /// show the side that has content; mixed hunks show both ranges so
+    /// the user can correlate the bar with the diff text.
+    ///
+    /// <para>Note: this does NOT key off
+    /// <see cref="DiffHunk.OldLineCount"/>/<see cref="DiffHunk.NewLineCount"/>
+    /// because those include context lines — using them would claim
+    /// "added L1-L6" for a pure-delete hunk that's just surrounded by
+    /// 3 lines of context on each side, contradicting the bar.</para>
     /// </summary>
-    private static string FormatTooltip(int idx, int total, DiffHunk h)
+    internal static string FormatTooltip(int idx, int total, DiffHunk h, HunkChangeShape shape)
     {
-        string? oldRange = h.OldLineCount > 0
-            ? FormatRange(h.OldStartLine, h.OldLineCount)
-            : null;
-        string? newRange = h.NewLineCount > 0
-            ? FormatRange(h.NewStartLine, h.NewLineCount)
-            : null;
-        if (oldRange is not null && newRange is not null)
-            return $"Hunk {idx + 1} of {total}: old {oldRange} → new {newRange}";
-        if (newRange is not null)
-            return $"Hunk {idx + 1} of {total}: added {newRange}";
-        if (oldRange is not null)
-            return $"Hunk {idx + 1} of {total}: removed {oldRange}";
-        return $"Hunk {idx + 1} of {total}";
+        string? oldRange = ComputeChangedRange(h, isOldSide: true);
+        string? newRange = ComputeChangedRange(h, isOldSide: false);
+
+        return shape switch
+        {
+            HunkChangeShape.PureInsert when newRange is not null
+                => $"Hunk {idx + 1} of {total}: added {newRange}",
+            HunkChangeShape.PureDelete when oldRange is not null
+                => $"Hunk {idx + 1} of {total}: removed {oldRange}",
+            HunkChangeShape.Mixed when oldRange is not null && newRange is not null
+                => $"Hunk {idx + 1} of {total}: old {oldRange} → new {newRange}",
+            HunkChangeShape.Mixed when oldRange is not null
+                => $"Hunk {idx + 1} of {total}: removed {oldRange}",
+            HunkChangeShape.Mixed when newRange is not null
+                => $"Hunk {idx + 1} of {total}: added {newRange}",
+            _ => $"Hunk {idx + 1} of {total}",
+        };
+    }
+
+    /// <summary>
+    /// Compute the contiguous line-number range of the lines that actually
+    /// changed on one side of the hunk. Returns <c>null</c> when nothing
+    /// on that side changed (e.g. old-side for a pure-insert). Counts
+    /// <see cref="DiffLineKind.Modified"/> on both sides since those lines
+    /// exist in both buffers with intra-line edits.
+    /// </summary>
+    private static string? ComputeChangedRange(DiffHunk h, bool isOldSide)
+    {
+        int? first = null;
+        int? last = null;
+        int count = 0;
+        foreach (var line in h.Lines)
+        {
+            bool counts = isOldSide
+                ? line.Kind == DiffLineKind.Deleted || line.Kind == DiffLineKind.Modified
+                : line.Kind == DiffLineKind.Inserted || line.Kind == DiffLineKind.Modified;
+            if (!counts) continue;
+
+            int? n = isOldSide ? line.OldLineNumber : line.NewLineNumber;
+            if (n is null) continue;
+            first ??= n;
+            last = n;
+            count++;
+        }
+        if (first is null || last is null || count == 0) return null;
+        // Use count for the display so e.g. interleaved Modified ranges
+        // still report an accurate line count even when first..last span
+        // a wider window than `count`.
+        return FormatRange(first.Value, count);
     }
 
     private static string FormatRange(int start, int count) =>

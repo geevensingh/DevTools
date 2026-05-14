@@ -59,11 +59,23 @@ internal static class HunkOverviewBarGeometry
         for (int i = 0; i < hunks.Count; i++)
         {
             var hunk = hunks[i];
-            Rect? left = ComputeColumnRect(
-                hunk.OldStartLine, hunk.OldLineCount, leftTotalLines, barHeight, x: 0, w: cw);
-            Rect? right = ComputeColumnRect(
-                hunk.NewStartLine, hunk.NewLineCount, rightTotalLines, barHeight, x: rightColumnLeftX, w: cw);
-            result.Add(new HunkBarLayout(i, left, right, ClassifyHunk(hunk)));
+            var shape = ClassifyHunk(hunk);
+
+            // Gate each column by the hunk's true shape. Old/NewLineCount
+            // include context lines (see DiffHunk XML docs), so a pure-delete
+            // hunk's NewLineCount is non-zero whenever it has surrounding
+            // context — which would otherwise paint a phantom "added"
+            // column on the right side. Same story for pure-inserts on the
+            // left. Mixed hunks keep both rects.
+            Rect? left = shape == HunkChangeShape.PureInsert
+                ? null
+                : ComputeColumnRect(
+                    hunk.OldStartLine, hunk.OldLineCount, leftTotalLines, barHeight, x: 0, w: cw);
+            Rect? right = shape == HunkChangeShape.PureDelete
+                ? null
+                : ComputeColumnRect(
+                    hunk.NewStartLine, hunk.NewLineCount, rightTotalLines, barHeight, x: rightColumnLeftX, w: cw);
+            result.Add(new HunkBarLayout(i, left, right, shape));
         }
         return result;
     }
