@@ -41,6 +41,18 @@ public sealed class UnifiedScrollBarController : IDisposable
     private ScrollViewer? _rightSv;
     private bool _suspend;
 
+    /// <summary>
+    /// High-water mark for horizontal scrollable extent. AvalonEdit only
+    /// measures lines that are currently scrolled into view, so the
+    /// observed <see cref="ScrollViewer.ScrollableWidth"/> wobbles as the
+    /// user scrolls (different long lines come into the measured set).
+    /// Tracking the largest value we've seen for the active document keeps
+    /// the horizontal thumb monotonic — it can shrink the first time a
+    /// longer line scrolls in, but it never grows back. Reset on document
+    /// reload via <see cref="ResetHighWaterMark"/>.
+    /// </summary>
+    private double _maxScrollableWidthSeen;
+
     public UnifiedScrollBarController(TextEditor left, TextEditor right, ScrollBar vBar, ScrollBar hBar)
     {
         _left = left ?? throw new ArgumentNullException(nameof(left));
@@ -133,7 +145,8 @@ public sealed class UnifiedScrollBarController : IDisposable
     {
         if (_leftSv is null || _rightSv is null) return;
 
-        // Vertical
+        // Vertical — line heights are constant, so AvalonEdit reports the
+        // true full-file extent and there's no jitter to compensate for.
         double maxV = Math.Max(_leftSv.ScrollableHeight, _rightSv.ScrollableHeight);
         double viewportV = Math.Max(_leftSv.ViewportHeight, _rightSv.ViewportHeight);
         _vBar.Maximum = maxV;
@@ -143,8 +156,13 @@ public sealed class UnifiedScrollBarController : IDisposable
         _vBar.Value = Math.Max(_leftSv.VerticalOffset, _rightSv.VerticalOffset);
         _vBar.Visibility = maxV > 0 ? Visibility.Visible : Visibility.Collapsed;
 
-        // Horizontal
-        double maxH = Math.Max(_leftSv.ScrollableWidth, _rightSv.ScrollableWidth);
+        // Horizontal — AvalonEdit's per-line width measurement is
+        // virtualised, so ScrollableWidth fluctuates as we scroll. Use a
+        // monotonic high-water mark so the thumb stops resizing mid-scroll.
+        // (Reset between documents via ResetHighWaterMark.)
+        double observedH = Math.Max(_leftSv.ScrollableWidth, _rightSv.ScrollableWidth);
+        if (observedH > _maxScrollableWidthSeen) _maxScrollableWidthSeen = observedH;
+        double maxH = _maxScrollableWidthSeen;
         double viewportH = Math.Max(_leftSv.ViewportWidth, _rightSv.ViewportWidth);
         _hBar.Maximum = maxH;
         _hBar.ViewportSize = viewportH;
@@ -152,6 +170,19 @@ public sealed class UnifiedScrollBarController : IDisposable
         _hBar.SmallChange = Math.Max(viewportH / 16, 1);
         _hBar.Value = Math.Max(_leftSv.HorizontalOffset, _rightSv.HorizontalOffset);
         _hBar.Visibility = maxH > 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    /// <summary>
+    /// Drop the horizontal high-water mark. Call this whenever the
+    /// document content (or anything else that changes line widths — font,
+    /// scheme that swaps the editor's typeface) is swapped under us, so
+    /// the bar adapts to the new content instead of remembering the
+    /// previous file's extent.
+    /// </summary>
+    public void ResetHighWaterMark()
+    {
+        _maxScrollableWidthSeen = 0;
+        UpdateBars();
     }
 
     public void Dispose()

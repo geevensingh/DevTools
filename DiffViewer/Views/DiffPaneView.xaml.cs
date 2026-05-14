@@ -175,7 +175,14 @@ public partial class DiffPaneView : UserControl
         ReinstallRenderers(_vm.CurrentColorScheme);
     }
 
-    private void OnHighlightMapChanged(object? sender, EventArgs e) => ApplyHighlightMap();
+    private void OnHighlightMapChanged(object? sender, EventArgs e)
+    {
+        // New document content → drop the horizontal high-water mark so
+        // the bar's thumb adapts to this file's line widths instead of
+        // remembering the previous file's.
+        _unifiedScrollBars?.ResetHighWaterMark();
+        ApplyHighlightMap();
+    }
 
     private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
