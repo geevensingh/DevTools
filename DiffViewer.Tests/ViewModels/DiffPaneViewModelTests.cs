@@ -195,6 +195,95 @@ public class DiffPaneViewModelTests
         eventCount.Should().Be(0);
     }
 
+    [Fact]
+    public void EditorAppearance_SeededFromSettingsOnConstruction()
+    {
+        var repo = new FakeRepository();
+        var settings = new InMemorySettingsServiceForPane(new AppSettings
+        {
+            FontFamily = "Cascadia Code",
+            FontSize = 14.5,
+            TabWidth = 2,
+            ShowLineNumbers = false,
+            WordWrap = true,
+        });
+
+        var vm = new DiffPaneViewModel(repo, settingsService: settings);
+
+        vm.FontFamily.Should().Be("Cascadia Code");
+        vm.FontSize.Should().Be(14.5);
+        vm.TabWidth.Should().Be(2);
+        vm.ShowLineNumbers.Should().BeFalse();
+        vm.WordWrap.Should().BeTrue();
+    }
+
+    [Fact]
+    public void EditorAppearance_FontFamilyChange_PushedFromSettings()
+    {
+        var repo = new FakeRepository();
+        var settings = new InMemorySettingsServiceForPane(new AppSettings { FontFamily = "Consolas" });
+        var vm = new DiffPaneViewModel(repo, settingsService: settings);
+
+        settings.Update(s => s with { FontFamily = "JetBrains Mono" });
+
+        vm.FontFamily.Should().Be("JetBrains Mono");
+    }
+
+    [Fact]
+    public void EditorAppearance_TabWidthChange_PushedFromSettings()
+    {
+        var repo = new FakeRepository();
+        var settings = new InMemorySettingsServiceForPane(new AppSettings { TabWidth = 4 });
+        var vm = new DiffPaneViewModel(repo, settingsService: settings);
+
+        settings.Update(s => s with { TabWidth = 8 });
+
+        vm.TabWidth.Should().Be(8);
+    }
+
+    [Fact]
+    public void EditorAppearance_ShowLineNumbersChange_PushedFromSettings()
+    {
+        var repo = new FakeRepository();
+        var settings = new InMemorySettingsServiceForPane(new AppSettings { ShowLineNumbers = true });
+        var vm = new DiffPaneViewModel(repo, settingsService: settings);
+
+        settings.Update(s => s with { ShowLineNumbers = false });
+
+        vm.ShowLineNumbers.Should().BeFalse();
+    }
+
+    [Fact]
+    public void EditorAppearance_WordWrapChange_PushedFromSettings()
+    {
+        var repo = new FakeRepository();
+        var settings = new InMemorySettingsServiceForPane(new AppSettings { WordWrap = false });
+        var vm = new DiffPaneViewModel(repo, settingsService: settings);
+
+        settings.Update(s => s with { WordWrap = true });
+
+        vm.WordWrap.Should().BeTrue();
+    }
+
+    [Fact]
+    public void EditorAppearance_FontSizeChange_PushedFromSettings_DoesNotEcho()
+    {
+        // Regression guard: the partial OnFontSizeChanged handler writes
+        // back to settings, which would re-fire Changed and loop. The
+        // _suppressSettingsWrite gate in OnSettingsChanged must block that.
+        var repo = new FakeRepository();
+        var settings = new InMemorySettingsServiceForPane(new AppSettings { FontSize = 11.0 });
+        var vm = new DiffPaneViewModel(repo, settingsService: settings);
+
+        int updateCount = 0;
+        settings.Changed += (_, _) => updateCount++;
+
+        settings.Update(s => s with { FontSize = 16.0 });
+
+        vm.FontSize.Should().Be(16.0);
+        updateCount.Should().Be(1, "the VM must not echo the settings change back to disk");
+    }
+
     private sealed class InMemorySettingsServiceForPane : ISettingsService
     {
         private AppSettings _current;

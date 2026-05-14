@@ -126,6 +126,10 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
                 ShowVisibleWhitespace = s.ShowVisibleWhitespace;
                 LiveUpdates = s.LiveUpdates;
                 FontSize = s.FontSize;
+                FontFamily = s.FontFamily;
+                TabWidth = s.TabWidth;
+                ShowLineNumbers = s.ShowLineNumbers;
+                WordWrap = s.WordWrap;
                 CurrentColorScheme = DiffColorScheme.From(s.ColorScheme);
             }
             finally { _suppressSettingsWrite = false; }
@@ -155,11 +159,57 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
             CurrentColorScheme = DiffColorScheme.From(e.Current.ColorScheme);
             ColorSchemeChanged?.Invoke(this, EventArgs.Empty);
         }
+
+        // Editor-appearance fields: push from settings into the
+        // observable properties so the editors' bindings (and the
+        // TabWidth bridge in DiffPaneView.xaml.cs) pick them up. The
+        // suppress flag prevents the partial OnFontSizeChanged handler
+        // from immediately writing the same value back to disk.
+        _suppressSettingsWrite = true;
+        try
+        {
+            if (!Equals(e.Previous.FontSize, e.Current.FontSize))
+                FontSize = e.Current.FontSize;
+            if (!string.Equals(e.Previous.FontFamily, e.Current.FontFamily, StringComparison.Ordinal))
+                FontFamily = e.Current.FontFamily;
+            if (e.Previous.TabWidth != e.Current.TabWidth)
+                TabWidth = e.Current.TabWidth;
+            if (e.Previous.ShowLineNumbers != e.Current.ShowLineNumbers)
+                ShowLineNumbers = e.Current.ShowLineNumbers;
+            if (e.Previous.WordWrap != e.Current.WordWrap)
+                WordWrap = e.Current.WordWrap;
+        }
+        finally { _suppressSettingsWrite = false; }
     }
 
     // Default editor font size when no settings service is wired (mirrors
     // AppSettings.FontSize default). Editor controls bind to FontSize.
     [ObservableProperty] private double _fontSize = 11.0;
+
+    /// <summary>
+    /// Editor font-family name. Seeded from <see cref="AppSettings.FontFamily"/>
+    /// and refreshed when the user changes the value in the Settings
+    /// dialog. The three AvalonEdit panes bind their <c>FontFamily</c>
+    /// dependency property to this; WPF's <c>FontFamilyConverter</c>
+    /// resolves the string to an installed typeface.
+    /// </summary>
+    [ObservableProperty] private string _fontFamily = "Consolas";
+
+    /// <summary>
+    /// Editor tab width. Surfaced to AvalonEdit via
+    /// <c>TextEditor.Options.IndentationSize</c> in the view's code-behind
+    /// (<see cref="System.Windows.Controls.Control"/> doesn't expose a
+    /// bindable tab-width DP).
+    /// </summary>
+    [ObservableProperty] private int _tabWidth = 4;
+
+    /// <summary>Whether the gutter shows line numbers. Bound to each
+    /// editor's <c>ShowLineNumbers</c> dependency property.</summary>
+    [ObservableProperty] private bool _showLineNumbers = true;
+
+    /// <summary>Whether long lines wrap at the editor's right edge.
+    /// Bound to each editor's <c>WordWrap</c> dependency property.</summary>
+    [ObservableProperty] private bool _wordWrap;
 
     /// <summary>Lower clamp for <see cref="FontSize"/>. Below this AvalonEdit's
     /// rendering becomes unusable. Matches the Settings dialog's input range.</summary>

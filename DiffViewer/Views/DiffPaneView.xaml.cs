@@ -159,6 +159,7 @@ public partial class DiffPaneView : UserControl
 
         ApplyHighlightMap();
         ApplyVisibleWhitespace();
+        ApplyTabWidth();
     }
 
     private void DetachFromViewModel()
@@ -191,6 +192,10 @@ public partial class DiffPaneView : UserControl
         if (e.PropertyName == nameof(DiffPaneViewModel.ShowVisibleWhitespace))
         {
             ApplyVisibleWhitespace();
+        }
+        else if (e.PropertyName == nameof(DiffPaneViewModel.TabWidth))
+        {
+            ApplyTabWidth();
         }
     }
 
@@ -289,6 +294,23 @@ public partial class DiffPaneView : UserControl
         editor.Options.ShowSpaces = show;
         editor.Options.ShowTabs = show;
         editor.Options.ShowEndOfLine = show;
+    }
+
+    /// <summary>
+    /// Bridge <see cref="DiffPaneViewModel.TabWidth"/> to AvalonEdit's
+    /// <c>TextEditor.Options.IndentationSize</c> on all three editors.
+    /// <c>IndentationSize</c> is not a dependency property so it can't
+    /// be reached from XAML directly. Setting it triggers AvalonEdit's
+    /// own redraw, so we don't need to call <c>Redraw()</c> here.
+    /// </summary>
+    private void ApplyTabWidth()
+    {
+        if (_vm is null) return;
+        int width = _vm.TabWidth;
+        if (width < 1) width = 1;
+        LeftEditor.Options.IndentationSize = width;
+        RightEditor.Options.IndentationSize = width;
+        InlineEditor.Options.IndentationSize = width;
     }
 
     private void OnHunkNavigationRequested(object? sender, HunkNavigationEventArgs e)
