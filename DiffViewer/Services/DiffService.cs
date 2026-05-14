@@ -112,18 +112,76 @@ public sealed class DiffService : IDiffService
                 oldIdx++;
             }
 
-            // Deletes from this block.
+            // Collect this block's delete + insert pieces so we can trim
+            // shared content at the chunk boundary. DelimiterChunker merges
+            // consecutive delimiters into one piece, so e.g. trailing `";`
+            // (old) and `";  ` (new, with the spaces before a new comment)
+            // become whole-piece delete + insert even though `";` is
+            // unchanged content. Trimming shared char-level prefix/suffix
+            // turns that back into Unchanged + Inserted/Deleted.
+            var deleted = new List<string>(block.DeleteCountA);
             for (int i = 0; i < block.DeleteCountA; i++)
             {
-                pieces.Add(new IntraLinePiece(IntraLinePieceKind.Deleted, result.PiecesOld[block.DeleteStartA + i]));
+                deleted.Add(result.PiecesOld[block.DeleteStartA + i]);
             }
-            oldIdx = block.DeleteStartA + block.DeleteCountA;
 
-            // Inserts from this block.
+            var inserted = new List<string>(block.InsertCountB);
             for (int i = 0; i < block.InsertCountB; i++)
             {
-                pieces.Add(new IntraLinePiece(IntraLinePieceKind.Inserted, result.PiecesNew[block.InsertStartB + i]));
+                inserted.Add(result.PiecesNew[block.InsertStartB + i]);
             }
+
+            string? leadingCommon = null;
+            string? trailingCommon = null;
+
+            if (deleted.Count > 0 && inserted.Count > 0)
+            {
+                int prefixLen = CommonPrefixLength(deleted[0], inserted[0]);
+                if (prefixLen > 0)
+                {
+                    leadingCommon = deleted[0].Substring(0, prefixLen);
+                    deleted[0] = deleted[0].Substring(prefixLen);
+                    inserted[0] = inserted[0].Substring(prefixLen);
+                    if (deleted[0].Length == 0) deleted.RemoveAt(0);
+                    if (inserted.Count > 0 && inserted[0].Length == 0) inserted.RemoveAt(0);
+                }
+            }
+
+            if (deleted.Count > 0 && inserted.Count > 0)
+            {
+                int lastDel = deleted.Count - 1;
+                int lastIns = inserted.Count - 1;
+                int suffixLen = CommonSuffixLength(deleted[lastDel], inserted[lastIns]);
+                if (suffixLen > 0)
+                {
+                    string dLast = deleted[lastDel];
+                    string iLast = inserted[lastIns];
+                    trailingCommon = dLast.Substring(dLast.Length - suffixLen);
+                    deleted[lastDel] = dLast.Substring(0, dLast.Length - suffixLen);
+                    inserted[lastIns] = iLast.Substring(0, iLast.Length - suffixLen);
+                    if (deleted[lastDel].Length == 0) deleted.RemoveAt(lastDel);
+                    if (inserted[lastIns].Length == 0) inserted.RemoveAt(lastIns);
+                }
+            }
+
+            if (leadingCommon is not null)
+            {
+                pieces.Add(new IntraLinePiece(IntraLinePieceKind.Unchanged, leadingCommon));
+            }
+            foreach (var d in deleted)
+            {
+                pieces.Add(new IntraLinePiece(IntraLinePieceKind.Deleted, d));
+            }
+            foreach (var ins in inserted)
+            {
+                pieces.Add(new IntraLinePiece(IntraLinePieceKind.Inserted, ins));
+            }
+            if (trailingCommon is not null)
+            {
+                pieces.Add(new IntraLinePiece(IntraLinePieceKind.Unchanged, trailingCommon));
+            }
+
+            oldIdx = block.DeleteStartA + block.DeleteCountA;
             newIdx = block.InsertStartB + block.InsertCountB;
         }
 
@@ -135,6 +193,22 @@ public sealed class DiffService : IDiffService
         }
 
         return pieces;
+    }
+
+    private static int CommonPrefixLength(string a, string b)
+    {
+        int max = Math.Min(a.Length, b.Length);
+        int i = 0;
+        while (i < max && a[i] == b[i]) i++;
+        return i;
+    }
+
+    private static int CommonSuffixLength(string a, string b)
+    {
+        int max = Math.Min(a.Length, b.Length);
+        int i = 0;
+        while (i < max && a[a.Length - 1 - i] == b[b.Length - 1 - i]) i++;
+        return i;
     }
 
     /// <summary>

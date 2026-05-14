@@ -114,4 +114,72 @@ public class DiffHighlightMapTests
         leftSpans.All(s => s.Kind == IntraLineSpanKind.Deleted).Should().BeTrue();
         rightSpans.All(s => s.Kind == IntraLineSpanKind.Inserted).Should().BeTrue();
     }
+
+    [Fact]
+    public void FromHunks_IntraLineEnabled_LowSimilarityPair_SuppressesSpans()
+    {
+        // Two paired lines that share only whitespace and a handful of
+        // delimiters ("//", parens, "the"/"so") should NOT get noisy
+        // intra-line spans — the line-level red/yellow background is the
+        // honest signal for "these lines are unrelated".
+        const string oldLine = "// rect(s) are present so the user can find the marker the";
+        const string newLine = "// (left rect + ribbon + right rect) as a single polygon so it";
+        var hunks = _diff.ComputeDiff(oldLine, newLine, new DiffOptions()).Hunks;
+
+        var map = DiffHighlightMap.FromHunks(hunks, _diff, enableIntraLine: true, ignoreWhitespace: false);
+
+        // Lines are still marked Modified at the line level…
+        map.LeftLines[1].Kind.Should().Be(DiffLineKind.Modified);
+        map.RightLines[1].Kind.Should().Be(DiffLineKind.Modified);
+        // …but the intra-line spans are suppressed.
+        map.LeftLines[1].IntraLineSpans.Should().NotBeNull().And.BeEmpty();
+        map.RightLines[1].IntraLineSpans.Should().NotBeNull().And.BeEmpty();
+    }
+
+    [Fact]
+    public void FromHunks_IntraLineEnabled_HighSimilarityPair_KeepsSpans()
+    {
+        // Two paired lines that share most of their content (identical
+        // indentation, identical return keyword, only the value differs)
+        // should keep intra-line spans so the user sees the change at a
+        // glance.
+        var hunks = _diff.ComputeDiff(
+            "        return null;",
+            "        return Empty;",
+            new DiffOptions()).Hunks;
+
+        var map = DiffHighlightMap.FromHunks(hunks, _diff, enableIntraLine: true, ignoreWhitespace: false);
+
+        map.LeftLines[1].IntraLineSpans.Should().NotBeNull().And.NotBeEmpty();
+        map.RightLines[1].IntraLineSpans.Should().NotBeNull().And.NotBeEmpty();
+    }
+
+    [Fact]
+    public void FromHunks_IntraLineEnabled_OldFullyContainedInNew_KeepsSpans()
+    {
+        // The old line's content is fully preserved in the new line — only
+        // a trailing comment was appended. Intra-line should fire AND only
+        // the truly appended content (after the original line ends) should
+        // be highlighted on the new side. The chunker merges `";` (old)
+        // and `";  ` (new) into different delimiter chunks; without
+        // post-processing the boundary leaks into the highlight.
+        const string oldLine = "                toVersion = \"v9\";";
+        const string newLine = "                toVersion = \"v9\";  // a long appended comment that is much longer than the original line";
+        var hunks = _diff.ComputeDiff(oldLine, newLine, new DiffOptions()).Hunks;
+
+        var map = DiffHighlightMap.FromHunks(hunks, _diff, enableIntraLine: true, ignoreWhitespace: false);
+
+        var rightSpans = map.RightLines[1].IntraLineSpans;
+        rightSpans.Should().NotBeNull().And.NotBeEmpty();
+        // The first inserted span must start at or after the end of the
+        // shared old-line content — anything earlier means the chunker
+        // boundary leaked into the highlight.
+        rightSpans!.Min(s => s.StartColumn).Should().BeGreaterThanOrEqualTo(oldLine.Length);
+        // And the highlight must extend to the very end of the new line.
+        rightSpans.Max(s => s.EndColumn).Should().Be(newLine.Length);
+
+        // Old side has nothing actually deleted.
+        map.LeftLines[1].IntraLineSpans.Should().NotBeNull();
+        map.LeftLines[1].IntraLineSpans!.Should().BeEmpty();
+    }
 }

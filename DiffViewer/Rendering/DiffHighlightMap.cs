@@ -123,11 +123,24 @@ public sealed class DiffHighlightMap
     /// <summary>
     /// Run the intra-line word diff and bucket the resulting pieces into
     /// (oldSpans, newSpans) by walking the old and new lines independently.
+    ///
+    /// <para>Suppresses spans for low-similarity line pairs: when two paired
+    /// lines share only whitespace and a handful of stray delimiters, the
+    /// token diff "matches" those incidentally and the result is a noisy
+    /// near-total highlight of both sides. We compute a similarity ratio
+    /// over non-whitespace tokens and bail out below
+    /// <see cref="IntraLineSimilarityThreshold"/>, leaving the line-level
+    /// red/yellow background as the only signal.</para>
     /// </summary>
     private static (IReadOnlyList<IntraLineSpan> Left, IReadOnlyList<IntraLineSpan> Right)
         ComputeIntraLineSpans(IDiffService diffService, string oldLine, string newLine, bool ignoreWhitespace)
     {
         var pieces = diffService.ComputeIntraLineDiff(oldLine, newLine, ignoreWhitespace);
+
+        if (!IsSimilarEnoughForIntraLineDiff(pieces))
+        {
+            return (Array.Empty<IntraLineSpan>(), Array.Empty<IntraLineSpan>());
+        }
 
         var leftSpans = new List<IntraLineSpan>();
         var rightSpans = new List<IntraLineSpan>();
@@ -162,5 +175,51 @@ public sealed class DiffHighlightMap
         }
 
         return (leftSpans, rightSpans);
+    }
+
+    /// <summary>
+    /// Below this ratio of matched tokens to the smaller-or-equal side's
+    /// non-whitespace tokens, the two lines are treated as unrelated and
+    /// intra-line spans are suppressed.
+    /// </summary>
+    private const double IntraLineSimilarityThreshold = 0.5;
+
+    private static bool IsSimilarEnoughForIntraLineDiff(IReadOnlyList<IntraLinePiece> pieces)
+    {
+        // Count non-whitespace tokens per side and the number of matched
+        // ones. Whitespace-only tokens shouldn't imply semantic similarity —
+        // two unrelated lines often share leading indentation and inter-
+        // word spaces, which inflates the ratio.
+        int matched = 0;
+        int oldTokens = 0;
+        int newTokens = 0;
+        foreach (var p in pieces)
+        {
+            if (string.IsNullOrWhiteSpace(p.Text)) continue;
+            switch (p.Kind)
+            {
+                case IntraLinePieceKind.Unchanged:
+                    matched++;
+                    oldTokens++;
+                    newTokens++;
+                    break;
+                case IntraLinePieceKind.Deleted:
+                    oldTokens++;
+                    break;
+                case IntraLinePieceKind.Inserted:
+                    newTokens++;
+                    break;
+            }
+        }
+        if (oldTokens == 0 && newTokens == 0) return true; // Nothing meaningful to compare.
+
+        // Asymmetric: take the max of the two per-side match ratios. When
+        // one line is fully contained in the other (pure addition or pure
+        // removal of inline content), the contained side hits 1.0 even if
+        // the longer side's ratio is low — and that's a case the user
+        // wants to see highlighted.
+        double oldRatio = oldTokens == 0 ? 1.0 : (double)matched / oldTokens;
+        double newRatio = newTokens == 0 ? 1.0 : (double)matched / newTokens;
+        return Math.Max(oldRatio, newRatio) >= IntraLineSimilarityThreshold;
     }
 }
