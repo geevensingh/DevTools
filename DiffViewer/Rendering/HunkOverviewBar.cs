@@ -124,17 +124,33 @@ public sealed class HunkOverviewBar : FrameworkElement
         for (int i = 0; i < hunks.Count; i++)
         {
             var (y, h) = HunkOverviewBarGeometry.ComputeMarkerRect(hunks[i], totalLines, ActualHeight);
-            var brush = PickMarkerBrush(hunks[i], scheme);
-            var rect = new Rect(HorizontalPadding, y, ActualWidth - 2 * HorizontalPadding, h);
-            dc.DrawRectangle(brush, null, rect);
+            var (topBrush, bottomBrush) = HunkOverviewBarGeometry.GetMarkerBrushes(hunks[i], scheme);
+            double w = ActualWidth - 2 * HorizontalPadding;
+
+            if (bottomBrush is null)
+            {
+                // Single-color marker — draw the whole rect with the top brush.
+                var rect = new Rect(HorizontalPadding, y, w, h);
+                dc.DrawRectangle(topBrush, null, rect);
+            }
+            else
+            {
+                // Mixed hunk — paint deletes on top, inserts on bottom so
+                // the marker mirrors a unified diff at a glance.
+                double topHeight = h / 2.0;
+                double bottomHeight = h - topHeight;
+                dc.DrawRectangle(topBrush, null, new Rect(HorizontalPadding, y, w, topHeight));
+                dc.DrawRectangle(bottomBrush, null, new Rect(HorizontalPadding, y + topHeight, w, bottomHeight));
+            }
 
             // Highlight the active hunk with a darker outline so the user
             // can find the marker the keyboard navigation has selected.
             if (i == _vm.CurrentHunkIndex)
             {
+                var fullRect = new Rect(HorizontalPadding, y, w, h);
                 var pen = new Pen(Brushes.Black, 1.0);
                 if (pen.CanFreeze) pen.Freeze();
-                dc.DrawRectangle(null, pen, rect);
+                dc.DrawRectangle(null, pen, fullRect);
             }
         }
     }
@@ -146,14 +162,6 @@ public sealed class HunkOverviewBar : FrameworkElement
             ? Math.Max(1, _vm.InlineDocument.LineCount)
             : Math.Max(1, _vm.RightDocument.LineCount);
     }
-
-    private static Brush PickMarkerBrush(DiffHunk hunk, DiffColorScheme scheme) =>
-        HunkOverviewBarGeometry.ClassifyHunk(hunk) switch
-        {
-            HunkChangeShape.PureInsert => scheme.AddedIntraLineBackground,
-            HunkChangeShape.PureDelete => scheme.RemovedIntraLineBackground,
-            _ => scheme.ModifiedLineBackground,
-        };
 
     protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
     {

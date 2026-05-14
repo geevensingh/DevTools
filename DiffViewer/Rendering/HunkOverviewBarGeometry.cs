@@ -1,3 +1,4 @@
+using System.Windows.Media;
 using DiffViewer.Models;
 
 namespace DiffViewer.Rendering;
@@ -95,6 +96,23 @@ internal static class HunkOverviewBarGeometry
             _ => HunkChangeShape.Mixed,
         };
     }
+
+    /// <summary>
+    /// Returns the brush(es) used to paint the overview marker for the
+    /// supplied hunk. Single-color hunks (pure-add / pure-delete) return
+    /// <c>Bottom == null</c>; mixed hunks return both colors so the caller
+    /// can split the rect — top half painted with <see cref="DiffColorScheme.RemovedIntraLineBackground"/>,
+    /// bottom half with <see cref="DiffColorScheme.AddedIntraLineBackground"/>.
+    /// The top/bottom order mirrors how the lines appear in a unified diff
+    /// (deletions above insertions).
+    /// </summary>
+    public static (Brush Top, Brush? Bottom) GetMarkerBrushes(DiffHunk hunk, DiffColorScheme scheme) =>
+        ClassifyHunk(hunk) switch
+        {
+            HunkChangeShape.PureInsert => (scheme.AddedIntraLineBackground, (Brush?)null),
+            HunkChangeShape.PureDelete => (scheme.RemovedIntraLineBackground, (Brush?)null),
+            _ => (scheme.RemovedIntraLineBackground, (Brush?)scheme.AddedIntraLineBackground),
+        };
 }
 
 internal enum HunkChangeShape

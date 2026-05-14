@@ -232,4 +232,44 @@ public class HunkOverviewBarGeometryTests
 
         HunkOverviewBarGeometry.ClassifyHunk(hunk).Should().Be(HunkChangeShape.Mixed);
     }
+
+    [Fact]
+    public void GetMarkerBrushes_PureInsert_ReturnsAddedBrushOnly()
+    {
+        var hunk = Hunk(newStart: 5, newCount: 1, kinds: new[] { DiffLineKind.Inserted });
+        var scheme = DiffColorScheme.Classic;
+
+        var (top, bottom) = HunkOverviewBarGeometry.GetMarkerBrushes(hunk, scheme);
+
+        top.Should().BeSameAs(scheme.AddedIntraLineBackground);
+        bottom.Should().BeNull();
+    }
+
+    [Fact]
+    public void GetMarkerBrushes_PureDelete_ReturnsRemovedBrushOnly()
+    {
+        var hunk = Hunk(newStart: 5, newCount: 0, oldStart: 5, oldCount: 1, kinds: new[] { DiffLineKind.Deleted });
+        var scheme = DiffColorScheme.Classic;
+
+        var (top, bottom) = HunkOverviewBarGeometry.GetMarkerBrushes(hunk, scheme);
+
+        top.Should().BeSameAs(scheme.RemovedIntraLineBackground);
+        bottom.Should().BeNull();
+    }
+
+    [Fact]
+    public void GetMarkerBrushes_Mixed_ReturnsRemovedOnTopAndAddedOnBottom()
+    {
+        var hunk = Hunk(newStart: 5, newCount: 1, oldStart: 5, oldCount: 1, kinds: new[]
+        {
+            DiffLineKind.Deleted, DiffLineKind.Inserted,
+        });
+        var scheme = DiffColorScheme.Classic;
+
+        var (top, bottom) = HunkOverviewBarGeometry.GetMarkerBrushes(hunk, scheme);
+
+        // Top half mirrors the unified-diff "-" lines, bottom half the "+" lines.
+        top.Should().BeSameAs(scheme.RemovedIntraLineBackground);
+        bottom.Should().BeSameAs(scheme.AddedIntraLineBackground);
+    }
 }
