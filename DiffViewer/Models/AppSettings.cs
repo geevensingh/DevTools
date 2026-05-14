@@ -40,7 +40,6 @@ public sealed record AppSettings
     public int TabWidth { get; init; } = 4;
     public bool ShowLineNumbers { get; init; } = true;
     public bool WordWrap { get; init; }
-    public bool HighlightCurrentLine { get; init; }
     public ColorSchemeChoice ColorScheme { get; init; } = ColorSchemeChoice.Preset(ColorSchemePresetName.Classic);
 
     // ---- External editor (auto-detect when null/empty) ----

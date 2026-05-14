@@ -191,7 +191,8 @@ public partial class MainWindow : Window
             vm.SettingsService,
             confirmReset: prompt => MessageBox.Show(
                 this, prompt, "Reset settings",
-                MessageBoxButton.OKCancel, MessageBoxImage.Warning) == MessageBoxResult.OK);
+                MessageBoxButton.OKCancel, MessageBoxImage.Warning) == MessageBoxResult.OK,
+            availableFonts: DiffViewer.Rendering.SystemFontEnumerator.Enumerate());
 
         var dialog = new SettingsDialog(dialogVm) { Owner = this };
         try { dialog.ShowDialog(); }

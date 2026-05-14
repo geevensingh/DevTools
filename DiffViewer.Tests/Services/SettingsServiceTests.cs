@@ -52,7 +52,6 @@ public sealed class SettingsServiceTests : IDisposable
             TabWidth = 2,
             ShowLineNumbers = false,
             WordWrap = true,
-            HighlightCurrentLine = true,
             ColorScheme = ColorSchemeChoice.Preset(ColorSchemePresetName.HighContrast),
             ExternalEditorPath = @"C:\bin\code.cmd",
             ExternalEditorLineArgFormat = "--goto {path}:{line}",

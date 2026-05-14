@@ -20,6 +20,11 @@
         <Style TargetType="TextBlock" x:Key="FieldLabel">
             <Setter Property="Margin" Value="0,4,8,2"/>
         </Style>
+        <CollectionViewSource x:Key="GroupedFonts" Source="{Binding AvailableFonts}">
+            <CollectionViewSource.GroupDescriptions>
+                <PropertyGroupDescription PropertyName="GroupName"/>
+            </CollectionViewSource.GroupDescriptions>
+        </CollectionViewSource>
     </Window.Resources>
 
     <DockPanel Margin="14">
@@ -61,22 +66,57 @@
                     <Grid.RowDefinitions>
                         <RowDefinition/><RowDefinition/><RowDefinition/>
                         <RowDefinition/><RowDefinition/><RowDefinition/>
-                        <RowDefinition/>
                     </Grid.RowDefinitions>
 
                     <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Font family"/>
-                    <TextBox   Grid.Row="0" Grid.Column="1" Margin="0,4" Text="{Binding FontFamily, UpdateSourceTrigger=LostFocus}"
-                               LostFocus="OnTextOrNumericLostFocus" KeyDown="OnTextOrNumericKeyDown"/>
+                    <ComboBox  Grid.Row="0" Grid.Column="1" Margin="0,4"
+                               IsEditable="True"
+                               IsTextSearchEnabled="True"
+                               IsTextSearchCaseSensitive="False"
+                               TextSearch.TextPath="Name"
+                               MaxDropDownHeight="320"
+                               ItemsSource="{Binding Source={StaticResource GroupedFonts}}"
+                               Text="{Binding FontFamily, UpdateSourceTrigger=LostFocus}"
+                               SelectionChanged="OnFontFamilySelectionChanged"
+                               LostFocus="OnTextOrNumericLostFocus"
+                               KeyDown="OnTextOrNumericKeyDown">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Name}" FontFamily="{Binding Name}" FontSize="13"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                        <ComboBox.GroupStyle>
+                            <GroupStyle>
+                                <GroupStyle.HeaderTemplate>
+                                    <DataTemplate>
+                                        <Border BorderBrush="#DDD" BorderThickness="0,0,0,1" Padding="2,4,2,3" Margin="0,2,0,0">
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="#666" FontSize="11"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </GroupStyle.HeaderTemplate>
+                            </GroupStyle>
+                        </ComboBox.GroupStyle>
+                    </ComboBox>
 
                     <TextBlock Grid.Row="1" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Font size (pt)"/>
-                    <TextBox   Grid.Row="1" Grid.Column="1" Margin="0,4" Width="80" HorizontalAlignment="Left"
-                               Text="{Binding FontSize, UpdateSourceTrigger=LostFocus}"
-                               LostFocus="OnTextOrNumericLostFocus" KeyDown="OnTextOrNumericKeyDown"/>
+                    <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="0,4">
+                        <TextBox Width="80"
+                                 Text="{Binding FontSize, UpdateSourceTrigger=LostFocus}"
+                                 LostFocus="OnTextOrNumericLostFocus" KeyDown="OnTextOrNumericKeyDown"
+                                 PreviewTextInput="OnDecimalTextInput"
+                                 DataObject.Pasting="OnDecimalPasting"/>
+                        <TextBlock Text=" pt (6 – 72)" Margin="6,4,0,0" Foreground="#666"/>
+                    </StackPanel>
 
                     <TextBlock Grid.Row="2" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Tab width"/>
-                    <TextBox   Grid.Row="2" Grid.Column="1" Margin="0,4" Width="80" HorizontalAlignment="Left"
-                               Text="{Binding TabWidth, UpdateSourceTrigger=LostFocus}"
-                               LostFocus="OnTextOrNumericLostFocus" KeyDown="OnTextOrNumericKeyDown"/>
+                    <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Margin="0,4">
+                        <TextBox Width="80"
+                                 Text="{Binding TabWidth, UpdateSourceTrigger=LostFocus}"
+                                 LostFocus="OnTextOrNumericLostFocus" KeyDown="OnTextOrNumericKeyDown"
+                                 PreviewTextInput="OnIntegerTextInput"
+                                 DataObject.Pasting="OnIntegerPasting"/>
+                        <TextBlock Text=" spaces (1 – 16)" Margin="6,4,0,0" Foreground="#666"/>
+                    </StackPanel>
 
                     <TextBlock Grid.Row="3" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Show line numbers"/>
                     <CheckBox  Grid.Row="3" Grid.Column="1" Margin="0,6" IsChecked="{Binding ShowLineNumbers}"/>
@@ -84,11 +124,8 @@
                     <TextBlock Grid.Row="4" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Word wrap"/>
                     <CheckBox  Grid.Row="4" Grid.Column="1" Margin="0,6" IsChecked="{Binding WordWrap}"/>
 
-                    <TextBlock Grid.Row="5" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Highlight current line"/>
-                    <CheckBox  Grid.Row="5" Grid.Column="1" Margin="0,6" IsChecked="{Binding HighlightCurrentLine}"/>
-
-                    <TextBlock Grid.Row="6" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Color scheme"/>
-                    <StackPanel Grid.Row="6" Grid.Column="1" Orientation="Horizontal" Margin="0,4">
+                    <TextBlock Grid.Row="5" Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Color scheme"/>
+                    <StackPanel Grid.Row="5" Grid.Column="1" Orientation="Horizontal" Margin="0,4">
                         <ComboBox Width="220" ItemsSource="{Binding ColorSchemePresets}"
                                   SelectedItem="{Binding SelectedColorPreset}"
                                   IsEnabled="{Binding IsCustomColorScheme, Converter={x:Static vm:InverseBoolConverter.Instance}}"/>
@@ -135,7 +172,9 @@
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,4">
                         <TextBox Width="80"
                                  Text="{Binding LargeFileThresholdMb, UpdateSourceTrigger=LostFocus}"
-                                 LostFocus="OnTextOrNumericLostFocus" KeyDown="OnTextOrNumericKeyDown"/>
+                                 LostFocus="OnTextOrNumericLostFocus" KeyDown="OnTextOrNumericKeyDown"
+                                 PreviewTextInput="OnIntegerTextInput"
+                                 DataObject.Pasting="OnIntegerPasting"/>
                         <TextBlock Text=" MB (1 – 2048)" Margin="6,4,0,0" Foreground="#666"/>
                     </StackPanel>
                 </Grid>

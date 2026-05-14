@@ -226,4 +226,32 @@ public sealed class SettingsViewModelTests : IDisposable
 
         opened.Should().Be(SettingsService.DefaultFilePath);
     }
+
+    [Fact]
+    public void AvailableFonts_DefaultsToEmpty_WhenNotInjected()
+    {
+        var vm = NewVm();
+        vm.AvailableFonts.Should().NotBeNull();
+        vm.AvailableFonts.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void AvailableFonts_ReflectsInjectedList()
+    {
+        var fonts = new[]
+        {
+            new FontFamilyOption("Cascadia Code", IsMonospaced: true),
+            new FontFamilyOption("Segoe UI", IsMonospaced: false),
+        };
+        var vm = new SettingsViewModel(_service, useDispatcherTimer: false, availableFonts: fonts);
+
+        vm.AvailableFonts.Should().BeEquivalentTo(fonts);
+    }
+
+    [Fact]
+    public void FontFamilyOption_GroupName_MonospacedAndVariable()
+    {
+        new FontFamilyOption("Consolas", IsMonospaced: true).GroupName.Should().Be("Monospaced");
+        new FontFamilyOption("Arial", IsMonospaced: false).GroupName.Should().Be("Variable width");
+    }
 }

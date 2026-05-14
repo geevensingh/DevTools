@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -40,7 +41,8 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         ISettingsService settings,
         Action<string>? openInEditor = null,
         Func<string, bool>? confirmReset = null,
-        bool useDispatcherTimer = true)
+        bool useDispatcherTimer = true,
+        IReadOnlyList<FontFamilyOption>? availableFonts = null)
     {
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         _openInEditor = openInEditor;
@@ -48,6 +50,8 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
 
         ColorSchemePresets = new ObservableCollection<ColorSchemePresetName>(
             Enum.GetValues<ColorSchemePresetName>());
+
+        AvailableFonts = availableFonts ?? Array.Empty<FontFamilyOption>();
 
         if (useDispatcherTimer && System.Windows.Application.Current is not null)
         {
@@ -69,13 +73,19 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
 
     public ObservableCollection<ColorSchemePresetName> ColorSchemePresets { get; }
 
+    /// <summary>
+    /// All installed system fonts available in the font-family dropdown.
+    /// Grouped in the View by <see cref="FontFamilyOption.GroupName"/>
+    /// (Monospaced / Variable width).
+    /// </summary>
+    public IReadOnlyList<FontFamilyOption> AvailableFonts { get; }
+
     // Diff appearance
     [ObservableProperty] private string _fontFamily = "Consolas";
     [ObservableProperty] private double _fontSize = 11.0;
     [ObservableProperty] private int _tabWidth = 4;
     [ObservableProperty] private bool _showLineNumbers = true;
     [ObservableProperty] private bool _wordWrap;
-    [ObservableProperty] private bool _highlightCurrentLine;
     [ObservableProperty] private ColorSchemePresetName _selectedColorPreset = ColorSchemePresetName.Classic;
 
     /// <summary>True iff the persisted color-scheme is a hand-edited custom palette.</summary>
@@ -191,9 +201,6 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     partial void OnWordWrapChanged(bool value) =>
         SaveIfNotSuppressed(s => s with { WordWrap = value });
 
-    partial void OnHighlightCurrentLineChanged(bool value) =>
-        SaveIfNotSuppressed(s => s with { HighlightCurrentLine = value });
-
     partial void OnConfirmRevertHunkChanged(bool value) =>
         SaveIfNotSuppressed(s => s with { SuppressRevertHunkConfirmation = !value });
 
@@ -244,7 +251,6 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
             TabWidth = s.TabWidth;
             ShowLineNumbers = s.ShowLineNumbers;
             WordWrap = s.WordWrap;
-            HighlightCurrentLine = s.HighlightCurrentLine;
             ExternalEditorPath = s.ExternalEditorPath ?? string.Empty;
             ExternalEditorLineArgFormat = s.ExternalEditorLineArgFormat ?? string.Empty;
             LargeFileThresholdMb = (int)Math.Clamp(s.LargeFileThresholdBytes / (1024 * 1024), 1, 2048);
