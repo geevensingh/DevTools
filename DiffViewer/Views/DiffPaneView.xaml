@@ -85,10 +85,15 @@
                     <ColumnDefinition Width="32"/>
                     <ColumnDefinition Width="5"/>
                     <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
                 <avalon:TextEditor x:Name="LeftEditor"
-                                   Grid.Column="0"
+                                   Grid.Row="0" Grid.Column="0"
                                    Document="{Binding LeftDocument, Mode=OneWay}"
                                    IsReadOnly="True"
                                    ShowLineNumbers="True"
@@ -96,22 +101,22 @@
                                    FontSize="{Binding FontSize, Mode=OneWay}"
                                    WordWrap="False"
                                    Background="{StaticResource EditorBgBrush}"
-                                   HorizontalScrollBarVisibility="Auto"
-                                   VerticalScrollBarVisibility="Auto"
+                                   HorizontalScrollBarVisibility="Hidden"
+                                   VerticalScrollBarVisibility="Hidden"
                                    ContextMenu="{StaticResource DiffEditorContextMenu}"
                                    ContextMenuOpening="OnLeftEditorContextMenuOpening"
                                    Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}"/>
 
-                <rendering:HunkOverviewBar Grid.Column="1"/>
+                <rendering:HunkOverviewBar Grid.Row="0" Grid.Column="1"/>
 
-                <GridSplitter Grid.Column="2"
+                <GridSplitter Grid.Row="0" Grid.Column="2"
                               Width="5"
                               HorizontalAlignment="Stretch"
                               VerticalAlignment="Stretch"
                               Background="{StaticResource DividerBrush}"/>
 
                 <avalon:TextEditor x:Name="RightEditor"
-                                   Grid.Column="3"
+                                   Grid.Row="0" Grid.Column="3"
                                    Document="{Binding RightDocument, Mode=OneWay}"
                                    IsReadOnly="True"
                                    ShowLineNumbers="True"
@@ -119,11 +124,20 @@
                                    FontSize="{Binding FontSize, Mode=OneWay}"
                                    WordWrap="False"
                                    Background="{StaticResource EditorBgBrush}"
-                                   HorizontalScrollBarVisibility="Auto"
-                                   VerticalScrollBarVisibility="Auto"
+                                   HorizontalScrollBarVisibility="Hidden"
+                                   VerticalScrollBarVisibility="Hidden"
                                    ContextMenu="{StaticResource DiffEditorContextMenu}"
                                    ContextMenuOpening="OnRightEditorContextMenuOpening"
                                    Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}"/>
+
+                <!-- Unified scrollbars: a single ScrollBar of each orientation
+                     drives both editors in lock-step (via UnifiedScrollBarController). -->
+                <ScrollBar x:Name="SideBySideVScroll"
+                           Grid.Row="0" Grid.Column="4"
+                           Orientation="Vertical"/>
+                <ScrollBar x:Name="SideBySideHScroll"
+                           Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="4"
+                           Orientation="Horizontal"/>
             </Grid>
 
             <!-- Inline view (visible when no placeholder AND IsSideBySide=false) -->

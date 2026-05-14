@@ -23,6 +23,7 @@ namespace DiffViewer.Views;
 public partial class DiffPaneView : UserControl
 {
     private TextEditorScrollSync? _scrollSync;
+    private UnifiedScrollBarController? _unifiedScrollBars;
     private DiffBackgroundRenderer? _leftBg;
     private DiffBackgroundRenderer? _rightBg;
     private IntraLineColorizer? _leftIntra;
@@ -42,6 +43,8 @@ public partial class DiffPaneView : UserControl
     private void OnLoaded(object sender, System.Windows.RoutedEventArgs e)
     {
         _scrollSync ??= new TextEditorScrollSync(LeftEditor, RightEditor);
+        _unifiedScrollBars ??= new UnifiedScrollBarController(
+            LeftEditor, RightEditor, SideBySideVScroll, SideBySideHScroll);
 
         var scheme = (DataContext as DiffPaneViewModel)?.CurrentColorScheme ?? DiffColorScheme.Classic;
         InstallRenderers(scheme);
@@ -108,6 +111,8 @@ public partial class DiffPaneView : UserControl
     {
         _scrollSync?.Dispose();
         _scrollSync = null;
+        _unifiedScrollBars?.Dispose();
+        _unifiedScrollBars = null;
 
         DetachFromViewModel();
 
