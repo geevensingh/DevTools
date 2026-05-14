@@ -436,4 +436,154 @@ public class HunkOverviewBarGeometryTests
 
         HunkOverviewBarGeometry.ClassifyHunk(hunk).Should().Be(HunkChangeShape.Mixed);
     }
+
+    // ---------- ComputeViewport ----------
+
+    [Fact]
+    public void ComputeViewport_NullState_ReturnsNull()
+    {
+        HunkOverviewBarGeometry.ComputeViewport(
+            state: null,
+            leftTotalLines: 100, rightTotalLines: 100,
+            barWidth: BarWidth, barHeight: 200, columnWidth: ColumnWidth)
+            .Should().BeNull();
+    }
+
+    [Fact]
+    public void ComputeViewport_BothSidesHaveLines_ReturnsBothRects()
+    {
+        // Visible window: lines 10..30 on both sides of a 100-line file
+        // rendered on a 200-px bar.
+        var state = new DiffViewer.Models.ViewportState(
+            LeftFirstLine: 10, LeftLastLine: 30,
+            RightFirstLine: 10, RightLastLine: 30);
+
+        var band = HunkOverviewBarGeometry.ComputeViewport(
+            state, leftTotalLines: 100, rightTotalLines: 100,
+            barWidth: BarWidth, barHeight: 200, columnWidth: ColumnWidth);
+
+        band.Should().NotBeNull();
+        band!.LeftRect.Should().NotBeNull();
+        band.RightRect.Should().NotBeNull();
+        // Top at (9/100)*200 = 18; bottom at (30/100)*200 = 60.
+        band.LeftRect!.Value.Top.Should().BeApproximately(18.0, 0.01);
+        band.LeftRect!.Value.Bottom.Should().BeApproximately(60.0, 0.01);
+        band.RightRect!.Value.Top.Should().BeApproximately(18.0, 0.01);
+        band.RightRect!.Value.Bottom.Should().BeApproximately(60.0, 0.01);
+    }
+
+    [Fact]
+    public void ComputeViewport_DifferentSideLineCounts_ProducesAsymmetricBands()
+    {
+        // 50 lines old, 100 lines new — the same visible range on each
+        // side maps to different fractions of the bar, so the band
+        // becomes a trapezoid (the visual point of having per-column
+        // bands).
+        var state = new DiffViewer.Models.ViewportState(
+            LeftFirstLine: 10, LeftLastLine: 20,
+            RightFirstLine: 10, RightLastLine: 20);
+
+        var band = HunkOverviewBarGeometry.ComputeViewport(
+            state, leftTotalLines: 50, rightTotalLines: 100,
+            barWidth: BarWidth, barHeight: 200, columnWidth: ColumnWidth);
+
+        band.Should().NotBeNull();
+        // Left: (9/50)*200 = 36 .. (20/50)*200 = 80 → height 44.
+        // Right: (9/100)*200 = 18 .. (20/100)*200 = 40 → height 22.
+        band!.LeftRect!.Value.Height.Should().BeApproximately(44.0, 0.01);
+        band.RightRect!.Value.Height.Should().BeApproximately(22.0, 0.01);
+    }
+
+    [Fact]
+    public void ComputeViewport_ViewportLargerThanFile_ClampsToBarHeight()
+    {
+        // Editor scrolled past EOF (or short file in tall viewport): the
+        // last-line value can exceed totalLines. Band must clamp to the
+        // bar's full height instead of overflowing.
+        var state = new DiffViewer.Models.ViewportState(
+            LeftFirstLine: 1, LeftLastLine: 999,
+            RightFirstLine: 1, RightLastLine: 999);
+
+        var band = HunkOverviewBarGeometry.ComputeViewport(
+            state, leftTotalLines: 100, rightTotalLines: 100,
+            barWidth: BarWidth, barHeight: 200, columnWidth: ColumnWidth);
+
+        band.Should().NotBeNull();
+        band!.LeftRect!.Value.Top.Should().Be(0);
+        band.LeftRect!.Value.Bottom.Should().BeApproximately(200, 0.01);
+        band.RightRect!.Value.Top.Should().Be(0);
+        band.RightRect!.Value.Bottom.Should().BeApproximately(200, 0.01);
+    }
+
+    [Fact]
+    public void ComputeViewport_ZeroSentinel_OmitsThatSidesRect()
+    {
+        // Inline mode: the visible window contains only inserted lines,
+        // so the old side has no representation. UpdateViewport encodes
+        // that as 0 in the LeftFirst/LeftLast pair; the geometry layer
+        // turns it into a null rect, leaving a single-column band.
+        var state = new DiffViewer.Models.ViewportState(
+            LeftFirstLine: 0, LeftLastLine: 0,
+            RightFirstLine: 10, RightLastLine: 20);
+
+        var band = HunkOverviewBarGeometry.ComputeViewport(
+            state, leftTotalLines: 100, rightTotalLines: 100,
+            barWidth: BarWidth, barHeight: 200, columnWidth: ColumnWidth);
+
+        band.Should().NotBeNull();
+        band!.LeftRect.Should().BeNull();
+        band.RightRect.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void ComputeViewport_LeftTotalLinesZero_ReturnsNullLeftRect()
+    {
+        // Defensive: pure-new-file viewing (left side empty).
+        var state = new DiffViewer.Models.ViewportState(
+            LeftFirstLine: 1, LeftLastLine: 1,
+            RightFirstLine: 10, RightLastLine: 20);
+
+        var band = HunkOverviewBarGeometry.ComputeViewport(
+            state, leftTotalLines: 0, rightTotalLines: 100,
+            barWidth: BarWidth, barHeight: 200, columnWidth: ColumnWidth);
+
+        band.Should().NotBeNull();
+        band!.LeftRect.Should().BeNull();
+        band.RightRect.Should().NotBeNull();
+    }
+
+    // ---------- IsInsideBand ----------
+
+    [Fact]
+    public void IsInsideBand_PointInLeftRect_Hits()
+    {
+        var state = new DiffViewer.Models.ViewportState(10, 30, 10, 30);
+        var band = HunkOverviewBarGeometry.ComputeViewport(
+            state, 100, 100, BarWidth, 200, ColumnWidth)!;
+
+        // Left rect: x in [0,10], y in [18,60].
+        HunkOverviewBarGeometry.IsInsideBand(band, new Point(2, 30)).Should().BeTrue();
+    }
+
+    [Fact]
+    public void IsInsideBand_PointInRibbon_Hits()
+    {
+        var state = new DiffViewer.Models.ViewportState(10, 30, 10, 30);
+        var band = HunkOverviewBarGeometry.ComputeViewport(
+            state, 100, 100, BarWidth, 200, ColumnWidth)!;
+
+        // Ribbon: x in [10, 22] at the same Y-range.
+        HunkOverviewBarGeometry.IsInsideBand(band, new Point(16, 30)).Should().BeTrue();
+    }
+
+    [Fact]
+    public void IsInsideBand_PointOutsideBothColumnsAndRibbon_Misses()
+    {
+        var state = new DiffViewer.Models.ViewportState(10, 30, 10, 30);
+        var band = HunkOverviewBarGeometry.ComputeViewport(
+            state, 100, 100, BarWidth, 200, ColumnWidth)!;
+
+        // Well above the band.
+        HunkOverviewBarGeometry.IsInsideBand(band, new Point(2, 5)).Should().BeFalse();
+    }
 }

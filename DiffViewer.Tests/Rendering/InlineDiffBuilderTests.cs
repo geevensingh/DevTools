@@ -301,4 +301,173 @@ public class InlineDiffBuilderTests
         doc.LineHighlights[3].Kind.Should().Be(DiffLineKind.Deleted);
         doc.LineHighlights[4].Kind.Should().Be(DiffLineKind.Inserted);
     }
+
+    // ---------- LineToSourceLines mapping ----------
+
+    /// <summary>
+    /// Build a hunk with explicit per-line source line numbers — the
+    /// existing <see cref="Hunk"/> helper sets them to <c>null</c>, which
+    /// breaks any test that needs the inline mapping to project back
+    /// onto specific source lines.
+    /// </summary>
+    private static DiffHunk HunkN(int oldStart, int oldLen, int newStart, int newLen,
+        params (DiffLineKind Kind, int? OldLn, int? NewLn, string Text)[] lines) =>
+        new DiffHunk(
+            OldStartLine: oldStart,
+            OldLineCount: oldLen,
+            NewStartLine: newStart,
+            NewLineCount: newLen,
+            Lines: lines.Select(l => new DiffLine(l.Kind, l.OldLn, l.NewLn, l.Text)).ToList(),
+            FunctionContext: null);
+
+    [Fact]
+    public void BuildFullFile_NoHunks_LineToSourceLines_IsIdentityMap()
+    {
+        var doc = BuildFullFile("a\nb\nc\n", "a\nb\nc\n");
+
+        doc.LineToSourceLines.Should().HaveCount(3);
+        doc.LineToSourceLines[0].Should().Be(((int?)1, (int?)1));
+        doc.LineToSourceLines[1].Should().Be(((int?)2, (int?)2));
+        doc.LineToSourceLines[2].Should().Be(((int?)3, (int?)3));
+    }
+
+    [Fact]
+    public void BuildFullFile_PreHunkContext_MapsIdentityOffset()
+    {
+        // Hunk at line 4 of a 5-line file — output lines 1..3 are
+        // pre-hunk context emitted directly from the right side. The map
+        // for those lines must record (i, i) on both sides because the
+        // two sides are byte-identical outside hunks.
+        var left = "a\nb\nc\nd\ne\n";
+        var right = "a\nb\nc\nD\ne\n";
+
+        var hunk = HunkN(
+            oldStart: 4, oldLen: 1, newStart: 4, newLen: 1,
+            (DiffLineKind.Deleted, 4, null, "d"),
+            (DiffLineKind.Inserted, null, 4, "D"));
+
+        var doc = BuildFullFile(left, right, hunk);
+
+        doc.LineToSourceLines[0].Should().Be(((int?)1, (int?)1));
+        doc.LineToSourceLines[1].Should().Be(((int?)2, (int?)2));
+        doc.LineToSourceLines[2].Should().Be(((int?)3, (int?)3));
+    }
+
+    [Fact]
+    public void BuildFullFile_TailContext_MapsUsingCursorOffset()
+    {
+        // Hunk at the start — output lines 3..5 are tail context.
+        // After the hunk: oldCursor=2, newCursor=2. Tail loop emits
+        // right lines 2..5; each maps to (oldCursor + (i - newCursor), i).
+        var left = "a\nb\nc\nd\ne\n";
+        var right = "A\nb\nc\nd\ne\n";
+
+        var hunk = HunkN(
+            oldStart: 1, oldLen: 1, newStart: 1, newLen: 1,
+            (DiffLineKind.Deleted, 1, null, "a"),
+            (DiffLineKind.Inserted, null, 1, "A"));
+
+        var doc = BuildFullFile(left, right, hunk);
+
+        // Output: deleted 'a' (line 1), inserted 'A' (line 2),
+        // then context b/c/d/e (lines 3..6).
+        doc.LineToSourceLines[0].Should().Be(((int?)1, (int?)null));
+        doc.LineToSourceLines[1].Should().Be(((int?)null, (int?)1));
+        doc.LineToSourceLines[2].Should().Be(((int?)2, (int?)2));
+        doc.LineToSourceLines[3].Should().Be(((int?)3, (int?)3));
+        doc.LineToSourceLines[4].Should().Be(((int?)4, (int?)4));
+        doc.LineToSourceLines[5].Should().Be(((int?)5, (int?)5));
+    }
+
+    [Fact]
+    public void BuildFullFile_PureInsertHunk_OldLineIsNull()
+    {
+        // Pure-insert hunk in the middle: 2 lines added between b and c.
+        var left = "a\nb\nc\n";
+        var right = "a\nb\nX\nY\nc\n";
+
+        var hunk = HunkN(
+            oldStart: 3, oldLen: 0, newStart: 3, newLen: 2,
+            (DiffLineKind.Inserted, null, 3, "X"),
+            (DiffLineKind.Inserted, null, 4, "Y"));
+
+        var doc = BuildFullFile(left, right, hunk);
+
+        // Output: a, b, X, Y, c.
+        doc.LineToSourceLines[0].Should().Be(((int?)1, (int?)1));     // a
+        doc.LineToSourceLines[1].Should().Be(((int?)2, (int?)2));     // b
+        doc.LineToSourceLines[2].Should().Be(((int?)null, (int?)3));  // X
+        doc.LineToSourceLines[3].Should().Be(((int?)null, (int?)4));  // Y
+        doc.LineToSourceLines[4].Should().Be(((int?)3, (int?)5));     // c
+    }
+
+    [Fact]
+    public void BuildFullFile_PureDeleteHunk_NewLineIsNull()
+    {
+        // Pure-delete hunk in the middle: lines b and c removed.
+        var left = "a\nb\nc\nd\n";
+        var right = "a\nd\n";
+
+        var hunk = HunkN(
+            oldStart: 2, oldLen: 2, newStart: 2, newLen: 0,
+            (DiffLineKind.Deleted, 2, null, "b"),
+            (DiffLineKind.Deleted, 3, null, "c"));
+
+        var doc = BuildFullFile(left, right, hunk);
+
+        // Output: a, b(deleted), c(deleted), d.
+        doc.LineToSourceLines[0].Should().Be(((int?)1, (int?)1));     // a
+        doc.LineToSourceLines[1].Should().Be(((int?)2, (int?)null));  // b
+        doc.LineToSourceLines[2].Should().Be(((int?)3, (int?)null));  // c
+        doc.LineToSourceLines[3].Should().Be(((int?)4, (int?)2));     // d
+    }
+
+    [Fact]
+    public void BuildFullFile_AsymmetricHunks_MapsConsistently()
+    {
+        // Two hunks of different shapes — verify the tail after both
+        // tracks cumulative old/new offsets correctly.
+        // Left:  a b c d e f g h
+        // Right: a Z c d e F G h     (1 insert + 1 modify spread across two hunks)
+        var left = "a\nb\nc\nd\ne\nf\ng\nh\n";
+        var right = "a\nZ\nc\nd\ne\nF\nG\nh\n";
+
+        var h1 = HunkN(
+            oldStart: 2, oldLen: 1, newStart: 2, newLen: 1,
+            (DiffLineKind.Deleted, 2, null, "b"),
+            (DiffLineKind.Inserted, null, 2, "Z"));
+        var h2 = HunkN(
+            oldStart: 6, oldLen: 2, newStart: 6, newLen: 2,
+            (DiffLineKind.Deleted, 6, null, "f"),
+            (DiffLineKind.Deleted, 7, null, "g"),
+            (DiffLineKind.Inserted, null, 6, "F"),
+            (DiffLineKind.Inserted, null, 7, "G"));
+
+        var doc = BuildFullFile(left, right, h1, h2);
+
+        // Output (12 lines):
+        //  1 a            -> (1,1)
+        //  2 b deleted    -> (2, null)
+        //  3 Z inserted   -> (null, 2)
+        //  4 c context    -> (3, 3)
+        //  5 d context    -> (4, 4)
+        //  6 e context    -> (5, 5)
+        //  7 f deleted    -> (6, null)
+        //  8 g deleted    -> (7, null)
+        //  9 F inserted   -> (null, 6)
+        // 10 G inserted   -> (null, 7)
+        // 11 h tail       -> (8, 8)
+        doc.LineToSourceLines.Should().HaveCount(11);
+        doc.LineToSourceLines[0].Should().Be(((int?)1, (int?)1));
+        doc.LineToSourceLines[1].Should().Be(((int?)2, (int?)null));
+        doc.LineToSourceLines[2].Should().Be(((int?)null, (int?)2));
+        doc.LineToSourceLines[3].Should().Be(((int?)3, (int?)3));
+        doc.LineToSourceLines[4].Should().Be(((int?)4, (int?)4));
+        doc.LineToSourceLines[5].Should().Be(((int?)5, (int?)5));
+        doc.LineToSourceLines[6].Should().Be(((int?)6, (int?)null));
+        doc.LineToSourceLines[7].Should().Be(((int?)7, (int?)null));
+        doc.LineToSourceLines[8].Should().Be(((int?)null, (int?)6));
+        doc.LineToSourceLines[9].Should().Be(((int?)null, (int?)7));
+        doc.LineToSourceLines[10].Should().Be(((int?)8, (int?)8));
+    }
 }

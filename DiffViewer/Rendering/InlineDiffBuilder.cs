@@ -17,12 +17,32 @@ namespace DiffViewer.Rendering;
 /// </summary>
 public static class InlineDiffBuilder
 {
+    /// <summary>
+    /// Inline-mode document plus everything callers need to project inline
+    /// output lines back onto the source files.
+    /// </summary>
+    /// <param name="Text">The rendered inline document.</param>
+    /// <param name="LineHighlights">
+    /// Per-line highlight info (kind + intra-line spans); only present for
+    /// non-context lines.
+    /// </param>
+    /// <param name="LineToSourceLines">
+    /// Per-inline-output-line mapping back to the underlying old / new buffers.
+    /// Index 0 ↔ inline line 1. Each entry is a <c>(OldLine, NewLine)</c>
+    /// pair of 1-based source line numbers; either can be <c>null</c>
+    /// (a pure-delete output line has <c>NewLine == null</c>, a pure-insert
+    /// has <c>OldLine == null</c>). The viewport indicator uses this to
+    /// project the editor's visible window onto the two-column hunk bar.
+    /// </param>
     public sealed record InlineDocument(
         string Text,
-        IReadOnlyDictionary<int, LineHighlight> LineHighlights);
+        IReadOnlyDictionary<int, LineHighlight> LineHighlights,
+        IReadOnlyList<(int? OldLine, int? NewLine)> LineToSourceLines);
 
     private static readonly InlineDocument _empty =
-        new(string.Empty, new Dictionary<int, LineHighlight>());
+        new(string.Empty,
+            new Dictionary<int, LineHighlight>(),
+            Array.Empty<(int? OldLine, int? NewLine)>());
 
     /// <summary>
     /// The empty inline document. Returned when there's no file selected,
@@ -64,14 +84,22 @@ public static class InlineDiffBuilder
 
         // No diff at all: emit the right-side blob verbatim, no prefixes,
         // no highlights. Matches the screenshot expectation when there are
-        // no changes (the user sees the raw file).
+        // no changes (the user sees the raw file). With no hunks the two
+        // sides are byte-identical, so each output line maps to itself on
+        // both sides.
         if (hunks.Count == 0)
         {
-            return new InlineDocument(right, new Dictionary<int, LineHighlight>());
+            var identity = new List<(int? OldLine, int? NewLine)>(rightLines.Count);
+            for (int i = 1; i <= rightLines.Count; i++)
+            {
+                identity.Add((i, i));
+            }
+            return new InlineDocument(right, new Dictionary<int, LineHighlight>(), identity);
         }
 
         var sb = new StringBuilder();
         var lineHighlights = new Dictionary<int, LineHighlight>();
+        var lineToSourceLines = new List<(int? OldLine, int? NewLine)>();
         int currentOutputLine = 1;
         int oldCursor = 1; // 1-based next-unread line of left file
         int newCursor = 1; // 1-based next-unread line of right file
@@ -88,6 +116,9 @@ public static class InlineDiffBuilder
             for (int i = newCursor; i < hunkNewStart && i <= rightLines.Count; i++)
             {
                 sb.Append(rightLines[i - 1]).Append('\n');
+                // Outside hunks the two sides are byte-identical, so a
+                // relative offset on the new side maps 1:1 onto the old side.
+                lineToSourceLines.Add((oldCursor + (i - newCursor), i));
                 currentOutputLine++;
             }
 
@@ -107,6 +138,11 @@ public static class InlineDiffBuilder
                 {
                     lineHighlights[currentOutputLine] = BuildHighlight(line, map);
                 }
+                // DiffLine already carries the per-side line numbers: both
+                // set for Context/Modified, OldLineNumber=null for Inserted,
+                // NewLineNumber=null for Deleted. That's exactly the shape
+                // the viewport indicator's "nearest non-null" lookup wants.
+                lineToSourceLines.Add((line.OldLineNumber, line.NewLineNumber));
                 currentOutputLine++;
             }
 
@@ -119,10 +155,11 @@ public static class InlineDiffBuilder
         for (int i = newCursor; i <= rightLines.Count; i++)
         {
             sb.Append(rightLines[i - 1]).Append('\n');
+            lineToSourceLines.Add((oldCursor + (i - newCursor), i));
             currentOutputLine++;
         }
 
-        return new InlineDocument(sb.ToString(), lineHighlights);
+        return new InlineDocument(sb.ToString(), lineHighlights, lineToSourceLines);
     }
 
     /// <summary>

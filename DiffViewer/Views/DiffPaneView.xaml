@@ -20,6 +20,13 @@
         <SolidColorBrush x:Key="BannerFgBrush"   Color="#5C4500"/>
         <SolidColorBrush x:Key="BannerBorder"    Color="#E8C46A"/>
 
+        <!-- Viewport indicator brushes for the hunk overview bar. Soft
+             accent-blue fill + crisp outline matching the Windows accent
+             color. Defined here (not as constants in HunkOverviewBar) so
+             a future theme can override them via DynamicResource. -->
+        <SolidColorBrush x:Key="HunkBarViewportFillBrush"   Color="#220078D4"/>
+        <SolidColorBrush x:Key="HunkBarViewportStrokeBrush" Color="#CC0078D4"/>
+
         <!-- Right-click menu shared by all three AvalonEdit panes. The menu's
              Tag is set in the editor's ContextMenuOpening handler to a
              HunkActionContext (Side + OneBasedLine), which the items pick

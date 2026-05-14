@@ -90,7 +90,8 @@ public sealed class HunkOverviewBar : FrameworkElement
 
     private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(DiffPaneViewModel.CurrentHunkIndex))
+        if (e.PropertyName == nameof(DiffPaneViewModel.CurrentHunkIndex) ||
+            e.PropertyName == nameof(DiffPaneViewModel.Viewport))
             InvalidateVisual();
     }
 
@@ -164,31 +165,77 @@ public sealed class HunkOverviewBar : FrameworkElement
             // reads as one shape instead of two disconnected boxes.
             if (i == _vm.CurrentHunkIndex)
             {
-                var outline = BuildActiveOutline(layout.LeftRect, layout.RightRect);
+                var outline = BuildOutline(layout.LeftRect, layout.RightRect);
                 if (outline is not null)
                     dc.DrawGeometry(null, activePen, outline);
             }
         }
+
+        // Viewport indicator sits ON TOP of the hunks: the soft accent-
+        // blue fill is translucent enough that an underlying hunk's red /
+        // green / yellow still reads through (the user can still see WHAT
+        // changed inside the visible window), but the crisp outline keeps
+        // the band visible even when it lines up exactly with a hunk that
+        // spans the whole viewport. Painted only when a viewport is
+        // known — null before the first layout pass or when no file is
+        // loaded.
+        var viewportBand = HunkOverviewBarGeometry.ComputeViewport(
+            _vm.Viewport, leftTotal, rightTotal, ActualWidth, ActualHeight, ColumnWidth);
+        if (viewportBand is not null)
+        {
+            DrawViewport(dc, viewportBand);
+        }
     }
 
     /// <summary>
-    /// Build the outline geometry used to mark the active hunk:
-    /// <list type="bullet">
-    ///   <item>Both rects present (mixed hunk): trace the outer perimeter
-    ///   of (LeftRect ∪ ribbon ∪ RightRect) as one polygon so the user sees
-    ///   a single connected shape.</item>
-    ///   <item>Only one rect (pure add / pure delete): just outline that
-    ///   rect — there's no ribbon to include.</item>
-    /// </list>
+    /// Paint the viewport band: soft accent-blue fill + crisp outline,
+    /// reusing the same union-polygon geometry the active-hunk outline
+    /// uses. Brushes resolve from <see cref="FrameworkElement.TryFindResource"/>
+    /// so themes can override them; falls back to hardcoded constants
+    /// when the resources aren't present (e.g. in unit tests or before
+    /// <see cref="DiffPaneView"/>'s resources are loaded).
+    ///
+    /// <para>Stroke is 1.5 px (slightly thicker than the active-hunk
+    /// outline) so the band stays visible over a hunk that fills the
+    /// whole viewport — without it, a pure-insert hunk's green column
+    /// can completely hide a 1 px outline.</para>
     /// </summary>
-    private static Geometry? BuildActiveOutline(Rect? leftRect, Rect? rightRect)
+    private void DrawViewport(DrawingContext dc, HunkOverviewBarGeometry.ViewportBand band)
+    {
+        var outline = BuildOutline(band.LeftRect, band.RightRect);
+        if (outline is null) return;
+
+        var fill = TryFindResource("HunkBarViewportFillBrush") as Brush
+                   ?? new SolidColorBrush(Color.FromArgb(0x22, 0x00, 0x78, 0xD4));
+        var stroke = TryFindResource("HunkBarViewportStrokeBrush") as Brush
+                     ?? new SolidColorBrush(Color.FromArgb(0xCC, 0x00, 0x78, 0xD4));
+        if (fill is SolidColorBrush fb && fb.CanFreeze) fb.Freeze();
+        if (stroke is SolidColorBrush sb && sb.CanFreeze) sb.Freeze();
+        var pen = new Pen(stroke, 1.5);
+        if (pen.CanFreeze) pen.Freeze();
+        dc.DrawGeometry(fill, pen, outline);
+    }
+
+    /// <summary>
+    /// Build the outline geometry for a (left, right) rect pair:
+    /// <list type="bullet">
+    ///   <item>Both rects present: trace the outer perimeter of
+    ///   (LeftRect ∪ ribbon ∪ RightRect) as one polygon so it reads as
+    ///   a single connected shape.</item>
+    ///   <item>Only one rect: just that rect — there's no ribbon to
+    ///   include.</item>
+    /// </list>
+    /// Used by both the active-hunk highlight and the viewport band so
+    /// the two indicators share visual language.
+    /// </summary>
+    private static Geometry? BuildOutline(Rect? leftRect, Rect? rightRect)
     {
         if (leftRect is Rect L && rightRect is Rect R)
         {
             var g = new StreamGeometry();
             using (var ctx = g.Open())
             {
-                ctx.BeginFigure(new Point(L.Left, L.Top), isFilled: false, isClosed: true);
+                ctx.BeginFigure(new Point(L.Left, L.Top), isFilled: true, isClosed: true);
                 ctx.LineTo(new Point(L.Right, L.Top), true, false);    // top of L
                 ctx.LineTo(new Point(R.Left, R.Top), true, false);     // ribbon top
                 ctx.LineTo(new Point(R.Right, R.Top), true, false);    // top of R
@@ -228,11 +275,27 @@ public sealed class HunkOverviewBar : FrameworkElement
     {
         base.OnMouseLeftButtonDown(e);
         if (_vm is null) return;
+        var p = e.GetPosition(this);
         var layouts = ComputeLayouts();
-        int idx = HunkOverviewBarGeometry.HitTest(layouts, e.GetPosition(this));
+        int idx = HunkOverviewBarGeometry.HitTest(layouts, p);
         if (idx >= 0)
         {
+            // Hunk markers always win when overlapping the viewport band —
+            // matches user intent ("click the colored thing" → hunk nav).
             _vm.JumpToHunk(idx);
+            e.Handled = true;
+            return;
+        }
+
+        // Fall-through: did the click land on the viewport band?
+        int leftTotal = Math.Max(1, _vm.LeftDocument.LineCount);
+        int rightTotal = Math.Max(1, _vm.RightDocument.LineCount);
+        var band = HunkOverviewBarGeometry.ComputeViewport(
+            _vm.Viewport, leftTotal, rightTotal, ActualWidth, ActualHeight, ColumnWidth);
+        if (band is not null && HunkOverviewBarGeometry.IsInsideBand(band, p))
+        {
+            double frac = ActualHeight <= 0 ? 0 : p.Y / ActualHeight;
+            _vm.RequestScrollByFraction(frac);
             e.Handled = true;
         }
     }

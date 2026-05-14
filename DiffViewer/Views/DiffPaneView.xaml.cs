@@ -7,6 +7,8 @@ using DiffViewer.ViewModels;
 using ICSharpCode.AvalonEdit;
 using ICSharpCode.AvalonEdit.Document;
 using ICSharpCode.AvalonEdit.Highlighting;
+using ICSharpCode.AvalonEdit.Rendering;
+using ViewportState = DiffViewer.Models.ViewportState;
 
 namespace DiffViewer.Views;
 
@@ -51,7 +53,131 @@ public partial class DiffPaneView : UserControl
         var scheme = (DataContext as DiffPaneViewModel)?.CurrentColorScheme ?? DiffColorScheme.Classic;
         InstallRenderers(scheme);
 
+        SubscribeViewportEvents();
+
         AttachToViewModel(DataContext as DiffPaneViewModel);
+    }
+
+    /// <summary>
+    /// Subscribe to AvalonEdit scroll + layout events on all three
+    /// editors so the hunk bar's viewport indicator can track the
+    /// visible window in real time. Both events are needed:
+    /// <list type="bullet">
+    ///   <item><c>ScrollOffsetChanged</c> fires on every scroll, but
+    ///   <c>VisualLines</c> may not yet reflect the new offset.</item>
+    ///   <item><c>VisualLinesChanged</c> fires after each layout pass,
+    ///   which is when <c>VisualLines</c> is authoritative for the
+    ///   currently-visible range — and the only chance to compute a
+    ///   first viewport on initial load before any user scroll.</item>
+    /// </list>
+    /// </summary>
+    private void SubscribeViewportEvents()
+    {
+        LeftEditor.TextArea.TextView.ScrollOffsetChanged += OnEditorViewportChanged;
+        RightEditor.TextArea.TextView.ScrollOffsetChanged += OnEditorViewportChanged;
+        InlineEditor.TextArea.TextView.ScrollOffsetChanged += OnEditorViewportChanged;
+        LeftEditor.TextArea.TextView.VisualLinesChanged += OnEditorViewportChanged;
+        RightEditor.TextArea.TextView.VisualLinesChanged += OnEditorViewportChanged;
+        InlineEditor.TextArea.TextView.VisualLinesChanged += OnEditorViewportChanged;
+    }
+
+    private void UnsubscribeViewportEvents()
+    {
+        LeftEditor.TextArea.TextView.ScrollOffsetChanged -= OnEditorViewportChanged;
+        RightEditor.TextArea.TextView.ScrollOffsetChanged -= OnEditorViewportChanged;
+        InlineEditor.TextArea.TextView.ScrollOffsetChanged -= OnEditorViewportChanged;
+        LeftEditor.TextArea.TextView.VisualLinesChanged -= OnEditorViewportChanged;
+        RightEditor.TextArea.TextView.VisualLinesChanged -= OnEditorViewportChanged;
+        InlineEditor.TextArea.TextView.VisualLinesChanged -= OnEditorViewportChanged;
+    }
+
+    private void OnEditorViewportChanged(object? sender, EventArgs e) => UpdateViewport();
+
+    /// <summary>
+    /// Recompute <see cref="DiffPaneViewModel.Viewport"/> from the
+    /// currently-visible editor lines. In side-by-side mode the left/right
+    /// ranges come straight from the two editors. In inline mode both
+    /// ranges are projected through <see cref="DiffPaneViewModel.InlineLineToSourceLines"/>:
+    /// pick the first non-null OldLine/NewLine inside the visible window
+    /// to seed Left/Right first; the last non-null Old/NewLine to seed
+    /// Left/Right last. A side with no entries inside the window gets 0,
+    /// which the geometry layer renders as "no rect for that column".
+    /// </summary>
+    private void UpdateViewport()
+    {
+        if (_vm is null) return;
+
+        if (_vm.IsSideBySide)
+        {
+            if (!TryGetVisibleRange(LeftEditor, out int lFirst, out int lLast) ||
+                !TryGetVisibleRange(RightEditor, out int rFirst, out int rLast))
+            {
+                _vm.Viewport = null;
+                return;
+            }
+            _vm.Viewport = new ViewportState(lFirst, lLast, rFirst, rLast);
+        }
+        else
+        {
+            if (!TryGetVisibleRange(InlineEditor, out int first, out int last))
+            {
+                _vm.Viewport = null;
+                return;
+            }
+            var map = _vm.InlineLineToSourceLines;
+            if (map is null || map.Count == 0)
+            {
+                _vm.Viewport = null;
+                return;
+            }
+            int oldFirst = 0, oldLast = 0, newFirst = 0, newLast = 0;
+            int lo = first - 1; // map is 0-indexed; inline doc lines are 1-indexed
+            int hi = last - 1;
+            if (lo < 0) lo = 0;
+            if (hi >= map.Count) hi = map.Count - 1;
+            for (int i = lo; i <= hi; i++)
+            {
+                var (oldLn, newLn) = map[i];
+                if (oldLn is int o)
+                {
+                    if (oldFirst == 0) oldFirst = o;
+                    oldLast = o;
+                }
+                if (newLn is int n)
+                {
+                    if (newFirst == 0) newFirst = n;
+                    newLast = n;
+                }
+            }
+            _vm.Viewport = new ViewportState(oldFirst, oldLast, newFirst, newLast);
+        }
+    }
+
+    /// <summary>
+    /// Read the first/last fully-visible 1-based line numbers from an
+    /// AvalonEdit editor. Returns false when:
+    /// <list type="bullet">
+    ///   <item>The editor hasn't completed a layout pass yet (VisualLines
+    ///   is empty before the first measure + arrange).</item>
+    ///   <item>The visual lines are <em>invalid</em> mid-scroll —
+    ///   <c>ScrollOffsetChanged</c> fires before AvalonEdit rebuilds
+    ///   <c>VisualLines</c> for the new offset, and accessing the
+    ///   property in that window throws <c>VisualLinesInvalidException</c>.
+    ///   <c>VisualLinesChanged</c> fires after the rebuild completes, so
+    ///   the viewport gets a correct sample on the very next pump.</item>
+    /// </list>
+    /// </summary>
+    private static bool TryGetVisibleRange(TextEditor editor, out int first, out int last)
+    {
+        first = 0;
+        last = 0;
+        var view = editor.TextArea.TextView;
+        if (!view.VisualLinesValid) return false;
+        var visible = view.VisualLines;
+        if (visible is null || visible.Count == 0) return false;
+        first = visible[0].FirstDocumentLine.LineNumber;
+        last = visible[visible.Count - 1].LastDocumentLine.LineNumber;
+        return true;
     }
 
     private void InstallRenderers(DiffColorScheme scheme)
@@ -116,6 +242,9 @@ public partial class DiffPaneView : UserControl
         _unifiedScrollBars?.Dispose();
         _unifiedScrollBars = null;
 
+        UnsubscribeViewportEvents();
+        if (_vm is not null) _vm.Viewport = null;
+
         DetachFromViewModel();
 
         RemoveRenderer(LeftEditor, ref _leftBg);
@@ -154,6 +283,7 @@ public partial class DiffPaneView : UserControl
         if (_vm is null) return;
         _vm.HighlightMapChanged += OnHighlightMapChanged;
         _vm.HunkNavigationRequested += OnHunkNavigationRequested;
+        _vm.ScrollRequested += OnScrollRequested;
         _vm.ColorSchemeChanged += OnColorSchemeChanged;
         _vm.PropertyChanged += OnVmPropertyChanged;
 
@@ -167,6 +297,7 @@ public partial class DiffPaneView : UserControl
         if (_vm is null) return;
         _vm.HighlightMapChanged -= OnHighlightMapChanged;
         _vm.HunkNavigationRequested -= OnHunkNavigationRequested;
+        _vm.ScrollRequested -= OnScrollRequested;
         _vm.ColorSchemeChanged -= OnColorSchemeChanged;
         _vm.PropertyChanged -= OnVmPropertyChanged;
         _vm = null;
@@ -196,6 +327,13 @@ public partial class DiffPaneView : UserControl
         else if (e.PropertyName == nameof(DiffPaneViewModel.TabWidth))
         {
             ApplyTabWidth();
+        }
+        else if (e.PropertyName == nameof(DiffPaneViewModel.IsSideBySide))
+        {
+            // Mode switch: the freshly-shown editor's visible range may
+            // differ from the one we last sampled. Recompute now so the
+            // bar's viewport indicator doesn't lag a frame behind.
+            UpdateViewport();
         }
     }
 
@@ -323,6 +461,60 @@ public partial class DiffPaneView : UserControl
         // inline editor's own line numbering is hunk-prefix-based. The
         // simplest approximation: scroll to the new-side line + 1 (header).
         ScrollEditorToLine(InlineEditor, e.RightLine);
+    }
+
+    /// <summary>
+    /// Handle a viewport-band click on the hunk overview bar. Differs
+    /// from <see cref="OnHunkNavigationRequested"/> in three ways:
+    /// <list type="bullet">
+    ///   <item>It does NOT move the caret — viewport scroll is a passive
+    ///   navigation; caret position is the user's editing point.</item>
+    ///   <item>It does NOT update <c>CurrentHunkIndex</c> — the viewport
+    ///   indicator is independent of hunk selection.</item>
+    ///   <item>Inline mode uses an inverse lookup through
+    ///   <c>InlineLineToSourceLines</c> to find the inline-doc line that
+    ///   maps to the requested new-side source line.</item>
+    /// </list>
+    /// </summary>
+    private void OnScrollRequested(object? sender, ScrollRequestedEventArgs e)
+    {
+        if (_vm is null) return;
+        if (_vm.IsSideBySide)
+        {
+            ScrollEditorToLineNoCaret(LeftEditor, e.LeftLine);
+            ScrollEditorToLineNoCaret(RightEditor, e.RightLine);
+        }
+        else
+        {
+            int inlineLine = MapNewLineToInline(e.RightLine);
+            ScrollEditorToLineNoCaret(InlineEditor, inlineLine);
+        }
+    }
+
+    /// <summary>
+    /// Inverse lookup from a new-side source line to an inline-document
+    /// line. Walks <see cref="DiffPaneViewModel.InlineLineToSourceLines"/>
+    /// for the first entry whose <c>NewLine &gt;= target</c>. Returns the
+    /// last inline line if every entry is below the target (target is
+    /// past EOF on the new side).
+    /// </summary>
+    private int MapNewLineToInline(int newLine)
+    {
+        if (_vm?.InlineLineToSourceLines is not { Count: > 0 } map) return newLine;
+        for (int i = 0; i < map.Count; i++)
+        {
+            if (map[i].NewLine is int n && n >= newLine) return i + 1;
+        }
+        return map.Count;
+    }
+
+    private static void ScrollEditorToLineNoCaret(TextEditor editor, int line)
+    {
+        if (line < 1) return;
+        if (editor.Document is null) return;
+        if (line > editor.Document.LineCount) line = editor.Document.LineCount;
+        if (line < 1) return;
+        editor.ScrollToLine(line);
     }
 
     private static void ScrollEditorToLine(TextEditor editor, int line)

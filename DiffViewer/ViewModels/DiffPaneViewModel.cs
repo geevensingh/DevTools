@@ -46,6 +46,16 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
         new Dictionary<int, LineHighlight>();
 
     /// <summary>
+    /// Per-inline-output-line mapping back to <c>(OldLine, NewLine)</c> in
+    /// the source buffers. Index 0 ↔ inline document line 1. Either side
+    /// can be <c>null</c> for pure inserts / deletes. Drives the viewport
+    /// indicator's projection of the inline editor's visible window onto
+    /// the two-column overview bar.
+    /// </summary>
+    public IReadOnlyList<(int? OldLine, int? NewLine)> InlineLineToSourceLines { get; private set; } =
+        Array.Empty<(int? OldLine, int? NewLine)>();
+
+    /// <summary>
     /// Raised on the UI thread after the highlight map / inline kinds are
     /// replaced. The view re-points renderers + redraws.
     /// </summary>
@@ -57,6 +67,17 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
     /// scrolls its editors to the requested 1-based line numbers.
     /// </summary>
     public event EventHandler<HunkNavigationEventArgs>? HunkNavigationRequested;
+
+    /// <summary>
+    /// Raised when the user clicks the hunk overview bar's viewport band
+    /// and wants the editors scrolled to that position. This is
+    /// <em>scroll only</em> — unlike <see cref="HunkNavigationRequested"/>
+    /// the handler must NOT move the caret or update
+    /// <see cref="CurrentHunkIndex"/>. The two events are kept distinct
+    /// so the bar can drive scroll-only interactions without re-tasking
+    /// hunk navigation with a behaviour flag.
+    /// </summary>
+    public event EventHandler<ScrollRequestedEventArgs>? ScrollRequested;
 
     [ObservableProperty]
     private bool _isWhitespaceOnlyBannerVisible;
@@ -99,6 +120,16 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
     /// <see cref="NavigatePreviousHunkCommand"/>. <c>-1</c> when none yet.</summary>
     [ObservableProperty]
     private int _currentHunkIndex = -1;
+
+    /// <summary>
+    /// Current editor viewport, projected onto each side's source line
+    /// numbers. <c>null</c> before the first layout pass, when no file is
+    /// loaded, or when the visible-lines collection is otherwise empty.
+    /// Drives the viewport indicator on <see cref="DiffViewer.Rendering.HunkOverviewBar"/>;
+    /// the bar subscribes via <see cref="System.ComponentModel.INotifyPropertyChanged"/>.
+    /// </summary>
+    [ObservableProperty]
+    private ViewportState? _viewport;
 
     public DiffPaneViewModel(
         IRepositoryService repository,
@@ -445,8 +476,12 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
         PlaceholderMessage = placeholder;
         HighlightMap = highlightMap;
         InlineLineHighlights = inline.LineHighlights;
+        InlineLineToSourceLines = inline.LineToSourceLines;
         _currentHunks = hunks;
         CurrentHunkIndex = -1;
+        // Reset the viewport indicator — the new document will compute its
+        // own visible-range on the next layout pass.
+        Viewport = null;
         IsWhitespaceOnlyBannerVisible = whitespaceOnly;
         OnPropertyChanged(nameof(CurrentHunks));
         HighlightMapChanged?.Invoke(this, EventArgs.Empty);
@@ -630,6 +665,30 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
             RightLine: hunk.NewStartLine));
     }
 
+    /// <summary>
+    /// Request a scroll-only jump to <paramref name="yFraction"/> of the
+    /// overview bar's height. The fraction is mapped onto each side's
+    /// total line count and raised as <see cref="ScrollRequested"/>. The
+    /// caret is <em>not</em> moved and <see cref="CurrentHunkIndex"/> is
+    /// <em>not</em> updated — that's the whole reason this is a separate
+    /// event from <see cref="HunkNavigationRequested"/>.
+    /// </summary>
+    public void RequestScrollByFraction(double yFraction)
+    {
+        if (double.IsNaN(yFraction)) return;
+        if (yFraction < 0) yFraction = 0;
+        if (yFraction > 1) yFraction = 1;
+        int leftTotal = Math.Max(1, LeftDocument.LineCount);
+        int rightTotal = Math.Max(1, RightDocument.LineCount);
+        int leftLine = (int)Math.Round(yFraction * leftTotal);
+        int rightLine = (int)Math.Round(yFraction * rightTotal);
+        if (leftLine < 1) leftLine = 1;
+        if (leftLine > leftTotal) leftLine = leftTotal;
+        if (rightLine < 1) rightLine = 1;
+        if (rightLine > rightTotal) rightLine = rightTotal;
+        ScrollRequested?.Invoke(this, new ScrollRequestedEventArgs(leftLine, rightLine));
+    }
+
     public void Dispose()
     {
         if (_settingsService is not null)
@@ -714,3 +773,11 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
 }
 
 public sealed record HunkNavigationEventArgs(int HunkIndex, int LeftLine, int RightLine);
+
+/// <summary>
+/// Args for <see cref="DiffPaneViewModel.ScrollRequested"/>. Carries the
+/// 1-based target line on each side, computed from the click position on
+/// the overview bar. Intentionally does NOT carry a hunk index — the
+/// viewport indicator is independent of hunk navigation.
+/// </summary>
+public sealed record ScrollRequestedEventArgs(int LeftLine, int RightLine);

@@ -153,18 +153,26 @@ internal static class HunkOverviewBarGeometry
     /// trapezoid ribbon that linearly interpolates between the two rects'
     /// vertical extents along the bar's horizontal axis.
     /// </summary>
-    private static bool ContainsPoint(HunkBarLayout layout, Point p)
+    private static bool ContainsPoint(HunkBarLayout layout, Point p) =>
+        ContainsInRectsOrRibbon(layout.LeftRect, layout.RightRect, p);
+
+    /// <summary>
+    /// Shared containment test for a (LeftRect, RightRect) pair: a point
+    /// hits if it falls inside either rect or inside the trapezoid ribbon
+    /// linearly interpolated between them. Used by both hunk hit-testing
+    /// and viewport-band hit-testing — the geometry is identical.
+    /// </summary>
+    private static bool ContainsInRectsOrRibbon(Rect? leftRect, Rect? rightRect, Point p)
     {
-        if (layout.LeftRect is Rect L && L.Contains(p)) return true;
-        if (layout.RightRect is Rect R && R.Contains(p)) return true;
+        if (leftRect is Rect L && L.Contains(p)) return true;
+        if (rightRect is Rect R && R.Contains(p)) return true;
 
         // Trapezoid ribbon: only exists when both sides are present.
-        if (layout.LeftRect is Rect lr && layout.RightRect is Rect rr)
+        if (leftRect is Rect lr && rightRect is Rect rr)
         {
             double xL = lr.Right;
             double xR = rr.Left;
             if (p.X < xL || p.X > xR) return false;
-            // Linear interpolation factor from left edge of ribbon to right.
             double span = xR - xL;
             double t = span <= 0 ? 0 : (p.X - xL) / span;
             double topAtX = Lerp(lr.Top, rr.Top, t);
@@ -189,6 +197,88 @@ internal static class HunkOverviewBarGeometry
         double bot = Math.Max(lBot ?? double.MinValue, rBot ?? double.MinValue);
         return (top + bot) / 2.0;
     }
+
+    /// <summary>
+    /// Per-side band rectangles for the editor's currently-visible window,
+    /// painted by <see cref="HunkOverviewBar"/> as a soft fill plus crisp
+    /// outline. Either rect can be <c>null</c> if that side has no presence
+    /// in the visible window (e.g. inline mode where the window contains
+    /// only pure-insert lines — the old side has no representation).
+    /// </summary>
+    public sealed record ViewportBand(Rect? LeftRect, Rect? RightRect);
+
+    /// <summary>
+    /// Build the geometry for the viewport indicator from
+    /// <paramref name="state"/>. Returns <c>null</c> when the state is
+    /// itself <c>null</c> or every side resolves to an empty rect.
+    ///
+    /// <para>Uses the same line-fraction mapping as
+    /// <see cref="ComputeColumnRect"/> but skips the
+    /// <see cref="MinHitHeight"/> inflation — the viewport band is
+    /// typically tall enough that inflation only adds visual noise.
+    /// When the visible window is taller than the underlying file the
+    /// band is clamped to the bar's height.</para>
+    /// </summary>
+    public static ViewportBand? ComputeViewport(
+        ViewportState? state,
+        int leftTotalLines,
+        int rightTotalLines,
+        double barWidth,
+        double barHeight,
+        double columnWidth)
+    {
+        if (state is null || barWidth <= 0 || barHeight <= 0) return null;
+
+        double maxColumnWidth = Math.Max(1.0, (barWidth - 1.0) / 2.0);
+        double cw = Math.Min(columnWidth, maxColumnWidth);
+        double rightColumnLeftX = barWidth - cw;
+
+        Rect? left = ComputeBandRect(
+            state.LeftFirstLine, state.LeftLastLine, leftTotalLines, barHeight, x: 0, w: cw);
+        Rect? right = ComputeBandRect(
+            state.RightFirstLine, state.RightLastLine, rightTotalLines, barHeight, x: rightColumnLeftX, w: cw);
+
+        if (left is null && right is null) return null;
+        return new ViewportBand(left, right);
+    }
+
+    /// <summary>
+    /// Position one side's viewport-band rect. <c>0</c> for either line
+    /// number is a sentinel for "this side is unrepresented in the visible
+    /// window" (only happens in inline mode); returns <c>null</c> in that
+    /// case so the trapezoid degenerates to a single column.
+    /// </summary>
+    private static Rect? ComputeBandRect(
+        int firstLine, int lastLine, int totalLines, double barHeight, double x, double w)
+    {
+        if (firstLine <= 0 || lastLine <= 0) return null;
+        if (totalLines <= 0 || barHeight <= 0) return null;
+        if (lastLine < firstLine) lastLine = firstLine;
+        if (firstLine > totalLines) firstLine = totalLines;
+        if (lastLine > totalLines) lastLine = totalLines;
+
+        double startFrac = (double)(firstLine - 1) / totalLines;
+        double endFrac = Math.Min(1.0, (double)lastLine / totalLines);
+        if (startFrac < 0) startFrac = 0;
+        if (startFrac > 1) startFrac = 1;
+
+        double top = startFrac * barHeight;
+        double bottom = endFrac * barHeight;
+        double h = Math.Max(0, bottom - top);
+
+        // Viewport larger than file → clamp to bar height.
+        if (top + h > barHeight) h = barHeight - top;
+        if (h <= 0) return null;
+
+        return new Rect(x, top, w, h);
+    }
+
+    /// <summary>
+    /// Does <paramref name="p"/> fall inside the viewport band? Same
+    /// rect-or-ribbon geometry as the hunk hit-test.
+    /// </summary>
+    public static bool IsInsideBand(ViewportBand band, Point p) =>
+        ContainsInRectsOrRibbon(band.LeftRect, band.RightRect, p);
 
     /// <summary>
     /// Classifies a hunk's content for color selection — pure-add (all
