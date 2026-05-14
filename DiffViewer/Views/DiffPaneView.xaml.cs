@@ -27,6 +27,7 @@ public partial class DiffPaneView : UserControl
     private DiffBackgroundRenderer? _rightBg;
     private IntraLineColorizer? _leftIntra;
     private IntraLineColorizer? _rightIntra;
+    private IntraLineColorizer? _inlineIntra;
     private InlineDiffBackgroundRenderer? _inlineBg;
     private DiffPaneViewModel? _vm;
 
@@ -75,6 +76,13 @@ public partial class DiffPaneView : UserControl
             _inlineBg = new InlineDiffBackgroundRenderer(scheme);
             InlineEditor.TextArea.TextView.BackgroundRenderers.Add(_inlineBg);
         }
+        if (_inlineIntra is null)
+        {
+            // DiffSide.Inline = pick brush per-span by span.Kind (the inline
+            // editor renders deleted and inserted lines in one column).
+            _inlineIntra = new IntraLineColorizer(DiffSide.Inline, scheme);
+            InlineEditor.TextArea.TextView.LineTransformers.Add(_inlineIntra);
+        }
     }
 
     /// <summary>
@@ -91,6 +99,7 @@ public partial class DiffPaneView : UserControl
         RemoveColorizer(LeftEditor, ref _leftIntra);
         RemoveColorizer(RightEditor, ref _rightIntra);
         RemoveRenderer(InlineEditor, ref _inlineBg);
+        RemoveColorizer(InlineEditor, ref _inlineIntra);
         InstallRenderers(scheme);
         ApplyHighlightMap();
     }
@@ -107,6 +116,7 @@ public partial class DiffPaneView : UserControl
         RemoveColorizer(LeftEditor, ref _leftIntra);
         RemoveColorizer(RightEditor, ref _rightIntra);
         RemoveRenderer(InlineEditor, ref _inlineBg);
+        RemoveColorizer(InlineEditor, ref _inlineIntra);
     }
 
     private static void RemoveRenderer<T>(TextEditor editor, ref T? renderer)
@@ -207,7 +217,8 @@ public partial class DiffPaneView : UserControl
         if (_rightBg is not null) _rightBg.LineHighlights = map.RightLines;
         if (_leftIntra is not null) _leftIntra.LineHighlights = map.LeftLines;
         if (_rightIntra is not null) _rightIntra.LineHighlights = map.RightLines;
-        if (_inlineBg is not null) _inlineBg.LineKinds = _vm.InlineLineKinds;
+        if (_inlineBg is not null) _inlineBg.LineHighlights = _vm.InlineLineHighlights;
+        if (_inlineIntra is not null) _inlineIntra.LineHighlights = _vm.InlineLineHighlights;
 
         LeftEditor.TextArea.TextView.Redraw();
         RightEditor.TextArea.TextView.Redraw();

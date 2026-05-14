@@ -41,9 +41,9 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
     /// <summary>Per-side line highlights for the side-by-side view.</summary>
     public DiffHighlightMap HighlightMap { get; private set; } = DiffHighlightMap.Empty;
 
-    /// <summary>Inline-mode line classification - one entry per added / removed line.</summary>
-    public IReadOnlyDictionary<int, DiffLineKind> InlineLineKinds { get; private set; } =
-        new Dictionary<int, DiffLineKind>();
+    /// <summary>Per-line highlights (kind + intra-line spans) for the inline view.</summary>
+    public IReadOnlyDictionary<int, LineHighlight> InlineLineHighlights { get; private set; } =
+        new Dictionary<int, LineHighlight>();
 
     /// <summary>
     /// Raised on the UI thread after the highlight map / inline kinds are
@@ -303,8 +303,10 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
             computation.Hunks, _diffService, intraLineEnabled, options.IgnoreWhitespace);
         // Inline-mode view shows the FULL file with hunks woven in (not the
         // 3-line-context summary that Build emits) so the user can read the
-        // surrounding code, matching what side-by-side already shows.
-        var inline = InlineDiffBuilder.BuildFullFile(left, right, computation.Hunks);
+        // surrounding code, matching what side-by-side already shows. We
+        // pass the map so each non-context inline line picks up its
+        // intra-line spans — the inline IntraLineColorizer reads those.
+        var inline = InlineDiffBuilder.BuildFullFile(left, right, computation.Hunks, map);
 
         bool whitespaceOnly = false;
         if (options.IgnoreWhitespace && computation.Hunks.Count == 0)
@@ -393,7 +395,7 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
         InlineDocument.Text = inline.Text;
         PlaceholderMessage = placeholder;
         HighlightMap = highlightMap;
-        InlineLineKinds = inline.LineKinds;
+        InlineLineHighlights = inline.LineHighlights;
         _currentHunks = hunks;
         CurrentHunkIndex = -1;
         IsWhitespaceOnlyBannerVisible = whitespaceOnly;

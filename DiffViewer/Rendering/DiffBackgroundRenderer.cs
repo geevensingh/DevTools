@@ -14,6 +14,14 @@ public enum DiffSide
 {
     Left,
     Right,
+    /// <summary>
+    /// Inline diff editor (single column with <c>-</c>/<c>+</c> prefixed
+    /// lines). Used by <see cref="IntraLineColorizer"/> to switch from
+    /// fixed-side brush selection to per-span brush selection driven by
+    /// <see cref="IntraLineSpan.Kind"/>, since a single inline editor
+    /// renders both deleted and inserted lines.
+    /// </summary>
+    Inline,
 }
 
 /// <summary>

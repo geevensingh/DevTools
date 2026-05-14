@@ -583,7 +583,7 @@ public class DiffPaneViewModelTests
             var vm = new DiffPaneViewModel(repo, diff);
             await vm.LoadAsync(Entry(ModifiedTextFile("a.cs")));
             inlineText = vm.InlineDocument.Text;
-            lineKindCount = vm.InlineLineKinds.Count;
+            lineKindCount = vm.InlineLineHighlights.Count;
         });
 
         inlineText.Should().NotBeNullOrEmpty();

@@ -8,23 +8,30 @@ namespace DiffViewer.Rendering;
 /// is preceded by a <c>@@ -OldStart,OldLen +NewStart,NewLen @@</c> header
 /// and lines are prefixed with <c> </c> (context), <c>-</c> (deleted) or
 /// <c>+</c> (inserted). Returns both the rendered text and a per-line
-/// classification for the renderer to tint.
+/// <see cref="LineHighlight"/> (kind + optional intra-line spans) for the
+/// renderer + colorizer.
 /// </summary>
 public static class InlineDiffBuilder
 {
     public sealed record InlineDocument(
         string Text,
-        IReadOnlyDictionary<int, DiffLineKind> LineKinds);
+        IReadOnlyDictionary<int, LineHighlight> LineHighlights);
+
+    private static readonly InlineDocument _empty =
+        new(string.Empty, new Dictionary<int, LineHighlight>());
 
     public static InlineDocument Build(IReadOnlyList<DiffHunk> hunks)
+        => Build(hunks, DiffHighlightMap.Empty);
+
+    public static InlineDocument Build(IReadOnlyList<DiffHunk> hunks, DiffHighlightMap map)
     {
         if (hunks.Count == 0)
         {
-            return new InlineDocument(string.Empty, new Dictionary<int, DiffLineKind>());
+            return _empty;
         }
 
         var sb = new StringBuilder();
-        var lineKinds = new Dictionary<int, DiffLineKind>();
+        var lineHighlights = new Dictionary<int, LineHighlight>();
         int currentLine = 1;
 
         for (int h = 0; h < hunks.Count; h++)
@@ -32,7 +39,7 @@ public static class InlineDiffBuilder
             var hunk = hunks[h];
 
             // Hunk header line - rendered without a tint so the renderer
-            // skips it (no entry in lineKinds).
+            // skips it (no entry in lineHighlights).
             sb.Append("@@ -")
               .Append(hunk.OldStartLine).Append(',').Append(hunk.OldLineCount)
               .Append(" +")
@@ -58,7 +65,7 @@ public static class InlineDiffBuilder
                 sb.Append(prefix).Append(line.Text).Append('\n');
                 if (line.Kind != DiffLineKind.Context)
                 {
-                    lineKinds[currentLine] = line.Kind;
+                    lineHighlights[currentLine] = BuildHighlight(line, map);
                 }
                 currentLine++;
             }
@@ -71,7 +78,7 @@ public static class InlineDiffBuilder
             }
         }
 
-        return new InlineDocument(sb.ToString(), lineKinds);
+        return new InlineDocument(sb.ToString(), lineHighlights);
     }
 
     /// <summary>
@@ -79,14 +86,22 @@ public static class InlineDiffBuilder
     /// hunks woven in. Unchanged regions outside hunks are emitted verbatim
     /// (no @@ header, no prefix); inside hunks each line gets the usual
     /// <c>+</c> / <c>-</c> / <c>(space)</c> prefix and added/removed lines
-    /// pick up a <see cref="DiffLineKind"/> entry for the renderer to tint.
+    /// pick up a <see cref="LineHighlight"/> entry for the renderer to tint
+    /// and the colorizer to overlay intra-line spans.
     ///
-    /// <para>Used by <see cref="DiffPaneViewModel"/> in inline mode so the
+    /// <para><paramref name="map"/> supplies the per-line intra-line spans
+    /// computed by <see cref="DiffHighlightMap.FromHunks"/>; pass
+    /// <see cref="DiffHighlightMap.Empty"/> for tests that don't care about
+    /// spans (lines will still get a <see cref="LineHighlight"/> with the
+    /// correct kind, just no spans).</para>
+    ///
+    /// <para>Used by <see cref="ViewModels.DiffPaneViewModel"/> in inline mode so the
     /// user sees the whole file with diffs highlighted, not just the
     /// 3-line-context hunks. Side-by-side mode is unaffected — it already
     /// shows the full blobs in two editors.</para>
     /// </summary>
-    public static InlineDocument BuildFullFile(string left, string right, IReadOnlyList<DiffHunk> hunks)
+    public static InlineDocument BuildFullFile(
+        string left, string right, IReadOnlyList<DiffHunk> hunks, DiffHighlightMap map)
     {
         var leftLines = SplitLines(left);
         var rightLines = SplitLines(right);
@@ -96,11 +111,11 @@ public static class InlineDiffBuilder
         // no changes (the user sees the raw file).
         if (hunks.Count == 0)
         {
-            return new InlineDocument(right, new Dictionary<int, DiffLineKind>());
+            return new InlineDocument(right, new Dictionary<int, LineHighlight>());
         }
 
         var sb = new StringBuilder();
-        var lineKinds = new Dictionary<int, DiffLineKind>();
+        var lineHighlights = new Dictionary<int, LineHighlight>();
         int currentOutputLine = 1;
         int oldCursor = 1; // 1-based next-unread line of left file
         int newCursor = 1; // 1-based next-unread line of right file
@@ -121,7 +136,7 @@ public static class InlineDiffBuilder
             }
 
             // Emit the hunk content with prefixes; each non-context line gets
-            // tinted by the renderer via lineKinds[currentOutputLine].
+            // a LineHighlight built from the map's intra-line spans.
             foreach (var line in hunk.Lines)
             {
                 char prefix = line.Kind switch
@@ -134,7 +149,7 @@ public static class InlineDiffBuilder
                 sb.Append(prefix).Append(line.Text).Append('\n');
                 if (line.Kind != DiffLineKind.Context)
                 {
-                    lineKinds[currentOutputLine] = line.Kind;
+                    lineHighlights[currentOutputLine] = BuildHighlight(line, map);
                 }
                 currentOutputLine++;
             }
@@ -151,7 +166,38 @@ public static class InlineDiffBuilder
             currentOutputLine++;
         }
 
-        return new InlineDocument(sb.ToString(), lineKinds);
+        return new InlineDocument(sb.ToString(), lineHighlights);
+    }
+
+    /// <summary>
+    /// Look up the intra-line spans for <paramref name="line"/> in <paramref name="map"/>
+    /// (keyed by Old/NewLineNumber) and pack them with the line's kind into a
+    /// <see cref="LineHighlight"/>. The kind on the returned highlight stays
+    /// Deleted / Inserted (not Modified, which is what the map stamps for
+    /// paired lines) so the inline background renderer keeps tinting red/green
+    /// rather than the side-by-side modified yellow.
+    /// </summary>
+    private static LineHighlight BuildHighlight(DiffLine line, DiffHighlightMap map)
+    {
+        IReadOnlyList<IntraLineSpan>? spans = null;
+        switch (line.Kind)
+        {
+            case DiffLineKind.Deleted:
+                if (line.OldLineNumber is int oldLn &&
+                    map.LeftLines.TryGetValue(oldLn, out var leftHl))
+                {
+                    spans = leftHl.IntraLineSpans;
+                }
+                break;
+            case DiffLineKind.Inserted:
+                if (line.NewLineNumber is int newLn &&
+                    map.RightLines.TryGetValue(newLn, out var rightHl))
+                {
+                    spans = rightHl.IntraLineSpans;
+                }
+                break;
+        }
+        return new LineHighlight(line.Kind, spans);
     }
 
     private static List<string> SplitLines(string text)

@@ -7,7 +7,7 @@ namespace DiffViewer.Rendering;
 
 /// <summary>
 /// Background renderer used by the inline-mode editor. Reads its
-/// per-line kind dictionary from <see cref="LineKinds"/> on every
+/// per-line highlight dictionary from <see cref="LineHighlights"/> on every
 /// <see cref="Draw"/> and paints the appropriate brush for that kind.
 /// Hunk-header lines and blank separators are absent from the dictionary
 /// and rendered without a tint.
@@ -16,7 +16,7 @@ public sealed class InlineDiffBackgroundRenderer : IBackgroundRenderer
 {
     private readonly DiffColorScheme _scheme;
 
-    public IReadOnlyDictionary<int, DiffLineKind>? LineKinds { get; set; }
+    public IReadOnlyDictionary<int, LineHighlight>? LineHighlights { get; set; }
 
     public InlineDiffBackgroundRenderer(DiffColorScheme scheme)
     {
@@ -27,15 +27,15 @@ public sealed class InlineDiffBackgroundRenderer : IBackgroundRenderer
 
     public void Draw(TextView textView, DrawingContext drawingContext)
     {
-        if (LineKinds is null || LineKinds.Count == 0) return;
+        if (LineHighlights is null || LineHighlights.Count == 0) return;
         if (!textView.VisualLinesValid) return;
 
         foreach (var visualLine in textView.VisualLines)
         {
             int docLine = visualLine.FirstDocumentLine.LineNumber;
-            if (!LineKinds.TryGetValue(docLine, out var kind)) continue;
+            if (!LineHighlights.TryGetValue(docLine, out var highlight)) continue;
 
-            Brush brush = kind switch
+            Brush brush = highlight.Kind switch
             {
                 DiffLineKind.Inserted => _scheme.AddedLineBackground,
                 DiffLineKind.Deleted => _scheme.RemovedLineBackground,
