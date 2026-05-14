@@ -213,6 +213,18 @@ public class InlineDiffBuilderTests
         inserted.IntraLineSpans.Should().NotBeNull();
         inserted.IntraLineSpans!.Should().NotBeEmpty();
         inserted.IntraLineSpans.Should().OnlyContain(s => s.Kind == IntraLineSpanKind.Inserted);
+
+        // Spans must be shifted by +1 column to account for the 1-char
+        // prefix the inline builder prepends to every line. Without the
+        // shift the colorizer paints one character to the left of the
+        // actual changed content. "bar" / "XYZ" sit at columns 4..7 in the
+        // raw line text but at 5..8 once the '-' / '+' prefix is added.
+        deleted.IntraLineSpans.Should().ContainSingle()
+            .Which.StartColumn.Should().Be(5);
+        deleted.IntraLineSpans.Single().EndColumn.Should().Be(8);
+        inserted.IntraLineSpans.Should().ContainSingle()
+            .Which.StartColumn.Should().Be(5);
+        inserted.IntraLineSpans.Single().EndColumn.Should().Be(8);
     }
 
     [Fact]

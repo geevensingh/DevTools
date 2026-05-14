@@ -176,6 +176,13 @@ public static class InlineDiffBuilder
     /// Deleted / Inserted (not Modified, which is what the map stamps for
     /// paired lines) so the inline background renderer keeps tinting red/green
     /// rather than the side-by-side modified yellow.
+    ///
+    /// <para>Intra-line span columns are computed against the original line
+    /// text; the inline builder prepends a single <c>+</c> / <c>-</c> /
+    /// <c>(space)</c> prefix to every line, so the displayed line is one
+    /// character wider. Shift each span by +1 so the colorizer's
+    /// <c>lineStart + StartColumn</c> arithmetic lands on the right
+    /// character.</para>
     /// </summary>
     private static LineHighlight BuildHighlight(DiffLine line, DiffHighlightMap map)
     {
@@ -197,7 +204,23 @@ public static class InlineDiffBuilder
                 }
                 break;
         }
-        return new LineHighlight(line.Kind, spans);
+        return new LineHighlight(line.Kind, ShiftSpansForPrefix(spans));
+    }
+
+    /// <summary>
+    /// Shift every span by +1 column to account for the 1-char prefix the
+    /// inline builder prepends to every line.
+    /// </summary>
+    private static IReadOnlyList<IntraLineSpan>? ShiftSpansForPrefix(IReadOnlyList<IntraLineSpan>? spans)
+    {
+        if (spans is null || spans.Count == 0) return spans;
+        var shifted = new IntraLineSpan[spans.Count];
+        for (int i = 0; i < spans.Count; i++)
+        {
+            var s = spans[i];
+            shifted[i] = new IntraLineSpan(s.StartColumn + 1, s.EndColumn + 1, s.Kind);
+        }
+        return shifted;
     }
 
     private static List<string> SplitLines(string text)
