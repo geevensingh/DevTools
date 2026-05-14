@@ -241,6 +241,30 @@ public class MainViewModelKeyboardShortcutTests
     // ===================== MainViewModel cross-file orchestration =====================
 
     [Fact]
+    public async Task SelectingFile_AutoScrollsCaretToFirstHunk()
+    {
+        var repo = new FakeRepoForKeyboard();
+        repo.SetChanges(ModifiedChange("a.cs"));
+        // 1 hunk at line 1 - if auto-scroll fires, CurrentHunkIndex should
+        // land on 0; otherwise it stays at the post-load default of -1.
+        repo.LeftText  = "alpha\nbeta\n";
+        repo.RightText = "ALPHA\nbeta\n";
+
+        await RunOnUiSyncContextAsync(async vm =>
+        {
+            vm.RefreshChangeList();
+            var entry = vm.FileList.FlatEntries[0];
+
+            vm.FileList.SelectedEntry = entry;
+            await vm.DiffPane.LastLoadTask;
+
+            vm.DiffPane.CurrentHunkIndex.Should().Be(0,
+                "selecting a file should auto-scroll the first hunk into view");
+            vm.DiffPane.CurrentHunks.Should().HaveCount(1);
+        }, repo);
+    }
+
+    [Fact]
     public async Task NavigateNextChange_AdvancesAcrossFileBoundary_AndCyclesAtEnd()
     {
         var repo = new FakeRepoForKeyboard();
@@ -263,18 +287,15 @@ public class MainViewModelKeyboardShortcutTests
             vm.FileList.SelectedEntry = e0;
             await vm.DiffPane.LastLoadTask;
 
-            // Each file has exactly 1 hunk.
-            // F8 #1: advance from idx=-1 to idx=0 within e0 → stay on e0.
-            // F8 #2: idx=0 is last hunk of e0 → step to e1; JumpToFirstHunk
-            //        leaves us at idx=0 in e1.
-            // F8 #3: idx=0 is last hunk of e1 → step to e2.
-            // F8 #4: step from e2 → cycle to e0.
+            // Each file has exactly 1 hunk. Auto-scroll on file selection
+            // already lands the caret on hunk #0 of e0, so the first F8
+            // immediately steps to the next file.
+            // F8 #1: idx=0 is last hunk of e0 → step to e1.
+            // F8 #2: idx=0 is last hunk of e1 → step to e2.
+            // F8 #3: step from e2 → cycle to e0.
             await vm.NavigateNextChangeCommand.ExecuteAsync(null);
-            vm.FileList.SelectedEntry.Should().Be(e0,
-                $"first F8 should advance within file (hunk count was {vm.DiffPane.CurrentHunkIndex})");
-
-            await vm.NavigateNextChangeCommand.ExecuteAsync(null);
-            vm.FileList.SelectedEntry.Should().Be(e1);
+            vm.FileList.SelectedEntry.Should().Be(e1,
+                $"first F8 should advance to next file (hunk index was {vm.DiffPane.CurrentHunkIndex})");
 
             await vm.NavigateNextChangeCommand.ExecuteAsync(null);
             vm.FileList.SelectedEntry.Should().Be(e2);
@@ -356,11 +377,13 @@ public class MainViewModelKeyboardShortcutTests
             vm.FileList.SelectedEntry = e0;
             await vm.DiffPane.LastLoadTask;
 
-            // F8 #1 stays in e0 (advance to first hunk).
+            // F8 #1: auto-scroll already landed caret at idx=0 of e0 (last
+            // hunk), so F8 walks past e1 (whitespace-only) and cycles to e0.
             await vm.NavigateNextChangeCommand.ExecuteAsync(null);
             vm.FileList.SelectedEntry.Should().Be(e0);
 
-            // F8 #2 walks past e1 (whitespace-only) and cycles to e0.
+            // F8 #2: same as above — single-hunk e0 cycles back to itself
+            // because e1 has no visible differences to land on.
             await vm.NavigateNextChangeCommand.ExecuteAsync(null);
             vm.FileList.SelectedEntry.Should().Be(e0,
                 "should skip whitespace-only e1 and cycle back");

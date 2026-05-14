@@ -357,6 +357,28 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>
+    /// Like <see cref="LoadAsync"/> but additionally jumps to the first hunk
+    /// once the load completes. The jump is chained inside
+    /// <see cref="LastLoadTask"/> itself, so any caller that awaits
+    /// <see cref="LastLoadTask"/> also waits for the auto-jump to land. If
+    /// the user has moved on to a different entry by the time the
+    /// continuation fires, the jump is suppressed.
+    /// </summary>
+    public Task LoadAndScrollToFirstHunkAsync(FileEntryViewModel? entry)
+    {
+        LoadAsync(entry);
+        var requested = entry;
+        LastLoadTask = LastLoadTask.ContinueWith(_ =>
+        {
+            if (!ReferenceEquals(_currentEntry, requested)) return;
+            JumpToFirstHunk();
+        }, CancellationToken.None,
+           TaskContinuationOptions.ExecuteSynchronously | TaskContinuationOptions.OnlyOnRanToCompletion,
+           TaskScheduler.FromCurrentSynchronizationContext());
+        return LastLoadTask;
+    }
+
+    /// <summary>
     /// Recompute the diff artifacts from the cached blobs under the current
     /// toolbar state. Used after a toggle change so we don't re-read blobs.
     /// </summary>

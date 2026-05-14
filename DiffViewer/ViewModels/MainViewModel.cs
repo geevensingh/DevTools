@@ -527,7 +527,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     {
         if (e.PropertyName != nameof(FileListViewModel.SelectedEntry)) return;
         // Fire-and-forget: the VM serialises in-flight loads via its own CTS.
-        _ = DiffPane.LoadAsync(FileList.SelectedEntry);
+        // Use the "+ scroll-to-first-hunk" variant so a freshly-selected
+        // file opens centered on its first diff. StepFile/StepSection's own
+        // post-load JumpToFirst/Last calls happen after this and overwrite
+        // the auto-jump on the UI thread before any paint, so F7-backward
+        // navigation still lands on the last hunk without flicker.
+        _ = DiffPane.LoadAndScrollToFirstHunkAsync(FileList.SelectedEntry);
         // Reprioritise the pre-diff pass so the new selection jumps the queue.
         _preDiffPass?.OnSelectionChanged(FileList.SelectedEntry);
     }
