@@ -26,20 +26,31 @@ public partial class SettingsDialog : Window
     private void OnTextOrNumericLostFocus(object sender, RoutedEventArgs e)
     {
         if (DataContext is not SettingsViewModel vm) return;
+
+        // Push the TextBox's / ComboBox's current text into the bound VM
+        // property FIRST. We use UpdateSourceTrigger=LostFocus on these
+        // bindings, but the binding's internal LostFocus handler is only
+        // attached when the binding activates (i.e. when DataContext is
+        // set), which happens AFTER InitializeComponent registered this
+        // XAML handler. Routed-event handlers fire in registration order,
+        // so without this explicit UpdateSource() we'd run before the
+        // binding -- CommitNumericFields would see the stale VM value,
+        // and the UpdateTarget bounce below would then overwrite the
+        // user's typed text with that stale value.
+        var bindingExpr = sender switch
+        {
+            TextBox tb => tb.GetBindingExpression(TextBox.TextProperty),
+            ComboBox cb => cb.GetBindingExpression(ComboBox.TextProperty),
+            _ => null,
+        };
+        bindingExpr?.UpdateSource();
+
         vm.CommitNumericFields();
 
         // Bounce the binding so any clamped / coerced value (e.g. font
         // size pinned to 6 – 72, or an empty text box reverted to its
         // default) is reflected back into the visible field.
-        switch (sender)
-        {
-            case TextBox tb:
-                tb.GetBindingExpression(TextBox.TextProperty)?.UpdateTarget();
-                break;
-            case ComboBox cb:
-                cb.GetBindingExpression(ComboBox.TextProperty)?.UpdateTarget();
-                break;
-        }
+        bindingExpr?.UpdateTarget();
     }
 
     private void OnTextOrNumericKeyDown(object sender, KeyEventArgs e)
@@ -139,6 +150,22 @@ public partial class SettingsDialog : Window
 
     private void OnCloseClick(object sender, RoutedEventArgs e)
     {
+        // If the user closes the dialog while a text input still has
+        // focus (e.g. they pressed Esc -- IsCancel=True -- without
+        // tabbing out first), the focused control's LostFocus event
+        // hasn't fired yet, so its UpdateSourceTrigger=LostFocus
+        // binding hasn't pushed the typed value to the VM. Force it
+        // here so CommitNumericFields below picks up the latest.
+        switch (Keyboard.FocusedElement)
+        {
+            case TextBox tb:
+                tb.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
+                break;
+            case ComboBox cb:
+                cb.GetBindingExpression(ComboBox.TextProperty)?.UpdateSource();
+                break;
+        }
+
         if (DataContext is SettingsViewModel vm)
         {
             vm.CommitNumericFields();
