@@ -39,4 +39,29 @@ internal sealed class ProcessCommandLineEnvironment : ICommandLineEnvironment
             return false;
         }
     }
+
+    public string? TryDiscoverRepoRoot(string path)
+    {
+        try
+        {
+            // Repository.Discover walks upward looking for a .git dir (and
+            // handles linked worktrees and submodules). Returns the .git
+            // directory path (or the bare repo dir), trailing slash, or
+            // null when nothing's found.
+            var gitDir = Repository.Discover(path);
+            if (string.IsNullOrEmpty(gitDir)) return null;
+
+            using var repo = new Repository(gitDir);
+            if (repo.Info.IsBare) return null;
+
+            var workDir = repo.Info.WorkingDirectory;
+            if (string.IsNullOrEmpty(workDir)) return null;
+
+            return workDir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        }
+        catch
+        {
+            return null;
+        }
+    }
 }

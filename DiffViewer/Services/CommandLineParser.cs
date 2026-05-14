@@ -17,6 +17,12 @@ namespace DiffViewer.Services;
 /// <see cref="ICommandLineEnvironment.PathExists"/> AND
 /// <see cref="ICommandLineEnvironment.IsGitRepository"/>; otherwise it is
 /// resolved as a commit-ish.
+///
+/// <para>When the resolved repo path turns out to be a subdirectory of a
+/// repo (or the current working directory is one), the parser falls back to
+/// <see cref="ICommandLineEnvironment.TryDiscoverRepoRoot"/> so the app can
+/// be launched from anywhere inside a worktree and still load the whole
+/// repo.</para>
 /// </summary>
 public sealed class CommandLineParser : ICommandLineParser
 {
@@ -56,8 +62,9 @@ public sealed class CommandLineParser : ICommandLineParser
         else if (args.Count > 0 && args[0].Length > 0 && IsLikelyPath(args[0]))
         {
             // Argument looks like a path (contains a separator, drive letter, leading dot)
-            // but doesn't exist or isn't a repo. Fail loudly rather than try to resolve as
-            // commit-ish — "..\foo" really meant a path, not a ref.
+            // but doesn't exist or isn't a repo on its own. We still allow it iff it's a
+            // subdirectory of a repo — discovery resolves that. If the path doesn't even
+            // exist, fail loudly; "..\foo" really meant a path, not a ref.
             if (!env.PathExists(args[0]))
             {
                 return CommandLineParseResult.Failure(
@@ -65,17 +72,23 @@ public sealed class CommandLineParser : ICommandLineParser
                     $"Path does not exist: {args[0]}");
             }
 
-            return CommandLineParseResult.Failure(
-                CommandLineErrorKind.NotAGitRepository,
-                $"Not a git repository: {args[0]}");
+            repoPath = args[0];
+            sideArgsStart = 1;
         }
 
-        // Make sure the resolved repo path itself is a git repo.
+        // Make sure the resolved repo path is, or sits inside, a git repo. The
+        // discovery fallback handles "launched from a subdirectory of a repo".
         if (!env.IsGitRepository(repoPath))
         {
-            return CommandLineParseResult.Failure(
-                CommandLineErrorKind.NotAGitRepository,
-                $"Not a git repository: {repoPath}");
+            var discovered = env.TryDiscoverRepoRoot(repoPath);
+            if (discovered is null)
+            {
+                return CommandLineParseResult.Failure(
+                    CommandLineErrorKind.NotAGitRepository,
+                    $"Not a git repository: {repoPath}");
+            }
+
+            repoPath = discovered;
         }
 
         int sideCount = args.Count - sideArgsStart;

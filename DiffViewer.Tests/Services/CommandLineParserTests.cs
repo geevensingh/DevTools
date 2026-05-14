@@ -20,10 +20,19 @@ public class CommandLineParserTests
         public Dictionary<(string repo, string commit), bool> Commits { get; init; }
             = new(new TupleIgnoreCase());
 
+        /// <summary>
+        /// Map from subdirectory path → repo root that contains it. Mirrors
+        /// <c>LibGit2Sharp.Repository.Discover</c>'s upward walk.
+        /// </summary>
+        public Dictionary<string, string> DiscoveredRoots { get; init; }
+            = new(StringComparer.OrdinalIgnoreCase);
+
         public bool PathExists(string path) => ExistingPaths.Contains(path);
         public bool IsGitRepository(string path) => GitRepos.Contains(path);
         public bool TryResolveCommitIsh(string repoPath, string commitIsh)
             => Commits.TryGetValue((repoPath, commitIsh), out var ok) && ok;
+        public string? TryDiscoverRepoRoot(string path)
+            => DiscoveredRoots.TryGetValue(path, out var root) ? root : null;
 
         private sealed class TupleIgnoreCase : IEqualityComparer<(string repo, string commit)>
         {
@@ -300,5 +309,111 @@ public class CommandLineParserTests
         result.IsSuccess.Should().BeTrue();
         result.Parsed!.Left.Should().BeOfType<DiffSide.CommitIsh>()
             .Which.Reference.Should().Be(commit);
+    }
+
+    [Fact]
+    public void NoArgs_CwdIsSubdirOfRepo_DiscoversAndUsesRoot()
+    {
+        const string subdir = @"C:\Repos\foo\src\sub";
+        const string root = @"C:\Repos\foo";
+        var parser = new CommandLineParser();
+        var env = new StubEnv
+        {
+            CurrentDirectory = subdir,
+            // subdir is NOT itself a repo, but discovery resolves to root.
+            GitRepos = { root },
+            DiscoveredRoots = { [subdir] = root },
+        };
+
+        var result = parser.Parse(Array.Empty<string>(), env);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Parsed!.RepoPath.Should().Be(root);
+        result.Parsed.Left.Should().BeOfType<DiffSide.CommitIsh>()
+            .Which.Reference.Should().Be("HEAD");
+        result.Parsed.Right.Should().BeOfType<DiffSide.WorkingTree>();
+    }
+
+    [Fact]
+    public void NoArgs_CwdIsSubdirOfRepo_ResolvesCommitIshAgainstDiscoveredRoot()
+    {
+        const string subdir = @"C:\Repos\foo\src\sub";
+        const string root = @"C:\Repos\foo";
+        var parser = new CommandLineParser();
+        var env = new StubEnv
+        {
+            CurrentDirectory = subdir,
+            GitRepos = { root },
+            DiscoveredRoots = { [subdir] = root },
+            // Commit-ish must be resolved against the discovered root, not the cwd.
+            Commits = { [(root, "main")] = true },
+        };
+
+        var result = parser.Parse(new[] { "main" }, env);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Parsed!.RepoPath.Should().Be(root);
+        result.Parsed.Left.Should().BeOfType<DiffSide.CommitIsh>()
+            .Which.Reference.Should().Be("main");
+    }
+
+    [Fact]
+    public void PathArg_IsSubdirOfRepo_DiscoversAndUsesRoot()
+    {
+        const string subdir = @"C:\Repos\foo\src\sub";
+        const string root = @"C:\Repos\foo";
+        var parser = new CommandLineParser();
+        var env = new StubEnv
+        {
+            ExistingPaths = { subdir },
+            GitRepos = { root, Cwd },
+            DiscoveredRoots = { [subdir] = root },
+        };
+
+        // User runs: DiffViewer C:\Repos\foo\src\sub
+        var result = parser.Parse(new[] { subdir }, env);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Parsed!.RepoPath.Should().Be(root);
+    }
+
+    [Fact]
+    public void PathArg_IsSubdirOfRepo_CommitIshResolvesAgainstDiscoveredRoot()
+    {
+        const string subdir = @"C:\Repos\foo\src\sub";
+        const string root = @"C:\Repos\foo";
+        var parser = new CommandLineParser();
+        var env = new StubEnv
+        {
+            ExistingPaths = { subdir },
+            GitRepos = { root, Cwd },
+            DiscoveredRoots = { [subdir] = root },
+            Commits = { [(root, "v1.0")] = true },
+        };
+
+        var result = parser.Parse(new[] { subdir, "v1.0" }, env);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Parsed!.RepoPath.Should().Be(root);
+        result.Parsed.Left.Should().BeOfType<DiffSide.CommitIsh>()
+            .Which.Reference.Should().Be("v1.0");
+    }
+
+    [Fact]
+    public void NoArgs_CwdNotInsideAnyRepo_FailsWithNotAGitRepository()
+    {
+        // Cwd is not a repo and discovery returns nothing — the discovery
+        // fallback must not paper over the genuine "not in a repo" case.
+        var parser = new CommandLineParser();
+        var env = new StubEnv
+        {
+            CurrentDirectory = @"C:\Users\anon\Desktop",
+            // No GitRepos, no DiscoveredRoots.
+        };
+
+        var result = parser.Parse(Array.Empty<string>(), env);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error!.Kind.Should().Be(CommandLineErrorKind.NotAGitRepository);
     }
 }
