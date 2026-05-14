@@ -159,17 +159,50 @@ public sealed class HunkOverviewBar : FrameworkElement
             if (layout.RightRect is Rect rr)
                 dc.DrawRectangle(addedBrush, null, rr);
 
-            // Highlight the active hunk by outlining whichever column
-            // rect(s) are present so the user can find the marker the
-            // keyboard / mouse navigation has selected.
+            // Highlight the active hunk by outlining the whole section
+            // (left rect + ribbon + right rect) as a single polygon so it
+            // reads as one shape instead of two disconnected boxes.
             if (i == _vm.CurrentHunkIndex)
             {
-                if (layout.LeftRect is Rect lh)
-                    dc.DrawRectangle(null, activePen, lh);
-                if (layout.RightRect is Rect rh)
-                    dc.DrawRectangle(null, activePen, rh);
+                var outline = BuildActiveOutline(layout.LeftRect, layout.RightRect);
+                if (outline is not null)
+                    dc.DrawGeometry(null, activePen, outline);
             }
         }
+    }
+
+    /// <summary>
+    /// Build the outline geometry used to mark the active hunk:
+    /// <list type="bullet">
+    ///   <item>Both rects present (mixed hunk): trace the outer perimeter
+    ///   of (LeftRect ∪ ribbon ∪ RightRect) as one polygon so the user sees
+    ///   a single connected shape.</item>
+    ///   <item>Only one rect (pure add / pure delete): just outline that
+    ///   rect — there's no ribbon to include.</item>
+    /// </list>
+    /// </summary>
+    private static Geometry? BuildActiveOutline(Rect? leftRect, Rect? rightRect)
+    {
+        if (leftRect is Rect L && rightRect is Rect R)
+        {
+            var g = new StreamGeometry();
+            using (var ctx = g.Open())
+            {
+                ctx.BeginFigure(new Point(L.Left, L.Top), isFilled: false, isClosed: true);
+                ctx.LineTo(new Point(L.Right, L.Top), true, false);    // top of L
+                ctx.LineTo(new Point(R.Left, R.Top), true, false);     // ribbon top
+                ctx.LineTo(new Point(R.Right, R.Top), true, false);    // top of R
+                ctx.LineTo(new Point(R.Right, R.Bottom), true, false); // right of R
+                ctx.LineTo(new Point(R.Left, R.Bottom), true, false);  // bottom of R
+                ctx.LineTo(new Point(L.Right, L.Bottom), true, false); // ribbon bottom
+                ctx.LineTo(new Point(L.Left, L.Bottom), true, false);  // bottom of L
+            }
+            if (g.CanFreeze) g.Freeze();
+            return g;
+        }
+        if (leftRect is Rect lOnly) return new RectangleGeometry(lOnly);
+        if (rightRect is Rect rOnly) return new RectangleGeometry(rOnly);
+        return null;
     }
 
     /// <summary>
