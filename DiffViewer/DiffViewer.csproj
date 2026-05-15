@@ -9,7 +9,15 @@
     <LangVersion>latest</LangVersion>
     <RootNamespace>DiffViewer</RootNamespace>
     <AssemblyName>DiffViewer</AssemblyName>
+    <ApplicationIcon>Assets\diffviewer.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Also include as a Resource so MainWindow.xaml's Icon="" pack URI
+         can load the same file at runtime (Window.Icon doesn't auto-pick
+         up <ApplicationIcon>). -->
+    <Resource Include="Assets\diffviewer.ico" />
+  </ItemGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <PublishSingleFile>true</PublishSingleFile>

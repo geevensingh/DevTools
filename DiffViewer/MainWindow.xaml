@@ -8,6 +8,7 @@
         d:DataContext="{d:DesignInstance Type=vm:MainViewModel}"
         mc:Ignorable="d"
         Title="{Binding WindowTitle, FallbackValue=DiffViewer}"
+        Icon="/Assets/diffviewer.ico"
         Width="1200"
         Height="800"
         WindowStartupLocation="CenterScreen"
