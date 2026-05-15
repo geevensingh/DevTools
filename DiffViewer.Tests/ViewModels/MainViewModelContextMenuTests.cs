@@ -337,6 +337,42 @@ public class MainViewModelContextMenuTests : IDisposable
     }
 
     [Fact]
+    public async Task RevertHunkAtCaret_PreviewShowsOnlyChangedLinesWithMarkers()
+    {
+        // Repro of the "useless preview" bug: leading context lines were
+        // taking up the entire 3-line preview window, so the user saw three
+        // unchanged lines and zero indication of what was about to be
+        // discarded. The fix filters out Context lines and prefixes diff
+        // markers so the preview actually previews the revert.
+        var repo = new FakeRepositoryService(_repoRoot)
+        {
+            LeftText = "alpha\nbeta\n",
+            RightText = "alpha\ngamma\n",
+        };
+        var git = new FakeGitWriteService();
+        ConfirmationRequest? seen = null;
+
+        await RunOnUiSyncContextAsync(async vm =>
+        {
+            vm.ConfirmHandler = req =>
+            {
+                seen = req;
+                return ConfirmationResult.Cancel();
+            };
+            await vm.DiffPane.LoadAsync(ModifiedRow("a.cs"));
+            var hunk = vm.DiffPane.CurrentHunks.First();
+            vm.RevertHunkAtCaretCommand.Execute(
+                new HunkActionContext(ChangeSide.Right, hunk.NewStartLine));
+        }, repo, git);
+
+        seen.Should().NotBeNull();
+        seen!.Message.Should().Contain("- beta", "deleted line should appear in preview with '-' marker");
+        seen.Message.Should().Contain("+ gamma", "inserted line should appear in preview with '+' marker");
+        seen.Message.Should().NotContain("Preview:\nalpha",
+            "leading context line should be filtered out of preview");
+    }
+
+    [Fact]
     public async Task RevertHunkAtCaret_WhenSuppressionOn_SkipsPrompt()
     {
         var repo = new FakeRepositoryService(_repoRoot)

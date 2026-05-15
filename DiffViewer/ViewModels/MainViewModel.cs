@@ -213,12 +213,33 @@ public sealed partial class MainViewModel : ObservableObject, IShellViewModel, I
         var suppress = _settingsService?.Current.SuppressRevertHunkConfirmation ?? false;
         if (!suppress)
         {
-            var preview = inputs.Hunk.Lines.Take(3).Select(l => l.Text).ToArray();
+            // Preview the lines that will actually be reverted: filter to
+            // inserted/deleted/modified (skip context, which is unchanged
+            // and tells the user nothing about what's being discarded) and
+            // prefix each with the standard diff marker so + / - reads
+            // naturally. The earlier "first 3 lines of the hunk" approach
+            // surfaced only the leading context lines that DiffService adds
+            // around every hunk, so the dialog showed three unchanged
+            // lines and no actual changes - useless for confirming intent.
+            var changedLines = inputs.Hunk.Lines
+                .Where(l => l.Kind is DiffLineKind.Inserted
+                                   or DiffLineKind.Deleted
+                                   or DiffLineKind.Modified)
+                .ToList();
+            var previewLines = changedLines
+                .Take(3)
+                .Select(l => (l.Kind switch
+                {
+                    DiffLineKind.Inserted => "+ ",
+                    DiffLineKind.Deleted => "- ",
+                    DiffLineKind.Modified => "~ ",
+                    _ => "  ",
+                }) + l.Text);
             var resp = ConfirmHandler?.Invoke(new ConfirmationRequest(
                 Title: "Revert hunk?",
                 Message: "Discard this hunk from the working tree? This cannot be undone via git.\n\n"
-                       + "Preview:\n" + string.Join("\n", preview)
-                       + (inputs.Hunk.Lines.Count > 3 ? "\n…" : ""),
+                       + "Preview:\n" + string.Join("\n", previewLines)
+                       + (changedLines.Count > 3 ? "\n…" : ""),
                 ConfirmText: "Revert",
                 CancelText: "Cancel",
                 ShowDontAskAgain: true));
