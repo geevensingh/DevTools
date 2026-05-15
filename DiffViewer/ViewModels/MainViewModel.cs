@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using DiffViewer.Models;
 using DiffViewer.Services;
+using DiffViewer.Utility;
 
 namespace DiffViewer.ViewModels;
 
@@ -9,8 +10,15 @@ namespace DiffViewer.ViewModels;
 /// Root view-model. Owns the repository service, the optional repository
 /// watcher, the file list, and the right-pane state. Constructed by
 /// <c>CompositionRoot</c> once command-line parsing succeeds.
+///
+/// <para><b>Lifecycle</b>: a <see cref="ContextScope"/> owns disposal of
+/// every per-context resource — including the event subscriptions wired
+/// in this VM. The coordinator calls <see cref="DisposeAsync"/>, which
+/// delegates to <see cref="ContextScope.DisposeAsync"/>; that cancels
+/// the per-context token, awaits any tracked in-flight tasks, and runs
+/// disposers in reverse registration order.</para>
 /// </summary>
-public sealed partial class MainViewModel : ObservableObject, IDisposable
+public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable, IDisposable
 {
     private readonly IRepositoryService _repository;
     private readonly IRepositoryWatcher? _watcher;
@@ -21,6 +29,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private readonly DiffSide _left;
     private readonly DiffSide _right;
     private readonly bool _isCommitVsCommit;
+    private readonly ContextScope _scope;
 
     /// <summary>
     /// Stack of suspend tokens, one per in-flight git write operation. The
@@ -447,7 +456,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         IPreDiffPass? preDiffPass = null,
         ISettingsService? settingsService = null,
         IGitWriteService? gitWriteService = null,
-        IExternalAppLauncher? externalAppLauncher = null)
+        IExternalAppLauncher? externalAppLauncher = null,
+        ContextScope? scope = null)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         _left = left ?? throw new ArgumentNullException(nameof(left));
@@ -459,18 +469,43 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _gitWriteService = gitWriteService;
         _externalAppLauncher = externalAppLauncher;
 
+        // If no scope was passed (legacy callers / tests), create one and
+        // also register the per-context resources we were handed so that
+        // a single DisposeAsync() correctly tears them down. When a scope
+        // IS passed, the caller (CompositionRoot) has already registered
+        // the per-context resources and we only register our own
+        // VM-internal teardown.
+        bool ownsScope = scope is null;
+        _scope = scope ?? new ContextScope();
+
         FileList = new FileListViewModel(settingsService);
         DiffPane = new DiffPaneViewModel(_repository, diffService, _isCommitVsCommit, settingsService);
 
         WindowTitle = $"DiffViewer — {repository.Shape.RepoRoot} ({FormatSideForTitle(left)} ⇢ {FormatSideForTitle(right)})";
 
+        if (ownsScope)
+        {
+            // Order matters: registered last, disposed first. Repository
+            // lives longest because watcher / preDiffPass depend on it.
+            _scope.Register(_repository);
+            if (_watcher is not null) _scope.Register(_watcher);
+            if (_preDiffPass is not null) _scope.Register(_preDiffPass);
+        }
+
         _repository.ChangeListUpdated += OnChangeListUpdated;
+        _scope.RegisterCleanup(() => _repository.ChangeListUpdated -= OnChangeListUpdated);
+
         FileList.PropertyChanged += OnFileListPropertyChanged;
+        _scope.RegisterCleanup(() => FileList.PropertyChanged -= OnFileListPropertyChanged);
+
         DiffPane.PropertyChanged += OnDiffPanePropertyChanged;
+        _scope.RegisterCleanup(() => DiffPane.PropertyChanged -= OnDiffPanePropertyChanged);
+        _scope.Register(DiffPane);
 
         if (_watcher is not null)
         {
             _watcher.Changed += OnRepositoryChanged;
+            _scope.RegisterCleanup(() => _watcher.Changed -= OnRepositoryChanged);
             _watcher.Start();
         }
 
@@ -478,16 +513,43 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         {
             _gitWriteService.BeforeOperation += OnBeforeWriteOperation;
             _gitWriteService.AfterOperation += OnAfterWriteOperation;
+            _scope.RegisterCleanup(() =>
+            {
+                _gitWriteService.BeforeOperation -= OnBeforeWriteOperation;
+                _gitWriteService.AfterOperation -= OnAfterWriteOperation;
+            });
+            // Drop any leftover suspend tokens (paranoia — shouldn't
+            // happen unless an op is in flight at shutdown).
+            _scope.RegisterCleanup(() =>
+            {
+                while (_suspendTokens.TryPop(out var token)) token.Dispose();
+            });
         }
     }
 
-    /// <summary>Trigger the initial change-list load (called once at startup).</summary>
-    public void LoadInitialChanges()
+    /// <summary>
+    /// Trigger the initial change-list load. Async so the
+    /// <see cref="IRepositoryService.EnumerateChanges"/> call (which can
+    /// take seconds on large repos) doesn't freeze the UI thread mid-swap.
+    /// FileList mutation runs back on the calling SynchronizationContext
+    /// (UI thread when called from the coordinator).
+    /// </summary>
+    public async Task LoadInitialChangesAsync(CancellationToken ct = default)
     {
-        var changes = _repository.EnumerateChanges(_left, _right);
+        var changes = await Task.Run(
+            () => _repository.EnumerateChanges(_left, _right),
+            ct).ConfigureAwait(true);
+        ct.ThrowIfCancellationRequested();
         FileList.LoadFromChanges(changes, _repository.Shape.RepoRoot, _isCommitVsCommit);
         StartPreDiffPass();
     }
+
+    /// <summary>
+    /// Synchronous wrapper around <see cref="LoadInitialChangesAsync"/>
+    /// for legacy callers (tests). New code should use the async form.
+    /// </summary>
+    public void LoadInitialChanges() =>
+        LoadInitialChangesAsync().GetAwaiter().GetResult();
 
     /// <summary>
     /// Format a <see cref="DiffSide"/> for inclusion in the window title.
@@ -526,15 +588,43 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private void OnFileListPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         if (e.PropertyName != nameof(FileListViewModel.SelectedEntry)) return;
+        var newSel = FileList.SelectedEntry;
+
+        // A repository refresh (RefreshChangeList) re-creates every
+        // FileEntryViewModel even when nothing on disk changed. The new
+        // instance for the currently-loaded file fires SelectedEntry
+        // PropertyChanged, so a naive "always scroll to first hunk" would
+        // yank the user back to the top of the diff on every refresh - even
+        // when their previously-selected file is structurally unchanged.
+        // Detect that case (same path + same layer as the entry currently
+        // loaded in the diff pane) and reload without the auto-jump so the
+        // editor's scroll position is preserved. Working-tree file content
+        // may still have changed, so LoadAsync is required to recompute the
+        // diff; the editors will only redraw if the resulting text differs
+        // (see DiffPaneViewModel.ApplyResult).
+        bool isSameFileRefresh =
+            newSel is not null &&
+            DiffPane.CurrentEntry is { } current &&
+            string.Equals(current.Change.Path, newSel.Change.Path, StringComparison.OrdinalIgnoreCase) &&
+            current.Change.Layer == newSel.Change.Layer;
+
         // Fire-and-forget: the VM serialises in-flight loads via its own CTS.
-        // Use the "+ scroll-to-first-hunk" variant so a freshly-selected
-        // file opens centered on its first diff. StepFile/StepSection's own
-        // post-load JumpToFirst/Last calls happen after this and overwrite
-        // the auto-jump on the UI thread before any paint, so F7-backward
-        // navigation still lands on the last hunk without flicker.
-        _ = DiffPane.LoadAndScrollToFirstHunkAsync(FileList.SelectedEntry);
+        // For brand-new selections, use the "+ scroll-to-first-hunk" variant
+        // so a freshly-selected file opens centered on its first diff.
+        // StepFile/StepSection's own post-load JumpToFirst/Last calls happen
+        // after this and overwrite the auto-jump on the UI thread before any
+        // paint, so F7-backward navigation still lands on the last hunk
+        // without flicker.
+        if (isSameFileRefresh)
+        {
+            _ = DiffPane.LoadAsync(newSel);
+        }
+        else
+        {
+            _ = DiffPane.LoadAndScrollToFirstHunkAsync(newSel);
+        }
         // Reprioritise the pre-diff pass so the new selection jumps the queue.
-        _preDiffPass?.OnSelectionChanged(FileList.SelectedEntry);
+        _preDiffPass?.OnSelectionChanged(newSel);
     }
 
     private void OnDiffPanePropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -585,11 +675,20 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         });
     }
 
-    private static void MarshalToUi(Action action)
+    private void MarshalToUi(Action action)
     {
+        // Short-circuit if the per-context scope is already tearing down —
+        // no point queueing UI work that touches resources about to be
+        // disposed (DR-003).
+        if (_scope.IsDisposed) return;
+
         if (System.Windows.Application.Current is { Dispatcher: { } d } && !d.CheckAccess())
         {
-            d.BeginInvoke(action);
+            d.BeginInvoke(() =>
+            {
+                if (_scope.IsDisposed) return;
+                action();
+            });
             return;
         }
         action();
@@ -683,29 +782,22 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         }
     }
 
-    public void Dispose()
-    {
-        FileList.PropertyChanged -= OnFileListPropertyChanged;
-        DiffPane.PropertyChanged -= OnDiffPanePropertyChanged;
-        _repository.ChangeListUpdated -= OnChangeListUpdated;
-        if (_watcher is not null)
-        {
-            _watcher.Changed -= OnRepositoryChanged;
-            _watcher.Dispose();
-        }
-        if (_gitWriteService is not null)
-        {
-            _gitWriteService.BeforeOperation -= OnBeforeWriteOperation;
-            _gitWriteService.AfterOperation -= OnAfterWriteOperation;
-        }
-        // Drop any leftover suspend tokens (paranoia - shouldn't happen
-        // unless an op is in flight at shutdown).
-        while (_suspendTokens.TryPop(out var token))
-        {
-            token.Dispose();
-        }
-        _preDiffPass?.Dispose();
-        DiffPane.Dispose();
-        _repository.Dispose();
-    }
+    /// <summary>
+    /// Tears down everything registered with the per-context
+    /// <see cref="ContextScope"/> in reverse registration order: cancel
+    /// the per-context token, await any tracked in-flight tasks, then
+    /// run disposers (event-sub cleanups → DiffPane → preDiffPass →
+    /// watcher → repository).
+    /// </summary>
+    public ValueTask DisposeAsync() => _scope.DisposeAsync();
+
+    /// <summary>
+    /// Synchronous wrapper around <see cref="DisposeAsync"/>. Kept for
+    /// back-compat with non-async callers (tests, the legacy
+    /// <c>Window.Closed</c> handler — production code is migrating to
+    /// the async form). Awaits the scope teardown synchronously; safe
+    /// because the scope's await chain uses <c>ConfigureAwait(false)</c>
+    /// throughout.
+    /// </summary>
+    public void Dispose() => DisposeAsync().AsTask().GetAwaiter().GetResult();
 }
