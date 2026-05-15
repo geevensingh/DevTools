@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using DiffViewer;
 using DiffViewer.Models;
@@ -138,6 +139,67 @@ public class MainWindowCoordinatorTests
         await coordinator.DisposeCurrentAsync();
     }
 
+    [Fact]
+    public async Task InitialLaunchAsync_ParseFailure_WithRecents_FallsBackToEmptyContext()
+    {
+        var dialog = new FakeDialog();
+        int? exitCode = null;
+        var recents = new FakeRecents();
+        recents.SeededItems.Add(MakeContext(@"C:\repos\foo", "main"));
+        var services = new AppServices(
+            new SettingsService(), new DiffService(), new ExternalAppLauncher(null), recents);
+
+        var coordinator = new MainWindowCoordinator(
+            services, dialog, default, shutdownAction: c => exitCode = c);
+
+        // Three positional args → parse fails. With recents seeded, the
+        // coordinator must NOT shut down — instead it installs an
+        // EmptyContextViewModel so the user can pick from the dropdown.
+        var ok = await coordinator.InitialLaunchAsync(new[] { "C:\\nope1", "C:\\nope2", "C:\\nope3" });
+
+        ok.Should().BeTrue();
+        dialog.LastError.Should().BeNull();
+        exitCode.Should().BeNull();
+        coordinator.Current.Should().BeOfType<EmptyContextViewModel>();
+    }
+
+    [Fact]
+    public async Task SwitchToRecentAsync_DelegatesToSwitchContextAsync()
+    {
+        using var repoA = MakeRepoWithCommit();
+        using var repoB = MakeRepoWithCommit();
+        var services = BuildServices(out var recents);
+        var dialog = new FakeDialog();
+        var coordinator = new MainWindowCoordinator(services, dialog, shutdownAction: _ => { });
+
+        (await coordinator.StartFromParsedAsync(ParsedFor(repoA))).Should().BeTrue();
+        var firstVm = coordinator.Current;
+
+        var recent = new RecentLaunchContext(
+            new ContextIdentity(repoB.Path, new DiffSide.WorkingTree(), new DiffSide.CommitIsh("HEAD")),
+            new DiffSide.WorkingTree(),
+            new DiffSide.CommitIsh("HEAD"),
+            DateTimeOffset.UtcNow);
+
+        (await coordinator.SwitchToRecentAsync(recent)).Should().BeTrue();
+
+        coordinator.Current.Should().NotBeNull().And.NotBeSameAs(firstVm);
+        recents.RecordedRepoPaths.Should().HaveCount(2,
+            "first StartFromParsedAsync recorded repoA, then SwitchToRecentAsync recorded repoB");
+
+        await coordinator.DisposeCurrentAsync();
+    }
+
+    private static RecentLaunchContext MakeContext(string repoPath, string commitRef)
+    {
+        var canonical = ContextIdentityFactory.CanonicalizeRepoPath(repoPath);
+        var left = new DiffSide.WorkingTree();
+        var right = new DiffSide.CommitIsh(commitRef);
+        return new RecentLaunchContext(
+            new ContextIdentity(canonical, left, right),
+            left, right, DateTimeOffset.UtcNow);
+    }
+
     private static AppServices BuildServices(out FakeRecents recents)
     {
         recents = new FakeRecents();
@@ -175,8 +237,8 @@ public class MainWindowCoordinatorTests
 
     private sealed class FakeRecents : IRecentContextsService
     {
-        public System.Collections.Generic.IReadOnlyList<RecentLaunchContext> Current { get; } =
-            System.Array.Empty<RecentLaunchContext>();
+        public System.Collections.Generic.List<RecentLaunchContext> SeededItems { get; } = new();
+        public System.Collections.Generic.IReadOnlyList<RecentLaunchContext> Current => SeededItems;
         public event System.EventHandler? Changed { add { } remove { } }
         public System.Collections.Generic.List<string> RecordedRepoPaths { get; } = new();
         public System.Collections.Generic.List<string> RemovedRepoPaths { get; } = new();

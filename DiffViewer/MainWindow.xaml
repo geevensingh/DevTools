@@ -64,25 +64,60 @@
         <KeyBinding Key="NumPad0"  Modifiers="Control" Command="{Binding DiffPane.ZoomResetCommand}"/>
     </Window.InputBindings>
     <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="320" MinWidth="200"/>
-            <ColumnDefinition Width="5"/>
-            <ColumnDefinition Width="*" MinWidth="300"/>
-        </Grid.ColumnDefinitions>
+        <Grid.Resources>
+            <DataTemplate DataType="{x:Type vm:MainViewModel}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="320" MinWidth="200"/>
+                        <ColumnDefinition Width="5"/>
+                        <ColumnDefinition Width="*" MinWidth="300"/>
+                    </Grid.ColumnDefinitions>
 
-        <views:FileListView Grid.Column="0"
-                            DataContext="{Binding FileList}"/>
+                    <!-- Column 0: recents dropdown above the file list. -->
+                    <Grid Grid.Column="0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <views:RecentsBarView Grid.Row="0"
+                                              DataContext="{Binding Recents}"/>
+                        <views:FileListView Grid.Row="1"
+                                            DataContext="{Binding FileList}"/>
+                    </Grid>
 
-        <GridSplitter Grid.Column="1"
-                      Width="5"
-                      HorizontalAlignment="Stretch"
-                      VerticalAlignment="Stretch"
-                      Background="#DDDDDD"/>
+                    <GridSplitter Grid.Column="1"
+                                  Width="5"
+                                  HorizontalAlignment="Stretch"
+                                  VerticalAlignment="Stretch"
+                                  Background="#DDDDDD"/>
 
-        <Border Grid.Column="2"
-                Background="White">
-            <views:DiffPaneView DataContext="{Binding DiffPane}"/>
-        </Border>
+                    <Border Grid.Column="2"
+                            Background="White">
+                        <views:DiffPaneView DataContext="{Binding DiffPane}"/>
+                    </Border>
+                </Grid>
+            </DataTemplate>
+
+            <DataTemplate DataType="{x:Type vm:EmptyContextViewModel}">
+                <DockPanel LastChildFill="True">
+                    <!-- Recents dropdown at top so the user can pick a context. -->
+                    <views:RecentsBarView DockPanel.Dock="Top"
+                                          DataContext="{Binding Recents}"/>
+                    <Border Background="White">
+                        <TextBlock Text="{Binding Message}"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   TextAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   MaxWidth="600"
+                                   Foreground="#666666"
+                                   Padding="20"/>
+                    </Border>
+                </DockPanel>
+            </DataTemplate>
+        </Grid.Resources>
+
+        <ContentControl Content="{Binding}"/>
     </Grid>
 </Window>
 

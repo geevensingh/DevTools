@@ -18,7 +18,7 @@ namespace DiffViewer.ViewModels;
 /// the per-context token, awaits any tracked in-flight tasks, and runs
 /// disposers in reverse registration order.</para>
 /// </summary>
-public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable, IDisposable
+public sealed partial class MainViewModel : ObservableObject, IShellViewModel, IAsyncDisposable, IDisposable
 {
     private readonly IRepositoryService _repository;
     private readonly IRepositoryWatcher? _watcher;
@@ -30,6 +30,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable, 
     private readonly DiffSide _right;
     private readonly bool _isCommitVsCommit;
     private readonly ContextScope _scope;
+    private readonly RecentContextsViewModel? _recents;
 
     /// <summary>
     /// Stack of suspend tokens, one per in-flight git write operation. The
@@ -57,6 +58,13 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable, 
 
     public FileListViewModel FileList { get; }
     public DiffPaneViewModel DiffPane { get; }
+
+    /// <summary>
+    /// View-model that drives the recents dropdown above the file list.
+    /// Null when no <see cref="IRecentContextsService"/> was injected
+    /// (test scenarios that don't exercise the recents UI).
+    /// </summary>
+    public RecentContextsViewModel? Recents => _recents;
 
     /// <summary>
     /// Hook for the View layer to display the modal Settings dialog.
@@ -457,7 +465,9 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable, 
         ISettingsService? settingsService = null,
         IGitWriteService? gitWriteService = null,
         IExternalAppLauncher? externalAppLauncher = null,
-        ContextScope? scope = null)
+        ContextScope? scope = null,
+        IRecentContextsService? recentContextsService = null,
+        IContextSwitcher? contextSwitcher = null)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         _left = left ?? throw new ArgumentNullException(nameof(left));
@@ -482,6 +492,17 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable, 
         DiffPane = new DiffPaneViewModel(_repository, diffService, _isCommitVsCommit, settingsService);
 
         WindowTitle = $"DiffViewer — {repository.Shape.RepoRoot} ({FormatSideForTitle(left)} ⇢ {FormatSideForTitle(right)})";
+
+        // Recents dropdown is wired only when both the singleton service
+        // and a usable repo path are available. Empty-state cold-launch
+        // VMs (EmptyContextViewModel) own their own RecentContextsViewModel
+        // independently — this branch is for the loaded-context case.
+        if (recentContextsService is not null)
+        {
+            var identity = ContextIdentityFactory.Create(repository.Shape.RepoRoot, left, right);
+            _recents = new RecentContextsViewModel(recentContextsService, contextSwitcher, identity);
+            _scope.Register(_recents);
+        }
 
         if (ownsScope)
         {

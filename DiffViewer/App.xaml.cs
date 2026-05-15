@@ -34,6 +34,10 @@ public partial class App : Application
             services,
             new MessageBoxDialogService(),
             _shutdownCts.Token);
+        // Late-bind the switcher into the services bundle so per-context
+        // view-models (built later inside CompositionRoot.BuildContextAsync)
+        // can wire the dropdown to the coordinator.
+        services.ContextSwitcher = _coordinator;
 
         var window = new MainWindow();
         _coordinator.CurrentChanged += (_, _) => window.DataContext = _coordinator.Current;

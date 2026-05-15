@@ -15,9 +15,18 @@ namespace DiffViewer;
 /// repository — those are constructed per-context inside
 /// <see cref="CompositionRoot.BuildContextAsync"/> and registered with
 /// the per-VM <see cref="Utility.ContextScope"/>.</para>
+///
+/// <para><b>Late-bound <see cref="ContextSwitcher"/></b>: the coordinator
+/// is constructed AFTER this services bundle (it consumes the bundle),
+/// so the switcher is assigned post-hoc by <see cref="App.OnStartup"/>.
+/// Per-context view-models read this property lazily; tests may leave it
+/// null when they don't exercise the dropdown switch path.</para>
 /// </summary>
 public sealed record AppServices(
     ISettingsService SettingsService,
     IDiffService DiffService,
     IExternalAppLauncher ExternalAppLauncher,
-    IRecentContextsService RecentContextsService);
+    IRecentContextsService RecentContextsService)
+{
+    public IContextSwitcher? ContextSwitcher { get; set; }
+}

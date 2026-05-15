@@ -131,7 +131,9 @@ internal static class CompositionRoot
             settingsService: services.SettingsService,
             gitWriteService: gitWriteService,
             externalAppLauncher: services.ExternalAppLauncher,
-            scope: scope);
+            scope: scope,
+            recentContextsService: services.RecentContextsService,
+            contextSwitcher: services.ContextSwitcher);
 
         await vm.LoadInitialChangesAsync(ct).ConfigureAwait(true);
         return vm;

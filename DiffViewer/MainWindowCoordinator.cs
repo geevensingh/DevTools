@@ -28,7 +28,7 @@ namespace DiffViewer;
 /// <c>ConfigureAwait(true)</c> so resumption stays on the calling
 /// SynchronizationContext (the WPF dispatcher in production).</para>
 /// </summary>
-public sealed class MainWindowCoordinator : ObservableObject
+public sealed class MainWindowCoordinator : ObservableObject, IContextSwitcher
 {
     /// <summary>
     /// Test seam for the per-context build step. Defaults to
@@ -47,7 +47,7 @@ public sealed class MainWindowCoordinator : ObservableObject
     private readonly Action<int>? _shutdownAction;
     private readonly SemaphoreSlim _switchGate = new(1, 1);
 
-    private MainViewModel? _current;
+    private IShellViewModel? _current;
     private ContextScope? _currentScope;
     private bool _isSwitching;
 
@@ -65,8 +65,14 @@ public sealed class MainWindowCoordinator : ObservableObject
         _shutdownAction = shutdownAction;
     }
 
-    /// <summary>Currently-active view-model. <c>null</c> after <see cref="DisposeCurrentAsync"/>.</summary>
-    public MainViewModel? Current => _current;
+    /// <summary>
+    /// Currently-active shell view-model. <c>null</c> after
+    /// <see cref="DisposeCurrentAsync"/>. Concrete type is either
+    /// <see cref="MainViewModel"/> (loaded context) or
+    /// <see cref="EmptyContextViewModel"/> (cold-launch fallback when
+    /// args fail but at least one recent is persisted).
+    /// </summary>
+    public IShellViewModel? Current => _current;
 
     /// <summary>Per-context scope owning the currently-active view-model. Exposed for tests.</summary>
     public ContextScope? CurrentScope => _currentScope;
@@ -88,8 +94,10 @@ public sealed class MainWindowCoordinator : ObservableObject
     /// <summary>
     /// Cold-launch entry. Parses args, builds the initial context, sets
     /// <see cref="Current"/>. Returns <c>true</c> on success (caller can
-    /// show the window), <c>false</c> on failure (the dialog has already
-    /// been shown and shutdown has been requested).
+    /// show the window) — including when the cold-launch falls back to
+    /// the empty-state dropdown picker. Returns <c>false</c> only when
+    /// the coordinator has shown the error dialog AND requested
+    /// shutdown (no recents present).
     /// </summary>
     public async Task<bool> InitialLaunchAsync(
         IReadOnlyList<string> args,
@@ -100,8 +108,7 @@ public sealed class MainWindowCoordinator : ObservableObject
         var parseResult = CompositionRoot.BuildArgs(args);
         if (!parseResult.IsSuccess)
         {
-            HandleColdLaunchFailure(parseResult.Error?.Message ?? "Failed to parse command line.");
-            return false;
+            return HandleColdLaunchFailure(parseResult.Error?.Message ?? "Failed to parse command line.");
         }
         return await StartFromParsedAsync(parseResult.Parsed!, ct).ConfigureAwait(true);
     }
@@ -125,9 +132,8 @@ public sealed class MainWindowCoordinator : ObservableObject
         catch (Exception ex)
         {
             await newScope.DisposeAsync().ConfigureAwait(true);
-            HandleColdLaunchFailure(
+            return HandleColdLaunchFailure(
                 ex is ContextBuildException ? ex.Message : $"Failed to start: {ex.Message}");
-            return false;
         }
 
         _current = newVm;
@@ -214,12 +220,7 @@ public sealed class MainWindowCoordinator : ObservableObject
         // a non-null Current at all times.
         if (outgoingVm is not null)
         {
-            try { await outgoingVm.DisposeAsync().ConfigureAwait(true); }
-            catch
-            {
-                // Disposal failures are best-effort; the outgoing graph is
-                // unreachable and will be GC'd.
-            }
+            await DisposeShellAsync(outgoingVm).ConfigureAwait(true);
         }
 
         await TryRecordAsync(parsed, ct).ConfigureAwait(true);
@@ -239,9 +240,24 @@ public sealed class MainWindowCoordinator : ObservableObject
 
         if (outgoing is not null)
         {
-            try { await outgoing.DisposeAsync().ConfigureAwait(true); }
-            catch { /* best-effort */ }
+            await DisposeShellAsync(outgoing).ConfigureAwait(true);
         }
+    }
+
+    /// <summary>
+    /// <see cref="IContextSwitcher"/> entry point used by the recents
+    /// dropdown. Converts a <see cref="RecentLaunchContext"/> into a
+    /// <see cref="ParsedCommandLine"/> (using the user's stored display
+    /// sides verbatim) and delegates to <see cref="SwitchContextAsync"/>.
+    /// </summary>
+    public Task<bool> SwitchToRecentAsync(RecentLaunchContext recent, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(recent);
+        var parsed = new ParsedCommandLine(
+            recent.Identity.CanonicalRepoPath,
+            recent.LeftDisplay,
+            recent.RightDisplay);
+        return SwitchContextAsync(parsed, ct);
     }
 
     private async Task TryRecordAsync(ParsedCommandLine parsed, CancellationToken ct)
@@ -259,16 +275,58 @@ public sealed class MainWindowCoordinator : ObservableObject
         }
     }
 
-    private void HandleColdLaunchFailure(string errorMessage)
+    /// <summary>
+    /// Handle a cold-launch failure. Returns <c>true</c> when the app
+    /// can continue (empty-state shell installed, window should show);
+    /// <c>false</c> when the user-facing error has been shown and
+    /// shutdown has been requested.
+    /// </summary>
+    private bool HandleColdLaunchFailure(string errorMessage)
     {
-        // TODO Phase 7: when _services.RecentContextsService.Current.Count > 0
-        // and a placeholder VM is available, set Current to it (with a
-        // populated dropdown) instead of shutting down. Until the
-        // placeholder UI lands, we always shutdown so a stale shortcut
-        // surfaces a clean failure rather than a half-rendered window.
+        // Cold-launch fallback (DR-007): if at least one recent is
+        // persisted, swap in an empty-state shell so the user can pick
+        // a recent from the dropdown rather than seeing the app
+        // immediately exit.
+        if (_services.RecentContextsService.Current.Count > 0)
+        {
+            var recents = new RecentContextsViewModel(
+                _services.RecentContextsService,
+                this,
+                currentIdentity: null);
+            var emptyVm = new EmptyContextViewModel(
+                recents,
+                $"{errorMessage}{Environment.NewLine}{Environment.NewLine}Pick a recent context above to load it.");
+
+            _current = emptyVm;
+            _currentScope = null;
+            OnCurrentChanged();
+            return true; // window shows with the empty-state dropdown
+        }
+
         _dialog.ShowError("DiffViewer", errorMessage);
         if (_shutdownAction is not null) _shutdownAction(1);
         else Application.Current?.Shutdown(1);
+        return false;
+    }
+
+    private static async Task DisposeShellAsync(IShellViewModel shell)
+    {
+        // MainViewModel implements IAsyncDisposable; EmptyContextViewModel
+        // is a plain IDisposable. Call the appropriate one and swallow
+        // failures (the outgoing graph is unreachable; let it be GC'd).
+        try
+        {
+            switch (shell)
+            {
+                case IAsyncDisposable async:
+                    await async.DisposeAsync().ConfigureAwait(true);
+                    break;
+                case IDisposable sync:
+                    sync.Dispose();
+                    break;
+            }
+        }
+        catch { /* best-effort */ }
     }
 
     private void OnCurrentChanged()
