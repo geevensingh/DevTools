@@ -357,6 +357,111 @@ public class MainViewModelKeyboardShortcutTests
     }
 
     [Fact]
+    public async Task NavigatePreviousChange_FromFirstHunk_StepsToPreviousFile_AndLandsOnLastHunk()
+    {
+        // Two files, each with 2 hunks. From the first hunk of the second
+        // file, F7 has nowhere to go within the file and falls through to
+        // StepFile(forward:false, jumpToFirst:false). The post-load
+        // JumpToLastHunk must override the auto-scroll-to-first that
+        // OnFileListPropertyChanged kicks off via LoadAndScrollToFirstHunkAsync,
+        // landing the caret on the LAST hunk of the previous file.
+        // Regression guard for the continuation-ordering issue described
+        // in https://github.com/geevensingh/DevTools/issues/25.
+        var repo = new FakeRepoForKeyboard
+        {
+            // 16-line input with edits at lines 1 and 14 => two hunks
+            // (3-line context can't bridge the gap). Same pattern used
+            // by TryNavigateNextHunkInFile_ReturnsFalseAtLastHunk above.
+            LeftText  = string.Join("\n", new[]
+            {
+                "first-old", "b","c","d","e","f","g","h","i","j","k","l","m",
+                "last-line", "n", "o",
+            }) + "\n",
+            RightText = string.Join("\n", new[]
+            {
+                "first-new", "b","c","d","e","f","g","h","i","j","k","l","m",
+                "last-line+", "n", "o",
+            }) + "\n",
+        };
+        repo.SetChanges(ModifiedChange("a.cs"), ModifiedChange("b.cs"));
+
+        await RunOnUiSyncContextAsync(async vm =>
+        {
+            vm.RefreshChangeList();
+            var e0 = vm.FileList.FlatEntries[0];
+            var e1 = vm.FileList.FlatEntries[1];
+
+            vm.FileList.SelectedEntry = e1;
+            await vm.DiffPane.LastLoadTask;
+
+            // Auto-scroll-on-select landed the caret on hunk 0 of e1.
+            // Both files share the same content via the fake repo, so
+            // each is expected to have 2 hunks.
+            vm.DiffPane.CurrentHunks.Should().HaveCount(2,
+                "fixture should produce a 2-hunk diff per file");
+            vm.DiffPane.CurrentHunkIndex.Should().Be(0,
+                "auto-scroll should have landed on the first hunk");
+
+            await vm.NavigatePreviousChangeCommand.ExecuteAsync(null);
+
+            vm.FileList.SelectedEntry.Should().Be(e0,
+                "F7 from the first hunk should step back to the previous file");
+            vm.DiffPane.CurrentHunkIndex.Should().Be(
+                vm.DiffPane.CurrentHunks.Count - 1,
+                "F7 across files must land on the LAST hunk of the previous file " +
+                "(JumpToLastHunk in StepFile must overwrite the auto-scroll's " +
+                "JumpToFirstHunk that LoadAndScrollToFirstHunkAsync chained into " +
+                "LastLoadTask)");
+        }, repo);
+    }
+
+    [Fact]
+    public async Task NavigatePreviousFile_LandsOnFirstHunkOfPreviousFile()
+    {
+        // Symmetric mirror of the above for Shift+F7 (NavigatePreviousFileCommand),
+        // which routes through StepFile(forward:false, jumpToFirst:true).
+        // With jumpToFirst:true, the explicit post-load JumpToFirstHunk
+        // is a no-op overlay on the auto-scroll's same JumpToFirstHunk -
+        // both should land on hunk 0 (not hunk Count-1), proving the
+        // jumpToFirst arg is honoured even though backward stepping
+        // would naively suggest the last hunk.
+        var repo = new FakeRepoForKeyboard
+        {
+            LeftText  = string.Join("\n", new[]
+            {
+                "first-old", "b","c","d","e","f","g","h","i","j","k","l","m",
+                "last-line", "n", "o",
+            }) + "\n",
+            RightText = string.Join("\n", new[]
+            {
+                "first-new", "b","c","d","e","f","g","h","i","j","k","l","m",
+                "last-line+", "n", "o",
+            }) + "\n",
+        };
+        repo.SetChanges(ModifiedChange("a.cs"), ModifiedChange("b.cs"));
+
+        await RunOnUiSyncContextAsync(async vm =>
+        {
+            vm.RefreshChangeList();
+            var e0 = vm.FileList.FlatEntries[0];
+            var e1 = vm.FileList.FlatEntries[1];
+
+            vm.FileList.SelectedEntry = e1;
+            await vm.DiffPane.LastLoadTask;
+            vm.DiffPane.CurrentHunks.Should().HaveCount(2);
+
+            await vm.NavigatePreviousFileCommand.ExecuteAsync(null);
+
+            vm.FileList.SelectedEntry.Should().Be(e0,
+                "Shift+F7 should step backward to the previous file");
+            vm.DiffPane.CurrentHunkIndex.Should().Be(0,
+                "Shift+F7 routes through StepFile(forward:false, jumpToFirst:true) " +
+                "so the caret must land on the FIRST hunk of the previous file, " +
+                "even though the navigation direction is backward");
+        }, repo);
+    }
+
+    [Fact]
     public async Task NavigateNextChange_SkipsWhitespaceOnlyFiles()
     {
         var repo = new FakeRepoForKeyboard();
