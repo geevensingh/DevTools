@@ -72,12 +72,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LetterBoxed", "LetterBoxed\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SessionMonitor", "SessionMonitor\SessionMonitor.csproj", "{534C78B3-99B8-46C1-9A0A-9028E6831581}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "DiffViewer", "DiffViewer", "{51A14C5A-D2DC-871F-66AB-A2B602BAD6C3}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiffViewer", "DiffViewer\DiffViewer.csproj", "{B69A42AC-F68A-46A6-89EF-6EF31BE638BE}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiffViewer.Tests", "DiffViewer.Tests\DiffViewer.Tests.csproj", "{EFBB3FB3-221B-432A-BDCA-94FCF1805CD7}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -598,45 +592,9 @@ Global
 		{534C78B3-99B8-46C1-9A0A-9028E6831581}.Release|x64.Build.0 = Release|Any CPU
 		{534C78B3-99B8-46C1-9A0A-9028E6831581}.Release|x86.ActiveCfg = Release|Any CPU
 		{534C78B3-99B8-46C1-9A0A-9028E6831581}.Release|x86.Build.0 = Release|Any CPU
-		{B69A42AC-F68A-46A6-89EF-6EF31BE638BE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B69A42AC-F68A-46A6-89EF-6EF31BE638BE}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B69A42AC-F68A-46A6-89EF-6EF31BE638BE}.Debug|ARM.ActiveCfg = Debug|Any CPU
-		{B69A42AC-F68A-46A6-89EF-6EF31BE638BE}.Debug|ARM.Build.0 = Debug|Any CPU
-		{B69A42AC-F68A-46A6-89EF-6EF31BE638BE}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{B69A42AC-F68A-46A6-89EF-6EF31BE638BE}.Debug|x64.Build.0 = Debug|Any CPU
-		{B69A42AC-F68A-46A6-89EF-6EF31BE638BE}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{B69A42AC-F68A-46A6-89EF-6EF31BE638BE}.Debug|x86.Build.0 = Debug|Any CPU
-		{B69A42AC-F68A-46A6-89EF-6EF31BE638BE}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B69A42AC-F68A-46A6-89EF-6EF31BE638BE}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B69A42AC-F68A-46A6-89EF-6EF31BE638BE}.Release|ARM.ActiveCfg = Release|Any CPU
-		{B69A42AC-F68A-46A6-89EF-6EF31BE638BE}.Release|ARM.Build.0 = Release|Any CPU
-		{B69A42AC-F68A-46A6-89EF-6EF31BE638BE}.Release|x64.ActiveCfg = Release|Any CPU
-		{B69A42AC-F68A-46A6-89EF-6EF31BE638BE}.Release|x64.Build.0 = Release|Any CPU
-		{B69A42AC-F68A-46A6-89EF-6EF31BE638BE}.Release|x86.ActiveCfg = Release|Any CPU
-		{B69A42AC-F68A-46A6-89EF-6EF31BE638BE}.Release|x86.Build.0 = Release|Any CPU
-		{EFBB3FB3-221B-432A-BDCA-94FCF1805CD7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{EFBB3FB3-221B-432A-BDCA-94FCF1805CD7}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{EFBB3FB3-221B-432A-BDCA-94FCF1805CD7}.Debug|ARM.ActiveCfg = Debug|Any CPU
-		{EFBB3FB3-221B-432A-BDCA-94FCF1805CD7}.Debug|ARM.Build.0 = Debug|Any CPU
-		{EFBB3FB3-221B-432A-BDCA-94FCF1805CD7}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{EFBB3FB3-221B-432A-BDCA-94FCF1805CD7}.Debug|x64.Build.0 = Debug|Any CPU
-		{EFBB3FB3-221B-432A-BDCA-94FCF1805CD7}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{EFBB3FB3-221B-432A-BDCA-94FCF1805CD7}.Debug|x86.Build.0 = Debug|Any CPU
-		{EFBB3FB3-221B-432A-BDCA-94FCF1805CD7}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{EFBB3FB3-221B-432A-BDCA-94FCF1805CD7}.Release|Any CPU.Build.0 = Release|Any CPU
-		{EFBB3FB3-221B-432A-BDCA-94FCF1805CD7}.Release|ARM.ActiveCfg = Release|Any CPU
-		{EFBB3FB3-221B-432A-BDCA-94FCF1805CD7}.Release|ARM.Build.0 = Release|Any CPU
-		{EFBB3FB3-221B-432A-BDCA-94FCF1805CD7}.Release|x64.ActiveCfg = Release|Any CPU
-		{EFBB3FB3-221B-432A-BDCA-94FCF1805CD7}.Release|x64.Build.0 = Release|Any CPU
-		{EFBB3FB3-221B-432A-BDCA-94FCF1805CD7}.Release|x86.ActiveCfg = Release|Any CPU
-		{EFBB3FB3-221B-432A-BDCA-94FCF1805CD7}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{B69A42AC-F68A-46A6-89EF-6EF31BE638BE} = {51A14C5A-D2DC-871F-66AB-A2B602BAD6C3}
-		{EFBB3FB3-221B-432A-BDCA-94FCF1805CD7} = {51A14C5A-D2DC-871F-66AB-A2B602BAD6C3}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {107AC4FE-615A-4A2C-8061-758E04391DF2}

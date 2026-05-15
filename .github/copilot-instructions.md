@@ -20,6 +20,11 @@ learn by reading multiple `.csproj` files.
   disk. Building the full solution will warn/fail on that entry until it is
   either restored or removed from the solution. Don't "fix" this by deleting
   the entry unless asked — it's a known stale reference.
+- The `DiffViewer/` folder is a **pointer stub** containing only a `README.md`
+  that points at [github.com/geevensingh/DiffViewer]. DiffViewer was extracted
+  into its own repo in May 2026 to support standalone releases. Don't try to
+  build it from here; its history lives in the new repo (via `git filter-repo`)
+  plus this repo's pre-extraction history.
 
 ## Two project styles coexist — know which one you're editing
 
