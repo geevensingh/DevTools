@@ -10,6 +10,13 @@
     <RootNamespace>DiffViewer</RootNamespace>
     <AssemblyName>DiffViewer</AssemblyName>
     <ApplicationIcon>Assets\diffviewer.ico</ApplicationIcon>
+    <!-- DiffViewer's own strings are hard-coded English; no .resx, no
+         x:Uid. The 11 framework locale folders shipped by the .NET
+         desktop runtime (cs/de/es/fr/it/ja/ko/pl/pt-BR/ru/tr) only
+         localize system chrome (MessageBox buttons, AvalonEdit's Find
+         panel, etc.) so stripping them keeps the publish output small
+         without affecting our UI. -->
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
 
   <ItemGroup>
