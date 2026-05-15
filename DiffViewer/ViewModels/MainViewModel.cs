@@ -213,33 +213,10 @@ public sealed partial class MainViewModel : ObservableObject, IShellViewModel, I
         var suppress = _settingsService?.Current.SuppressRevertHunkConfirmation ?? false;
         if (!suppress)
         {
-            // Preview the lines that will actually be reverted: filter to
-            // inserted/deleted/modified (skip context, which is unchanged
-            // and tells the user nothing about what's being discarded) and
-            // prefix each with the standard diff marker so + / - reads
-            // naturally. The earlier "first 3 lines of the hunk" approach
-            // surfaced only the leading context lines that DiffService adds
-            // around every hunk, so the dialog showed three unchanged
-            // lines and no actual changes - useless for confirming intent.
-            var changedLines = inputs.Hunk.Lines
-                .Where(l => l.Kind is DiffLineKind.Inserted
-                                   or DiffLineKind.Deleted
-                                   or DiffLineKind.Modified)
-                .ToList();
-            var previewLines = changedLines
-                .Take(3)
-                .Select(l => (l.Kind switch
-                {
-                    DiffLineKind.Inserted => "+ ",
-                    DiffLineKind.Deleted => "- ",
-                    DiffLineKind.Modified => "~ ",
-                    _ => "  ",
-                }) + l.Text);
             var resp = ConfirmHandler?.Invoke(new ConfirmationRequest(
                 Title: "Revert hunk?",
                 Message: "Discard this hunk from the working tree? This cannot be undone via git.\n\n"
-                       + "Preview:\n" + string.Join("\n", previewLines)
-                       + (changedLines.Count > 3 ? "\n…" : ""),
+                       + DescribeHunk(inputs.Hunk),
                 ConfirmText: "Revert",
                 CancelText: "Cancel",
                 ShowDontAskAgain: true));
@@ -262,6 +239,38 @@ public sealed partial class MainViewModel : ObservableObject, IShellViewModel, I
         if (ctx?.Entry is null || _externalAppLauncher is null) return;
         var r = await _externalAppLauncher.LaunchEditorAsync(ctx.Entry.FullPath, ctx.OneBasedLine).ConfigureAwait(false);
         if (!r.Success) ToastHandler?.Invoke(r.ErrorMessage ?? "Editor launch failed.");
+    }
+
+    // One-line human summary of a hunk for the "Revert hunk?" prompt.
+    // DiffService never emits DiffLineKind.Modified today (every change is
+    // expressed as a Deleted+Inserted pair), so additions/removals fully
+    // describe what the revert will undo. The reported line number is the
+    // first actually-changed line - not hunk.NewStartLine, which includes
+    // DiffService's leading context lines and would point a line or two
+    // above where the user's change really sits. Function context comes
+    // from the unified-diff "@@ ... @@" trailer when available.
+    private static string DescribeHunk(DiffHunk hunk)
+    {
+        var added = hunk.Lines.Count(l => l.Kind == DiffLineKind.Inserted);
+        var removed = hunk.Lines.Count(l => l.Kind == DiffLineKind.Deleted);
+
+        static string Plural(int n, string singular, string plural)
+            => $"{n} {(n == 1 ? singular : plural)}";
+
+        var parts = new List<string>(2);
+        if (added > 0) parts.Add(Plural(added, "addition", "additions"));
+        if (removed > 0) parts.Add(Plural(removed, "removal", "removals"));
+        var counts = parts.Count > 0 ? string.Join(", ", parts) : "no line changes";
+
+        var firstChange = hunk.Lines.FirstOrDefault(l => l.Kind != DiffLineKind.Context);
+        var lineNum = firstChange?.NewLineNumber
+                      ?? firstChange?.OldLineNumber
+                      ?? hunk.NewStartLine;
+        var location = $"at line {lineNum}";
+        if (!string.IsNullOrWhiteSpace(hunk.FunctionContext))
+            location += $" in {hunk.FunctionContext}";
+
+        return $"{counts} {location}.";
     }
 
     // ---------------- Keyboard-shortcut commands ----------------

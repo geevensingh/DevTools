@@ -337,13 +337,15 @@ public class MainViewModelContextMenuTests : IDisposable
     }
 
     [Fact]
-    public async Task RevertHunkAtCaret_PreviewShowsOnlyChangedLinesWithMarkers()
+    public async Task RevertHunkAtCaret_PromptDescribesHunkRatherThanPreviewingLines()
     {
-        // Repro of the "useless preview" bug: leading context lines were
-        // taking up the entire 3-line preview window, so the user saw three
-        // unchanged lines and zero indication of what was about to be
-        // discarded. The fix filters out Context lines and prefixes diff
-        // markers so the preview actually previews the revert.
+        // The dialog used to show a 3-line preview from the top of the hunk
+        // - which, because DiffService prepends context lines around every
+        // hunk, almost always rendered three unchanged lines and zero
+        // indication of what was about to be discarded. The replacement is
+        // a one-line summary of additions/removals + line number so the
+        // user knows what they're confirming without dragging editor
+        // settings into a plain System.Windows MessageBox-style dialog.
         var repo = new FakeRepositoryService(_repoRoot)
         {
             LeftText = "alpha\nbeta\n",
@@ -366,10 +368,14 @@ public class MainViewModelContextMenuTests : IDisposable
         }, repo, git);
 
         seen.Should().NotBeNull();
-        seen!.Message.Should().Contain("- beta", "deleted line should appear in preview with '-' marker");
-        seen.Message.Should().Contain("+ gamma", "inserted line should appear in preview with '+' marker");
-        seen.Message.Should().NotContain("Preview:\nalpha",
-            "leading context line should be filtered out of preview");
+        seen!.Message.Should().Contain("1 addition", "the inserted 'gamma' line should be counted");
+        seen.Message.Should().Contain("1 removal", "the deleted 'beta' line should be counted");
+        seen.Message.Should().Contain("at line 2",
+            "the prompt should pin the change to its line number in the working tree");
+        seen.Message.Should().NotContain("Preview:",
+            "the old line-by-line preview has been removed");
+        seen.Message.Should().NotContain("alpha",
+            "context lines should not leak into the summary");
     }
 
     [Fact]
