@@ -16,7 +16,7 @@ namespace DiffViewer;
 /// <see cref="CompositionRoot.BuildContextAsync"/> and registered with
 /// the per-VM <see cref="Utility.ContextScope"/>.</para>
 /// </summary>
-internal sealed record AppServices(
+public sealed record AppServices(
     ISettingsService SettingsService,
     IDiffService DiffService,
     IExternalAppLauncher ExternalAppLauncher,

@@ -2,14 +2,13 @@ using System;
 using System.Threading;
 using System.Windows;
 using DiffViewer.Services;
-using DiffViewer.Utility;
-using DiffViewer.ViewModels;
 
 namespace DiffViewer;
 
 public partial class App : Application
 {
     private CancellationTokenSource? _shutdownCts;
+    private MainWindowCoordinator? _coordinator;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -17,53 +16,36 @@ public partial class App : Application
 
         _shutdownCts = new CancellationTokenSource();
 
-        // Construct App-level singletons that survive in-place context
-        // switches. Per-context resources (RepositoryService etc.) are
-        // built inside CompositionRoot.BuildContextAsync and registered
-        // with the per-VM ContextScope.
+        // App-level singletons that survive in-place context switches.
+        // Per-context resources (RepositoryService, watcher, MainViewModel,
+        // etc.) are owned by the per-context ContextScope built inside
+        // MainWindowCoordinator → CompositionRoot.
         var settingsService = new SettingsService();
         var diffService = new DiffService();
         var externalAppLauncher = new ExternalAppLauncher(settingsService);
         IRecentContextsService recents = new NullRecentContextsService();
         var services = new AppServices(settingsService, diffService, externalAppLauncher, recents);
 
-        var parseResult = CompositionRoot.BuildArgs(e.Args);
-        if (!parseResult.IsSuccess)
-        {
-            MessageBox.Show(
-                parseResult.Error?.Message ?? "DiffViewer failed to start.",
-                "DiffViewer",
-                MessageBoxButton.OK,
-                MessageBoxImage.Error);
-            Shutdown(1);
-            return;
-        }
+        _coordinator = new MainWindowCoordinator(
+            services,
+            new MessageBoxDialogService(),
+            _shutdownCts.Token);
 
-        var scope = new ContextScope(_shutdownCts.Token);
-        MainViewModel vm;
-        try
-        {
-            vm = await CompositionRoot.BuildContextAsync(
-                parseResult.Parsed!, services, scope, _shutdownCts.Token);
-        }
-        catch (Exception ex)
-        {
-            // Tear down any partially-constructed per-context graph.
-            await scope.DisposeAsync();
-            MessageBox.Show(
-                ex is ContextBuildException ? ex.Message : $"DiffViewer failed to start: {ex.Message}",
-                "DiffViewer",
-                MessageBoxButton.OK,
-                MessageBoxImage.Error);
-            Shutdown(1);
-            return;
-        }
-
-        var window = new MainWindow { DataContext = vm };
+        var window = new MainWindow();
+        _coordinator.CurrentChanged += (_, _) => window.DataContext = _coordinator.Current;
         window.Closed += async (_, _) =>
         {
-            await vm.DisposeAsync();
+            if (_coordinator is not null) await _coordinator.DisposeCurrentAsync();
         };
+
+        var ok = await _coordinator.InitialLaunchAsync(e.Args, _shutdownCts.Token);
+        if (!ok)
+        {
+            // Coordinator already showed the error dialog and called
+            // Shutdown(1); just bail out before Show().
+            return;
+        }
+
         window.Show();
     }
 
