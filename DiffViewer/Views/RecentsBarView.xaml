@@ -31,7 +31,8 @@
             <ComboBox.ItemTemplate>
                 <DataTemplate DataType="{x:Type vm:RecentContextItem}">
                     <StackPanel Orientation="Vertical"
-                                ToolTip="{Binding Tooltip}">
+                                ToolTip="{Binding Tooltip}"
+                                AutomationProperties.Name="{Binding AccessibilityName}">
                         <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
                         <TextBlock Text="{Binding Subtitle}"
                                    FontSize="10"

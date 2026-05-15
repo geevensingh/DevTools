@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using DiffViewer.Models;
 using DiffViewer.Services;
+using DiffViewer.Utility;
 
 namespace DiffViewer.ViewModels;
 
@@ -194,12 +195,12 @@ public sealed class RecentContextItem : IEquatable<RecentContextItem>
         get
         {
             var name = SafeBaseName(Source.Identity.CanonicalRepoPath);
-            return $"{name} · {LabelFor(Source.LeftDisplay)} → {LabelFor(Source.RightDisplay)}";
+            return $"{name} · {ShortLabelFor(Source.LeftDisplay)} → {ShortLabelFor(Source.RightDisplay)}";
         }
     }
 
-    /// <summary>Secondary line. v1: full repo path; relative time deferred to Phase 8.</summary>
-    public string Subtitle => Source.Identity.CanonicalRepoPath;
+    /// <summary>Secondary line: relative-time label (e.g. <c>"2h ago"</c>).</summary>
+    public string Subtitle => RelativeTimeFormatter.Format(Source.LastUsedUtc);
 
     /// <summary>Tooltip with the full repo path and full ref strings.</summary>
     public string Tooltip
@@ -213,12 +214,30 @@ public sealed class RecentContextItem : IEquatable<RecentContextItem>
         }
     }
 
+    /// <summary>
+    /// Accessibility name read by screen readers. Combines the title with
+    /// the relative time so the user hears both pieces of context.
+    /// </summary>
+    public string AccessibilityName => $"{Title}, {Subtitle}";
+
+    private const int MaxRefLabelChars = 24;
+
     private static string LabelFor(DiffSide side) => side switch
     {
         DiffSide.WorkingTree => "<working-tree>",
         DiffSide.CommitIsh c => c.Reference,
         _ => side.ToString() ?? string.Empty,
     };
+
+    private static string ShortLabelFor(DiffSide side)
+    {
+        return side switch
+        {
+            DiffSide.WorkingTree => "WT",
+            DiffSide.CommitIsh c => StringTruncate.MidTruncate(c.Reference, MaxRefLabelChars),
+            _ => side.ToString() ?? string.Empty,
+        };
+    }
 
     private static string SafeBaseName(string repoPath)
     {
