@@ -264,6 +264,139 @@ public class MainViewModelKeyboardShortcutTests
     }
 
     [Fact]
+    public async Task RefreshChangeList_DoesNotAutoJumpToFirstHunk_WhenSelectedFileUnchanged()
+    {
+        // Regression guard: a refresh (RepositoryWatcher fire, F5, or
+        // post-write-op reload) replaces every FileEntryViewModel even when
+        // nothing changed on disk, which fires SelectedEntry PropertyChanged
+        // for the currently-loaded file. The handler used to unconditionally
+        // call LoadAndScrollToFirstHunkAsync, yanking the user's scroll back
+        // to the top of the diff on every refresh. Verify the same-file
+        // path now suppresses the auto-jump.
+        var repo = new FakeRepoForKeyboard();
+        repo.SetChanges(ModifiedChange("a.cs"));
+        repo.LeftText  = "alpha\nbeta\ngamma\n";
+        repo.RightText = "ALPHA\nbeta\ngamma\n";
+
+        await RunOnUiSyncContextAsync(async vm =>
+        {
+            vm.RefreshChangeList();
+            var entry = vm.FileList.FlatEntries[0];
+            vm.FileList.SelectedEntry = entry;
+            await vm.DiffPane.LastLoadTask;
+
+            vm.DiffPane.CurrentHunkIndex.Should().Be(0,
+                "initial selection auto-scrolls to the first hunk");
+
+            int navCount = 0;
+            vm.DiffPane.HunkNavigationRequested += (_, _) => navCount++;
+
+            // Simulate a refresh: rebuilds FileEntryViewModel instances and
+            // re-assigns SelectedEntry to a new (but path-equivalent) row.
+            vm.RefreshChangeList();
+            await vm.DiffPane.LastLoadTask;
+
+            navCount.Should().Be(0,
+                "refresh of an unchanged-path file must NOT raise a HunkNavigationRequested " +
+                "(which is what physically scrolls the editor to the first diff)");
+            vm.DiffPane.CurrentHunkIndex.Should().Be(0,
+                "the user's hunk index from before the refresh should be preserved when the " +
+                "diff is structurally unchanged - so subsequent F7/F8 navigation continues " +
+                "from where they were, not from hunk 0");
+        }, repo);
+    }
+
+    [Fact]
+    public async Task RefreshChangeList_PreservesHunkIndex_SoNextF8ContinuesFromCurrentHunk()
+    {
+        // Regression guard for the user-reported bug: "if i was on block 5
+        // of 12, and there is a refresh, and then i press f8, i end up back
+        // on block 1 of 12 instead of 6 of 12 where i'm supposed to be."
+        // The fix preserves CurrentHunkIndex across a same-file refresh
+        // when the diff is structurally unchanged, so the next F8
+        // (TryNavigateNextHunkInFile) advances to index+1 from where the
+        // user actually was.
+        var repo = new FakeRepoForKeyboard
+        {
+            // Two-hunk fixture: edits at lines 1 and 14 separated by enough
+            // context to defeat hunk merging (matches the pattern used by
+            // the F7/F8 cross-file tests in this file).
+            LeftText  = string.Join("\n", new[]
+            {
+                "first-old", "b","c","d","e","f","g","h","i","j","k","l","m",
+                "last-line", "n", "o",
+            }) + "\n",
+            RightText = string.Join("\n", new[]
+            {
+                "first-new", "b","c","d","e","f","g","h","i","j","k","l","m",
+                "last-line+", "n", "o",
+            }) + "\n",
+        };
+        repo.SetChanges(ModifiedChange("a.cs"));
+
+        await RunOnUiSyncContextAsync(async vm =>
+        {
+            vm.RefreshChangeList();
+            var entry = vm.FileList.FlatEntries[0];
+            vm.FileList.SelectedEntry = entry;
+            await vm.DiffPane.LastLoadTask;
+
+            vm.DiffPane.CurrentHunks.Should().HaveCount(2,
+                "fixture should produce a 2-hunk diff");
+
+            // User navigates to hunk #2 of 2 (the analog of "hunk 5 of 12").
+            vm.NavigateNextChangeCommand.Execute(null);
+            vm.DiffPane.CurrentHunkIndex.Should().Be(1,
+                "F8 from hunk 0 advances to hunk 1");
+
+            // Refresh fires (e.g. RepositoryWatcher debounced event).
+            vm.RefreshChangeList();
+            await vm.DiffPane.LastLoadTask;
+
+            // F8 from the preserved hunk 1 has nowhere to go inside the file
+            // (only 2 hunks), so TryNavigateNextHunkInFile returns false.
+            // Before the fix, the refresh reset CurrentHunkIndex to -1, so
+            // F8 would have stepped to hunk 0 instead of falling through.
+            vm.DiffPane.TryNavigateNextHunkInFile().Should().BeFalse(
+                "after refresh the caret should still be at the last hunk - if the index " +
+                "got reset, this would advance to hunk 0 instead of returning false");
+            vm.DiffPane.CurrentHunkIndex.Should().Be(1,
+                "the preserved hunk index must survive the refresh unchanged");
+        }, repo);
+    }
+
+    [Fact]
+    public async Task SelectingDifferentFile_StillAutoScrollsToFirstHunk()
+    {
+        // Guard the inverse of the regression above: switching to a
+        // genuinely different file must still auto-scroll to its first hunk.
+        var repo = new FakeRepoForKeyboard();
+        repo.SetChanges(ModifiedChange("a.cs"), ModifiedChange("b.cs"));
+        repo.LeftText  = "x\ny\n";
+        repo.RightText = "X\ny\n";
+
+        await RunOnUiSyncContextAsync(async vm =>
+        {
+            vm.RefreshChangeList();
+            var e0 = vm.FileList.FlatEntries[0];
+            var e1 = vm.FileList.FlatEntries[1];
+
+            vm.FileList.SelectedEntry = e0;
+            await vm.DiffPane.LastLoadTask;
+
+            int navCount = 0;
+            vm.DiffPane.HunkNavigationRequested += (_, _) => navCount++;
+
+            vm.FileList.SelectedEntry = e1;
+            await vm.DiffPane.LastLoadTask;
+
+            navCount.Should().Be(1,
+                "selecting a different file should still raise the auto-jump-to-first-hunk navigation");
+            vm.DiffPane.CurrentHunkIndex.Should().Be(0);
+        }, repo);
+    }
+
+    [Fact]
     public async Task NavigateNextChange_AdvancesAcrossFileBoundary_AndCyclesAtEnd()
     {
         var repo = new FakeRepoForKeyboard();

@@ -495,21 +495,68 @@ public sealed partial class DiffPaneViewModel : ObservableObject, IDisposable
             return;
         }
 
-        LeftDocument.Text = left;
-        RightDocument.Text = right;
-        InlineDocument.Text = inline.Text;
+        // Only mutate document text when it actually changed. Setting
+        // TextDocument.Text to its current value still calls Replace under
+        // the hood, which raises TextChanged and rebuilds visual lines -
+        // perturbing editor state for no benefit on a refresh that produces
+        // identical content (e.g. RepositoryWatcher fires but nothing in
+        // this file actually changed). Skipping the no-op assignment keeps
+        // the user's scroll position stable on same-content reloads.
+        if (!string.Equals(LeftDocument.Text, left, StringComparison.Ordinal))
+            LeftDocument.Text = left;
+        if (!string.Equals(RightDocument.Text, right, StringComparison.Ordinal))
+            RightDocument.Text = right;
+        if (!string.Equals(InlineDocument.Text, inline.Text, StringComparison.Ordinal))
+            InlineDocument.Text = inline.Text;
         PlaceholderMessage = placeholder;
         HighlightMap = highlightMap;
         InlineLineHighlights = inline.LineHighlights;
         InlineLineToSourceLines = inline.LineToSourceLines;
+
+        // Preserve CurrentHunkIndex across reloads when the new hunks have
+        // the same shape (count + per-hunk start lines / line counts) as
+        // the old ones. Without this, a same-file refresh resets the index
+        // to -1 even when the diff is structurally unchanged - so the next
+        // F7/F8 press would start from hunk 0 instead of continuing from
+        // where the user actually was. Reference equality on the hunk list
+        // would always say "different" because we built a fresh list, and
+        // record equality on DiffHunk would compare the per-hunk Lines
+        // collection by reference (also always different); checking the
+        // tuple (OldStartLine, OldLineCount, NewStartLine, NewLineCount)
+        // captures the navigationally-relevant identity of each hunk.
+        bool preserveHunkIndex =
+            CurrentHunkIndex >= 0 &&
+            CurrentHunkIndex < hunks.Count &&
+            HunksHaveSameShape(_currentHunks, hunks);
         _currentHunks = hunks;
-        CurrentHunkIndex = -1;
+        if (!preserveHunkIndex)
+        {
+            CurrentHunkIndex = -1;
+        }
         // Reset the viewport indicator — the new document will compute its
         // own visible-range on the next layout pass.
         Viewport = null;
         IsWhitespaceOnlyBannerVisible = whitespaceOnly;
         OnPropertyChanged(nameof(CurrentHunks));
         HighlightMapChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private static bool HunksHaveSameShape(IReadOnlyList<DiffHunk> a, IReadOnlyList<DiffHunk> b)
+    {
+        if (a.Count != b.Count) return false;
+        for (int i = 0; i < a.Count; i++)
+        {
+            var x = a[i];
+            var y = b[i];
+            if (x.OldStartLine != y.OldStartLine ||
+                x.OldLineCount != y.OldLineCount ||
+                x.NewStartLine != y.NewStartLine ||
+                x.NewLineCount != y.NewLineCount)
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
     partial void OnPlaceholderMessageChanged(string? value)
