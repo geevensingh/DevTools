@@ -87,8 +87,19 @@ public class RepositoryWatcherTests : IDisposable
     [Fact]
     public void Start_IgnoredPath_DoesNotFire()
     {
-        // Mark every path under "ignored/" as ignored.
-        Func<string, bool> ignore = rel => rel.StartsWith("ignored/", StringComparison.Ordinal);
+        // Mark "ignored" itself AND every path under it as ignored.
+        // Matching both is required because writing a file inside a
+        // directory updates the parent directory's LastWrite timestamp on
+        // Windows, which the FSW reports as a separate event on "ignored"
+        // (no trailing slash). Production callers route through
+        // LibGit2Sharp.Ignore.IsPathIgnored, which treats `ignored/` as a
+        // directory-ignore that matches the directory itself too - so a
+        // predicate that only matches children was an over-narrow stand-in
+        // and let the parent-directory event leak through, causing flakes
+        // when Windows happened to deliver that event inside WaitForFire.
+        Func<string, bool> ignore = rel =>
+            string.Equals(rel, "ignored", StringComparison.Ordinal) ||
+            rel.StartsWith("ignored/", StringComparison.Ordinal);
         Directory.CreateDirectory(Path.Combine(_workingDir, "ignored"));
 
         using var watcher = new RepositoryWatcher(_workingDir, _gitDir, ignore, FastDebounce);
