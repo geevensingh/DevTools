@@ -8,15 +8,12 @@ namespace DiffViewer.Services;
 
 /// <summary>
 /// In-memory MRU store of recent launch contexts. App-level singleton —
-/// survives in-place context switches. The real implementation persists to
-/// <c>%APPDATA%\DiffViewer\recents.json</c> via a small <c>RecentsStore</c>
-/// helper using <see cref="System.IO.FileShare.None"/> for cross-process
-/// coordination.
-///
-/// <para>Phase 1 ships with a <c>NullRecentContextsService</c> stub —
-/// returns empty <see cref="Current"/>, no-ops <see cref="RecordLaunchAsync"/>
-/// — so the rest of the composition graph can be wired without persistence
-/// in place. The real service lands in Phase 5.</para>
+/// survives in-place context switches. The production implementation
+/// (<see cref="RecentContextsService"/>) persists to
+/// <c>%APPDATA%\DiffViewer\recents.json</c> via <see cref="RecentsStore"/>
+/// using <see cref="System.IO.FileShare.None"/> for cross-process
+/// coordination. <see cref="NullRecentContextsService"/> is a no-op
+/// double for tests and (historically) the Phase-1 scaffold.
 /// </summary>
 public interface IRecentContextsService
 {

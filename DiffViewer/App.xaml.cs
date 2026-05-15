@@ -23,7 +23,11 @@ public partial class App : Application
         var settingsService = new SettingsService();
         var diffService = new DiffService();
         var externalAppLauncher = new ExternalAppLauncher(settingsService);
-        IRecentContextsService recents = new NullRecentContextsService();
+        var recents = new RecentContextsService();
+        // Hydrate from disk before the dropdown is wired up. Failure to
+        // load is already handled inside RecentsStore.LoadAsync (returns
+        // Empty on missing/malformed file) so this only awaits the IO.
+        await recents.LoadAsync(_shutdownCts.Token);
         var services = new AppServices(settingsService, diffService, externalAppLauncher, recents);
 
         _coordinator = new MainWindowCoordinator(
