@@ -7,23 +7,27 @@ using DiffViewer.Models;
 namespace DiffViewer.Services;
 
 /// <summary>
-/// Phase-1 stub. Returns empty <see cref="Current"/>, no-ops every
-/// recording call, never raises <see cref="Changed"/>. Replaced in Phase 5
-/// with <c>RecentContextsService</c> (real persistence + MRU semantics).
+/// Phase 1 stub: an <see cref="IRecentContextsService"/> that has no
+/// state and no IO. <see cref="Current"/> is always empty;
+/// <see cref="RecordLaunchAsync"/> and <see cref="RemoveAsync"/> are
+/// no-ops. Used during the architectural-scaffolding phases so the
+/// coordinator graph can be wired without dragging in persistence yet.
 /// </summary>
-internal sealed class NullRecentContextsService : IRecentContextsService
+public sealed class NullRecentContextsService : IRecentContextsService
 {
     public IReadOnlyList<RecentLaunchContext> Current { get; } = Array.Empty<RecentLaunchContext>();
 
-    public event EventHandler? Changed
-    {
-        add { /* no-op: stub never fires Changed */ }
-        remove { /* no-op */ }
-    }
+#pragma warning disable CS0067 // Event never used — by design (stub)
+    public event EventHandler? Changed;
+#pragma warning restore CS0067
 
-    public Task RecordLaunchAsync(string repoPath, DiffSide left, DiffSide right, CancellationToken ct = default)
-        => Task.CompletedTask;
+    public Task RecordLaunchAsync(
+        ContextIdentity identity,
+        DiffSide leftDisplay,
+        DiffSide rightDisplay,
+        CancellationToken ct = default) => Task.CompletedTask;
 
-    public Task RemoveAsync(string repoPath, DiffSide left, DiffSide right, CancellationToken ct = default)
-        => Task.CompletedTask;
+    public Task RemoveAsync(
+        ContextIdentity identity,
+        CancellationToken ct = default) => Task.CompletedTask;
 }

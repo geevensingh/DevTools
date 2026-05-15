@@ -27,15 +27,18 @@ public interface IRecentContextsService
     event EventHandler? Changed;
 
     /// <summary>
-    /// Record a successful launch into the MRU. Dedups by canonical
-    /// <c>(repoPath, left, right)</c> identity, bumps the entry's
+    /// Record a successful launch into the MRU. Dedups by
+    /// <paramref name="identity"/>, bumps the entry's
     /// <see cref="RecentLaunchContext.LastUsedUtc"/> and moves it to the
-    /// front, caps total entries at 10.
+    /// front, caps total entries at 10. The <paramref name="leftDisplay"/>
+    /// / <paramref name="rightDisplay"/> arguments are the user's raw
+    /// input and are preserved verbatim for the dropdown render — they
+    /// may differ in casing or alias from the identity's sides.
     /// </summary>
     Task RecordLaunchAsync(
-        string repoPath,
-        DiffSide left,
-        DiffSide right,
+        ContextIdentity identity,
+        DiffSide leftDisplay,
+        DiffSide rightDisplay,
         CancellationToken ct = default);
 
     /// <summary>
@@ -43,8 +46,6 @@ public interface IRecentContextsService
     /// a recent's repo no longer resolves.
     /// </summary>
     Task RemoveAsync(
-        string repoPath,
-        DiffSide left,
-        DiffSide right,
+        ContextIdentity identity,
         CancellationToken ct = default);
 }

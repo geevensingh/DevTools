@@ -190,8 +190,8 @@ public sealed class MainWindowCoordinator : ObservableObject
             {
                 try
                 {
-                    await _services.RecentContextsService.RemoveAsync(
-                        parsed.RepoPath, parsed.Left, parsed.Right, ct).ConfigureAwait(true);
+                    var identity = ContextIdentityFactory.Create(parsed.RepoPath, parsed.Left, parsed.Right);
+                    await _services.RecentContextsService.RemoveAsync(identity, ct).ConfigureAwait(true);
                 }
                 catch
                 {
@@ -248,8 +248,9 @@ public sealed class MainWindowCoordinator : ObservableObject
     {
         try
         {
+            var identity = ContextIdentityFactory.Create(parsed.RepoPath, parsed.Left, parsed.Right);
             await _services.RecentContextsService.RecordLaunchAsync(
-                parsed.RepoPath, parsed.Left, parsed.Right, ct).ConfigureAwait(true);
+                identity, parsed.Left, parsed.Right, ct).ConfigureAwait(true);
         }
         catch
         {

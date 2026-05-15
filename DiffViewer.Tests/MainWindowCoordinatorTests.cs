@@ -181,14 +181,14 @@ public class MainWindowCoordinatorTests
         public System.Collections.Generic.List<string> RecordedRepoPaths { get; } = new();
         public System.Collections.Generic.List<string> RemovedRepoPaths { get; } = new();
 
-        public Task RecordLaunchAsync(string repoPath, DiffSide left, DiffSide right, System.Threading.CancellationToken ct = default)
+        public Task RecordLaunchAsync(ContextIdentity identity, DiffSide leftDisplay, DiffSide rightDisplay, System.Threading.CancellationToken ct = default)
         {
-            RecordedRepoPaths.Add(repoPath);
+            RecordedRepoPaths.Add(identity.CanonicalRepoPath);
             return Task.CompletedTask;
         }
-        public Task RemoveAsync(string repoPath, DiffSide left, DiffSide right, System.Threading.CancellationToken ct = default)
+        public Task RemoveAsync(ContextIdentity identity, System.Threading.CancellationToken ct = default)
         {
-            RemovedRepoPaths.Add(repoPath);
+            RemovedRepoPaths.Add(identity.CanonicalRepoPath);
             return Task.CompletedTask;
         }
     }

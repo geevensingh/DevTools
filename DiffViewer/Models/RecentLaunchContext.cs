@@ -3,17 +3,20 @@ using System;
 namespace DiffViewer.Models;
 
 /// <summary>
-/// One entry in the recent-launch-contexts MRU. Carries the user's raw
-/// input for both <see cref="DiffSide"/>s (commit-ish reference strings
-/// re-resolve as the repo evolves; working-tree round-trips trivially) so
-/// the dropdown renders exactly what the user typed.
+/// One row in the recent-launch-contexts MRU. Combines the canonical
+/// dedup <see cref="Identity"/> with the user's raw input
+/// (<see cref="LeftDisplay"/> / <see cref="RightDisplay"/>) so the UI can
+/// render exactly what was typed even though we dedup against the
+/// canonical form.
 ///
-/// <para>Phase 1 shape — Phase 3 introduces <c>ContextIdentity</c> as a
-/// canonical-form value type and dedup key, at which point this record
-/// will gain an <c>Identity</c> alongside the display sides.</para>
+/// <para><b>Equality</b> is record-equality (all four members), but the
+/// recents service dedups <em>by Identity only</em>: re-launching with a
+/// differently-cased path or different ref alias bumps the existing
+/// entry rather than creating a new one. See
+/// <c>RecentContextsService</c> for that policy.</para>
 /// </summary>
 public sealed record RecentLaunchContext(
-    string RepoPath,
-    DiffSide Left,
-    DiffSide Right,
+    ContextIdentity Identity,
+    DiffSide LeftDisplay,
+    DiffSide RightDisplay,
     DateTimeOffset LastUsedUtc);
