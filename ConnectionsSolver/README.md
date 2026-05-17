@@ -126,6 +126,9 @@ words / multi-word entries (comma-separated if any contain spaces).
 | `--fourth N` | 3 | "Possible 4th word" suggestions per triplet |
 | `--rerank-alpha F` | 0.5 | Weight of leftover-partition score in candidate reranking |
 | `--rerank-top N` | 50 | How many top candidates participate in leftover reranking |
+| `--label-rerank-beta F` | 1.5 | Phase 6 centroid-to-label weight; 0 (or `--no-label-rerank`) disables |
+| `--label-rerank-top N` | 200 | How many top candidates participate in label-overlap reranking |
+| `--no-label-rerank` | | Shortcut for `--label-rerank-beta 0` |
 | `-h`, `--help` | | Show usage |
 
 ## How it works (high level)
@@ -138,29 +141,39 @@ words / multi-word entries (comma-separated if any contain spaces).
 4. **Leftover-partition reranking.** Top-N 4-set candidates are rescored by
    how well the *remaining* 12 words still partition into 3 clean groups.
    Candidates that "steal" words from another plausible group get demoted.
-5. **Anchor selection.** Top disjoint 4-sets become `A1..A4`; size-3
+5. **Label-overlap reranking.** Same top-N candidates get a second pass: each
+   candidate's centroid is compared against the top-5000 vocabulary words,
+   and the mean of the top-3 sims becomes a "single dominant theme" signal
+   added (with weight `--label-rerank-beta`) on top of the previous score.
+   Promotes groups like `{grinder, hero, hoagie, sub}` (weak internal cosine
+   but a strong "sandwich" centroid) over generic-but-tight neighbors.
+6. **Anchor selection.** Top disjoint 4-sets become `A1..A4`; size-3
    anchors become `B1..B4`.
-6. **Specialized passes.**
+7. **Specialized passes.**
    - *Dense clusters* (`X`) — 5+ words that all sit in each other's top-K
      neighborhood; surfaced as a "pick carefully" warning.
    - *Wordplay* (`W`) — suffix/prefix splits where the affix is itself a
      real English word and the 4 affixes cluster tightly in GloVe.
    - *Phrase patterns* (`P`) — 4 entries that share a common bigram
      modifier on the same side (needs `count_2w.txt`).
-7. **Labels.** For each shown group, the top-K vocab words nearest the
+8. **Labels.** For each shown group, the top-K vocab words nearest the
    centroid are returned, with input words and basic morphological
    variants excluded.
 
 ## Roadmap
 
-* Phase 6 (next planned): **label-overlap reranking** — score candidates by
-  how strongly a single label word matches the group centroid, not just by
-  internal pairwise cosine. Targets polysemy-driven misses like
-  `{grinder, hero, hoagie, sub}` (weak internal cosine but a strong
-  "sandwich" centroid).
+* Phase 6 (done): label-overlap reranking. Adds a centroid-to-label-vocab
+  signal on top of the Phase 2 combined score, weighted by `--label-rerank-beta`
+  (default 1.5). Composes with — not replaces — Phase 2. On the 5 test
+  puzzles, this lifted green/yellow exact-match rate from 2/10 to 3/10
+  (puzzle 4 green: 1960s counterculture went from 2/4 → 4/4). Doesn't
+  rescue cases where the correct 4-set isn't even in the top-200
+  candidates by combined score — those need sense disambiguation or
+  multi-sense embeddings.
 * Phase-5 bigram data: swap Norvig (286K bigrams) for a larger source
   (Google Books Ngrams, COCA, Wikipedia) or a phrase dictionary
   (WordNet multi-word entries, Wiktionary compound terms) so the `[P]`
   section actually fires on real puzzles.
-* Swap in `fastText` or ConceptNet Numberbatch via the existing
-  `IWordEmbeddings` interface and compare.
+* Sense-aware embeddings: try sense2vec or ConceptNet Numberbatch via the
+  existing `IWordEmbeddings` interface to break polysemy ties (HERO/SUB
+  as sandwich, FIDDLE as verb, DECK/PUNCH/SLUG/SOCK as slang for "hit").

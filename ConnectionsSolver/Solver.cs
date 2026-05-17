@@ -76,7 +76,9 @@ public static class Solver
         int labelCount,
         int fourthCandidates,
         double leftoverAlpha,
-        int rerankTopN)
+        int rerankTopN,
+        double labelRerankBeta,
+        int labelRerankTopN)
     {
         int activeN = activeKnownIndices.Length;
         var activeWords = activeKnownIndices.Select(i => knownWords[i]).ToArray();
@@ -112,6 +114,18 @@ public static class Solver
         var reranked4 = PartitionReranker.Rerank(
             allScored4, activeN, activeSim, activeKnownIndices, forbiddenSetKeys,
             leftoverAlpha, rerankTopN);
+
+        // Phase 6: label-overlap reranking. Adds a centroid-to-label-vocab signal on top
+        // of the Phase 2 combined score. Promotes groups with a single dominant theme word
+        // (e.g. {grinder, hero, hoagie, sub} → "sandwich") over groups that merely have
+        // tight pairwise cosine but no clear unifying label.
+        if (labelRerankBeta > 0 && labelRerankTopN > 0)
+        {
+            reranked4 = LabelOverlapReranker.Rerank(
+                reranked4, activeUnits, labelCtx, originalWords,
+                labelRerankBeta, labelRerankTopN);
+        }
+
         var ranked4Tuples = reranked4.Select(r => (r.Indices, r.AvgSim)).ToList();
         var leftoverByKey = new Dictionary<string, double>();
         foreach (var r in reranked4)

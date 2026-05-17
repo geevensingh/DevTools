@@ -15,6 +15,8 @@ int labelCount = 3;
 int fourthCandidates = 3;
 double leftoverAlpha = 0.5;
 int rerankTopN = 50;
+double labelRerankBeta = 1.5;
+int labelRerankTopN = 200;
 string? inputPath = null;
 
 for (int i = 0; i < args.Length; i++)
@@ -56,6 +58,15 @@ for (int i = 0; i < args.Length; i++)
             break;
         case "--rerank-top":
             rerankTopN = int.Parse(args[++i]);
+            break;
+        case "--label-rerank-beta":
+            labelRerankBeta = double.Parse(args[++i], CultureInfo.InvariantCulture);
+            break;
+        case "--label-rerank-top":
+            labelRerankTopN = int.Parse(args[++i]);
+            break;
+        case "--no-label-rerank":
+            labelRerankBeta = 0;
             break;
         case "--help":
         case "-h":
@@ -232,7 +243,9 @@ InteractiveSession.Run(
         LabelCount: labelCount,
         FourthCandidates: fourthCandidates,
         LeftoverAlpha: leftoverAlpha,
-        RerankTopN: rerankTopN));
+        RerankTopN: rerankTopN,
+        LabelRerankBeta: labelRerankBeta,
+        LabelRerankTopN: labelRerankTopN));
 return 0;
 
 static void PrintUsage()
@@ -268,5 +281,10 @@ static void PrintUsage()
     Console.WriteLine("      --label-vocab N       Label search vocabulary size (default 50000)");
     Console.WriteLine("      --labels N            Labels per group (default 3)");
     Console.WriteLine("      --fourth N            Possible-4th-word suggestions per triplet (default 3)");
+    Console.WriteLine("      --rerank-alpha F      Phase 2 leftover-partition weight (default 0.5)");
+    Console.WriteLine("      --rerank-top N        Phase 2 top-N candidates to rerank (default 50)");
+    Console.WriteLine("      --label-rerank-beta F Phase 6 centroid-to-label weight (default 1.5, 0 disables)");
+    Console.WriteLine("      --label-rerank-top N  Phase 6 top-N candidates to rerank (default 200)");
+    Console.WriteLine("      --no-label-rerank     Shortcut for --label-rerank-beta 0");
     Console.WriteLine("  -h, --help                Show this help");
 }

@@ -60,7 +60,7 @@ public static class GroupLabeler
         return results;
     }
 
-    private static HashSet<string> BuildExcludeSet(IEnumerable<string> input)
+    internal static HashSet<string> BuildExcludeSet(IEnumerable<string> input)
     {
         var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var raw in input)

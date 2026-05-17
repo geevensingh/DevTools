@@ -9,7 +9,9 @@ public static class InteractiveSession
         int LabelCount,
         int FourthCandidates,
         double LeftoverAlpha,
-        int RerankTopN);
+        int RerankTopN,
+        double LabelRerankBeta,
+        int LabelRerankTopN);
 
     public static void Run(
         string[] originalWords,
@@ -80,7 +82,8 @@ public static class InteractiveSession
                 forbidden, nearMissSets,
                 opt.AnchorCount, opt.VariantsPerAnchor, opt.TopPartitions,
                 opt.LabelCount, opt.FourthCandidates,
-                opt.LeftoverAlpha, opt.RerankTopN);
+                opt.LeftoverAlpha, opt.RerankTopN,
+                opt.LabelRerankBeta, opt.LabelRerankTopN);
 
             ResultPrinter.PrintAnalysis(result);
 
