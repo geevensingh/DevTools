@@ -1,0 +1,41 @@
+# Sample puzzle - 16 words, one per line. Lines starting with '#' are ignored.
+# Categories used to design this sample:
+#   Fruits:       apple, banana, cherry, grape
+#   Colors:       red, blue, green, yellow
+#   Trees:        oak, maple, pine, cedar
+#   Instruments:  piano, violin, guitar, drums
+
+marshmallow
+labubu
+radio
+chowder
+beanie baby
+stove
+pitter-patter
+etch a sketch
+teddy bear
+desiccant packet
+doodlebug
+sweetheart
+hacky sack
+control panel
+softie
+eye pillow
+
+bean
+crop
+grinder
+donut
+grounds
+adjust
+roll
+filters
+sub
+cause
+belly
+basis
+hero
+argument
+markup
+hoagie
+

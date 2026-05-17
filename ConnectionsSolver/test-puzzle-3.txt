@@ -1,0 +1,21 @@
+# Puzzle 3
+# green - PRETEXT: ARGUMENT, BASIS, CAUSE, GROUNDS
+# yellow - LONG SANDWICH: GRINDER, HERO, HOAGIE, SUB
+# purple - JELLY ___: BEAN, BELLY, DONUT, ROLL
+# blue - SMARTPHONE PHOTO EDITING OPTIONS: ADJUST, CROP, FILTERS, MARKUP
+argument
+basis
+cause
+grounds
+grinder
+hero
+hoagie
+sub
+bean
+belly
+donut
+roll
+adjust
+crop
+filters
+markup

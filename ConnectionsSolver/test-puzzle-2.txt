@@ -1,0 +1,21 @@
+# Puzzle 2
+# yellow - NAVIGATE THROUGH, AS A RIVER: CROSS, FORD, TRAVERSE, WADE
+# green - MULTI-TIME NBA MVPS: BIRD, CURRY, JAMES, JORDAN
+# blue - NON-PALINDROMIC WORDS IN A FAMOUS PALINDROME: ABLE, ELBA, SAW, WAS
+# purple - HOMOPHONES OF KINDS OF DOGS, FAMILIARLY: CIAO, PALM, PEEK, PITT
+cross
+ford
+traverse
+wade
+bird
+curry
+james
+jordan
+able
+elba
+saw
+was
+ciao
+palm
+peek
+pitt

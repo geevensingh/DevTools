@@ -1,0 +1,21 @@
+# Puzzle 4
+# purple - GESTURES MADE WITH THE INDEX AND MIDDLE FINGERS: AIR QUOTES, BUNNY EARS, FINGERS CROSSED, PEACE
+# yellow - HOME STRUCTURES: GARAGE, HOUSE, PORCH, SHED
+# green - ASSOCIATED WITH 1960S COUNTERCULTURE: ACID, COMMUNE, FREE LOVE, HIPPIE
+# blue - FAMOUS REVOLUTIONS IN HISTORY: FRENCH, GREEN, INDUSTRIAL, SEXUAL
+air quotes
+bunny ears
+fingers crossed
+peace
+garage
+house
+porch
+shed
+acid
+commune
+free love
+hippie
+french
+green
+industrial
+sexual

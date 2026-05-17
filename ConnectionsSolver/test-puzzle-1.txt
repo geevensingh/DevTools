@@ -1,0 +1,21 @@
+# Puzzle 1
+# purple - ENDING IN SYNONYMS FOR "ASAP": BASSOON, BELFAST, NESQUICK, THERMOSTAT
+# green - MESS AROUND (WITH): FIDDLE, MESS, PLAY, TINKER
+# yellow - GLASSWARE: COUPE, FLUTE, STEIN, TUMBLER
+# blue - MUSIC PERFORMANCE DIRECTIONS: ALLEGRO, FORTE, LARGO, PIANO
+bassoon
+belfast
+nesquick
+thermostat
+fiddle
+mess
+play
+tinker
+coupe
+flute
+stein
+tumbler
+allegro
+forte
+largo
+piano

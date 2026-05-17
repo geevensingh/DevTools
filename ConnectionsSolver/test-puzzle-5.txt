@@ -1,0 +1,21 @@
+# Puzzle 5
+# yellow - POTTERY EQUIPMENT: CLAY, GLAZE, KILN, WHEEL
+# blue - WORDS PRONOUNCED DIFFERENT WAYS AS PROPER NOUNS: HERB, NICE, POLISH, READING
+# green - WALLOP: DECK, PUNCH, SLUG, SOCK
+# purple - PICK-UP ___: ARTIST, GAME, STICKS, TRUCK
+clay
+glaze
+kiln
+wheel
+herb
+nice
+polish
+reading
+deck
+punch
+slug
+sock
+artist
+game
+sticks
+truck
