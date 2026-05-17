@@ -49,6 +49,31 @@ public static class ResultPrinter
             PrintPartition(i + 1, r.Partitions[i]);
     }
 
+    /// <summary>
+    /// Renders the results of a "with X, Y[, Z]" completion query. Pinned slots render plain;
+    /// solver-suggested slots render as &lt;word&gt; so the user can see which are completions.
+    /// Each result is given a one-shot C-label (C1..CK) by the caller; it is shown here as
+    /// part of the bracketed prefix.
+    /// </summary>
+    public static void PrintCompletions(IReadOnlyList<CompletionResult> results, string[] pinnedDisplayWords)
+    {
+        Section($"COMPLETIONS FOR pinned: {string.Join(", ", pinnedDisplayWords)}  (top {results.Count}, labeled C1..C{results.Count})");
+        if (results.Count == 0)
+        {
+            Console.WriteLine("  (no completions found - all candidate 4-sets are forbidden, or fewer than 4 active words)");
+            return;
+        }
+        for (int i = 0; i < results.Count; i++)
+        {
+            var r = results[i];
+            var label = $"C{i + 1}";
+            var pinnedSet = new HashSet<int>(r.PinnedKnownIndices);
+            Console.WriteLine();
+            Console.Write($"  [{label,-4}]  ");
+            PrintCandidateBody(r.Group, anchorIndices: pinnedSet);
+        }
+    }
+
     private static void Section(string title)
     {
         Console.WriteLine();

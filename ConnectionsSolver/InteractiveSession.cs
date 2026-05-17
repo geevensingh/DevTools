@@ -93,7 +93,18 @@ public static class InteractiveSession
             foreach (var w in allMissingSet)
                 if (!solvedMissing.Contains(w)) activeMissing.Add(w);
 
-            if (!Prompt(result, wordToKnown, activeMissing, knownWords, solved, solvedMissing, solvedGroups, forbidden, nearMissSets))
+            // Round-scoped derived state for the "with" completion query (active coords).
+            var activeWordsThisRound = active.Select(i => knownWords[i]).ToArray();
+            var activeUnitsThisRound = active.Select(i => unitVectors[i]).ToArray();
+            List<CompletionResult> RunCompletionQuery(int[] pinnedActive) =>
+                CompletionQuery.Run(
+                    pinnedActive, active, activeWordsThisRound, activeUnitsThisRound,
+                    originalWords, labelCtx, forbidden,
+                    topK: 5, opt.LabelCount,
+                    opt.LeftoverAlpha, opt.RerankTopN,
+                    opt.LabelRerankBeta, opt.LabelRerankTopN);
+
+            if (!Prompt(result, wordToKnown, activeMissing, knownWords, solved, solvedMissing, solvedGroups, forbidden, nearMissSets, active, RunCompletionQuery))
                 return;
         }
     }
@@ -107,14 +118,21 @@ public static class InteractiveSession
         HashSet<string> solvedMissing,
         List<int[]> solvedGroups,
         HashSet<string> forbidden,
-        List<int[]> nearMissSets)
+        List<int[]> nearMissSets,
+        int[] active,
+        Func<int[], List<CompletionResult>> runCompletionQuery)
     {
+        // Per-prompt mutable label map: starts with analysis-time labels (A/B/N/X/W/P) and
+        // gets C* entries appended when the user runs `with` queries during this prompt.
+        var labelMap = new Dictionary<string, int[]>(
+            result.LabelToKnownIndices, StringComparer.OrdinalIgnoreCase);
+
         while (true)
         {
             Console.WriteLine();
             Console.WriteLine("What did you try?  <label or 4 words> <yes | no | off-by-one>");
             Console.WriteLine("  e.g.  A1 yes   |   A2v1 no   |   N1s3 yes   |   X1s2 off   |   W1 yes   |   P1 yes   |   piano violin guitar drums off");
-            Console.WriteLine("  ('skip' to recompute without feedback, 'quit' to exit)");
+            Console.WriteLine("  ('with X[, Y[, Z]]' asks what completes a pinned 1-3 word set; 'skip' to recompute, 'quit' to exit)");
             Console.Write("> ");
             var line = Console.ReadLine();
             if (line == null) return false;
@@ -133,10 +151,39 @@ public static class InteractiveSession
                 Console.WriteLine("  Correct:    yes | y | correct | right");
                 Console.WriteLine("  Not group:  no  | n | wrong | incorrect");
                 Console.WriteLine("  One-away:   off | close | near | 1away | oneaway | off-by-one | off by one");
+                Console.WriteLine("Other commands:");
+                Console.WriteLine("  with <1-3 entries>     - shows top 5 completions containing those words");
+                Console.WriteLine("                            (multi-word entries comma-separated)");
+                Console.WriteLine("  skip                   - recompute without recording feedback");
+                Console.WriteLine("  quit                   - exit");
                 continue;
             }
 
-            var fb = Feedback.Parse(line, result.LabelToKnownIndices, result.LabelToOriginalEntries, wordToKnown, activeMissing, out var err);
+            if (line.Equals("with", StringComparison.OrdinalIgnoreCase) ||
+                line.StartsWith("with ", StringComparison.OrdinalIgnoreCase) ||
+                line.StartsWith("with\t", StringComparison.Ordinal))
+            {
+                var args = line.Length > 4 ? line.Substring(4).Trim() : "";
+                var pinned = CompletionQuery.ResolvePinned(args, wordToKnown, active, out var perr);
+                if (pinned == null)
+                {
+                    Console.WriteLine($"  {perr}");
+                    continue;
+                }
+                var completions = runCompletionQuery(pinned);
+                var pinnedDisplay = pinned.Select(ai => knownWords[active[ai]]).ToArray();
+                ResultPrinter.PrintCompletions(completions, pinnedDisplay);
+                // Register C-labels into the per-prompt label map so user can follow up with `C1 yes`.
+                for (int i = 0; i < completions.Count; i++)
+                {
+                    var idxs = (int[])completions[i].Group.WordIndices.Clone();
+                    Array.Sort(idxs);
+                    labelMap[$"C{i + 1}"] = idxs;
+                }
+                continue;
+            }
+
+            var fb = Feedback.Parse(line, labelMap, result.LabelToOriginalEntries, wordToKnown, activeMissing, out var err);
             if (fb == null)
             {
                 Console.WriteLine($"  {err}  (type 'help' for grammar)");

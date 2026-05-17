@@ -87,6 +87,7 @@ After the first set of suggestions, the tool prompts:
 ```
 What did you try?  <label or 4 words> <yes | no | off-by-one>
   e.g.  A1 yes   |   A2v1 no   |   N1s3 yes   |   X1s2 off   |   W1 yes   |   P1 yes   |   piano violin guitar drums off
+  ('with X[, Y[, Z]]' asks what completes a pinned 1-3 word set; 'skip' to recompute, 'quit' to exit)
 ```
 
 Verdicts:
@@ -96,8 +97,29 @@ Verdicts:
 * `off` / `near` / `off-by-one` — forbid the 4-set AND track it; the next
   round will offer the four single-word-swap follow-ups as `[N1s1]..[N1s4]`.
 
-Identifiers can be a label (`A1`, `A2v1`, `N1s3`, `X1s2`, `W1`, `P1`) or 4
-words / multi-word entries (comma-separated if any contain spaces).
+Identifiers can be a label (`A1`, `A2v1`, `N1s3`, `X1s2`, `W1`, `P1`, `C1`) or
+4 words / multi-word entries (comma-separated if any contain spaces).
+
+### "What goes with these?" query
+
+At the same prompt, you can ask for completions of a partial group you're
+sure about. Useful when you have a strong intuition that 1-3 words belong
+together but aren't sure which other word(s) complete the four:
+
+```
+with hero, hoagie, sub        -> ranks the top 5 fourth words (labeled C1..C5)
+with hero, sub                -> ranks the top 5 (3rd, 4th) pairs
+with hero                     -> ranks the top 5 (2nd, 3rd, 4th) triples
+with free love, hippie        -> multi-word entries comma-separated
+```
+
+The query is stateless — it doesn't mark anything solved or forbid anything.
+Each result is registered as a one-shot label `C1..C5` for the duration of
+the current prompt, so you can follow up with `C2 yes` once you decide.
+
+Completions are scored through the same Phase 2 + Phase 6 pipeline as the
+regular anchors, so they incorporate leftover-partition and label-overlap
+signals on top of raw pairwise similarity.
 
 ## Label scheme
 
@@ -110,6 +132,7 @@ words / multi-word entries (comma-separated if any contain spaces).
 | `X1`, `X1s1`..`X1s5` | Dense-cluster warnings ("5+ words look related — pick carefully") |
 | `W1`..`W5` | Suffix/prefix wordplay (e.g. words ending in synonyms of ASAP) |
 | `P1`..`P5` | Bigram phrase patterns (4 entries sharing a common modifier — needs `count_2w.txt`) |
+| `C1`..`C5` | Completions from a `with X[, Y[, Z]]` query (one-shot, per prompt) |
 
 ## Options
 

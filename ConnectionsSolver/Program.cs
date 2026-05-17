@@ -115,7 +115,7 @@ var words = rawWords
     .Select(w => System.Text.RegularExpressions.Regex.Replace(w, @"\s+", " "))
     .ToArray();
 
-if (words.Length != 16)
+if (words.Length != 16)  
 {
     Console.Error.WriteLine($"ERROR: expected exactly 16 non-comment, non-blank words, got {words.Length}.");
     return 1;
@@ -265,6 +265,13 @@ static void PrintUsage()
     Console.WriteLine("'yes' removes the words from play; 'no' forbids that exact 4-set; 'off-by-one'");
     Console.WriteLine("forbids it AND tracks it so future rounds offer the four possible single-word");
     Console.WriteLine("swaps as labeled N* options.");
+    Console.WriteLine();
+    Console.WriteLine("At the same prompt:");
+    Console.WriteLine("    with <1-3 entries>   asks 'what completes this set?' and shows top 5");
+    Console.WriteLine("                          ranked 4-sets containing those words (labeled C1..C5).");
+    Console.WriteLine("                          Multi-word entries comma-separated, e.g.");
+    Console.WriteLine("                              with hero, hoagie, sub");
+    Console.WriteLine("                              with free love, hippie");
     Console.WriteLine();
     Console.WriteLine("Options:");
     Console.WriteLine("  -e, --embeddings <path>   Path to GloVe text file (or set GLOVE_PATH).");
