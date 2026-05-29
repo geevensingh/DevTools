@@ -61,7 +61,7 @@ var badLetters = new HashSet<char>()
 };
 
 
-string wordUsed = "slate";
+string wordUsed = "slant";
 Console.WriteLine($"Word used: [{wordUsed}]");
 while (true)
 {
