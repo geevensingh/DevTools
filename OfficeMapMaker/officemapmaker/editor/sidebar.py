@@ -51,6 +51,16 @@ class InspectorPanel(QtWidgets.QWidget):
     label_room_changed = QtCore.Signal(int, object)
     """``(label_index, new_room_id_or_None)`` — emitted on combo change."""
 
+    room_pick_requested = QtCore.Signal(int, bool)
+    """``(label_index, active)`` — user toggled the visual "Pick room" button.
+
+    The controller flips the canvas into pick-room mode when ``active`` is
+    ``True`` and back out when ``False``. Picking a room directly off the
+    map is much friendlier than remembering its id and choosing from the
+    combo, especially for orphan labels where the user has no idea what
+    nearby room id to look for.
+    """
+
     def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
 
@@ -86,6 +96,11 @@ class InspectorPanel(QtWidgets.QWidget):
 
     def show_nothing(self) -> None:
         self._current_label_index = None
+        # Selection cleared → any in-flight pick-room mode no longer has a
+        # target label, so reset the button visually. The controller is
+        # responsible for taking the canvas out of pick mode in response
+        # to its own selectionChanged handler.
+        self.set_room_pick_active(False)
         self._stack.setCurrentWidget(self._empty)
 
     def show_label(
@@ -110,10 +125,23 @@ class InspectorPanel(QtWidgets.QWidget):
             w["bbox"].setText(f"x={x}, y={y}, w={bw}, h={bh}")
 
             self._repopulate_room_combo(available_room_ids, label.room_id)
+            # Switching to a different label always cancels any in-flight
+            # pick-room mode — picking a room belongs to whichever label was
+            # selected at the time the user pressed the button.
+            self._set_pick_button_checked(False)
         finally:
             self._suppress_signals = False
 
         self._stack.setCurrentWidget(self._label_form)
+
+    def set_room_pick_active(self, active: bool) -> None:
+        """Sync the pick-room button's checked state from the controller.
+
+        Called when the canvas exits pick mode (room picked, Esc pressed,
+        selection lost) so the inspector button reflects reality without the
+        controller having to know about its internal widgets.
+        """
+        self._set_pick_button_checked(active)
 
     def show_room(self, *, room: Room, labels: list[Label]) -> None:
         """Populate the read-only room summary and switch to it."""
@@ -158,7 +186,26 @@ class InspectorPanel(QtWidgets.QWidget):
 
         room_combo = QtWidgets.QComboBox()
         room_combo.currentIndexChanged.connect(self._emit_room_changed)
-        form.addRow("Room:", room_combo)
+        # Wrap the combo + a "pick room visually" button on the same form row
+        # so the user can either type/pick by id or click the room on the map.
+        # The button is checkable: clicking it enters pick mode (controller
+        # changes the canvas cursor + intercepts the next room click);
+        # clicking it again, pressing Esc, or completing the pick uncheck it.
+        room_pick_button = QtWidgets.QToolButton()
+        room_pick_button.setText("📍")
+        room_pick_button.setCheckable(True)
+        room_pick_button.setToolTip(
+            "Pick room visually: click here, then click the room on the map "
+            "you want to link this label to. Press Esc to cancel."
+        )
+        room_pick_button.toggled.connect(self._emit_room_pick_requested)
+        room_row = QtWidgets.QWidget()
+        room_row_layout = QtWidgets.QHBoxLayout(room_row)
+        room_row_layout.setContentsMargins(0, 0, 0, 0)
+        room_row_layout.setSpacing(4)
+        room_row_layout.addWidget(room_combo, 1)
+        room_row_layout.addWidget(room_pick_button)
+        form.addRow("Room:", room_row)
 
         notes_edit = QtWidgets.QLineEdit()
         notes_edit.editingFinished.connect(self._emit_notes_changed)
@@ -187,6 +234,7 @@ class InspectorPanel(QtWidgets.QWidget):
             "index": index_lbl,
             "id": id_edit,
             "room": room_combo,
+            "room_pick_button": room_pick_button,
             "notes": notes_edit,
             "confidence": confidence_lbl,
             "bbox": bbox_lbl,
@@ -297,6 +345,32 @@ class InspectorPanel(QtWidgets.QWidget):
         else:
             new_room_id = int(data)
         self.label_room_changed.emit(self._current_label_index, new_room_id)
+
+    def _emit_room_pick_requested(self, checked: bool) -> None:
+        # Programmatic check/uncheck (e.g. ``set_room_pick_active``) must not
+        # bounce back through the controller — only user clicks on the
+        # button should request the canvas to enter / leave pick mode.
+        if self._suppress_signals or self._current_label_index is None:
+            return
+        self.room_pick_requested.emit(self._current_label_index, checked)
+
+    def _set_pick_button_checked(self, checked: bool) -> None:
+        """Set the button state without re-emitting ``room_pick_requested``."""
+        button = self._label_widgets.get("room_pick_button")
+        if button is None:
+            return
+        if button.isChecked() == checked:
+            return
+        # Toggle while suppress_signals is True so the toggled() handler
+        # short-circuits. We can't simply blockSignals here because the
+        # controller listens to the signal via this object's slot, not the
+        # button's; suppress_signals is the established guard.
+        previous = self._suppress_signals
+        self._suppress_signals = True
+        try:
+            button.setChecked(checked)
+        finally:
+            self._suppress_signals = previous
 
 
 __all__ = ["InspectorPanel"]

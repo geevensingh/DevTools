@@ -1,9 +1,14 @@
 """Unit tests for ``officemapmaker.editor.commands``.
 
-These tests need a ``QCoreApplication`` instance because ``QUndoCommand``
+These tests need a ``QApplication`` instance because ``QUndoCommand``
 inherits from ``QObject`` and Qt requires one to be alive when QObjects
 are constructed. The commands themselves operate on plain ``Calibration``
 objects with no widget/event-loop coupling.
+
+We use ``QApplication`` (not ``QCoreApplication``) so this fixture is
+compatible with any other test in the same pytest session that needs a
+widget-capable application — Qt forbids replacing one with the other
+within a single process.
 """
 
 from __future__ import annotations
@@ -16,7 +21,7 @@ import pytest
 # this fixture, even importing PySide6.QtGui.QUndoCommand inside a test
 # fails on platforms where Qt insists on an event loop owner.
 pytest.importorskip("PySide6")
-from PySide6 import QtCore  # noqa: E402
+from PySide6 import QtWidgets  # noqa: E402
 
 from officemapmaker.calibration import Calibration, Label, RenderDefaults, Room  # noqa: E402
 from officemapmaker.editor.commands import (  # noqa: E402
@@ -30,9 +35,9 @@ from officemapmaker.editor.commands import (  # noqa: E402
 
 @pytest.fixture(scope="module", autouse=True)
 def _qapp():
-    app = QtCore.QCoreApplication.instance()
+    app = QtWidgets.QApplication.instance()
     if app is None:
-        app = QtCore.QCoreApplication(sys.argv or [""])
+        app = QtWidgets.QApplication(sys.argv or [""])
     yield app
 
 

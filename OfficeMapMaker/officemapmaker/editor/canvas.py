@@ -57,6 +57,21 @@ class MapCanvas(QtWidgets.QGraphicsView):
     cursor_scene_pos_changed = QtCore.Signal(QtCore.QPointF)
     """Emitted on every mouse move, in scene (image-pixel) coordinates."""
 
+    room_picked = QtCore.Signal(int)
+    """Emitted when the user clicks a room while in pick-room mode.
+
+    Payload is the ``Room.id`` of the clicked room. The controller turns
+    this into a ``ChangeRoomLinkCommand`` against whichever label was being
+    edited when pick mode started.
+    """
+
+    room_pick_cancelled = QtCore.Signal()
+    """Emitted when the user exits pick-room mode without picking a room.
+
+    Sources: Esc key, clicking empty space, or clicking a label item (in
+    which case selection then proceeds normally).
+    """
+
     def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
         self._scene = QtWidgets.QGraphicsScene(self)
@@ -89,6 +104,12 @@ class MapCanvas(QtWidgets.QGraphicsView):
         # from so each delta translates the scroll bars.
         self._panning = False
         self._pan_last_pos: Optional[QtCore.QPoint] = None
+
+        # Pick-room mode: while True, the next left-click on a RoomItem is
+        # converted into a ``room_picked`` signal instead of changing
+        # selection. Clicks on labels or empty space cancel the mode and
+        # fall through to normal behavior.
+        self._room_pick_mode = False
 
         # Track mouse position even when no button is pressed so the status
         # bar can show live image-pixel coords.
@@ -219,6 +240,29 @@ class MapCanvas(QtWidgets.QGraphicsView):
     def orphans_only(self) -> bool:
         return self._orphans_only
 
+    # --------------------------------------------------------- pick-room
+
+    def set_room_pick_mode(self, active: bool) -> None:
+        """Enter or leave "click a room to link" mode.
+
+        While active, the viewport shows a crosshair cursor as a visual
+        cue and ``mousePressEvent`` intercepts left-clicks (see there).
+        Idempotent: setting the same state twice is a no-op.
+        """
+        if self._room_pick_mode == active:
+            return
+        self._room_pick_mode = active
+        if active:
+            self.viewport().setCursor(QtCore.Qt.CursorShape.CrossCursor)
+            # Make sure Esc reaches our keyPressEvent: focus may have been
+            # on the inspector button the user just clicked.
+            self.setFocus(QtCore.Qt.FocusReason.OtherFocusReason)
+        else:
+            self.viewport().unsetCursor()
+
+    def room_pick_mode(self) -> bool:
+        return self._room_pick_mode
+
     def _apply_visibility(self) -> None:
         for item in self._label_items.values():
             base = self._labels_visible
@@ -305,6 +349,12 @@ class MapCanvas(QtWidgets.QGraphicsView):
         Plain left-click falls through to the base class so ``RubberBandDrag``
         + ``ItemIsSelectable`` give the user item selection. Middle button
         and shift-left start a one-handed scroll-by-drag.
+
+        Pick-room mode (set via :meth:`set_room_pick_mode`) intercepts left
+        clicks before they reach the scene: clicking a ``RoomItem`` emits
+        ``room_picked``; clicking a ``LabelItem`` cancels pick mode and
+        falls through to normal selection; clicking empty space cancels
+        pick mode silently.
         """
         is_pan_trigger = (
             event.button() == QtCore.Qt.MouseButton.MiddleButton
@@ -319,6 +369,40 @@ class MapCanvas(QtWidgets.QGraphicsView):
             self.viewport().setCursor(QtCore.Qt.CursorShape.ClosedHandCursor)
             event.accept()
             return
+
+        if (
+            self._room_pick_mode
+            and event.button() == QtCore.Qt.MouseButton.LeftButton
+        ):
+            viewport_pos = event.position().toPoint()
+            # Gather every item under the cursor so a room hidden behind a
+            # label box can still be picked. ``items()`` returns topmost
+            # first; filtering by type then picks the right one regardless
+            # of stacking order.
+            items_here = self.items(viewport_pos)
+            room_at = next(
+                (it for it in items_here if isinstance(it, RoomItem)), None
+            )
+            if room_at is not None:
+                # Disarm before emitting so the controller's handler sees
+                # the canvas already out of pick mode (idempotent / clean).
+                self.set_room_pick_mode(False)
+                self.room_picked.emit(room_at.room.id)
+                event.accept()
+                return
+            label_at = next(
+                (it for it in items_here if isinstance(it, LabelItem)), None
+            )
+            self.set_room_pick_mode(False)
+            self.room_pick_cancelled.emit()
+            if label_at is None:
+                # Empty space — don't deselect or rubber-band; the user was
+                # mid-task and the click was just a miss.
+                event.accept()
+                return
+            # Fell on a label: cancel pick mode but let Qt's default
+            # selection handling run so clicking another label still works.
+
         super().mousePressEvent(event)
 
     def mouseReleaseEvent(self, event: QtGui.QMouseEvent) -> None:  # noqa: N802 — Qt API
@@ -350,6 +434,14 @@ class MapCanvas(QtWidgets.QGraphicsView):
             return
         if key == QtCore.Qt.Key.Key_0:
             self.fit_in_view()
+            event.accept()
+            return
+        if key == QtCore.Qt.Key.Key_Escape and self._room_pick_mode:
+            # Esc bails out of pick mode without picking anything. The
+            # controller listens for ``room_pick_cancelled`` to uncheck the
+            # inspector button.
+            self.set_room_pick_mode(False)
+            self.room_pick_cancelled.emit()
             event.accept()
             return
         super().keyPressEvent(event)

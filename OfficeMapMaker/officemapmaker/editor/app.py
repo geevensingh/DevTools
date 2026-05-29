@@ -206,6 +206,13 @@ class EditorMainWindow(QtWidgets.QMainWindow):
 
         self._canvas.cursor_scene_pos_changed.connect(self._on_cursor_moved)
 
+        # Show a transient prompt while the user is in "click a room to
+        # link" mode so they know what's expected (the crosshair cursor
+        # alone is easy to miss).
+        self._canvas.room_picked.connect(self._on_pick_mode_ended)
+        self._canvas.room_pick_cancelled.connect(self._on_pick_mode_ended)
+        self._inspector.room_pick_requested.connect(self._on_pick_mode_requested)
+
     # -------------------------------------------------------------- slots
 
     def _on_cursor_moved(self, point: QtCore.QPointF) -> None:
@@ -213,6 +220,24 @@ class EditorMainWindow(QtWidgets.QMainWindow):
         x = int(point.x())
         y = int(point.y())
         self._cursor_label.setText(f"x={x}  y={y}")
+
+    def _on_pick_mode_requested(self, _label_index: int, active: bool) -> None:
+        """Status-bar prompt while the user is mid-pick.
+
+        ``showMessage`` with timeout 0 keeps the message until explicitly
+        cleared (which we do via ``_on_pick_mode_ended``).
+        """
+        if active:
+            self.statusBar().showMessage(
+                "Click a room on the map to link it to this label. "
+                "(Esc to cancel)", 0,
+            )
+
+    def _on_pick_mode_ended(self, *_args) -> None:
+        # Clears any sticky pick-mode prompt; transient messages set
+        # elsewhere (e.g. save confirmations) are unaffected because they
+        # were posted with their own timeout.
+        self.statusBar().clearMessage()
 
     def _on_dirty_changed(self, dirty: bool) -> None:
         """Update the window title + status-bar marker on stack clean/dirty.

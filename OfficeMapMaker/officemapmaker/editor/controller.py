@@ -124,10 +124,25 @@ class EditorController(QtCore.QObject):
         self._inspector.label_id_changed.connect(self._handle_label_id_changed)
         self._inspector.label_notes_changed.connect(self._handle_label_notes_changed)
         self._inspector.label_room_changed.connect(self._handle_label_room_changed)
+        self._inspector.room_pick_requested.connect(self._handle_room_pick_requested)
 
         # Canvas selection → inspector: populate the panel when the user
         # clicks an item. Qt emits ``selectionChanged`` from the scene.
         self._canvas.scene().selectionChanged.connect(self._handle_selection_changed)
+
+        # Canvas pick-room mode → controller: convert the picked room into a
+        # ChangeRoomLinkCommand (so the link is undoable), and uncheck the
+        # inspector button when the canvas drops out of pick mode for any
+        # reason (user picked, Esc, clicked empty space).
+        self._canvas.room_picked.connect(self._handle_canvas_room_picked)
+        self._canvas.room_pick_cancelled.connect(self._handle_canvas_pick_cancelled)
+
+        # Remember which label the user was editing when they entered pick
+        # mode. Selection is locked while pick mode is active (clicks on
+        # rooms are intercepted before they change selection) but the user
+        # can still trigger pick mode for the wrong label if they're fast,
+        # so the controller stores the index explicitly.
+        self._pick_room_for_label: Optional[int] = None
 
         # Default empty state on the inspector.
         self._inspector.show_nothing()
@@ -217,6 +232,59 @@ class EditorController(QtCore.QObject):
             self._cal, label_index, new_room_id, on_change=self._on_label_change
         )
         self._undo_stack.push(cmd)
+
+    # ------------------------------------------------- pick-room mode
+
+    def _handle_room_pick_requested(
+        self, label_index: int, active: bool
+    ) -> None:
+        """Translate the inspector's pick button into a canvas mode change.
+
+        When the user clicks the button (active=True), remember which label
+        they were editing and put the canvas into pick-room mode. When they
+        click it again (active=False) — or some other path turns it off —
+        leave pick mode without doing anything else.
+        """
+        if active:
+            if not (0 <= label_index < len(self._cal.labels)):
+                # Stale label index — silently disarm.
+                self._inspector.set_room_pick_active(False)
+                return
+            self._pick_room_for_label = label_index
+            self._canvas.set_room_pick_mode(True)
+        else:
+            self._pick_room_for_label = None
+            self._canvas.set_room_pick_mode(False)
+
+    def _handle_canvas_room_picked(self, room_id: int) -> None:
+        """Apply the user's visual room pick as an undoable command."""
+        label_index = self._pick_room_for_label
+        self._pick_room_for_label = None
+        # Authoritative cleanup. The canvas's mouse handler also disarms
+        # itself before emitting, but the controller doing it too is cheap,
+        # idempotent, and means any future code path that emits this signal
+        # (e.g. a hypothetical "pick from keyboard" shortcut) doesn't need
+        # to remember the cleanup.
+        self._canvas.set_room_pick_mode(False)
+        self._inspector.set_room_pick_active(False)
+        if label_index is None:
+            return
+        if not (0 <= label_index < len(self._cal.labels)):
+            return
+        if self._cal.labels[label_index].room_id == room_id:
+            # Already linked to this room — nothing to do, no need to push
+            # a no-op command onto the undo stack.
+            return
+        cmd = ChangeRoomLinkCommand(
+            self._cal, label_index, room_id, on_change=self._on_label_change
+        )
+        self._undo_stack.push(cmd)
+
+    def _handle_canvas_pick_cancelled(self) -> None:
+        """Sync the inspector button after Esc / clicked-empty-space."""
+        self._pick_room_for_label = None
+        self._canvas.set_room_pick_mode(False)
+        self._inspector.set_room_pick_active(False)
 
     # -------------------------------------------- in-place refresh hook
 
