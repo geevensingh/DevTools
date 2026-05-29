@@ -394,6 +394,99 @@ def _run_validate_fill(args: argparse.Namespace) -> int:
     return 1 if errors else 0
 
 
+def _run_layout(args: argparse.Namespace) -> int:
+    """Execute Pass 3 (plan name layout)."""
+    from .calibration import compute_map_hash, load_calibration
+    from .io_assignments import AssignmentLoadError, load_assignments
+    from .layout import (
+        plan_layout,
+        render_layout_problems_png,
+        render_layout_review_png,
+        save_layout,
+    )
+    from .manifest import clear_review, write_manifest
+
+    cal_path: Path = args.calibration
+    map_path: Path = args.map
+    asn_path: Path = args.assignments
+    out_path: Path = args.out
+
+    for label, path in (("calibration", cal_path), ("map", map_path), ("assignments", asn_path)):
+        if not path.exists():
+            print(f"error: {label} not found at {path}", file=sys.stderr)
+            return 2
+
+    try:
+        cal = load_calibration(cal_path)
+    except Exception as exc:  # noqa: BLE001
+        print(f"error: could not load calibration: {exc}", file=sys.stderr)
+        return 2
+
+    try:
+        assignments = load_assignments(asn_path)
+    except AssignmentLoadError as exc:
+        print(f"error: could not load assignments: {exc}", file=sys.stderr)
+        return 2
+
+    layout, issues = plan_layout(
+        cal, assignments, map_hash=compute_map_hash(map_path)
+    )
+    save_layout(layout, out_path)
+    print(
+        f"wrote {out_path} ({len(layout.entries)} office entr"
+        f"{'y' if len(layout.entries) == 1 else 'ies'})"
+    )
+
+    # Regenerating layout invalidates any prior layout-review confirmation.
+    clear_review(out_path)
+    write_manifest(
+        out_path,
+        {"map": map_path, "calibration": cal_path, "assignments": asn_path},
+    )
+
+    review_png = out_path.with_name(out_path.stem + "_review.png")
+    problems_png = out_path.with_name(out_path.stem + "_review_problems.png")
+    try:
+        render_layout_review_png(map_path, cal, layout, review_png)
+        print(f"wrote {review_png}")
+    except Exception as exc:  # noqa: BLE001
+        print(f"warning: failed to render layout review PNG: {exc}", file=sys.stderr)
+
+    try:
+        render_layout_problems_png(map_path, cal, layout, problems_png)
+        print(f"wrote {problems_png}")
+    except Exception as exc:  # noqa: BLE001
+        print(f"warning: failed to render layout problems PNG: {exc}", file=sys.stderr)
+
+    errors = [i for i in issues if i.severity == "error"]
+    warnings = [i for i in issues if i.severity == "warning"]
+    for issue in issues:
+        stream = sys.stderr if issue.severity == "error" else sys.stdout
+        print(str(issue), file=stream)
+    print(
+        f"summary: {len(layout.entries)} office layout(s), "
+        f"{len(errors)} error(s), {len(warnings)} warning(s)"
+    )
+    print(
+        f"next: review {review_png} then run "
+        f"'officemapmaker layout confirm --layout {out_path}'"
+    )
+    return 1 if errors else 0
+
+
+def _run_layout_confirm(args: argparse.Namespace) -> int:
+    """Write the .reviewed sentinel next to layout.json."""
+    from .manifest import confirm_review
+
+    layout_path: Path = args.layout
+    if not layout_path.exists():
+        print(f"error: layout not found at {layout_path}", file=sys.stderr)
+        return 2
+    sentinel = confirm_review(layout_path)
+    print(f"wrote {sentinel}")
+    return 0
+
+
 def dispatch(args: argparse.Namespace) -> int:
     cmd = args.cmd
 
@@ -420,11 +513,11 @@ def dispatch(args: argparse.Namespace) -> int:
     if cmd == "layout":
         action = getattr(args, "layout_action", None)
         if action == "confirm":
-            return _not_implemented("layout confirm")
+            return _run_layout_confirm(args)
         if args.map is None or args.assignments is None:
             print("error: --map and --assignments are required when running layout", file=sys.stderr)
             return 2
-        return _not_implemented("layout")
+        return _run_layout(args)
 
     if cmd == "build":
         action = getattr(args, "build_action", None)

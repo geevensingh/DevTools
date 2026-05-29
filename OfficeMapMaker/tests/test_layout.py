@@ -1,0 +1,434 @@
+"""Tests for ``officemapmaker.layout`` (pass 3: name placement planner)."""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import cv2
+import numpy as np
+import pytest
+
+from officemapmaker.calibration import (
+    Calibration,
+    Classification,
+    Label,
+    RenderDefaults,
+    Room,
+    save_calibration,
+)
+from officemapmaker.geometry import mask_to_rle
+from officemapmaker.io_assignments import Assignment
+from officemapmaker.layout import (
+    FitStrategy,
+    Layout,
+    LayoutEntry,
+    LayoutIssue,
+    NameEntry,
+    OfficeNumberPlacement,
+    load_layout,
+    plan_layout,
+    render_layout_problems_png,
+    render_layout_review_png,
+    save_layout,
+)
+
+
+# ---------------------------------------------------------------------------
+# Fixture builders
+# ---------------------------------------------------------------------------
+
+
+def _square_room(rid: int, x: int, y: int, side: int, *, img_size=(800, 600)) -> Room:
+    mask = np.zeros((img_size[1], img_size[0]), dtype=bool)
+    mask[y : y + side, x : x + side] = True
+    return Room(
+        id=rid,
+        polygon_rle=mask_to_rle(mask),
+        area_px=int(mask.sum()),
+        bbox=(x, y, side, side),
+    )
+
+
+def _office_label(label_id: str, room_id: int, fill_seed=(60, 60)) -> Label:
+    return Label(
+        id=label_id,
+        bbox=(fill_seed[0] - 12, fill_seed[1] - 6, 24, 12),
+        room_id=room_id,
+        classification=Classification.OFFICE,
+        fill_seed=fill_seed,
+        ocr_confidence=0.9,
+    )
+
+
+def _build_cal(labels: list[Label], rooms: list[Room]) -> Calibration:
+    return Calibration(
+        map_image="map.png",
+        map_hash="sha256:dummy",
+        labels=labels,
+        rooms=rooms,
+        wall_patches=[],
+        # Use modest defaults so binary-search converges fast in tests.
+        render_defaults=RenderDefaults(min_font_pt=7, tile_dpi=150),
+    )
+
+
+def _asn(name: str, office_id: str, team: str = "BITS", row: int = 2) -> Assignment:
+    return Assignment(name=name, office_id=office_id, team=team, source_row=row)
+
+
+# ---------------------------------------------------------------------------
+# Round-trip the data model
+# ---------------------------------------------------------------------------
+
+
+def test_layout_round_trips_through_json(tmp_path):
+    layout = Layout(
+        map_image="map.png",
+        map_hash="sha256:abc",
+        entries=[
+            LayoutEntry(
+                office_id="1480",
+                room_id=42,
+                team="BITS",
+                fit_strategy=FitStrategy.SHRINK,
+                names=[
+                    NameEntry(
+                        full_name="Alice Smith",
+                        rendered_text="Alice Smith",
+                        bbox=(10, 20, 80, 16),
+                        font_px=14,
+                    )
+                ],
+                office_number=OfficeNumberPlacement(
+                    text="1480", bbox=(70, 90, 30, 14), font_px=14
+                ),
+                inscribed_rect=(10, 10, 100, 100),
+                leader_lines=[],
+            )
+        ],
+    )
+    path = tmp_path / "layout.json"
+    save_layout(layout, path)
+    loaded = load_layout(path)
+    assert loaded == layout
+
+
+def test_layout_entry_by_office_lookup():
+    entry = LayoutEntry(
+        office_id="1480", room_id=1, team="BITS",
+        fit_strategy=FitStrategy.SHRINK, names=[],
+        office_number=OfficeNumberPlacement(text="1480", bbox=(0,0,1,1), font_px=10),
+        inscribed_rect=(0, 0, 1, 1),
+    )
+    layout = Layout(map_image="m", map_hash="", entries=[entry])
+    assert layout.entry_by_office("1480") is entry
+    assert layout.entry_by_office("9999") is None
+
+
+# ---------------------------------------------------------------------------
+# plan_layout — happy path
+# ---------------------------------------------------------------------------
+
+
+def test_plan_layout_fits_full_names_in_a_large_room():
+    cal = _build_cal(
+        labels=[_office_label("1480", room_id=1, fill_seed=(150, 150))],
+        rooms=[_square_room(1, 50, 50, 200)],
+    )
+    assignments = [_asn("Alice Smith", "1480"), _asn("Bob Jones", "1480")]
+    layout, issues = plan_layout(cal, assignments)
+    assert [i for i in issues if i.severity == "error"] == []
+    assert len(layout.entries) == 1
+    entry = layout.entries[0]
+    assert entry.fit_strategy is FitStrategy.SHRINK
+    assert {n.rendered_text for n in entry.names} == {"Alice Smith", "Bob Jones"}
+    # Every name bbox is inside the inscribed rect (height-only check; width
+    # may be centered).
+    ix, iy, iw, ih = entry.inscribed_rect
+    for n in entry.names:
+        nx, ny, nw, nh = n.bbox
+        assert nx >= ix and ny >= iy
+        assert nx + nw <= ix + iw and ny + nh <= iy + ih + nh  # name+number share area
+
+
+def test_plan_layout_office_number_is_always_present():
+    cal = _build_cal(
+        labels=[_office_label("1480", room_id=1, fill_seed=(150, 150))],
+        rooms=[_square_room(1, 50, 50, 200)],
+    )
+    layout, _ = plan_layout(cal, [_asn("X Y", "1480")])
+    assert layout.entries[0].office_number.text == "1480"
+    assert layout.entries[0].office_number.font_px > 0
+
+
+def test_plan_layout_skips_vacant_offices():
+    cal = _build_cal(
+        labels=[
+            _office_label("1480", room_id=1, fill_seed=(150, 150)),
+            _office_label("1481", room_id=2, fill_seed=(450, 150)),
+        ],
+        rooms=[_square_room(1, 50, 50, 200), _square_room(2, 350, 50, 200)],
+    )
+    layout, issues = plan_layout(cal, [_asn("Alice Smith", "1480")])
+    assert [e.office_id for e in layout.entries] == ["1480"]
+    # 1481 has no assignment — should not appear, and not be flagged.
+    assert all(i.office_id != "1481" for i in issues)
+
+
+def test_plan_layout_ignores_assignments_for_unknown_offices():
+    """validate_labels owns the office_not_on_map error; plan_layout just skips."""
+    cal = _build_cal(
+        labels=[_office_label("1480", room_id=1, fill_seed=(150, 150))],
+        rooms=[_square_room(1, 50, 50, 200)],
+    )
+    layout, issues = plan_layout(
+        cal, [_asn("Alice Smith", "1480"), _asn("Bob Jones", "9999")]
+    )
+    assert [e.office_id for e in layout.entries] == ["1480"]
+    # plan_layout emits person_not_placed for the orphan.
+    codes = {i.code for i in issues}
+    assert "person_not_placed" in codes
+
+
+# ---------------------------------------------------------------------------
+# plan_layout — abbreviation ladder
+# ---------------------------------------------------------------------------
+
+
+def test_plan_layout_falls_back_to_initials_in_a_tighter_room():
+    """A narrow room forces 'First L.' over the full name."""
+    cal = _build_cal(
+        labels=[_office_label("1480", room_id=1, fill_seed=(95, 80))],
+        rooms=[_square_room(1, 70, 50, 50)],  # 50x50 room
+    )
+    layout, issues = plan_layout(
+        cal,
+        [
+            _asn("Sravani Punyamurthula", "1480"),
+            _asn("Christopher Vanderbilt", "1480"),
+        ],
+    )
+    entry = layout.entries[0]
+    assert entry.fit_strategy in (
+        FitStrategy.INITIALS,
+        FitStrategy.LAST_ONLY,
+        FitStrategy.LEADER,
+    )
+    if entry.fit_strategy is FitStrategy.INITIALS:
+        # Each rendered text starts with single-letter + period.
+        for n in entry.names:
+            assert n.rendered_text[1] == "."
+
+
+def test_plan_layout_falls_back_to_last_only_in_a_very_tight_room():
+    cal = _build_cal(
+        labels=[_office_label("1480", room_id=1, fill_seed=(85, 70))],
+        rooms=[_square_room(1, 70, 60, 30)],  # 30x30 room
+    )
+    layout, issues = plan_layout(
+        cal,
+        [
+            _asn("Sravani Punyamurthula", "1480"),
+            _asn("Christopher Vanderbilt", "1480"),
+        ],
+    )
+    entry = layout.entries[0]
+    assert entry.fit_strategy in (FitStrategy.LAST_ONLY, FitStrategy.LEADER)
+    if entry.fit_strategy is FitStrategy.LAST_ONLY:
+        names = {n.rendered_text for n in entry.names}
+        assert names == {"Punyamurthula", "Vanderbilt"}
+    # Either way, a warning issue was raised.
+    codes = {i.code for i in issues}
+    assert "abbreviation_fallback" in codes or "leader_line_fallback" in codes
+
+
+def test_plan_layout_uses_leader_line_for_impossibly_small_rooms():
+    cal = _build_cal(
+        labels=[_office_label("1480", room_id=1, fill_seed=(80, 70))],
+        rooms=[_square_room(1, 75, 65, 10)],  # 10x10 — too small for any text
+    )
+    layout, issues = plan_layout(cal, [_asn("Sravani Punyamurthula", "1480")])
+    entry = layout.entries[0]
+    assert entry.fit_strategy is FitStrategy.LEADER
+    assert len(entry.leader_lines) >= 1
+    assert any(i.code == "leader_line_fallback" for i in issues)
+
+
+# ---------------------------------------------------------------------------
+# plan_layout — error / warning paths
+# ---------------------------------------------------------------------------
+
+
+def test_plan_layout_mixed_teams_warns_and_picks_one():
+    cal = _build_cal(
+        labels=[_office_label("1480", room_id=1, fill_seed=(150, 150))],
+        rooms=[_square_room(1, 50, 50, 200)],
+    )
+    layout, issues = plan_layout(
+        cal,
+        [
+            _asn("Alice Smith", "1480", team="BITS"),
+            _asn("Bob Jones", "1480", team="FPAA"),
+        ],
+    )
+    assert layout.entries[0].team in {"BITS", "FPAA"}
+    assert any(i.code == "mixed_teams_in_office" for i in issues)
+
+
+def test_plan_layout_lookup_is_case_insensitive():
+    cal = _build_cal(
+        labels=[_office_label("1479A", room_id=1, fill_seed=(150, 150))],
+        rooms=[_square_room(1, 50, 50, 200)],
+    )
+    # Spreadsheet has lowercase 'a'.
+    layout, issues = plan_layout(cal, [_asn("Alice Smith", "1479a")])
+    assert len(layout.entries) == 1
+    assert layout.entries[0].office_id == "1479A"
+    assert [i for i in issues if i.severity == "error"] == []
+
+
+def test_plan_layout_uses_provided_map_hash():
+    cal = _build_cal(
+        labels=[_office_label("1480", room_id=1, fill_seed=(150, 150))],
+        rooms=[_square_room(1, 50, 50, 200)],
+    )
+    layout, _ = plan_layout(cal, [_asn("X Y", "1480")], map_hash="sha256:CAFEBABE")
+    assert layout.map_hash == "sha256:CAFEBABE"
+
+
+def test_plan_layout_inherits_calibration_hash_when_none_supplied():
+    cal = _build_cal(
+        labels=[_office_label("1480", room_id=1, fill_seed=(150, 150))],
+        rooms=[_square_room(1, 50, 50, 200)],
+    )
+    layout, _ = plan_layout(cal, [_asn("X Y", "1480")])
+    assert layout.map_hash == cal.map_hash
+
+
+# ---------------------------------------------------------------------------
+# Review-artifact rendering
+# ---------------------------------------------------------------------------
+
+
+def _write_white_map(path: Path, w: int = 400, h: int = 400) -> None:
+    img = np.full((h, w, 3), 255, dtype=np.uint8)
+    cv2.imwrite(str(path), img)
+
+
+def test_render_layout_review_png_writes_a_png(tmp_path):
+    map_path = tmp_path / "map.png"
+    _write_white_map(map_path)
+    cal = _build_cal(
+        labels=[_office_label("1480", room_id=1, fill_seed=(150, 150))],
+        rooms=[_square_room(1, 50, 50, 200, img_size=(400, 400))],
+    )
+    layout, _ = plan_layout(cal, [_asn("Alice Smith", "1480")])
+    out = tmp_path / "layout_review.png"
+    render_layout_review_png(map_path, cal, layout, out)
+    assert out.exists() and out.stat().st_size > 200
+
+
+def test_render_layout_problems_png_writes_a_png_even_with_no_problems(tmp_path):
+    map_path = tmp_path / "map.png"
+    _write_white_map(map_path)
+    cal = _build_cal(
+        labels=[_office_label("1480", room_id=1, fill_seed=(150, 150))],
+        rooms=[_square_room(1, 50, 50, 200, img_size=(400, 400))],
+    )
+    layout, _ = plan_layout(cal, [_asn("Alice Smith", "1480")])
+    out = tmp_path / "problems.png"
+    render_layout_problems_png(map_path, cal, layout, out)
+    assert out.exists()
+
+
+def test_render_layout_review_raises_for_missing_map(tmp_path):
+    cal = _build_cal(labels=[], rooms=[])
+    layout = Layout(map_image="x", map_hash="", entries=[])
+    with pytest.raises(FileNotFoundError):
+        render_layout_review_png(tmp_path / "missing.png", cal, layout, tmp_path / "o.png")
+
+
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
+
+
+def _write_calibration(tmp_path: Path, cal: Calibration) -> Path:
+    p = tmp_path / "calibration.json"
+    save_calibration(cal, p)
+    return p
+
+
+def _write_csv_assignments(tmp_path: Path, rows: list[tuple[str, str, str]]) -> Path:
+    p = tmp_path / "people.csv"
+    with p.open("w", encoding="utf-8") as f:
+        f.write("Full Name,Office number,Team\n")
+        for name, office, team in rows:
+            f.write(f"{name},{office},{team}\n")
+    return p
+
+
+def test_cli_layout_clean_run_returns_0_and_writes_outputs(tmp_path):
+    from officemapmaker.__main__ import build_parser, dispatch
+
+    map_path = tmp_path / "map.png"
+    _write_white_map(map_path)
+    cal = _build_cal(
+        labels=[_office_label("1480", room_id=1, fill_seed=(150, 150))],
+        rooms=[_square_room(1, 50, 50, 200, img_size=(400, 400))],
+    )
+    cal_path = _write_calibration(tmp_path, cal)
+    asn_path = _write_csv_assignments(tmp_path, [("Alice Smith", "1480", "BITS")])
+    out_path = tmp_path / "layout.json"
+
+    args = build_parser().parse_args([
+        "layout",
+        "--map", str(map_path),
+        "--calibration", str(cal_path),
+        "--assignments", str(asn_path),
+        "--out", str(out_path),
+    ])
+    assert dispatch(args) == 0
+    assert out_path.exists()
+    layout = load_layout(out_path)
+    assert layout.entries and layout.entries[0].office_id == "1480"
+    assert (tmp_path / "layout_review.png").exists()
+    assert (tmp_path / "layout_review_problems.png").exists()
+    # Manifest + cleared sentinel.
+    assert (tmp_path / "layout.json.manifest.json").exists()
+    assert not (tmp_path / "layout.json.reviewed").exists()
+
+
+def test_cli_layout_missing_inputs_returns_2(tmp_path):
+    from officemapmaker.__main__ import build_parser, dispatch
+
+    args = build_parser().parse_args([
+        "layout",
+        "--map", str(tmp_path / "missing.png"),
+        "--calibration", str(tmp_path / "missing.json"),
+        "--assignments", str(tmp_path / "missing.csv"),
+    ])
+    assert dispatch(args) == 2
+
+
+def test_cli_layout_confirm_writes_sentinel(tmp_path):
+    from officemapmaker.__main__ import build_parser, dispatch
+
+    layout_path = tmp_path / "layout.json"
+    layout_path.write_text(json.dumps({"map_image": "m", "map_hash": "", "entries": []}))
+
+    args = build_parser().parse_args([
+        "layout", "confirm", "--layout", str(layout_path),
+    ])
+    assert dispatch(args) == 0
+    assert (tmp_path / "layout.json.reviewed").exists()
+
+
+def test_cli_layout_confirm_missing_returns_2(tmp_path):
+    from officemapmaker.__main__ import build_parser, dispatch
+
+    args = build_parser().parse_args([
+        "layout", "confirm", "--layout", str(tmp_path / "missing.json"),
+    ])
+    assert dispatch(args) == 2

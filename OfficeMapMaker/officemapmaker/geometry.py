@@ -252,6 +252,92 @@ def rle_to_mask(rle: str) -> np.ndarray:
     return (bits.reshape(h, w) * 255).astype(np.uint8)
 
 
+# ---------------------------------------------------------------------------
+# Largest inscribed rectangle
+# ---------------------------------------------------------------------------
+
+
+def largest_inscribed_rectangle(mask: np.ndarray) -> BBox:
+    """Return the largest axis-aligned rectangle entirely inside ``mask``.
+
+    Uses the classic O(H*W) algorithm: for each row, maintain per-column
+    "consecutive True pixels ending at this row" heights, then compute the
+    largest rectangle in that histogram via a monotonic stack. The best
+    histogram-rectangle across all rows is the largest inscribed rectangle.
+
+    Args:
+        mask: ``numpy`` array of shape ``(H, W)``. Any nonzero value counts
+            as "inside". Both ``bool`` and ``uint8`` are accepted.
+
+    Returns:
+        ``(x, y, w, h)`` of the largest inscribed rectangle. ``(0, 0, 0, 0)``
+        if the mask is empty.
+
+    Raises:
+        ValueError: if ``mask`` isn't 2-D.
+    """
+    if mask.ndim != 2:
+        raise ValueError(f"mask must be 2-D, got shape={mask.shape}")
+    if not mask.any():
+        return (0, 0, 0, 0)
+
+    inside = (mask != 0)
+    h, w = inside.shape
+    heights = np.zeros(w, dtype=np.int32)
+    best_area = 0
+    best: BBox = (0, 0, 0, 0)
+
+    for y in range(h):
+        row = inside[y]
+        # Vectorized "consecutive True ending here": increment where inside,
+        # reset to 0 where not.
+        heights = np.where(row, heights + 1, 0)
+        area, left, right, height = _largest_rect_in_histogram(heights)
+        if area > best_area:
+            best_area = area
+            # Bottom of the rectangle is row y; top is (y - height + 1).
+            best = (
+                int(left),
+                int(y - height + 1),
+                int(right - left + 1),
+                int(height),
+            )
+    return best
+
+
+def _largest_rect_in_histogram(
+    heights: np.ndarray,
+) -> tuple[int, int, int, int]:
+    """Largest rectangle in a histogram via a monotonic-increasing stack.
+
+    Returns ``(area, left_col, right_col, height)`` for the best rectangle.
+    ``left_col`` and ``right_col`` are inclusive column indices.
+    """
+    stack: list[tuple[int, int]] = []  # (index, height)
+    best_area = 0
+    best_left = 0
+    best_right = -1
+    best_height = 0
+
+    n = len(heights)
+    for i in range(n + 1):
+        cur_h = 0 if i == n else int(heights[i])
+        while stack and stack[-1][1] > cur_h:
+            top_i, top_h = stack.pop()
+            left = stack[-1][0] + 1 if stack else 0
+            right = i - 1
+            width = right - left + 1
+            area = width * top_h
+            if area > best_area:
+                best_area = area
+                best_left = left
+                best_right = right
+                best_height = top_h
+        stack.append((i, cur_h))
+
+    return best_area, best_left, best_right, best_height
+
+
 __all__ = [
     "BBox",
     "Point",
@@ -269,4 +355,5 @@ __all__ = [
     "mask_bbox",
     "mask_to_rle",
     "rle_to_mask",
+    "largest_inscribed_rectangle",
 ]
