@@ -44,6 +44,10 @@ _TITLE_BLOCK_GAP_BELOW_PT = 10 # gap between last caption line and page content
 _THUMB_PADDING_PT = 6
 _THUMB_COLS = 6                # default grid width on pages 3 and 4
 _MAX_THUMBNAILS_PER_PAGE = 60  # cap so the PDF stays usable
+_BBOX_PAD_PT = 3.0             # padding around each OCR bbox on page 1 so the
+                               # outline visibly encloses (rather than covers)
+                               # the digits beneath it
+_LABEL_GAP_PT = 7.0            # gap between a bbox and the OCR-read text below it
 
 
 # ---------------------------------------------------------------------------
@@ -248,7 +252,7 @@ def _render_page1_labels(c, page_w, page_h, map_image, cal: Calibration) -> None
 
     # 2) Green bboxes + OCR text.
     c.setStrokeColorRGB(0.0, 0.6, 0.0)
-    c.setLineWidth(0.6)
+    c.setLineWidth(0.4)
     c.setFont("Helvetica", 6)
     c.setFillColorRGB(0.0, 0.4, 0.0)
     for label in cal.labels:
@@ -348,12 +352,24 @@ def _render_page4_orphans(c, page_w, page_h, map_image, cal: Calibration) -> Non
 
 
 def _draw_label_box(c, fit: _MapFit, label: Label, *, text: str) -> None:
+    """Draw a green outline rectangle around the OCR bbox + the OCR-read text below it.
+
+    The rectangle is padded outward by ``_BBOX_PAD_PT`` PDF points so the outline
+    stays clear of the actual digits in the map (otherwise the stroke would
+    overlap the glyphs and the box would look filled at PDF scale, because the
+    raw OCR bbox is only a few PDF points across).
+    """
     x, y, w, h = label.bbox
-    x0, y0 = fit.to_pdf(x, y + h)            # lower-left in PDF space
-    width_pt = w * fit.scale
-    height_pt = h * fit.scale
-    c.rect(x0, y0, width_pt, height_pt, stroke=1, fill=0)
-    c.drawString(x0, y0 + height_pt + 1, text)
+    x_pdf_l, y_pdf_t = fit.to_pdf(x, y)              # upper-left in PDF
+    x_pdf_r, y_pdf_b = fit.to_pdf(x + w, y + h)      # lower-right in PDF
+    rect_x = x_pdf_l - _BBOX_PAD_PT
+    rect_y = y_pdf_b - _BBOX_PAD_PT
+    rect_w = (x_pdf_r - x_pdf_l) + 2 * _BBOX_PAD_PT
+    rect_h = (y_pdf_t - y_pdf_b) + 2 * _BBOX_PAD_PT
+    c.rect(rect_x, rect_y, rect_w, rect_h, stroke=1, fill=0)
+    # OCR-read text drawn just below the rectangle so it doesn't obscure the
+    # digits inside; baseline is _LABEL_GAP_PT below the rectangle bottom.
+    c.drawString(rect_x, rect_y - _LABEL_GAP_PT, text)
 
 
 def _draw_room_outline(c, fit: _MapFit, room: Room) -> None:
