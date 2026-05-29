@@ -1,0 +1,302 @@
+"""``InspectorPanel`` — the right-hand dock that edits the selected item.
+
+The panel has three faces:
+
+* **Empty** — nothing selected. A static "click a label or a room" hint.
+* **Label** — the user clicked a ``LabelItem``. Editable: id, room link, notes.
+  Read-only: bbox, ocr_confidence.
+* **Room** — the user clicked a ``RoomItem``. Read-only summary plus a list of
+  labels that point at this room (since the room itself has no editable fields
+  beyond what the labels carry — and editing polygons is out of scope for v1).
+
+User-visible field-edit semantics:
+
+* Text fields commit on Enter or focus loss (``editingFinished`` signal).
+* The room picker commits on every selection change.
+* The panel does **not** know about ``QUndoStack``; it just emits signals
+  describing what the user changed. The controller turns those into
+  ``QUndoCommand``s, so panel-driven edits are properly undoable.
+"""
+
+from __future__ import annotations
+
+from typing import Optional
+
+from PySide6 import QtCore, QtGui, QtWidgets
+
+from ..calibration import Label, Room
+
+
+# Sentinel value used in the room combo box to represent "no room linked"
+# (i.e., orphan label). ``QComboBox`` items store user data per index, and
+# ``None`` isn't safe to round-trip through Qt's variant glue on every
+# platform, so we use a clearly-out-of-band int that no real room can have.
+_ORPHAN_SENTINEL = -1
+
+
+class InspectorPanel(QtWidgets.QWidget):
+    """Right-hand inspector showing details for the selected item.
+
+    Signals carry the *label_index* (stable position in
+    ``Calibration.labels``) so the controller can build a command that
+    targets the correct record even if the user clicks away mid-edit.
+    """
+
+    label_id_changed = QtCore.Signal(int, str)
+    """``(label_index, new_id)`` — emitted when the id text-field commits."""
+
+    label_notes_changed = QtCore.Signal(int, str)
+    """``(label_index, new_notes)`` — emitted when the notes field commits."""
+
+    label_room_changed = QtCore.Signal(int, object)
+    """``(label_index, new_room_id_or_None)`` — emitted on combo change."""
+
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
+        super().__init__(parent)
+
+        # Stacked widget so we can swap the panel content without re-laying
+        # out the dock on every selection change.
+        self._stack = QtWidgets.QStackedWidget(self)
+        self._empty = self._build_empty_widget()
+        self._label_form, self._label_widgets = self._build_label_form()
+        self._room_form, self._room_widgets = self._build_room_form()
+        self._stack.addWidget(self._empty)
+        self._stack.addWidget(self._label_form)
+        self._stack.addWidget(self._room_form)
+
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.addWidget(self._stack)
+        self.setLayout(layout)
+
+        # Track which label is currently shown so commit signals know where
+        # to send their payload (the user may have edited the id, then
+        # selected something else before pressing Enter).
+        self._current_label_index: Optional[int] = None
+
+        # Suppress signals while we programmatically repopulate fields
+        # — without this guard, ``setText`` would re-emit ``editingFinished``
+        # and bounce a phantom edit through the undo stack.
+        self._suppress_signals = False
+
+    # -------------------------------------------------- public API
+
+    def current_label_index(self) -> Optional[int]:
+        return self._current_label_index
+
+    def show_nothing(self) -> None:
+        self._current_label_index = None
+        self._stack.setCurrentWidget(self._empty)
+
+    def show_label(
+        self,
+        *,
+        label: Label,
+        label_index: int,
+        available_room_ids: list[int],
+    ) -> None:
+        """Populate the label-edit form for ``label`` and switch to it."""
+        self._current_label_index = label_index
+        self._suppress_signals = True
+        try:
+            w = self._label_widgets
+            w["index"].setText(f"label #{label_index} (room_id={label.room_id})")
+            w["id"].setText(label.id)
+            w["notes"].setText(label.notes)
+
+            confidence_pct = max(0, min(100, int(round(label.ocr_confidence * 100))))
+            w["confidence"].setText(f"{confidence_pct}%")
+            x, y, bw, bh = label.bbox
+            w["bbox"].setText(f"x={x}, y={y}, w={bw}, h={bh}")
+
+            self._repopulate_room_combo(available_room_ids, label.room_id)
+        finally:
+            self._suppress_signals = False
+
+        self._stack.setCurrentWidget(self._label_form)
+
+    def show_room(self, *, room: Room, labels: list[Label]) -> None:
+        """Populate the read-only room summary and switch to it."""
+        self._current_label_index = None
+        w = self._room_widgets
+        w["id"].setText(str(room.id))
+        w["area"].setText(f"{room.area_px:,} px²")
+        x, y, bw, bh = room.bbox
+        w["bbox"].setText(f"x={x}, y={y}, w={bw}, h={bh}")
+        if labels:
+            w["labels"].setText(
+                ", ".join(lab.id for lab in labels) if labels else "(none)"
+            )
+        else:
+            w["labels"].setText("(none — orphan room)")
+        self._stack.setCurrentWidget(self._room_form)
+
+    # ----------------------------------------------------- build UI
+
+    def _build_empty_widget(self) -> QtWidgets.QWidget:
+        w = QtWidgets.QLabel(
+            "Click a label box or a room polygon to edit it.\n\n"
+            "Layer toggles:  L=labels  R=rooms  O=orphans-only\n"
+            "Zoom: mouse wheel · Pan: drag · 0=fit"
+        )
+        w.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        w.setStyleSheet("color: #888;")
+        return w
+
+    def _build_label_form(self) -> tuple[QtWidgets.QWidget, dict]:
+        form_box = QtWidgets.QGroupBox("Label")
+        form = QtWidgets.QFormLayout(form_box)
+        form.setLabelAlignment(QtCore.Qt.AlignmentFlag.AlignRight)
+
+        index_lbl = QtWidgets.QLabel()
+        index_lbl.setStyleSheet("color: #888; font-size: 11px;")
+        form.addRow(index_lbl)
+
+        id_edit = QtWidgets.QLineEdit()
+        id_edit.editingFinished.connect(self._emit_id_changed)
+        form.addRow("ID:", id_edit)
+
+        room_combo = QtWidgets.QComboBox()
+        room_combo.currentIndexChanged.connect(self._emit_room_changed)
+        form.addRow("Room:", room_combo)
+
+        notes_edit = QtWidgets.QLineEdit()
+        notes_edit.editingFinished.connect(self._emit_notes_changed)
+        form.addRow("Notes:", notes_edit)
+
+        # Read-only telemetry rows.
+        confidence_lbl = QtWidgets.QLabel()
+        confidence_lbl.setTextInteractionFlags(
+            QtCore.Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        form.addRow("OCR confidence:", confidence_lbl)
+
+        bbox_lbl = QtWidgets.QLabel()
+        bbox_lbl.setTextInteractionFlags(
+            QtCore.Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        form.addRow("Bbox (read-only):", bbox_lbl)
+
+        wrapper = QtWidgets.QWidget()
+        wrap_layout = QtWidgets.QVBoxLayout(wrapper)
+        wrap_layout.setContentsMargins(0, 0, 0, 0)
+        wrap_layout.addWidget(form_box)
+        wrap_layout.addStretch(1)
+
+        widgets = {
+            "index": index_lbl,
+            "id": id_edit,
+            "room": room_combo,
+            "notes": notes_edit,
+            "confidence": confidence_lbl,
+            "bbox": bbox_lbl,
+        }
+        return wrapper, widgets
+
+    def _build_room_form(self) -> tuple[QtWidgets.QWidget, dict]:
+        box = QtWidgets.QGroupBox("Room")
+        form = QtWidgets.QFormLayout(box)
+        form.setLabelAlignment(QtCore.Qt.AlignmentFlag.AlignRight)
+
+        id_lbl = QtWidgets.QLabel()
+        id_lbl.setTextInteractionFlags(
+            QtCore.Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        form.addRow("Room ID:", id_lbl)
+
+        area_lbl = QtWidgets.QLabel()
+        form.addRow("Area:", area_lbl)
+
+        bbox_lbl = QtWidgets.QLabel()
+        bbox_lbl.setTextInteractionFlags(
+            QtCore.Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        form.addRow("Bbox:", bbox_lbl)
+
+        labels_lbl = QtWidgets.QLabel()
+        labels_lbl.setWordWrap(True)
+        labels_lbl.setTextInteractionFlags(
+            QtCore.Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        form.addRow("Labels here:", labels_lbl)
+
+        # Read-only-for-now reminder until ed4 adds add/delete-label tools.
+        hint = QtWidgets.QLabel(
+            "Editing rooms (polygons) is not supported in this editor. "
+            "To fix a merged or split room, edit ``wall_patches`` in "
+            "calibration.json and re-run ``calibrate``."
+        )
+        hint.setWordWrap(True)
+        hint.setStyleSheet("color: #888; font-size: 11px;")
+
+        wrapper = QtWidgets.QWidget()
+        wrap_layout = QtWidgets.QVBoxLayout(wrapper)
+        wrap_layout.setContentsMargins(0, 0, 0, 0)
+        wrap_layout.addWidget(box)
+        wrap_layout.addWidget(hint)
+        wrap_layout.addStretch(1)
+
+        widgets = {
+            "id": id_lbl,
+            "area": area_lbl,
+            "bbox": bbox_lbl,
+            "labels": labels_lbl,
+        }
+        return wrapper, widgets
+
+    # ------------------------------------------------- combo helpers
+
+    def _repopulate_room_combo(
+        self, available_room_ids: list[int], current_room_id: Optional[int]
+    ) -> None:
+        combo: QtWidgets.QComboBox = self._label_widgets["room"]
+        combo.blockSignals(True)
+        try:
+            combo.clear()
+            combo.addItem("(none — orphan)", _ORPHAN_SENTINEL)
+            for rid in available_room_ids:
+                combo.addItem(f"room {rid}", rid)
+            target = _ORPHAN_SENTINEL if current_room_id is None else current_room_id
+            idx = combo.findData(target)
+            if idx < 0:
+                # The room_id refers to a room we don't have a polygon for
+                # (data corruption?) — show it anyway so the user can fix it.
+                combo.addItem(f"room {current_room_id} (unknown!)", current_room_id)
+                idx = combo.count() - 1
+            combo.setCurrentIndex(idx)
+        finally:
+            combo.blockSignals(False)
+
+    # ----------------------------------------------- signal forwarders
+
+    def _emit_id_changed(self) -> None:
+        if self._suppress_signals or self._current_label_index is None:
+            return
+        new_id = self._label_widgets["id"].text().strip()
+        if not new_id:
+            # Don't allow blanking out the id — the data model treats id as a
+            # required string. Revert the field to the previous value by
+            # re-firing show_label() once the controller responds; for now,
+            # just swallow the event.
+            return
+        self.label_id_changed.emit(self._current_label_index, new_id)
+
+    def _emit_notes_changed(self) -> None:
+        if self._suppress_signals or self._current_label_index is None:
+            return
+        new_notes = self._label_widgets["notes"].text()
+        self.label_notes_changed.emit(self._current_label_index, new_notes)
+
+    def _emit_room_changed(self, combo_index: int) -> None:
+        if self._suppress_signals or self._current_label_index is None:
+            return
+        combo: QtWidgets.QComboBox = self._label_widgets["room"]
+        data = combo.itemData(combo_index)
+        if data == _ORPHAN_SENTINEL:
+            new_room_id: Optional[int] = None
+        else:
+            new_room_id = int(data)
+        self.label_room_changed.emit(self._current_label_index, new_room_id)
+
+
+__all__ = ["InspectorPanel"]

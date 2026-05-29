@@ -24,6 +24,8 @@ from ..calibration import (
     load_calibration,
 )
 from .canvas import MapCanvas
+from .controller import EditorController, save_calibration_with_backup
+from .sidebar import InspectorPanel
 
 
 # Window starts at a reasonable working size but not so big that it
@@ -59,6 +61,31 @@ class EditorMainWindow(QtWidgets.QMainWindow):
         self._canvas.set_map_image(map_path)
         self._canvas.set_calibration(calibration)
 
+        # Inspector dock on the right. Built before the controller so the
+        # controller can wire selection signals at construction time.
+        self._inspector = InspectorPanel(self)
+        self._inspector_dock = QtWidgets.QDockWidget("Inspector", self)
+        self._inspector_dock.setWidget(self._inspector)
+        self._inspector_dock.setAllowedAreas(
+            QtCore.Qt.DockWidgetArea.LeftDockWidgetArea
+            | QtCore.Qt.DockWidgetArea.RightDockWidgetArea
+        )
+        # Inspector starts ~320 px wide — enough for the longest field labels
+        # without crowding the canvas on a 1280-wide window.
+        self._inspector.setMinimumWidth(280)
+        self.addDockWidget(
+            QtCore.Qt.DockWidgetArea.RightDockWidgetArea, self._inspector_dock
+        )
+
+        self._controller = EditorController(
+            calibration=calibration,
+            calibration_path=calibration_path,
+            canvas=self._canvas,
+            inspector=self._inspector,
+            parent=self,
+        )
+        self._controller.dirty_changed.connect(self._on_dirty_changed)
+
         self._build_menus()
         self._build_status_bar()
 
@@ -67,15 +94,53 @@ class EditorMainWindow(QtWidgets.QMainWindow):
     def _build_menus(self) -> None:
         """Construct the menu bar.
 
-        Only File and View exist in ed1-ed2. Edit/Tools/Help are added by
-        later milestones as the corresponding features land.
+        File: Save / Save As / Reload / Close.
+        Edit: Undo / Redo (provided by the controller's QUndoStack).
+        View: zoom + layer toggles.
+        Tools / Help are added by later milestones as the corresponding
+        features land.
         """
         file_menu = self.menuBar().addMenu("&File")
+
+        act_save = QtGui.QAction("&Save", self)
+        act_save.setShortcut(QtGui.QKeySequence.StandardKey.Save)
+        act_save.triggered.connect(self._save)
+        file_menu.addAction(act_save)
+
+        act_save_as = QtGui.QAction("Save &As…", self)
+        act_save_as.setShortcut(QtGui.QKeySequence.StandardKey.SaveAs)
+        act_save_as.triggered.connect(self._save_as)
+        file_menu.addAction(act_save_as)
+
+        act_reload = QtGui.QAction("&Reload from disk", self)
+        # Ctrl+R is the conventional reload shortcut on Windows; tooltip
+        # spells it out since QKeySequence doesn't display it the same way
+        # on every platform.
+        act_reload.setShortcut(QtGui.QKeySequence("Ctrl+R"))
+        act_reload.setStatusTip(
+            "Reload calibration.json from disk, discarding unsaved edits."
+        )
+        act_reload.triggered.connect(self._reload)
+        file_menu.addAction(act_reload)
+
+        file_menu.addSeparator()
 
         act_close = QtGui.QAction("&Close", self)
         act_close.setShortcut(QtGui.QKeySequence.StandardKey.Close)
         act_close.triggered.connect(self.close)
         file_menu.addAction(act_close)
+
+        # Edit menu — Undo / Redo come from the controller's QUndoStack so
+        # they are auto-enabled/disabled by Qt as the stack state changes.
+        edit_menu = self.menuBar().addMenu("&Edit")
+        undo_stack = self._controller.undo_stack()
+        act_undo = undo_stack.createUndoAction(self, "&Undo")
+        act_undo.setShortcuts(QtGui.QKeySequence.StandardKey.Undo)
+        act_redo = undo_stack.createRedoAction(self, "&Redo")
+        # StandardKey.Redo gives Ctrl+Y on Windows / Shift+Ctrl+Z on Mac/Linux.
+        act_redo.setShortcuts(QtGui.QKeySequence.StandardKey.Redo)
+        edit_menu.addAction(act_undo)
+        edit_menu.addAction(act_redo)
 
         view_menu = self.menuBar().addMenu("&View")
 
@@ -121,16 +186,21 @@ class EditorMainWindow(QtWidgets.QMainWindow):
         view_menu.addAction(self._act_orphans)
 
     def _build_status_bar(self) -> None:
-        """Status bar shows live cursor coords and calibration counts.
+        """Status bar shows cursor coords, calibration counts, and dirty state.
 
-        At this milestone only the cursor coords and the counts are wired up;
-        later milestones add the dirty indicator and the active-tool label.
+        The dirty indicator is a small label that turns into a bullet
+        (``● unsaved``) the first time the user makes a change, and clears
+        when the file is saved.
         """
         self._cursor_label = QtWidgets.QLabel("")
         self._cursor_label.setMinimumWidth(180)
         self._counts_label = QtWidgets.QLabel(self._compose_counts_text())
+        self._dirty_label = QtWidgets.QLabel("")
+        self._dirty_label.setStyleSheet("color: #b85c00;")
+        self._dirty_label.setMinimumWidth(80)
 
         bar = self.statusBar()
+        bar.addPermanentWidget(self._dirty_label)
         bar.addPermanentWidget(self._counts_label)
         bar.addPermanentWidget(self._cursor_label)
 
@@ -144,10 +214,152 @@ class EditorMainWindow(QtWidgets.QMainWindow):
         y = int(point.y())
         self._cursor_label.setText(f"x={x}  y={y}")
 
+    def _on_dirty_changed(self, dirty: bool) -> None:
+        """Update the window title + status-bar marker on stack clean/dirty.
+
+        ``QMainWindow.setWindowModified`` + a ``[*]`` placeholder in the
+        title is the Qt-native idiom for "unsaved changes". We use it for
+        the title bar, and a redundant explicit string in the status bar
+        so the state is visible even when the title is truncated.
+        """
+        self.setWindowModified(dirty)
+        self._dirty_label.setText("● unsaved" if dirty else "")
+        # Counts may also be relevant if the user just changed a label's
+        # room link (orphan counts shift); cheap to recompute.
+        self._counts_label.setText(self._compose_counts_text())
+
+    # ---------------------------------------------------------- file ops
+
+    def _save(self) -> None:
+        """Write the calibration to its existing path with a .bak backup."""
+        try:
+            backup = self._controller.save()
+        except OSError as exc:
+            QtWidgets.QMessageBox.critical(
+                self,
+                "Save failed",
+                f"Could not write {self._calibration_path.name}:\n\n{exc}",
+            )
+            return
+        msg = f"Saved {self._calibration_path.name}"
+        if backup is not None:
+            msg += f" (previous version → {backup.name})"
+        self.statusBar().showMessage(msg, 4000)
+
+    def _save_as(self) -> None:
+        """Save the calibration to a user-chosen path. Updates the bound path."""
+        new_path_str, _filter = QtWidgets.QFileDialog.getSaveFileName(
+            self,
+            "Save calibration as",
+            str(self._calibration_path),
+            "Calibration JSON (*.json);;All files (*)",
+        )
+        if not new_path_str:
+            return
+        new_path = Path(new_path_str)
+        try:
+            save_calibration_with_backup(self._calibration, new_path)
+        except OSError as exc:
+            QtWidgets.QMessageBox.critical(
+                self,
+                "Save failed",
+                f"Could not write {new_path.name}:\n\n{exc}",
+            )
+            return
+        # Re-target the controller and the window title to the new path so
+        # subsequent saves go to the same place.
+        self._calibration_path = new_path
+        self._controller._calibration_path = new_path  # noqa: SLF001 — intentional rebinding
+        self._controller.undo_stack().setClean()
+        self.setWindowTitle(self._compose_title())
+        self.statusBar().showMessage(f"Saved as {new_path.name}", 4000)
+
+    def _reload(self) -> None:
+        """Reload calibration.json from disk, discarding unsaved edits.
+
+        Refuses to proceed without confirmation if the user has unsaved
+        changes — losing edits silently would be a poor experience even
+        for an internal tool.
+        """
+        if self._controller.is_dirty():
+            choice = QtWidgets.QMessageBox.question(
+                self,
+                "Discard unsaved changes?",
+                "You have unsaved changes. Reloading will discard them.\n\n"
+                "Continue?",
+                QtWidgets.QMessageBox.StandardButton.Discard
+                | QtWidgets.QMessageBox.StandardButton.Cancel,
+                QtWidgets.QMessageBox.StandardButton.Cancel,
+            )
+            if choice != QtWidgets.QMessageBox.StandardButton.Discard:
+                return
+
+        try:
+            fresh = load_calibration(self._calibration_path)
+        except (OSError, CalibrationFormatError) as exc:
+            QtWidgets.QMessageBox.critical(
+                self,
+                "Reload failed",
+                f"Could not load {self._calibration_path.name}:\n\n{exc}",
+            )
+            return
+
+        # Swap in the new calibration. The simplest path is a full
+        # rebuild — incremental refresh is for in-session edits, not
+        # arbitrary disk-to-memory diffs.
+        self._calibration = fresh
+        # Hot-swap the controller's model reference too so subsequent
+        # commands target the freshly loaded objects.
+        self._controller._cal = fresh  # noqa: SLF001 — intentional rebinding
+        self._canvas.set_calibration(fresh)
+        self._controller.undo_stack().clear()
+        self._controller.undo_stack().setClean()
+        self._inspector.show_nothing()
+        self._counts_label.setText(self._compose_counts_text())
+        self.statusBar().showMessage(
+            f"Reloaded {self._calibration_path.name}", 4000
+        )
+
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:  # noqa: N802 — Qt API
+        """Prompt to save unsaved changes before the window closes."""
+        if not self._controller.is_dirty():
+            event.accept()
+            return
+
+        choice = QtWidgets.QMessageBox.question(
+            self,
+            "Unsaved changes",
+            "Save changes to "
+            f"{self._calibration_path.name} before closing?",
+            QtWidgets.QMessageBox.StandardButton.Save
+            | QtWidgets.QMessageBox.StandardButton.Discard
+            | QtWidgets.QMessageBox.StandardButton.Cancel,
+            QtWidgets.QMessageBox.StandardButton.Save,
+        )
+        if choice == QtWidgets.QMessageBox.StandardButton.Cancel:
+            event.ignore()
+            return
+        if choice == QtWidgets.QMessageBox.StandardButton.Save:
+            try:
+                self._controller.save()
+            except OSError as exc:
+                QtWidgets.QMessageBox.critical(
+                    self,
+                    "Save failed",
+                    f"Could not write {self._calibration_path.name}:\n\n{exc}\n\n"
+                    "Close cancelled.",
+                )
+                event.ignore()
+                return
+        event.accept()
+
     # ---------------------------------------------------------- helpers
 
     def _compose_title(self) -> str:
-        return f"OfficeMapMaker editor — {self._calibration_path.name}"
+        # The trailing ``[*]`` is a Qt placeholder for "modified marker" —
+        # Qt expands it to ``*`` when ``setWindowModified(True)`` is set,
+        # nothing otherwise.
+        return f"OfficeMapMaker editor — {self._calibration_path.name}[*]"
 
     def _compose_counts_text(self) -> str:
         cal = self._calibration

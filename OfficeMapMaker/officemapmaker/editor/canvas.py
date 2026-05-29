@@ -69,16 +69,26 @@ class MapCanvas(QtWidgets.QGraphicsView):
             | QtGui.QPainter.RenderHint.SmoothPixmapTransform
         )
 
-        # Drag mode: empty space drags the scroll position; clicking an item
-        # will instead start a rubber-band selection. ``RubberBandDrag`` was
-        # considered but ``ScrollHandDrag`` plays better with click-to-select.
-        self.setDragMode(QtWidgets.QGraphicsView.DragMode.ScrollHandDrag)
+        # Drag mode: ``RubberBandDrag`` is what lets a left-click on an item
+        # actually *select* it (``ScrollHandDrag`` swallows clicks for panning
+        # before items see them, which is fatal for an editor). On empty
+        # canvas, left-drag draws a rubber-band — harmless even though we
+        # rarely multi-select. Panning lives on the middle button + shift-
+        # plus-left-button so the user still has a one-handed pan option;
+        # both are wired up in ``mousePressEvent`` below.
+        self.setDragMode(QtWidgets.QGraphicsView.DragMode.RubberBandDrag)
         self.setTransformationAnchor(
             QtWidgets.QGraphicsView.ViewportAnchor.AnchorUnderMouse
         )
         self.setResizeAnchor(
             QtWidgets.QGraphicsView.ViewportAnchor.AnchorUnderMouse
         )
+
+        # Track whether we're currently in a manual pan (middle button or
+        # shift-left button drag), and the screen-pixel point we started
+        # from so each delta translates the scroll bars.
+        self._panning = False
+        self._pan_last_pos: Optional[QtCore.QPoint] = None
 
         # Track mouse position even when no button is pressed so the status
         # bar can show live image-pixel coords.
@@ -273,7 +283,55 @@ class MapCanvas(QtWidgets.QGraphicsView):
     def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:  # noqa: N802 — Qt API
         scene_pos = self.mapToScene(event.position().toPoint())
         self.cursor_scene_pos_changed.emit(scene_pos)
+
+        if self._panning and self._pan_last_pos is not None:
+            # Translate scroll bars by the cursor delta. Using viewport
+            # coordinates (not scene) keeps the pan responsive at any zoom.
+            here = event.position().toPoint()
+            delta = here - self._pan_last_pos
+            self._pan_last_pos = here
+            h_bar = self.horizontalScrollBar()
+            v_bar = self.verticalScrollBar()
+            h_bar.setValue(h_bar.value() - delta.x())
+            v_bar.setValue(v_bar.value() - delta.y())
+            event.accept()
+            return
+
         super().mouseMoveEvent(event)
+
+    def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:  # noqa: N802 — Qt API
+        """Intercept middle-button + shift-left for a manual pan gesture.
+
+        Plain left-click falls through to the base class so ``RubberBandDrag``
+        + ``ItemIsSelectable`` give the user item selection. Middle button
+        and shift-left start a one-handed scroll-by-drag.
+        """
+        is_pan_trigger = (
+            event.button() == QtCore.Qt.MouseButton.MiddleButton
+            or (
+                event.button() == QtCore.Qt.MouseButton.LeftButton
+                and event.modifiers() & QtCore.Qt.KeyboardModifier.ShiftModifier
+            )
+        )
+        if is_pan_trigger:
+            self._panning = True
+            self._pan_last_pos = event.position().toPoint()
+            self.viewport().setCursor(QtCore.Qt.CursorShape.ClosedHandCursor)
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event: QtGui.QMouseEvent) -> None:  # noqa: N802 — Qt API
+        if self._panning and event.button() in (
+            QtCore.Qt.MouseButton.MiddleButton,
+            QtCore.Qt.MouseButton.LeftButton,
+        ):
+            self._panning = False
+            self._pan_last_pos = None
+            self.viewport().unsetCursor()
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:  # noqa: N802 — Qt API
         """Keyboard shortcuts owned by the canvas itself.
