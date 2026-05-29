@@ -5,16 +5,34 @@ are ~3500×4000 px with hundreds of clickable items. ``QGraphicsScene`` keeps
 items in a BSP-indexed scene graph and culls draws to the viewport, so pan
 and zoom stay smooth without us writing any of that bookkeeping.
 
-This milestone (ed1) only adds the pixmap + pan/zoom/scroll. Overlay items
-(labels and rooms) arrive in milestone ed2.
+This module owns the visual representation of the calibration:
+
+* Pan/zoom/scroll mouse + keyboard plumbing.
+* The pixmap of the map image.
+* The label/room overlay items (added in milestone ed2).
+* Layer-visibility toggles (labels on/off, rooms on/off, orphans only).
+
+Mutation of the underlying ``Calibration`` happens via ``QUndoCommand``s
+in milestone ed3+; this module just renders and re-styles items in place.
 """
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Optional
 
 from PySide6 import QtCore, QtGui, QtWidgets
+
+from ..calibration import Calibration
+from .items import (
+    LabelItem,
+    RoomItem,
+    build_room_polygon,
+    compute_label_status,
+    find_duplicate_label_ids,
+    room_classification,
+)
 
 
 # Wheel zoom factor per notch. 1.15 ≈ 15% per scroll step, which feels right
@@ -27,7 +45,7 @@ _MAX_ZOOM = 40.0
 
 
 class MapCanvas(QtWidgets.QGraphicsView):
-    """Scrollable, zoomable view of a floor-plan map.
+    """Scrollable, zoomable view of a floor-plan map plus overlay items.
 
     Pan: middle-mouse-button drag or ``ScrollHandDrag`` mode while no item
     is being clicked. Zoom: mouse wheel (anchored at the cursor so the
@@ -53,8 +71,8 @@ class MapCanvas(QtWidgets.QGraphicsView):
         )
 
         # Drag mode: empty space drags the scroll position; clicking an item
-        # (added in ed2+) will instead start a rubber-band selection. For now
-        # only the pan behaviour matters.
+        # will instead start a rubber-band selection. ``RubberBandDrag`` was
+        # considered but ``ScrollHandDrag`` plays better with click-to-select.
         self.setDragMode(QtWidgets.QGraphicsView.DragMode.ScrollHandDrag)
         self.setTransformationAnchor(
             QtWidgets.QGraphicsView.ViewportAnchor.AnchorUnderMouse
@@ -69,6 +87,20 @@ class MapCanvas(QtWidgets.QGraphicsView):
 
         self._pixmap_item: Optional[QtWidgets.QGraphicsPixmapItem] = None
         self._zoom: float = 1.0
+
+        # Overlay item storage. Keyed by stable identifiers so we can
+        # re-style or remove items without re-iterating the scene.
+        # Label index = position in ``Calibration.labels`` (stable across edits
+        # because we never reorder labels in the data model).
+        self._label_items: dict[int, LabelItem] = {}
+        # Room id = ``Room.id`` (the stable integer assigned at calibration).
+        self._room_items: dict[int, RoomItem] = {}
+
+        # Layer visibility — separate from item visibility because the
+        # "orphans only" filter also flips per-item visibility.
+        self._labels_visible = True
+        self._rooms_visible = True
+        self._orphans_only = False
 
     # ------------------------------------------------------------------ map
 
@@ -89,6 +121,108 @@ class MapCanvas(QtWidgets.QGraphicsView):
         self._pixmap_item.setZValue(-1000)  # always behind future overlays
         self._scene.setSceneRect(QtCore.QRectF(pixmap.rect()))
         self.fit_in_view()
+
+    # ----------------------------------------------------------- overlays
+
+    def set_calibration(self, calibration: Calibration) -> None:
+        """Build (or rebuild) all overlay items from a ``Calibration``.
+
+        Tear-and-rebuild is the simplest correct approach for an initial
+        load or after a major undo/redo step. Incremental updates (after a
+        single label edit) will be added in ed3 alongside the undo stack.
+        """
+        # Clear existing overlay items but keep the pixmap.
+        for item in list(self._label_items.values()):
+            self._scene.removeItem(item)
+        for item in list(self._room_items.values()):
+            self._scene.removeItem(item)
+        self._label_items.clear()
+        self._room_items.clear()
+
+        # Build rooms first so they paint below the labels.
+        labels_by_room: dict[int, list] = {}
+        for lab in calibration.labels:
+            if lab.room_id is not None:
+                labels_by_room.setdefault(lab.room_id, []).append(lab)
+
+        # Decompressing room RLE masks is the startup bottleneck on real
+        # calibrations (~30ms per room × hundreds of rooms). zlib + numpy
+        # release the GIL during the work, so a small thread pool gives a
+        # ~5× speedup with no concurrency hazards: ``QPolygonF`` is a value
+        # type (not a ``QObject``) so it's safe to build from worker threads.
+        rooms = list(calibration.rooms)
+        with ThreadPoolExecutor() as pool:
+            polygons = list(pool.map(build_room_polygon, rooms))
+
+        for room, polygon in zip(rooms, polygons):
+            if polygon is None:
+                # Malformed RLE or empty mask — skip rather than crash.
+                continue
+            classification = room_classification(
+                room, labels_by_room.get(room.id, [])
+            )
+            item = RoomItem(polygon, room=room, classification=classification)
+            self._scene.addItem(item)
+            self._room_items[room.id] = item
+
+        # Build labels.
+        duplicate_ids = find_duplicate_label_ids(calibration.labels)
+        for idx, lab in enumerate(calibration.labels):
+            status = compute_label_status(lab, duplicate_ids)
+            item = LabelItem(lab, idx, status=status)
+            self._scene.addItem(item)
+            self._label_items[idx] = item
+
+        # Re-apply current visibility settings to the new items.
+        self._apply_visibility()
+
+    def label_items(self) -> dict[int, LabelItem]:
+        """Read-only view of the per-label overlay items, keyed by index."""
+        return dict(self._label_items)
+
+    def room_items(self) -> dict[int, RoomItem]:
+        """Read-only view of the per-room overlay items, keyed by room id."""
+        return dict(self._room_items)
+
+    # ----------------------------------------------------------- toggles
+
+    def set_labels_visible(self, visible: bool) -> None:
+        self._labels_visible = visible
+        self._apply_visibility()
+
+    def set_rooms_visible(self, visible: bool) -> None:
+        self._rooms_visible = visible
+        self._apply_visibility()
+
+    def set_orphans_only(self, on: bool) -> None:
+        """When on, hide labels with rooms and rooms with labels.
+
+        Lets the user focus only on the problems that need attention without
+        having to dismiss the healthy items one by one.
+        """
+        self._orphans_only = on
+        self._apply_visibility()
+
+    def labels_visible(self) -> bool:
+        return self._labels_visible
+
+    def rooms_visible(self) -> bool:
+        return self._rooms_visible
+
+    def orphans_only(self) -> bool:
+        return self._orphans_only
+
+    def _apply_visibility(self) -> None:
+        for item in self._label_items.values():
+            base = self._labels_visible
+            if self._orphans_only and item.status == LabelItem.STATUS_LINKED:
+                base = False
+            item.setVisible(base)
+        for item in self._room_items.values():
+            base = self._rooms_visible
+            if self._orphans_only and item.classification is not None:
+                base = False
+            item.setVisible(base)
 
     # ---------------------------------------------------------------- zoom
 
@@ -164,3 +298,4 @@ class MapCanvas(QtWidgets.QGraphicsView):
             event.accept()
             return
         super().keyPressEvent(event)
+

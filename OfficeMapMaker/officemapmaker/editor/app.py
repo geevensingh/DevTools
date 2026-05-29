@@ -57,6 +57,7 @@ class EditorMainWindow(QtWidgets.QMainWindow):
         self._canvas = MapCanvas(self)
         self.setCentralWidget(self._canvas)
         self._canvas.set_map_image(map_path)
+        self._canvas.set_calibration(calibration)
 
         self._build_menus()
         self._build_status_bar()
@@ -66,8 +67,8 @@ class EditorMainWindow(QtWidgets.QMainWindow):
     def _build_menus(self) -> None:
         """Construct the menu bar.
 
-        Only File and View exist in ed1. Edit/Tools/Help are added by later
-        milestones as the corresponding features land.
+        Only File and View exist in ed1-ed2. Edit/Tools/Help are added by
+        later milestones as the corresponding features land.
         """
         file_menu = self.menuBar().addMenu("&File")
 
@@ -92,6 +93,32 @@ class EditorMainWindow(QtWidgets.QMainWindow):
         act_zoom_out.setShortcut(QtGui.QKeySequence.StandardKey.ZoomOut)
         act_zoom_out.triggered.connect(lambda: self._canvas.zoom_by(1.0 / 1.25))
         view_menu.addAction(act_zoom_out)
+
+        view_menu.addSeparator()
+
+        # Layer toggles. The shortcuts (L, R, O) match what the plan promises.
+        # ``setCheckable(True)`` + ``setChecked`` keeps the menu in sync with
+        # the canvas if some other code path flips the toggle programmatically.
+        self._act_labels = QtGui.QAction("Show &labels", self)
+        self._act_labels.setShortcut(QtGui.QKeySequence("L"))
+        self._act_labels.setCheckable(True)
+        self._act_labels.setChecked(self._canvas.labels_visible())
+        self._act_labels.toggled.connect(self._canvas.set_labels_visible)
+        view_menu.addAction(self._act_labels)
+
+        self._act_rooms = QtGui.QAction("Show &rooms", self)
+        self._act_rooms.setShortcut(QtGui.QKeySequence("R"))
+        self._act_rooms.setCheckable(True)
+        self._act_rooms.setChecked(self._canvas.rooms_visible())
+        self._act_rooms.toggled.connect(self._canvas.set_rooms_visible)
+        view_menu.addAction(self._act_rooms)
+
+        self._act_orphans = QtGui.QAction("&Orphans only", self)
+        self._act_orphans.setShortcut(QtGui.QKeySequence("O"))
+        self._act_orphans.setCheckable(True)
+        self._act_orphans.setChecked(self._canvas.orphans_only())
+        self._act_orphans.toggled.connect(self._canvas.set_orphans_only)
+        view_menu.addAction(self._act_orphans)
 
     def _build_status_bar(self) -> None:
         """Status bar shows live cursor coords and calibration counts.
