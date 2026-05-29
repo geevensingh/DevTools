@@ -608,6 +608,62 @@ def _run_build_confirm(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_tile(args: argparse.Namespace) -> int:
+    """Execute Pass 5 (tile composite into letter pages + multi-page PDF)."""
+    from .manifest import write_manifest
+    from .tile import tile_composite
+
+    composite_path: Path = args.composite
+    out_dir: Path = args.out
+    if not composite_path.exists():
+        print(f"error: composite not found at {composite_path}", file=sys.stderr)
+        return 2
+
+    # Build refuses to overwrite a reviewed composite; tile is allowed to
+    # run on any composite (it's a downstream packaging step).  But if the
+    # composite hasn't been reviewed, mention it as a warning.
+    reviewed_sentinel = composite_path.with_name(composite_path.name + ".reviewed")
+    if not reviewed_sentinel.exists() and not args.auto:
+        print(
+            f"warning: composite has not been confirmed yet — run "
+            f"'officemapmaker build confirm --composite {composite_path}' first "
+            f"(or pass --auto to skip this gate)",
+            file=sys.stderr,
+        )
+
+    result = tile_composite(
+        composite_path,
+        out_dir=out_dir,
+        dpi=args.dpi,
+        paper=args.paper,
+        overlap_in=args.overlap_in,
+    )
+
+    print(
+        f"wrote {len(result.tile_paths)} tile(s) "
+        f"({result.grid.rows}x{result.grid.cols} grid at {result.grid.dpi} DPI) "
+        f"to {out_dir}"
+    )
+    print(f"wrote {result.contact_sheet_path}")
+    print(f"wrote {result.pdf_path}")
+
+    write_manifest(
+        out_dir / "all.pdf",
+        {
+            "composite": composite_path,
+        },
+    )
+
+    for issue in result.issues:
+        stream = sys.stderr if issue.severity == "error" else sys.stdout
+        print(f"[{issue.severity}] {issue.code}: {issue.message}", file=stream)
+    print(
+        f"summary: {len(result.errors)} error(s), {len(result.warnings)} warning(s)"
+    )
+    print(f"next: review {result.contact_sheet_path} and open {result.pdf_path}")
+    return 1 if result.errors else 0
+
+
 def dispatch(args: argparse.Namespace) -> int:
     cmd = args.cmd
 
@@ -650,7 +706,7 @@ def dispatch(args: argparse.Namespace) -> int:
         return _run_build(args)
 
     if cmd == "tile":
-        return _not_implemented("tile")
+        return _run_tile(args)
 
     if cmd == "all":
         return _not_implemented("all")

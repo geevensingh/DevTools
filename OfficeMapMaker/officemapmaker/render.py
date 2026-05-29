@@ -160,6 +160,61 @@ def _label_by_office(calibration: Calibration) -> dict[str, Label]:
     return {lbl.id.upper(): lbl for lbl in calibration.office_labels()}
 
 
+def _write_composite_meta(
+    sidecar_path: Path,
+    *,
+    map_path: Path,
+    map_hash: str,
+    canvas_size: tuple[int, int],
+    palette: TeamPalette,
+    layout: Layout,
+    assignments: Sequence[Assignment],
+    calibration: Calibration,
+) -> None:
+    """Write ``<composite>_meta.json`` next to ``composite.png``.
+
+    Pass 5 (tile) reads this to render the legend page in the PDF without
+    needing to re-load the calibration / assignments.
+    """
+    import datetime
+    import json
+
+    # Headcount by team, and by team-from-layout vs team-from-assignments.
+    headcount: dict[str, int] = {}
+    assigned_offices = {entry.office_id.upper() for entry in layout.entries}
+    for asn in assignments:
+        if asn.office_id.upper() not in assigned_offices:
+            continue
+        team = asn.team or ""
+        headcount[team] = headcount.get(team, 0) + 1
+
+    total_office_labels = sum(
+        1
+        for lbl in calibration.labels
+        if lbl.classification.value == "office"
+    )
+    vacant_offices = max(total_office_labels - len(assigned_offices), 0)
+
+    meta = {
+        "schema": "officemapmaker.composite_meta.v1",
+        "map_path": str(map_path),
+        "map_hash": map_hash,
+        "rendered_at": datetime.datetime.now().isoformat(timespec="seconds"),
+        "composite_size": [int(canvas_size[0]), int(canvas_size[1])],
+        "palette": {
+            team: rgb_to_hex(color) for team, color in palette.colors.items()
+        },
+        "headcount": headcount,
+        "total_people": sum(headcount.values()),
+        "total_office_labels": total_office_labels,
+        "assigned_offices": len(assigned_offices),
+        "vacant_offices": vacant_offices,
+        "low_contrast_teams": sorted(palette.low_contrast),
+        "overrides_used": sorted(palette.overrides_used),
+    }
+    sidecar_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
+
+
 def _load_font(font_path: Optional[str], font_px: int):
     """Load a TrueType font, falling back to PIL's default bitmap font."""
     from PIL import ImageFont
@@ -539,6 +594,19 @@ def render_composite(
     review_path = output_png.with_name(output_png.stem + "_review.png")
     if write_review_copy:
         cv2.imwrite(str(review_path), canvas)
+
+    # Sidecar metadata: pass-5 (tile) needs the palette + headcount info to
+    # render the legend page. The composite PNG alone doesn't carry it.
+    _write_composite_meta(
+        output_png.with_name(output_png.stem + "_meta.json"),
+        map_path=map_path,
+        map_hash=getattr(calibration, "map_hash", "") or "",
+        canvas_size=(canvas.shape[1], canvas.shape[0]),
+        palette=palette,
+        layout=layout,
+        assignments=assignments,
+        calibration=calibration,
+    )
 
     # ---------- Step 7: auto-checks ----------
     diff = np.any(canvas != original_bgr, axis=2)
