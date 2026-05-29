@@ -487,6 +487,127 @@ def _run_layout_confirm(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_build(args: argparse.Namespace) -> int:
+    """Execute Pass 4 (render the colored composite)."""
+    from .calibration import compute_map_hash, load_calibration
+    from .io_assignments import AssignmentLoadError, load_assignments
+    from .layout import load_layout
+    from .manifest import clear_review, write_manifest
+    from .palette import load_team_overrides
+    from .render import render_composite
+
+    cal_path: Path = args.calibration
+    map_path: Path = args.map
+    asn_path: Path = args.assignments
+    layout_path: Path = args.layout
+    teams_path = args.teams  # Optional[Path]
+    out_path: Path = args.out
+
+    for label, path in (
+        ("calibration", cal_path),
+        ("map", map_path),
+        ("assignments", asn_path),
+        ("layout", layout_path),
+    ):
+        if not path.exists():
+            print(f"error: {label} not found at {path}", file=sys.stderr)
+            return 2
+
+    try:
+        cal = load_calibration(cal_path)
+    except Exception as exc:  # noqa: BLE001
+        print(f"error: could not load calibration: {exc}", file=sys.stderr)
+        return 2
+
+    try:
+        layout = load_layout(layout_path)
+    except Exception as exc:  # noqa: BLE001
+        print(f"error: could not load layout: {exc}", file=sys.stderr)
+        return 2
+
+    try:
+        assignments = load_assignments(asn_path)
+    except AssignmentLoadError as exc:
+        print(f"error: could not load assignments: {exc}", file=sys.stderr)
+        return 2
+
+    overrides = None
+    if teams_path is not None:
+        if not teams_path.exists():
+            print(f"error: --teams file not found at {teams_path}", file=sys.stderr)
+            return 2
+        try:
+            overrides = load_team_overrides(teams_path)
+        except Exception as exc:  # noqa: BLE001
+            print(f"error: could not load team overrides: {exc}", file=sys.stderr)
+            return 2
+
+    # Stale-input check: layout map_hash must match the current map.
+    current_hash = compute_map_hash(map_path)
+    if layout.map_hash and layout.map_hash != current_hash and not args.force:
+        print(
+            f"error: layout was planned against a different map "
+            f"(layout.map_hash={layout.map_hash}, current={current_hash}). "
+            f"Re-run 'officemapmaker layout ...' (or pass --force to override).",
+            file=sys.stderr,
+        )
+        return 2
+
+    result = render_composite(
+        map_path,
+        cal,
+        layout,
+        assignments,
+        output_png=out_path,
+        team_overrides=overrides,
+    )
+
+    print(f"wrote {result.composite_path}")
+    print(f"wrote {result.review_path}")
+    print(
+        f"diff: {result.changed_pixel_count} pixel(s) changed; "
+        f"{result.unexpected_pixel_count} unexpected"
+    )
+
+    # Re-rendering invalidates any prior composite-review confirmation.
+    clear_review(out_path)
+    write_manifest(
+        out_path,
+        {
+            "map": map_path,
+            "calibration": cal_path,
+            "assignments": asn_path,
+            "layout": layout_path,
+            **({"teams": teams_path} if teams_path else {}),
+        },
+    )
+
+    for issue in result.issues:
+        stream = sys.stderr if issue.severity == "error" else sys.stdout
+        print(str(issue), file=stream)
+    print(
+        f"summary: {len(result.errors)} error(s), {len(result.warnings)} warning(s)"
+    )
+    print(
+        f"next: review {result.review_path} then run "
+        f"'officemapmaker build confirm --composite {out_path}'"
+    )
+    return 1 if result.errors else 0
+
+
+def _run_build_confirm(args: argparse.Namespace) -> int:
+    """Write the .reviewed sentinel next to composite.png."""
+    from .manifest import confirm_review
+
+    composite_path: Path = args.composite
+    if not composite_path.exists():
+        print(f"error: composite not found at {composite_path}", file=sys.stderr)
+        return 2
+    sentinel = confirm_review(composite_path)
+    print(f"wrote {sentinel}")
+    return 0
+
+
 def dispatch(args: argparse.Namespace) -> int:
     cmd = args.cmd
 
@@ -522,11 +643,11 @@ def dispatch(args: argparse.Namespace) -> int:
     if cmd == "build":
         action = getattr(args, "build_action", None)
         if action == "confirm":
-            return _not_implemented("build confirm")
+            return _run_build_confirm(args)
         if args.map is None or args.assignments is None:
             print("error: --map and --assignments are required when running build", file=sys.stderr)
             return 2
-        return _not_implemented("build")
+        return _run_build(args)
 
     if cmd == "tile":
         return _not_implemented("tile")
