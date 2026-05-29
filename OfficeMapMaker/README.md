@@ -21,7 +21,7 @@ letter-size print tiles, and a single printable PDF.
 | When you want to… | Run |
 |---|---|
 | Set up calibration for a new map (one time per map) | `OfficeMapMaker calibrate --map MAP.png` |
-| Open the calibration review PDF | `OfficeMapMaker calibrate review --calibration calibration.json` |
+| Open the calibration review PDF (auto-rebuilds if you edited the calibration) | `OfficeMapMaker calibrate review --calibration calibration.json` |
 | Confirm calibration is correct | `OfficeMapMaker calibrate confirm --calibration calibration.json` |
 | Check assignments match the map | `OfficeMapMaker validate labels --calibration calibration.json --assignments PEOPLE` |
 | Find flood-fill leaks | `OfficeMapMaker validate fill --map MAP.png --calibration calibration.json` |
@@ -104,7 +104,9 @@ labels; no duplicate IDs.
 ```
 OfficeMapMaker calibrate review --calibration calibration.json
 ```
-Opens `calibration_review.pdf` in your default viewer. It has four pages:
+Builds `calibration_review.pdf` (if it doesn't exist yet or you've hand-edited
+`calibration.json` since it was last built) and opens it in your default viewer.
+It has four pages:
 1. Map with every label boxed in green and the OCR-read text shown.
 2. Every room polygon outlined in a distinct color with its area + classification. **Look for two rooms that are actually one merged region** — those usually need a `wall_patches` entry.
 3. Thumbnail grid of labels sorted by OCR confidence (lowest first). **Scan for misreads.**
@@ -115,6 +117,12 @@ Opens `calibration_review.pdf` in your default viewer. It has four pages:
 - Reclassify a hallway label the tool guessed as an office: change `classification` to `hallway`.
 - Disambiguate duplicate room numbers (e.g., the `1003` in two wings): change one to `1003-N` and the other to `1003-S`. The spreadsheet must use the same form.
 - Plug a flood-fill leak: add `[x1, y1, x2, y2]` to `wall_patches` (you'll be guided to specific endpoints in Step 3).
+
+After any of these edits, run `calibrate review` again — it notices the
+calibration is newer than the PDF, rebuilds the PDF, and opens it. Any prior
+`calibration.json.reviewed` sentinel is cleared automatically (you'll need to
+re-confirm). Don't re-run `calibrate` to pick up your hand-edits — that does a
+fresh OCR pass and overwrites them.
 
 **Confirm:**
 ```
@@ -261,7 +269,7 @@ Print the PDF, tape pages together along the overlap, post on the wall, take a v
 ### "OCR misread a number"
 1. Open `calibration_review.pdf` and find the wrong label on page 3 (lowest confidence first).
 2. Edit the `id` field in `calibration.json`.
-3. Re-run `calibrate review` (regenerates the PDF), then `calibrate confirm`.
+3. Re-run `calibrate review` — it sees the calibration is newer than the PDF, rebuilds and opens it. Then run `calibrate confirm`.
 
 ### "Two rooms are getting merged in flood-fill"
 1. Open `calibration_leaks\room-<id>-<code>.png`, find the gap visually.

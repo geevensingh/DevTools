@@ -261,12 +261,177 @@ def test_cli_calibrate_confirm_missing_calibration_returns_2(tmp_path: Path):
     assert rc == 2
 
 
-def test_cli_calibrate_review_missing_pdf_returns_2(tmp_path: Path, capsys):
+def test_cli_calibrate_review_missing_calibration_returns_2(tmp_path: Path, capsys):
+    from officemapmaker.__main__ import main
+
+    rc = main(["calibrate", "review", "--calibration", str(tmp_path / "nope.json")])
+    assert rc == 2
+    err = capsys.readouterr().err
+    assert "calibration not found" in err
+
+
+def test_cli_calibrate_review_invalid_calibration_returns_2(tmp_path: Path, capsys):
+    """A calibration file that isn't a valid Calibration should fail cleanly."""
     from officemapmaker.__main__ import main
 
     cal_path = tmp_path / "calibration.json"
-    cal_path.write_text("{}")
+    cal_path.write_text("{}")  # missing required keys
     rc = main(["calibrate", "review", "--calibration", str(cal_path)])
     assert rc == 2
     err = capsys.readouterr().err
-    assert "review PDF not found" in err
+    assert "could not load calibration" in err
+
+
+def test_cli_calibrate_review_missing_map_returns_2(tmp_path: Path, capsys):
+    """If we need to rebuild but the source map is gone, fail with guidance."""
+    from officemapmaker.__main__ import main
+
+    cal_path = tmp_path / "calibration.json"
+    cal = _make_minimal_calibration(img_size=(400, 300))
+    save_calibration(cal, cal_path)
+    # Note: no map.png is written next to the calibration.
+
+    rc = main(["calibrate", "review", "--calibration", str(cal_path)])
+    assert rc == 2
+    err = capsys.readouterr().err
+    assert "source map not found" in err
+    assert "--map" in err  # nudge user toward the explicit flag
+
+
+def test_cli_calibrate_review_rebuilds_when_pdf_missing(
+    tmp_path: Path, monkeypatch, capsys
+):
+    """First-time review (no PDF yet) builds it from the calibration."""
+    from officemapmaker.__main__ import main
+    import officemapmaker.__main__ as cli_mod
+
+    cal_path = tmp_path / "calibration.json"
+    map_path = tmp_path / "map.png"
+    _make_map_png(map_path, size=(400, 300))
+    cal = _make_minimal_calibration(img_size=(400, 300))
+    save_calibration(cal, cal_path)
+
+    pdf_path = cal_path.with_name("calibration_review.pdf")
+    assert not pdf_path.exists()
+
+    # Don't actually launch a PDF viewer.
+    opened: list[str] = []
+    monkeypatch.setattr(cli_mod.os, "startfile", lambda p: opened.append(p), raising=False)
+
+    rc = main(["calibrate", "review", "--calibration", str(cal_path)])
+
+    assert rc == 0
+    assert pdf_path.exists()
+    assert opened == [str(pdf_path)]
+    out = capsys.readouterr().out
+    assert "rebuilt" in out
+
+
+def test_cli_calibrate_review_rebuilds_when_calibration_newer(
+    tmp_path: Path, monkeypatch, capsys
+):
+    """Hand-editing the calibration (newer mtime) triggers a PDF rebuild."""
+    import os
+    import time
+    from officemapmaker.__main__ import main
+    import officemapmaker.__main__ as cli_mod
+    from officemapmaker.manifest import confirm_review, is_reviewed
+
+    cal_path = tmp_path / "calibration.json"
+    map_path = tmp_path / "map.png"
+    _make_map_png(map_path, size=(400, 300))
+    cal = _make_minimal_calibration(img_size=(400, 300))
+    save_calibration(cal, cal_path)
+
+    pdf_path = cal_path.with_name("calibration_review.pdf")
+
+    monkeypatch.setattr(cli_mod.os, "startfile", lambda p: None, raising=False)
+
+    # First call builds the PDF.
+    assert main(["calibrate", "review", "--calibration", str(cal_path)]) == 0
+    first_mtime = pdf_path.stat().st_mtime
+
+    # Pretend the user reviewed it.
+    confirm_review(cal_path)
+    assert is_reviewed(cal_path)
+
+    # Simulate the user hand-editing calibration.json AFTER the PDF was built.
+    # Bump the calibration's mtime forward to guarantee strict newer-than even
+    # on filesystems with coarse timestamps.
+    future = first_mtime + 5
+    os.utime(cal_path, (future, future))
+
+    # Capture stdout so the rebuild banner can be asserted.
+    capsys.readouterr()  # drain previous output
+    assert main(["calibrate", "review", "--calibration", str(cal_path)]) == 0
+
+    second_mtime = pdf_path.stat().st_mtime
+    assert second_mtime > first_mtime, "PDF should have been regenerated"
+    out = capsys.readouterr().out
+    assert "rebuilt" in out
+    # Hand-edits invalidate prior review.
+    assert not is_reviewed(cal_path), ".reviewed sentinel should be cleared on rebuild"
+
+
+def test_cli_calibrate_review_skips_rebuild_when_pdf_newer(
+    tmp_path: Path, monkeypatch, capsys
+):
+    """If the PDF is already up to date, just open it — don't rebuild."""
+    import os
+    from officemapmaker.__main__ import main
+    import officemapmaker.__main__ as cli_mod
+
+    cal_path = tmp_path / "calibration.json"
+    map_path = tmp_path / "map.png"
+    _make_map_png(map_path, size=(400, 300))
+    cal = _make_minimal_calibration(img_size=(400, 300))
+    save_calibration(cal, cal_path)
+
+    pdf_path = cal_path.with_name("calibration_review.pdf")
+    pdf_path.write_bytes(b"%PDF-1.4 sentinel\n")  # not a real PDF — never opened-for-read
+
+    # Make the PDF strictly newer than the calibration.
+    cal_mtime = cal_path.stat().st_mtime
+    future = cal_mtime + 5
+    os.utime(pdf_path, (future, future))
+    expected_mtime = pdf_path.stat().st_mtime
+
+    monkeypatch.setattr(cli_mod.os, "startfile", lambda p: None, raising=False)
+
+    capsys.readouterr()
+    rc = main(["calibrate", "review", "--calibration", str(cal_path)])
+
+    assert rc == 0
+    assert pdf_path.stat().st_mtime == expected_mtime, "PDF should NOT have been rebuilt"
+    out = capsys.readouterr().out
+    assert "rebuilt" not in out
+    assert pdf_path.read_bytes() == b"%PDF-1.4 sentinel\n"
+
+
+def test_cli_calibrate_review_explicit_map_flag(
+    tmp_path: Path, monkeypatch
+):
+    """--map overrides the recorded map_image (useful when the map moved)."""
+    from officemapmaker.__main__ import main
+    import officemapmaker.__main__ as cli_mod
+
+    cal_path = tmp_path / "calibration.json"
+    cal = _make_minimal_calibration(img_size=(400, 300))
+    save_calibration(cal, cal_path)
+    # Recorded map_image points at ./map.png which we DON'T create.
+    # Instead the map lives in a different folder.
+    elsewhere = tmp_path / "moved"
+    elsewhere.mkdir()
+    moved_map = elsewhere / "map.png"
+    _make_map_png(moved_map, size=(400, 300))
+
+    monkeypatch.setattr(cli_mod.os, "startfile", lambda p: None, raising=False)
+
+    rc = main([
+        "calibrate", "review",
+        "--calibration", str(cal_path),
+        "--map", str(moved_map),
+    ])
+
+    assert rc == 0
+    assert cal_path.with_name("calibration_review.pdf").exists()

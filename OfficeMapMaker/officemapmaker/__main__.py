@@ -72,9 +72,19 @@ def build_parser() -> argparse.ArgumentParser:
     cal_subs = p_cal.add_subparsers(dest="cal_action", required=False, metavar="ACTION")
 
     p_cal_review = cal_subs.add_parser(
-        "review", help="Open calibration_review.pdf in the default viewer."
+        "review", help="Build (if missing or stale) and open calibration_review.pdf."
     )
     p_cal_review.add_argument("--calibration", type=Path, default=Path("calibration.json"))
+    p_cal_review.add_argument(
+        "--map",
+        type=Path,
+        default=None,
+        help=(
+            "Optional. Path to the source map. Defaults to the 'map_image' "
+            "field recorded in the calibration, resolved relative to the "
+            "calibration file."
+        ),
+    )
     _add_common_flags(p_cal_review)
 
     p_cal_confirm = cal_subs.add_parser(
@@ -225,16 +235,71 @@ def _run_calibrate(args: argparse.Namespace) -> int:
 
 
 def _run_calibrate_review(args: argparse.Namespace) -> int:
-    """Open calibration_review.pdf in the platform's default viewer."""
+    """Build calibration_review.pdf if missing or stale, then open it.
+
+    Rebuilds when:
+      - The PDF does not exist.
+      - The PDF is older than the calibration file (the user hand-edited
+        ``calibration.json`` to fix OCR misreads, reclassifications, etc.).
+
+    A rebuild also clears any prior ``.reviewed`` sentinel so the user has to
+    re-confirm after eyeballing the new PDF — hand-edits invalidate prior
+    confirmation by design.
+
+    The source map is resolved from (in order):
+      1. ``--map`` if provided.
+      2. The ``map_image`` field inside ``calibration.json`` (relative to
+         the calibration file's directory).
+    """
+    from .calibration import CalibrationFormatError, load_calibration
+    from .manifest import clear_review
+    from .review_pdf import build_calibration_review_pdf
+
     cal_path: Path = args.calibration
-    review_pdf = cal_path.with_name(cal_path.stem + "_review.pdf")
-    if not review_pdf.exists():
+    if not cal_path.exists():
         print(
-            f"error: review PDF not found at {review_pdf}; "
+            f"error: calibration not found at {cal_path}; "
             f"run 'officemapmaker calibrate --map MAP.png --out {cal_path}' first",
             file=sys.stderr,
         )
         return 2
+
+    review_pdf = cal_path.with_name(cal_path.stem + "_review.pdf")
+    needs_rebuild = (
+        not review_pdf.exists()
+        or review_pdf.stat().st_mtime < cal_path.stat().st_mtime
+    )
+
+    if needs_rebuild:
+        try:
+            cal = load_calibration(cal_path)
+        except CalibrationFormatError as exc:
+            print(f"error: could not load calibration: {exc}", file=sys.stderr)
+            return 2
+
+        if args.map is not None:
+            map_path = args.map
+        else:
+            map_path = (cal_path.parent / cal.map_image).resolve()
+
+        if not map_path.exists():
+            print(
+                f"error: source map not found at {map_path}.\n"
+                f"Pass --map to point at the map explicitly, or move the map "
+                f"next to {cal_path.name} so the recorded 'map_image' "
+                f"({cal.map_image!r}) resolves.",
+                file=sys.stderr,
+            )
+            return 2
+
+        try:
+            build_calibration_review_pdf(map_path, cal, review_pdf)
+        except Exception as exc:  # noqa: BLE001 — surface any build failure
+            print(f"error: failed to build review PDF: {exc}", file=sys.stderr)
+            return 2
+
+        clear_review(cal_path)
+        print(f"rebuilt {review_pdf} from {cal_path}")
 
     try:
         # os.startfile is Windows-only but launches the registered handler.
