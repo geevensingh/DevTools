@@ -318,6 +318,7 @@ positions, relocated office-number bbox, leader-line endpoints if any.
 | `Office "1003" is ambiguous (matches 2 labels)` | Duplicate room number across wings | Edit calibration to use `1003-N` / `1003-S`; update spreadsheet to match |
 | `Fill leaked from room 1480 into room 1481` | Open doorway in the map | Add the suggested `wall_patches` entry, re-run `validate fill` |
 | `Person "Jane Doe" not placed: office 9999 not on map` | Spreadsheet typo or wrong floor | Fix the spreadsheet row, or add the office to calibration if it was missed |
+| `... is a password-protected or rights-managed Office document` | Spreadsheet is IRM-protected or encrypted | Open it in Excel and **Save As** an unprotected `.xlsx` or `.csv` before running OfficeMapMaker |
 | Composite looks fine but `validate fill` fails | Calibration polygon is itself wrong (two rooms merged in CC) | Add a `wall_patches` entry to split them, re-run `calibrate` (the CC will be recomputed) |
 | `Pixel changed outside any expected region` from `build` | Internal bug, or stale calibration | File a bug; in the meantime re-run `calibrate` |
 
