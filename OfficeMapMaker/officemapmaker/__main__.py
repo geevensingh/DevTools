@@ -28,6 +28,7 @@ Common flags on every subcommand: ``--auto`` (skip review gates), ``--force``
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -181,6 +182,8 @@ def _run_calibrate(args: argparse.Namespace) -> int:
     """Execute Pass 0 (calibrate) and write calibration.json + report issues."""
     from .calibrate import TesseractNotFoundError, calibrate_map
     from .calibration import save_calibration
+    from .manifest import clear_review, write_manifest
+    from .review_pdf import build_calibration_review_pdf
 
     try:
         cal, issues = calibrate_map(args.map)
@@ -194,6 +197,19 @@ def _run_calibrate(args: argparse.Namespace) -> int:
     save_calibration(cal, args.out)
     print(f"wrote {args.out} ({len(cal.labels)} labels, {len(cal.rooms)} rooms)")
 
+    # Regenerating the calibration invalidates any prior human-review confirmation.
+    clear_review(args.out)
+    # Record the input SHA so the next pass can detect a stale calibration.
+    write_manifest(args.out, {"map": args.map})
+
+    # Build the human-review PDF next to the calibration so the user can eyeball it.
+    review_pdf_path = args.out.with_name(args.out.stem + "_review.pdf")
+    try:
+        build_calibration_review_pdf(args.map, cal, review_pdf_path)
+        print(f"wrote {review_pdf_path}")
+    except Exception as exc:  # noqa: BLE001 — review PDF is best-effort
+        print(f"warning: failed to write review PDF ({exc})", file=sys.stderr)
+
     errors = [i for i in issues if i.severity == "error"]
     warnings = [i for i in issues if i.severity == "warning"]
     for issue in issues:
@@ -201,7 +217,50 @@ def _run_calibrate(args: argparse.Namespace) -> int:
         print(str(issue), file=stream)
 
     print(f"summary: {len(errors)} error(s), {len(warnings)} warning(s)")
+    print(
+        f"next: review {review_pdf_path} then run "
+        f"'officemapmaker calibrate confirm --calibration {args.out}'"
+    )
     return 1 if errors else 0
+
+
+def _run_calibrate_review(args: argparse.Namespace) -> int:
+    """Open calibration_review.pdf in the platform's default viewer."""
+    cal_path: Path = args.calibration
+    review_pdf = cal_path.with_name(cal_path.stem + "_review.pdf")
+    if not review_pdf.exists():
+        print(
+            f"error: review PDF not found at {review_pdf}; "
+            f"run 'officemapmaker calibrate --map MAP.png --out {cal_path}' first",
+            file=sys.stderr,
+        )
+        return 2
+
+    try:
+        # os.startfile is Windows-only but launches the registered handler.
+        os.startfile(str(review_pdf))  # type: ignore[attr-defined]
+        print(f"opened {review_pdf}")
+        return 0
+    except AttributeError:
+        # Non-Windows fallback: print the path so the user can open it manually.
+        print(f"open this file in your PDF viewer: {review_pdf}")
+        return 0
+    except OSError as exc:
+        print(f"error: could not open {review_pdf}: {exc}", file=sys.stderr)
+        return 2
+
+
+def _run_calibrate_confirm(args: argparse.Namespace) -> int:
+    """Write the .reviewed sentinel next to calibration.json."""
+    from .manifest import confirm_review
+
+    cal_path: Path = args.calibration
+    if not cal_path.exists():
+        print(f"error: calibration not found at {cal_path}", file=sys.stderr)
+        return 2
+    sentinel = confirm_review(cal_path)
+    print(f"wrote {sentinel}")
+    return 0
 
 
 def dispatch(args: argparse.Namespace) -> int:
@@ -210,9 +269,9 @@ def dispatch(args: argparse.Namespace) -> int:
     if cmd == "calibrate":
         action = getattr(args, "cal_action", None)
         if action == "review":
-            return _not_implemented("calibrate review")
+            return _run_calibrate_review(args)
         if action == "confirm":
-            return _not_implemented("calibrate confirm")
+            return _run_calibrate_confirm(args)
         if args.map is None:
             print("error: --map is required when running calibration", file=sys.stderr)
             return 2
