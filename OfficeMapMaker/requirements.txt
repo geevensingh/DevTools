@@ -1,0 +1,11 @@
+# Runtime dependencies
+opencv-python>=4.8
+pillow>=10.0
+numpy>=1.24
+pytesseract>=0.3.10
+openpyxl>=3.1
+xlrd==1.2.0          # only version that still reads legacy BIFF .xls
+reportlab>=4.0
+
+# Dev / test only
+pytest>=7.4

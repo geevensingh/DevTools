@@ -1,0 +1,26 @@
+__pycache__/
+*.pyc
+*.pyo
+
+# Local "I reviewed this" sentinels and per-output manifests
+*.reviewed
+*.manifest.json
+
+# Generated outputs (regenerate from inputs)
+composite.png
+composite_review.png
+calibration_review.pdf
+validation_labels_review.png
+rooms_overview.png
+layout.json
+layout_review.png
+layout_review_problems.png
+leaks/
+tiles/
+report.txt
+
+# Per-sample exceptions: keep golden calibration + inputs checked in if/when added
+!samples/*/calibration.json
+!samples/*/map.png
+!samples/*/assignments.csv
+!samples/*/teams.json
