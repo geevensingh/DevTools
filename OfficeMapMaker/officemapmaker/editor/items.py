@@ -41,9 +41,9 @@ _LABEL_COLOR_DUPLICATE = QtGui.QColor("#cc0000")  # red
 
 # Pad the drawn rectangle by this fraction of its bbox on every side so the
 # outline doesn't hug the glyphs (Tesseract bboxes are typically tight on the
-# ink). 0.075 each side = ~15% wider/taller overall. The underlying
+# ink). 0.15 each side = ~30% wider/taller overall. The underlying
 # ``label.bbox`` is left unchanged — this is a purely visual inflation.
-_LABEL_BOX_PAD_FRAC = 0.075
+_LABEL_BOX_PAD_FRAC = 0.15
 
 # Room polygon visual style. Translucent fill + slightly darker thin outline.
 _ROOM_OUTLINE_WIDTH = 1.0
@@ -162,8 +162,8 @@ class LabelItem(QtWidgets.QGraphicsRectItem):
     """Clickable rectangle drawn around an OCR-detected label.
 
     The drawn rectangle is the label's ``bbox`` inflated by
-    ``_LABEL_BOX_PAD_FRAC`` on every side (~15% overall) so the outline
-    breathes a little around the glyphs instead of hugging them — Tesseract
+    ``_LABEL_BOX_PAD_FRAC`` on every side (~30% overall) so the outline
+    breathes around the glyphs instead of hugging them — Tesseract
     bboxes are typically tight on the ink. The underlying
     ``label.bbox`` is left unchanged; this padding is purely visual.
 
