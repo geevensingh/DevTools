@@ -177,6 +177,33 @@ def _not_implemented(name: str) -> int:
     return 2
 
 
+def _run_calibrate(args: argparse.Namespace) -> int:
+    """Execute Pass 0 (calibrate) and write calibration.json + report issues."""
+    from .calibrate import TesseractNotFoundError, calibrate_map
+    from .calibration import save_calibration
+
+    try:
+        cal, issues = calibrate_map(args.map)
+    except TesseractNotFoundError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 3
+    except FileNotFoundError as exc:
+        print(f"error: map not found: {exc}", file=sys.stderr)
+        return 2
+
+    save_calibration(cal, args.out)
+    print(f"wrote {args.out} ({len(cal.labels)} labels, {len(cal.rooms)} rooms)")
+
+    errors = [i for i in issues if i.severity == "error"]
+    warnings = [i for i in issues if i.severity == "warning"]
+    for issue in issues:
+        stream = sys.stderr if issue.severity == "error" else sys.stdout
+        print(str(issue), file=stream)
+
+    print(f"summary: {len(errors)} error(s), {len(warnings)} warning(s)")
+    return 1 if errors else 0
+
+
 def dispatch(args: argparse.Namespace) -> int:
     cmd = args.cmd
 
@@ -189,7 +216,7 @@ def dispatch(args: argparse.Namespace) -> int:
         if args.map is None:
             print("error: --map is required when running calibration", file=sys.stderr)
             return 2
-        return _not_implemented("calibrate")
+        return _run_calibrate(args)
 
     if cmd == "validate":
         action = args.val_action  # required
