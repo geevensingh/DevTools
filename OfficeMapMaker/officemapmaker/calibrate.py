@@ -28,7 +28,7 @@ import re
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import numpy as np
 
@@ -93,6 +93,11 @@ DEFAULT_MIN_OCR_CONFIDENCE = 30
 
 # Aspect-ratio thresholds for hallway classification (max side / min side).
 HALLWAY_ASPECT_RATIO = 4.0
+
+# Minimum solidity (polygon_area / bbox_area) to call a long-thin room a hallway.
+# L-shaped or T-shaped offices can have a high-aspect bounding box but the
+# polygon only fills part of it, so solidity is the dis-ambiguator.
+HALLWAY_MIN_SOLIDITY = 0.6
 
 # A room whose polygon area is more than this multiple of the median is
 # considered "very large" -> common-area classification.
@@ -235,15 +240,27 @@ def _classify(
     room_area: int,
     median_area: float,
 ) -> Classification:
-    """Classify a room by polygon area + aspect ratio."""
+    """Classify a room by polygon area + aspect ratio + solidity.
+
+    ``median_area`` should be computed over **labeled rooms only** — the
+    raw connected-component output contains hundreds of tiny noise polygons
+    (door swings, wall slivers) that would otherwise pull the median far
+    below typical-office size and cause real offices to be over-classified
+    as COMMON.
+    """
     _, _, w, h = room_bbox
     if w == 0 or h == 0:
         return Classification.SKIP
     long_side, short_side = max(w, h), min(w, h)
+    aspect = long_side / short_side
+    bbox_area = w * h
+    solidity = (room_area / bbox_area) if bbox_area > 0 else 0.0
 
-    if long_side / short_side >= HALLWAY_ASPECT_RATIO:
+    # Hallway = long, thin, AND mostly fills its bounding box (so L-shaped
+    # offices don't slip in just because their bbox happens to be long).
+    if aspect >= HALLWAY_ASPECT_RATIO and solidity >= HALLWAY_MIN_SOLIDITY:
         return Classification.HALLWAY
-    if room_area >= median_area * COMMON_AREA_MULTIPLIER:
+    if median_area > 0 and room_area >= median_area * COMMON_AREA_MULTIPLIER:
         return Classification.COMMON
     return Classification.OFFICE
 
@@ -347,19 +364,11 @@ def _build_calibration(
         )
         cc_by_id[new_id] = cc
 
-    # Classification depends on knowing the median room area.
-    if rooms:
-        median_area = float(np.median([r.area_px for r in rooms.values()]))
-    else:
-        median_area = 0.0
-    classifications: dict[int, Classification] = {
-        rid: _classify(r.bbox, r.area_px, median_area) for rid, r in rooms.items()
-    }
-
-    # Associate each OCR label with the CC whose mask contains the label center.
-    labels: list[Label] = []
+    # Phase 1: associate each OCR result with a room (or mark as orphan).
+    # We deliberately do this BEFORE classifying so the median-area
+    # computation can be restricted to rooms that actually have labels.
+    ocr_assignments: list[tuple[Any, Optional[int], tuple[int, int]]] = []
     room_label_count: dict[int, list[str]] = {rid: [] for rid in rooms}
-    id_to_label_indices: dict[str, list[int]] = {}
 
     for ocr in ocr_labels:
         center = bbox_center(ocr.bbox)
@@ -376,13 +385,40 @@ def _build_calibration(
                     ),
                 )
             )
+            ocr_assignments.append((ocr, None, center))
+        else:
+            room_centroid = mask_centroid(cc_by_id[room_id].mask) or center
+            room_label_count[room_id].append(ocr.text)
+            ocr_assignments.append((ocr, room_id, room_centroid))
+
+    # Phase 2: classification depends on the median room area, computed over
+    # rooms that have at least one label. Falling back to all-rooms median
+    # only when no labels were found at all keeps small synthetic test maps
+    # working.
+    labeled_room_areas = [
+        rooms[rid].area_px
+        for rid, lbls in room_label_count.items()
+        if lbls
+    ]
+    if labeled_room_areas:
+        median_area = float(np.median(labeled_room_areas))
+    elif rooms:
+        median_area = float(np.median([r.area_px for r in rooms.values()]))
+    else:
+        median_area = 0.0
+    classifications: dict[int, Classification] = {
+        rid: _classify(r.bbox, r.area_px, median_area) for rid, r in rooms.items()
+    }
+
+    # Phase 3: build the Label objects with their (now-known) classification.
+    labels: list[Label] = []
+    id_to_label_indices: dict[str, list[int]] = {}
+
+    for ocr, room_id, fill_seed in ocr_assignments:
+        if room_id is None:
             classification = Classification.SKIP
-            fill_seed = center
         else:
             classification = classifications[room_id]
-            room_centroid = mask_centroid(cc_by_id[room_id].mask) or center
-            fill_seed = room_centroid
-            room_label_count[room_id].append(ocr.text)
 
         label = Label(
             id=ocr.text,

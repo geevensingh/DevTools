@@ -252,14 +252,39 @@ def find_duplicate_label_ids(labels: list[Label]) -> set[str]:
 def room_classification(room: Room, labels_for_room: list[Label]) -> Optional[Classification]:
     """Pick the classification used to color a room.
 
-    If the room has no labels, return ``None`` (caller renders as orphan).
-    If it has multiple labels with different classifications (rare but
-    possible after manual edits), the first label's classification wins
-    — matches the existing render pipeline's behavior.
+    Selection order:
+
+    1. If the room has at least one label, return the first label's
+       classification (matches the existing render pipeline).
+    2. Otherwise infer from the room's bounding-box shape: long-and-thin
+       rooms are almost certainly hallways even when nobody bothered to
+       OCR-label them. This is a display-only inference — it never writes
+       back to ``calibration.json`` and never trips the calibrate
+       auto-checks. Returns ``None`` for rooms that don't match any
+       shape heuristic (caller renders as orphan).
     """
-    if not labels_for_room:
+    if labels_for_room:
+        return labels_for_room[0].classification
+    return _infer_classification_from_shape(room)
+
+
+def _infer_classification_from_shape(room: Room) -> Optional[Classification]:
+    """Guess a classification for a label-less room from its bbox shape.
+
+    Mirrors the hallway rule in ``calibrate._classify`` (aspect >= 4 AND
+    solidity >= 0.6) so the editor view stays consistent with the
+    persisted calibration.
+    """
+    _, _, w, h = room.bbox
+    if w <= 0 or h <= 0:
         return None
-    return labels_for_room[0].classification
+    long_side, short_side = max(w, h), min(w, h)
+    aspect = long_side / short_side
+    bbox_area = w * h
+    solidity = (room.area_px / bbox_area) if bbox_area > 0 else 0.0
+    if aspect >= 4.0 and solidity >= 0.6:
+        return Classification.HALLWAY
+    return None
 
 
 def build_room_polygon(room: Room) -> Optional[QtGui.QPolygonF]:

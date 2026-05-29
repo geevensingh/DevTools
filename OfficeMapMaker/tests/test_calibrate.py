@@ -131,6 +131,26 @@ def test_classify_zero_width_is_skip():
     assert _classify((0, 0, 0, 100), room_area=0, median_area=10_000) == Classification.SKIP
 
 
+def test_classify_l_shaped_office_is_not_hallway():
+    # L-shaped office: bounding box is 1000x200 (aspect=5, would be hallway
+    # by aspect alone) but the polygon only fills ~40% of the bbox -> office.
+    bbox = (0, 0, 1000, 200)
+    bbox_area = 1000 * 200
+    polygon_area = int(bbox_area * 0.4)
+    assert _classify(bbox, room_area=polygon_area, median_area=polygon_area) == Classification.OFFICE
+
+
+def test_classify_long_solid_corridor_is_hallway():
+    # Same 1000x200 bounding box but the polygon is solid -> hallway.
+    bbox = (0, 0, 1000, 200)
+    bbox_area = 1000 * 200
+    polygon_area = int(bbox_area * 0.95)
+    assert (
+        _classify(bbox, room_area=polygon_area, median_area=10_000)
+        == Classification.HALLWAY
+    )
+
+
 # ---------------------------------------------------------------------------
 # _build_calibration() — exercised without Tesseract by feeding fake OCR
 # ---------------------------------------------------------------------------
