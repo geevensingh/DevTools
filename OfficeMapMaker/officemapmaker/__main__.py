@@ -263,6 +263,63 @@ def _run_calibrate_confirm(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_validate_labels(args: argparse.Namespace) -> int:
+    """Execute Pass 1 (validate labels against assignments)."""
+    from .calibration import load_calibration
+    from .io_assignments import AssignmentLoadError, load_assignments
+    from .validate import render_validation_labels_review_png, validate_labels
+
+    cal_path: Path = args.calibration
+    asn_path: Path = args.assignments
+
+    if not cal_path.exists():
+        print(f"error: calibration not found at {cal_path}", file=sys.stderr)
+        return 2
+    if not asn_path.exists():
+        print(f"error: assignments file not found at {asn_path}", file=sys.stderr)
+        return 2
+
+    try:
+        cal = load_calibration(cal_path)
+    except Exception as exc:  # noqa: BLE001
+        print(f"error: could not load calibration: {exc}", file=sys.stderr)
+        return 2
+
+    try:
+        assignments = load_assignments(asn_path)
+    except AssignmentLoadError as exc:
+        print(f"error: could not load assignments: {exc}", file=sys.stderr)
+        return 2
+
+    issues = validate_labels(cal, assignments)
+    errors = [i for i in issues if i.severity == "error"]
+    warnings = [i for i in issues if i.severity == "warning"]
+
+    review_png = cal_path.with_name(cal_path.stem + "_validation_labels_review.png")
+    map_path = cal_path.with_name(cal.map_image)
+    if map_path.exists():
+        try:
+            render_validation_labels_review_png(map_path, cal, issues, review_png)
+            print(f"wrote {review_png}")
+        except Exception as exc:  # noqa: BLE001 — review PNG is best-effort
+            print(f"warning: failed to write review PNG ({exc})", file=sys.stderr)
+    else:
+        print(
+            f"warning: map image {map_path} not found next to calibration; "
+            "skipping validation review PNG",
+            file=sys.stderr,
+        )
+
+    for issue in issues:
+        stream = sys.stderr if issue.severity == "error" else sys.stdout
+        print(str(issue), file=stream)
+    print(
+        f"summary: {len(assignments)} assignment(s), "
+        f"{len(errors)} error(s), {len(warnings)} warning(s)"
+    )
+    return 1 if errors else 0
+
+
 def dispatch(args: argparse.Namespace) -> int:
     cmd = args.cmd
 
@@ -280,7 +337,7 @@ def dispatch(args: argparse.Namespace) -> int:
     if cmd == "validate":
         action = args.val_action  # required
         if action == "labels":
-            return _not_implemented("validate labels")
+            return _run_validate_labels(args)
         if action == "fill":
             return _not_implemented("validate fill")
         # argparse guarantees we don't reach here, but be defensive.
