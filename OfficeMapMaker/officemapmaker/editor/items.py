@@ -39,6 +39,12 @@ _LABEL_COLOR_LINKED = QtGui.QColor("#1f8a1f")   # green
 _LABEL_COLOR_ORPHAN = QtGui.QColor("#d18b00")   # amber
 _LABEL_COLOR_DUPLICATE = QtGui.QColor("#cc0000")  # red
 
+# Pad the drawn rectangle by this fraction of its bbox on every side so the
+# outline doesn't hug the glyphs (Tesseract bboxes are typically tight on the
+# ink). 0.075 each side = ~15% wider/taller overall. The underlying
+# ``label.bbox`` is left unchanged — this is a purely visual inflation.
+_LABEL_BOX_PAD_FRAC = 0.075
+
 # Room polygon visual style. Translucent fill + slightly darker thin outline.
 _ROOM_OUTLINE_WIDTH = 1.0
 _ROOM_FILL_ALPHA = 70           # out of 255 — visible but doesn't obscure walls
@@ -155,11 +161,15 @@ class RoomItem(QtWidgets.QGraphicsPolygonItem):
 class LabelItem(QtWidgets.QGraphicsRectItem):
     """Clickable rectangle drawn around an OCR-detected label.
 
-    The rectangle uses ``bbox`` exactly — no inflation — so the user can see
-    precisely what region of the map was identified as the label. Visual
-    status (linked / orphan / duplicate-id) is encoded as a colored outline;
-    the interior is left transparent so the user can still read the OCR'd
-    glyphs through it.
+    The drawn rectangle is the label's ``bbox`` inflated by
+    ``_LABEL_BOX_PAD_FRAC`` on every side (~15% overall) so the outline
+    breathes a little around the glyphs instead of hugging them — Tesseract
+    bboxes are typically tight on the ink. The underlying
+    ``label.bbox`` is left unchanged; this padding is purely visual.
+
+    Visual status (linked / orphan / duplicate-id) is encoded as a colored
+    outline; the interior is left transparent so the user can still read the
+    OCR'd glyphs through it.
     """
 
     # Statuses derived from the surrounding calibration; used to pick a color.
@@ -176,7 +186,12 @@ class LabelItem(QtWidgets.QGraphicsRectItem):
         parent: Optional[QtWidgets.QGraphicsItem] = None,
     ) -> None:
         x, y, w, h = label.bbox
-        super().__init__(QtCore.QRectF(x, y, w, h), parent)
+        pad_x = w * _LABEL_BOX_PAD_FRAC
+        pad_y = h * _LABEL_BOX_PAD_FRAC
+        super().__init__(
+            QtCore.QRectF(x - pad_x, y - pad_y, w + 2 * pad_x, h + 2 * pad_y),
+            parent,
+        )
         self.label: Label = label
         self.label_index: int = label_index
         self.status: str = status
