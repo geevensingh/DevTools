@@ -31,7 +31,6 @@ from .items import (
     build_room_polygon,
     compute_label_status,
     find_duplicate_label_ids,
-    room_classification,
 )
 
 
@@ -158,10 +157,8 @@ class MapCanvas(QtWidgets.QGraphicsView):
             if polygon is None:
                 # Malformed RLE or empty mask — skip rather than crash.
                 continue
-            classification = room_classification(
-                room, labels_by_room.get(room.id, [])
-            )
-            item = RoomItem(polygon, room=room, classification=classification)
+            labeled = bool(labels_by_room.get(room.id))
+            item = RoomItem(polygon, room=room, labeled=labeled)
             self._scene.addItem(item)
             self._room_items[room.id] = item
 
@@ -220,7 +217,7 @@ class MapCanvas(QtWidgets.QGraphicsView):
             item.setVisible(base)
         for item in self._room_items.values():
             base = self._rooms_visible
-            if self._orphans_only and item.classification is not None:
+            if self._orphans_only and item.labeled:
                 base = False
             item.setVisible(base)
 

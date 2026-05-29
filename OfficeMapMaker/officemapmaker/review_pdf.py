@@ -6,7 +6,7 @@ Per plan.md §8 Pass 0, the PDF has four pages:
     1. The full map with each detected label boxed in green, the OCR-read
        text overlaid, and a translucent fill over each assigned room polygon.
     2. Every connected-component polygon outlined in a distinct color, with
-       its computed area + classification annotated.
+       its computed area annotated.
     3. A grid of label thumbnails sorted by ascending OCR confidence — the
        fastest way to spot misreads.
     4. Orphans page: detected rooms with no label and labels outside all
@@ -27,7 +27,7 @@ from typing import Callable, Iterable, Optional
 
 import numpy as np
 
-from .calibration import Calibration, Classification, Label, Room
+from .calibration import Calibration, Label, Room
 from .geometry import rle_to_mask
 
 
@@ -270,9 +270,8 @@ def _render_page1_labels(c, page_w, page_h, map_image, cal: Calibration) -> None
         title="Page 1 — Detected labels on the map",
         caption=(
             f"{len(cal.labels)} labels found by OCR. Each green box is where OCR "
-            "found a label and the green text is what it read. The translucent fill "
-            "marks the room polygon we associated with that label "
-            "(blue=office, yellow=hallway, green=common). "
+            "found a label and the green text is what it read. The translucent "
+            "blue fill marks the room polygon we associated with that label. "
             "Scan for boxes around things that aren't actually room numbers."
         ),
     )
@@ -286,8 +285,7 @@ def _render_page1_labels(c, page_w, page_h, map_image, cal: Calibration) -> None
         room = cal.room_by_id(label.room_id)
         if room is None:
             continue
-        color = _color_for_classification(label.classification)
-        _draw_room_fill(c, fit, room, color, alpha=0.25)
+        _draw_room_fill(c, fit, room, _LABELED_ROOM_FILL_RGB, alpha=0.25)
 
     # 2) Green bboxes + OCR text.
     c.setStrokeColorRGB(0.0, 0.6, 0.0)
@@ -299,7 +297,7 @@ def _render_page1_labels(c, page_w, page_h, map_image, cal: Calibration) -> None
 
 
 def _render_page2_polygons(c, page_w, page_h, map_image, cal: Calibration) -> None:
-    """Page 2: every CC polygon outlined in a distinct color + classification labels."""
+    """Page 2: every CC polygon outlined in a distinct color + annotations."""
     fit = _embed_map(
         c, page_w, page_h, map_image,
         title="Page 2 — Connected-component room polygons",
@@ -311,8 +309,6 @@ def _render_page2_polygons(c, page_w, page_h, map_image, cal: Calibration) -> No
         ),
     )
 
-    classifications = {lab.room_id: lab.classification for lab in cal.labels if lab.room_id is not None}
-
     c.setLineWidth(0.8)
     c.setFont("Helvetica", 5)
     for idx, room in enumerate(cal.rooms):
@@ -321,11 +317,9 @@ def _render_page2_polygons(c, page_w, page_h, map_image, cal: Calibration) -> No
         c.setFillColorRGB(*rgb)
         _draw_room_outline(c, fit, room)
 
-        # Annotate with id + area + classification at the room's bbox top-left.
+        # Annotate with id + area at the room's bbox top-left.
         x_pdf, y_pdf = fit.to_pdf(room.bbox[0], room.bbox[1])
-        classification = classifications.get(room.id, Classification.SKIP)
-        annotation = f"#{room.id} {room.area_px}px {classification.value}"
-        c.drawString(x_pdf, y_pdf - 6, annotation)
+        c.drawString(x_pdf, y_pdf - 6, f"#{room.id} {room.area_px}px")
 
 
 def _render_page3_confidence(c, page_w, page_h, map_image, cal: Calibration) -> None:
@@ -367,7 +361,6 @@ def _render_page4_orphans(c, page_w, page_h, map_image, cal: Calibration) -> Non
                 id=f"room#{room.id}",
                 bbox=room.bbox,
                 room_id=room.id,
-                classification=Classification.SKIP,
                 fill_seed=(room.bbox[0] + room.bbox[2] // 2, room.bbox[1] + room.bbox[3] // 2),
                 ocr_confidence=0.0,
             )
@@ -384,8 +377,8 @@ def _render_page4_orphans(c, page_w, page_h, map_image, cal: Calibration) -> Non
             f"{len(orphan_rooms)} room(s) with no label (shown after, with id 'room#N'). "
             "Each tile is the relevant area cropped from the map. "
             "Resolve by editing calibration.json (set a label's room_id, "
-            "add a new Label entry pointing at an orphan room, or set "
-            "classification to 'skip')."
+            "add a new Label entry pointing at an orphan room, or delete "
+            "the spurious entry)."
         ),
     )
 
@@ -559,16 +552,9 @@ def _distinct_color(index: int, total: int) -> tuple[float, float, float]:
     return colorsys.hls_to_rgb(hue, 0.50, 0.65)
 
 
-_CLASSIFICATION_RGB: dict[Classification, tuple[float, float, float]] = {
-    Classification.OFFICE: (0.40, 0.70, 1.00),
-    Classification.HALLWAY: (1.00, 0.85, 0.40),
-    Classification.COMMON: (0.55, 0.85, 0.55),
-    Classification.SKIP: (0.80, 0.80, 0.80),
-}
-
-
-def _color_for_classification(c: Classification) -> tuple[float, float, float]:
-    return _CLASSIFICATION_RGB.get(c, (0.7, 0.7, 0.7))
+# Uniform translucent blue for any room that has at least one label, drawn
+# on page 1 as a faint backdrop so the user can confirm label↔room association.
+_LABELED_ROOM_FILL_RGB: tuple[float, float, float] = (0.40, 0.70, 1.00)
 
 
 __all__ = ["build_calibration_review_pdf"]

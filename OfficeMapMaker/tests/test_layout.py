@@ -11,7 +11,6 @@ import pytest
 
 from officemapmaker.calibration import (
     Calibration,
-    Classification,
     Label,
     RenderDefaults,
     Room,
@@ -55,7 +54,6 @@ def _office_label(label_id: str, room_id: int, fill_seed=(60, 60)) -> Label:
         id=label_id,
         bbox=(fill_seed[0] - 12, fill_seed[1] - 6, 24, 12),
         room_id=room_id,
-        classification=Classification.OFFICE,
         fill_seed=fill_seed,
         ocr_confidence=0.9,
     )

@@ -7,8 +7,8 @@ The two interactive overlay item types:
   yellow = orphan (no room link), red = duplicate id (conflicts with another
   label).
 * ``RoomItem`` — a translucent polygon over a connected-component room.
-  Color encodes classification: cyan = office, gray = hallway, tan = common,
-  red = skip, light yellow = orphan (no label points at it).
+  Color encodes whether the room has any label: cyan = labeled,
+  light yellow = orphan (no label points at it).
 
 Both items keep a reference to their underlying calibration record so the
 controller (added in ed3) can mutate the model from a click without having
@@ -23,7 +23,7 @@ import cv2
 import numpy as np
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ..calibration import Classification, Label, Room
+from ..calibration import Label, Room
 from ..geometry import rle_to_mask
 
 
@@ -44,16 +44,11 @@ _ROOM_OUTLINE_WIDTH = 1.0
 _ROOM_FILL_ALPHA = 70           # out of 255 — visible but doesn't obscure walls
 _ROOM_OUTLINE_ALPHA = 200
 
-# Classification → fill color (room is labeled; first label wins).
-_ROOM_FILL_BY_CLASSIFICATION: dict[Classification, QtGui.QColor] = {
-    Classification.OFFICE: QtGui.QColor("#6fbfff"),   # cyan
-    Classification.HALLWAY: QtGui.QColor("#a0a0a0"),  # gray
-    Classification.COMMON: QtGui.QColor("#dab880"),   # tan
-    Classification.SKIP: QtGui.QColor("#e57373"),     # soft red
-}
+# A room with at least one OCR-detected label.
+_ROOM_FILL_LABELED = QtGui.QColor("#6fbfff")   # cyan
 # An orphan room (no label points at it) is rendered in a distinct color so
 # the user can spot the polygons the OCR pass missed entirely.
-_ROOM_FILL_ORPHAN = QtGui.QColor("#fff176")  # light yellow
+_ROOM_FILL_ORPHAN = QtGui.QColor("#fff176")    # light yellow
 
 # Polygon simplification tolerance (pixels). Most room polygons are nearly
 # rectangular; we don't need every contour vertex from cv2.findContours.
@@ -112,9 +107,9 @@ def room_mask_to_polygons(mask: np.ndarray) -> list[QtGui.QPolygonF]:
 class RoomItem(QtWidgets.QGraphicsPolygonItem):
     """One translucent polygon overlay for a calibration ``Room``.
 
-    Stores a back-reference to the underlying ``Room`` record plus the
-    classification it was drawn with so the canvas can recolor it in place
-    after an edit (instead of tearing it down and rebuilding).
+    Stores a back-reference to the underlying ``Room`` record plus a
+    ``labeled`` flag (does any label point at this room?) so the canvas
+    can recolor it in place after an edit instead of tearing it down.
     """
 
     def __init__(
@@ -122,13 +117,12 @@ class RoomItem(QtWidgets.QGraphicsPolygonItem):
         polygon: QtGui.QPolygonF,
         *,
         room: Room,
-        classification: Optional[Classification],
+        labeled: bool,
         parent: Optional[QtWidgets.QGraphicsItem] = None,
     ) -> None:
         super().__init__(polygon, parent)
         self.room: Room = room
-        # ``None`` means orphan room (no label points at it).
-        self.classification: Optional[Classification] = classification
+        self.labeled: bool = labeled
         self.setZValue(Z_ROOM)
         self.setData(0, "room")
         self.setData(1, room.id)
@@ -138,18 +132,13 @@ class RoomItem(QtWidgets.QGraphicsPolygonItem):
         )
         self._apply_style()
 
-    def set_classification(self, classification: Optional[Classification]) -> None:
-        """Recolor the polygon in place after an edit."""
-        self.classification = classification
+    def set_labeled(self, labeled: bool) -> None:
+        """Recolor the polygon in place after a label link changes."""
+        self.labeled = labeled
         self._apply_style()
 
     def _apply_style(self) -> None:
-        if self.classification is None:
-            base = _ROOM_FILL_ORPHAN
-        else:
-            base = _ROOM_FILL_BY_CLASSIFICATION.get(
-                self.classification, _ROOM_FILL_ORPHAN
-            )
+        base = _ROOM_FILL_LABELED if self.labeled else _ROOM_FILL_ORPHAN
         brush = QtGui.QBrush(_qcolor_with_alpha(base, _ROOM_FILL_ALPHA))
         pen = QtGui.QPen(_qcolor_with_alpha(base, _ROOM_OUTLINE_ALPHA))
         pen.setWidthF(_ROOM_OUTLINE_WIDTH)
@@ -249,44 +238,6 @@ def find_duplicate_label_ids(labels: list[Label]) -> set[str]:
     return {lid for lid, count in seen.items() if count > 1}
 
 
-def room_classification(room: Room, labels_for_room: list[Label]) -> Optional[Classification]:
-    """Pick the classification used to color a room.
-
-    Selection order:
-
-    1. If the room has at least one label, return the first label's
-       classification (matches the existing render pipeline).
-    2. Otherwise infer from the room's bounding-box shape: long-and-thin
-       rooms are almost certainly hallways even when nobody bothered to
-       OCR-label them. This is a display-only inference — it never writes
-       back to ``calibration.json`` and never trips the calibrate
-       auto-checks. Returns ``None`` for rooms that don't match any
-       shape heuristic (caller renders as orphan).
-    """
-    if labels_for_room:
-        return labels_for_room[0].classification
-    return _infer_classification_from_shape(room)
-
-
-def _infer_classification_from_shape(room: Room) -> Optional[Classification]:
-    """Guess a classification for a label-less room from its bbox shape.
-
-    Mirrors the hallway rule in ``calibrate._classify`` (aspect >= 4 AND
-    solidity >= 0.6) so the editor view stays consistent with the
-    persisted calibration.
-    """
-    _, _, w, h = room.bbox
-    if w <= 0 or h <= 0:
-        return None
-    long_side, short_side = max(w, h), min(w, h)
-    aspect = long_side / short_side
-    bbox_area = w * h
-    solidity = (room.area_px / bbox_area) if bbox_area > 0 else 0.0
-    if aspect >= 4.0 and solidity >= 0.6:
-        return Classification.HALLWAY
-    return None
-
-
 def build_room_polygon(room: Room) -> Optional[QtGui.QPolygonF]:
     """Decode a room's RLE mask and return its largest external polygon.
 
@@ -324,7 +275,6 @@ __all__ = [
     "build_room_polygon",
     "compute_label_status",
     "find_duplicate_label_ids",
-    "room_classification",
     "room_mask_to_polygons",
     "Z_LABEL",
     "Z_ROOM",

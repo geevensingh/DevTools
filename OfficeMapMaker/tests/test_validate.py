@@ -9,7 +9,6 @@ import pytest
 
 from officemapmaker.calibration import (
     Calibration,
-    Classification,
     Label,
     RenderDefaults,
     Room,
@@ -45,20 +44,8 @@ def _office_label(label_id: str, room_id: int, bbox=(50, 50, 30, 14), conf=0.9) 
         id=label_id,
         bbox=bbox,
         room_id=room_id,
-        classification=Classification.OFFICE,
         fill_seed=(bbox[0] + bbox[2] // 2, bbox[1] + bbox[3] // 2),
         ocr_confidence=conf,
-    )
-
-
-def _hallway_label(label_id: str, room_id: int, bbox=(50, 50, 30, 14)) -> Label:
-    return Label(
-        id=label_id,
-        bbox=bbox,
-        room_id=room_id,
-        classification=Classification.HALLWAY,
-        fill_seed=(bbox[0] + bbox[2] // 2, bbox[1] + bbox[3] // 2),
-        ocr_confidence=0.9,
     )
 
 
@@ -118,19 +105,6 @@ def test_office_not_on_map_is_error():
     assert errors[0].office_id == "9999"
 
 
-def test_office_classified_as_hallway_is_error():
-    cal = _build_cal(
-        labels=[_hallway_label("1003", room_id=1)],
-        rooms=[_square_room(1, 40, 40, 80)],
-    )
-    assignments = [_asn("Alice", "1003", "BITS")]
-    issues = validate_labels(cal, assignments)
-    errors = [i for i in issues if i.severity == "error"]
-    assert len(errors) == 1
-    assert errors[0].code == "office_is_not_an_office"
-    assert "hallway" in errors[0].message
-
-
 def test_ambiguous_office_id_is_error():
     cal = _build_cal(
         labels=[
@@ -161,20 +135,18 @@ def test_lookup_is_case_insensitive():
 # ---------------------------------------------------------------------------
 
 
-def test_vacant_office_is_warning():
+def test_vacant_office_no_longer_warned():
+    """Without classification, an unassigned label is just data — silent."""
     cal = _build_cal(
         labels=[_office_label("1480", room_id=1), _office_label("1481", room_id=2)],
         rooms=[_square_room(1, 40, 40, 80), _square_room(2, 200, 40, 80)],
     )
-    assignments = [_asn("Alice", "1480", "BITS")]  # 1481 vacant
+    assignments = [_asn("Alice", "1480", "BITS")]  # 1481 unassigned
     issues = validate_labels(cal, assignments)
-    vacant = [i for i in issues if i.code == "vacant_office"]
-    assert len(vacant) == 1
-    assert vacant[0].office_id == "1481"
-    assert vacant[0].severity == "warning"
+    assert not any(i.code == "vacant_office" for i in issues)
 
 
-def test_low_confidence_without_match_emits_two_warnings():
+def test_low_confidence_without_match_emits_warning():
     cal = _build_cal(
         labels=[_office_label("1480", room_id=1, conf=0.2)],
         rooms=[_square_room(1, 40, 40, 80)],
@@ -182,7 +154,6 @@ def test_low_confidence_without_match_emits_two_warnings():
     # No assignment for 1480.
     issues = validate_labels(cal, [])
     codes = _codes(issues)
-    assert "vacant_office" in codes
     assert "low_confidence_no_match" in codes
 
 
@@ -194,7 +165,6 @@ def test_low_confidence_with_match_does_not_warn():
     issues = validate_labels(cal, [_asn("Alice", "1480", "BITS")])
     codes = _codes(issues)
     assert "low_confidence_no_match" not in codes
-    assert "vacant_office" not in codes
 
 
 def test_duplicate_row_warning():
@@ -264,7 +234,7 @@ def test_render_validation_labels_review_png_writes_a_png(tmp_path: Path):
     )
     issues = [
         ValidationIssue(
-            severity="warning", code="vacant_office", message="x", office_id="1480"
+            severity="warning", code="low_confidence_no_match", message="x", office_id="1480"
         )
     ]
     out = tmp_path / "review.png"

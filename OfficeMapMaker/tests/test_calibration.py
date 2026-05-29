@@ -10,7 +10,6 @@ import pytest
 from officemapmaker.calibration import (
     Calibration,
     CalibrationFormatError,
-    Classification,
     Label,
     RenderDefaults,
     Room,
@@ -34,7 +33,6 @@ def _sample_calibration() -> Calibration:
                 id="1480",
                 bbox=(10, 20, 30, 12),
                 room_id=1,
-                classification=Classification.OFFICE,
                 fill_seed=(25, 26),
                 ocr_confidence=0.92,
                 notes="",
@@ -43,7 +41,6 @@ def _sample_calibration() -> Calibration:
                 id="1479A",
                 bbox=(60, 20, 36, 12),
                 room_id=2,
-                classification=Classification.OFFICE,
                 fill_seed=(78, 26),
                 ocr_confidence=0.81,
                 notes="touched up by hand",
@@ -52,7 +49,6 @@ def _sample_calibration() -> Calibration:
                 id="HALL-N",
                 bbox=(100, 100, 60, 12),
                 room_id=3,
-                classification=Classification.HALLWAY,
                 fill_seed=(130, 106),
                 ocr_confidence=0.55,
             ),
@@ -93,12 +89,22 @@ def test_saved_calibration_is_human_editable_json(tmp_path: Path) -> None:
     assert parsed["labels"][0]["id"] == "1480"
 
 
-def test_classification_serializes_as_plain_string(tmp_path: Path) -> None:
-    path = tmp_path / "calibration.json"
-    save_calibration(_sample_calibration(), path)
-    parsed = json.loads(path.read_text(encoding="utf-8"))
-    assert parsed["labels"][0]["classification"] == "office"
-    assert parsed["labels"][2]["classification"] == "hallway"
+def test_classification_legacy_field_is_silently_dropped(tmp_path: Path) -> None:
+    """Loader must tolerate (and discard) a legacy ``classification`` field."""
+    raw = _sample_calibration().to_dict()
+    # Inject a legacy classification key on each label, mimicking a calibration
+    # written by an earlier (pre-2.5) version of the tool.
+    for lbl in raw["labels"]:
+        lbl["classification"] = "office"
+    path = tmp_path / "legacy.json"
+    path.write_text(json.dumps(raw), encoding="utf-8")
+    reloaded = load_calibration(path)
+    # The loader didn't choke and re-serialization omits the legacy key.
+    out = path.with_suffix(".out.json")
+    save_calibration(reloaded, out)
+    parsed = json.loads(out.read_text(encoding="utf-8"))
+    for lbl in parsed["labels"]:
+        assert "classification" not in lbl
 
 
 def test_tuples_are_serialized_as_lists(tmp_path: Path) -> None:
@@ -131,7 +137,6 @@ def test_labels_for_room_returns_matches() -> None:
             id="1480-alt",
             bbox=(0, 0, 1, 1),
             room_id=1,
-            classification=Classification.OFFICE,
             fill_seed=(0, 0),
             ocr_confidence=0.1,
         )
@@ -139,12 +144,6 @@ def test_labels_for_room_returns_matches() -> None:
     matches = c.labels_for_room(1)
     assert {lab.id for lab in matches} == {"1480", "1480-alt"}
     assert c.labels_for_room(99) == []
-
-
-def test_office_labels_excludes_hallway_and_common() -> None:
-    c = _sample_calibration()
-    ids = [lab.id for lab in c.office_labels()]
-    assert ids == ["1480", "1479A"]
 
 
 # ---------------------------------------------------------------------------
@@ -203,15 +202,6 @@ def test_load_calibration_missing_required_key_raises(tmp_path: Path) -> None:
         load_calibration(p)
 
 
-def test_invalid_label_classification_raises(tmp_path: Path) -> None:
-    p = tmp_path / "bad-class.json"
-    raw = _sample_calibration().to_dict()
-    raw["labels"][0]["classification"] = "garage"  # not a valid enum value
-    p.write_text(json.dumps(raw), encoding="utf-8")
-    with pytest.raises(CalibrationFormatError, match="invalid Label"):
-        load_calibration(p)
-
-
 def test_orphan_label_room_id_can_be_null(tmp_path: Path) -> None:
     """A label with no enclosing room (orphan) must round-trip with room_id=None."""
     cal = _sample_calibration()
@@ -220,7 +210,6 @@ def test_orphan_label_room_id_can_be_null(tmp_path: Path) -> None:
             id="OUTSIDE",
             bbox=(0, 0, 10, 10),
             room_id=None,
-            classification=Classification.SKIP,
             fill_seed=(5, 5),
             ocr_confidence=0.3,
         )

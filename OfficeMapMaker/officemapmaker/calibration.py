@@ -4,8 +4,8 @@ This module defines the typed Python representation of the calibration file
 described in the plan / README. It is responsible for serializing to and
 deserializing from JSON, plus a couple of convenience lookups
 (``label_by_id``, ``room_by_id``). The actual *production* of a calibration
-from a map image (OCR + connected components + classification) lives in the
-``calibrate`` module — this one knows nothing about OpenCV or Tesseract.
+from a map image (OCR + connected components) lives in the ``calibrate``
+module — this one knows nothing about OpenCV or Tesseract.
 
 The on-disk format is hand-editable JSON with 2-space indentation. We
 deliberately use plain ``json`` (not ``jsonc``) for write-time and tolerate
@@ -14,30 +14,11 @@ comments only via the documentation; users edit values, not structure.
 
 from __future__ import annotations
 
-import enum
 import hashlib
 import json
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Optional
-
-
-# ---------------------------------------------------------------------------
-# Classification enum
-# ---------------------------------------------------------------------------
-
-
-class Classification(str, enum.Enum):
-    """How a label / room should be treated by later passes.
-
-    Inheriting from ``str`` means the enum values serialize naturally to JSON
-    strings without a custom encoder, and ``Classification("office")`` round-trips.
-    """
-
-    OFFICE = "office"
-    HALLWAY = "hallway"
-    COMMON = "common"
-    SKIP = "skip"
 
 
 # ---------------------------------------------------------------------------
@@ -58,20 +39,24 @@ class Label:
         room_id: The numeric ID of the ``Room`` this label is associated with.
             ``None`` means "orphan label" (no enclosing room found) — that's
             a calibration error to be resolved by the user.
-        classification: How this room is treated by later passes (office /
-            hallway / common / skip).
         fill_seed: ``(x, y)`` pixel used as the flood-fill seed for this room.
             Defaults to the room polygon's centroid during calibration.
         ocr_confidence: Tesseract's per-word confidence in [0.0, 1.0]. Used
             to surface low-confidence labels in the review PDF.
         notes: Free-form text the user can add to remember why a manual edit
             was made. Never read by the tool.
+
+    Note: Older calibrations stored a 4-way ``classification`` enum (office /
+    hallway / common / skip) which was dropped because the heuristic was
+    unreliable. The loader silently discards any legacy ``classification``
+    key for backwards compatibility. Office-ness is now derived from the
+    spreadsheet (a label is "an office" iff its id appears in the
+    assignments file).
     """
 
     id: str
     bbox: tuple[int, int, int, int]
     room_id: Optional[int]
-    classification: Classification
     fill_seed: tuple[int, int]
     ocr_confidence: float
     notes: str = ""
@@ -81,7 +66,6 @@ class Label:
             "id": self.id,
             "bbox": list(self.bbox),
             "room_id": self.room_id,
-            "classification": self.classification.value,
             "fill_seed": list(self.fill_seed),
             "ocr_confidence": round(float(self.ocr_confidence), 4),
             "notes": self.notes,
@@ -94,7 +78,6 @@ class Label:
                 id=str(d["id"]),
                 bbox=tuple(int(v) for v in d["bbox"]),  # type: ignore[arg-type]
                 room_id=(int(d["room_id"]) if d.get("room_id") is not None else None),
-                classification=Classification(d["classification"]),
                 fill_seed=tuple(int(v) for v in d["fill_seed"]),  # type: ignore[arg-type]
                 ocr_confidence=float(d.get("ocr_confidence", 0.0)),
                 notes=str(d.get("notes", "")),
@@ -221,9 +204,6 @@ class Calibration:
     def labels_for_room(self, room_id: int) -> list[Label]:
         return [lab for lab in self.labels if lab.room_id == room_id]
 
-    def office_labels(self) -> list[Label]:
-        return [lab for lab in self.labels if lab.classification == Classification.OFFICE]
-
     # -- Serialization ------------------------------------------------------
 
     def to_dict(self) -> dict[str, Any]:
@@ -303,7 +283,6 @@ def compute_map_hash(map_path: Path | str) -> str:
 __all__ = [
     "Calibration",
     "CalibrationFormatError",
-    "Classification",
     "Label",
     "RenderDefaults",
     "Room",

@@ -9,7 +9,6 @@ import pytest
 
 from officemapmaker.calibration import (
     Calibration,
-    Classification,
     Label,
     RenderDefaults,
     Room,
@@ -17,7 +16,6 @@ from officemapmaker.calibration import (
 )
 from officemapmaker.geometry import mask_to_rle
 from officemapmaker.review_pdf import (
-    _color_for_classification,
     _crop_label_region,
     _distinct_color,
     _wrap_text,
@@ -61,7 +59,6 @@ def _make_minimal_calibration(img_size: tuple[int, int]) -> Calibration:
                 id="1480",
                 bbox=(60, 80, 30, 14),
                 room_id=1,
-                classification=Classification.OFFICE,
                 fill_seed=(110, 120),
                 ocr_confidence=0.92,
             ),
@@ -69,7 +66,6 @@ def _make_minimal_calibration(img_size: tuple[int, int]) -> Calibration:
                 id="1481",
                 bbox=(220, 80, 30, 14),
                 room_id=2,
-                classification=Classification.OFFICE,
                 fill_seed=(280, 120),
                 ocr_confidence=0.41,
             ),
@@ -99,14 +95,6 @@ def test_distinct_color_handles_zero_total():
     # Should not crash; return a neutral gray.
     r, g, b = _distinct_color(0, 0)
     assert (r, g, b) == (0.5, 0.5, 0.5)
-
-
-def test_color_for_classification_covers_all_values():
-    for c in Classification:
-        rgb = _color_for_classification(c)
-        assert len(rgb) == 3
-        for ch in rgb:
-            assert 0.0 <= ch <= 1.0
 
 
 def test_crop_label_region_clamps_to_image_bounds():
@@ -199,7 +187,6 @@ def test_build_calibration_review_pdf_handles_orphans(tmp_path: Path):
                 id="ORPH1",
                 bbox=(300, 200, 30, 14),
                 room_id=None,
-                classification=Classification.SKIP,
                 fill_seed=(315, 207),
                 ocr_confidence=0.55,
             ),
@@ -269,7 +256,6 @@ def test_build_calibration_review_pdf_paginates_large_label_set(tmp_path: Path):
             id=f"L{i:03d}",
             bbox=(50 + (i % 10) * 8, 50 + (i // 10) * 8, 20, 10),
             room_id=(i if i < 5 else None),  # most labels are orphans (no room)
-            classification=Classification.OFFICE,
             fill_seed=(60, 60),
             ocr_confidence=0.5,
         )

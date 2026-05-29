@@ -2,8 +2,8 @@
 
 These tests cover three concerns:
 
-1. **Pure-function unit tests** — classification, label filtering, room
-   association — that don't need Tesseract or even cv2.
+1. **Pure-function unit tests** — label filtering, room association — that
+   don't need Tesseract or even cv2.
 2. **End-to-end pipeline tests against a synthetic map** rendered with PIL.
    These are skipped automatically if Tesseract isn't installed, so the test
    suite still works on CI machines without OCR.
@@ -24,12 +24,10 @@ from officemapmaker.calibrate import (
     CalibrationIssue,
     TesseractNotFoundError,
     _build_calibration,
-    _classify,
     _LABEL_PATTERN,
     calibrate_map,
     find_tesseract,
 )
-from officemapmaker.calibration import Classification
 from officemapmaker.geometry import ConnectedComponent
 
 
@@ -110,47 +108,6 @@ def test_label_pattern_accepts_only_room_id_like_strings(text, should_match):
     assert bool(_LABEL_PATTERN.match(text)) is should_match
 
 
-def test_classify_normal_office():
-    bbox = (0, 0, 100, 100)
-    assert _classify(bbox, room_area=10_000, median_area=10_000) == Classification.OFFICE
-
-
-def test_classify_long_thin_hallway():
-    # 1000x100 ratio = 10 > HALLWAY_ASPECT_RATIO (4.0)
-    bbox = (0, 0, 1000, 100)
-    assert _classify(bbox, room_area=100_000, median_area=10_000) == Classification.HALLWAY
-
-
-def test_classify_very_large_common_area():
-    # Square but >> 4x the median.
-    bbox = (0, 0, 400, 400)
-    assert _classify(bbox, room_area=160_000, median_area=10_000) == Classification.COMMON
-
-
-def test_classify_zero_width_is_skip():
-    assert _classify((0, 0, 0, 100), room_area=0, median_area=10_000) == Classification.SKIP
-
-
-def test_classify_l_shaped_office_is_not_hallway():
-    # L-shaped office: bounding box is 1000x200 (aspect=5, would be hallway
-    # by aspect alone) but the polygon only fills ~40% of the bbox -> office.
-    bbox = (0, 0, 1000, 200)
-    bbox_area = 1000 * 200
-    polygon_area = int(bbox_area * 0.4)
-    assert _classify(bbox, room_area=polygon_area, median_area=polygon_area) == Classification.OFFICE
-
-
-def test_classify_long_solid_corridor_is_hallway():
-    # Same 1000x200 bounding box but the polygon is solid -> hallway.
-    bbox = (0, 0, 1000, 200)
-    bbox_area = 1000 * 200
-    polygon_area = int(bbox_area * 0.95)
-    assert (
-        _classify(bbox, room_area=polygon_area, median_area=10_000)
-        == Classification.HALLWAY
-    )
-
-
 # ---------------------------------------------------------------------------
 # _build_calibration() — exercised without Tesseract by feeding fake OCR
 # ---------------------------------------------------------------------------
@@ -197,7 +154,6 @@ def test_build_calibration_associates_labels_to_rooms(tmp_path: Path):
     assert cal.map_hash.startswith("sha256:")
     for label in cal.labels:
         assert label.room_id is not None
-        assert label.classification == Classification.OFFICE
 
     errors = [i for i in issues if i.severity == "error"]
     assert errors == []
@@ -221,12 +177,13 @@ def test_orphan_label_outside_any_room_warns(tmp_path: Path):
 
     orphan = next(lab for lab in cal.labels if lab.id == "9999")
     assert orphan.room_id is None
-    assert orphan.classification == Classification.SKIP
 
 
-def test_two_office_labels_in_one_room_is_error(tmp_path: Path):
+def test_two_labels_in_one_room_both_associate(tmp_path: Path):
+    """Without classification we no longer error on this — both labels just
+    associate to the same room. Validation will flag this case only when a
+    real spreadsheet assigns both as offices."""
     components = [_square_cc(1, 10, 10, 200)]
-    # Both labels fall inside the single CC -> merged-room error.
     ocr_labels = [
         _ocr("1480", (40, 40, 30, 20)),
         _ocr("1481", (140, 140, 30, 20)),
@@ -234,26 +191,28 @@ def test_two_office_labels_in_one_room_is_error(tmp_path: Path):
     map_path = tmp_path / "map.png"
     map_path.write_bytes(b"x")
 
-    _cal, issues = _build_calibration(
+    cal, issues = _build_calibration(
         map_path=map_path, components=components, ocr_labels=ocr_labels
     )
-    merge_errors = [i for i in issues if i.code == "multiple_office_labels_in_room"]
-    assert len(merge_errors) == 1
-    assert merge_errors[0].severity == "error"
+    # Both labels associate; no merged-room error.
+    assert len(cal.labels) == 2
+    assert all(lab.room_id == 1 for lab in cal.labels)
+    assert [i for i in issues if i.code == "multiple_office_labels_in_room"] == []
 
 
-def test_duplicate_office_id_across_rooms_is_error(tmp_path: Path):
+def test_duplicate_office_id_no_longer_errors(tmp_path: Path):
+    """Without classification this is purely a spreadsheet-validation concern.
+    The calibrate pass keeps both labels and lets validation flag any conflict."""
     components = [_square_cc(1, 10, 10, 100), _square_cc(2, 200, 10, 100)]
     ocr_labels = [_ocr("1003", (40, 40, 30, 20)), _ocr("1003", (230, 40, 30, 20))]
     map_path = tmp_path / "map.png"
     map_path.write_bytes(b"x")
 
-    _cal, issues = _build_calibration(
+    cal, issues = _build_calibration(
         map_path=map_path, components=components, ocr_labels=ocr_labels
     )
-    dup_errors = [i for i in issues if i.code == "duplicate_office_id"]
-    assert len(dup_errors) == 1
-    assert "1003" in dup_errors[0].message
+    assert len(cal.labels) == 2
+    assert [i for i in issues if i.code == "duplicate_office_id"] == []
 
 
 def test_room_with_no_label_emits_orphan_warning(tmp_path: Path):
@@ -357,7 +316,6 @@ def test_calibrate_map_end_to_end_on_synthetic_image(tmp_path: Path):
     office_labels = [lab for lab in cal.labels if lab.id in expected_rooms]
     for lab in office_labels:
         assert lab.room_id is not None, f"label {lab.id} was not associated to a room"
-        assert lab.classification == Classification.OFFICE
 
 
 def test_calibrate_map_missing_file_raises(tmp_path: Path):

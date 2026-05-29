@@ -11,7 +11,6 @@ import pytest
 
 from officemapmaker.calibration import (
     Calibration,
-    Classification,
     Label,
     RenderDefaults,
     Room,
@@ -64,7 +63,6 @@ def _build_synthetic_calibration() -> Calibration:
         id="100",
         bbox=(120, 200, 20, 14),
         room_id=1,
-        classification=Classification.OFFICE,
         fill_seed=(150, 200),  # well inside room A
         ocr_confidence=0.95,
     )
@@ -80,7 +78,6 @@ def _build_synthetic_calibration() -> Calibration:
         id="200",
         bbox=(320, 200, 20, 14),
         room_id=2,
-        classification=Classification.OFFICE,
         fill_seed=(350, 200),
         ocr_confidence=0.95,
     )
@@ -350,7 +347,7 @@ def test_render_composite_detects_unexpected_pixel_changes_via_leaky_calibration
     )
     label_a = Label(
         id="100", bbox=(120, 200, 20, 14),
-        room_id=1, classification=Classification.OFFICE,
+        room_id=1,
         fill_seed=(150, 200), ocr_confidence=0.95,
     )
     # Only one office in the calibration so we have one fill.

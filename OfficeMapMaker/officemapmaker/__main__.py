@@ -262,7 +262,7 @@ def _run_calibrate_review(args: argparse.Namespace) -> int:
     Rebuilds when:
       - The PDF does not exist.
       - The PDF is older than the calibration file (the user hand-edited
-        ``calibration.json`` to fix OCR misreads, reclassifications, etc.).
+        ``calibration.json`` to fix OCR misreads, room links, etc.).
 
     A rebuild also clears any prior ``.reviewed`` sentinel so the user has to
     re-confirm after eyeballing the new PDF — hand-edits invalidate prior
@@ -489,8 +489,9 @@ def _run_validate_fill(args: argparse.Namespace) -> int:
                 file=stream,
             )
 
+    labeled_count = sum(1 for lab in cal.labels if lab.room_id is not None)
     print(
-        f"summary: {len(cal.office_labels())} office(s), "
+        f"summary: {labeled_count} labeled room(s), "
         f"{len(errors)} error(s), {len(warnings)} warning(s)"
     )
     return 1 if errors else 0

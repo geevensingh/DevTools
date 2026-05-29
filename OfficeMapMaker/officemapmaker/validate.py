@@ -24,7 +24,7 @@ from typing import Iterable, Optional
 
 import numpy as np
 
-from .calibration import Calibration, Classification, Label
+from .calibration import Calibration, Label
 from .geometry import rle_to_mask
 from .io_assignments import Assignment
 
@@ -117,37 +117,16 @@ def validate_labels(
             )
             continue
 
-        office_candidates = [c for c in candidates if c.classification == Classification.OFFICE]
-
-        if not office_candidates:
-            # All matching labels are hallway/common/skip.
-            classifications = sorted({c.classification.value for c in candidates})
-            issues.append(
-                ValidationIssue(
-                    severity="error",
-                    code="office_is_not_an_office",
-                    message=(
-                        f"row {asn.source_row}: person {asn.name!r} is assigned to "
-                        f"{asn.office_id!r}, but the matching label is classified "
-                        f"{'/'.join(classifications)} (not 'office')"
-                    ),
-                    office_id=asn.office_id,
-                    person=asn.name,
-                    source_row=asn.source_row,
-                )
-            )
-            continue
-
-        if len(office_candidates) > 1:
-            rooms = sorted({c.room_id for c in office_candidates if c.room_id is not None})
+        if len(candidates) > 1:
+            rooms = sorted({c.room_id for c in candidates if c.room_id is not None})
             issues.append(
                 ValidationIssue(
                     severity="error",
                     code="ambiguous_office",
                     message=(
                         f"row {asn.source_row}: person {asn.name!r} is assigned to "
-                        f"{asn.office_id!r}, which is ambiguous — it appears as an "
-                        f"office in {len(office_candidates)} rooms ({rooms!r}); "
+                        f"{asn.office_id!r}, which is ambiguous — it appears in "
+                        f"{len(candidates)} rooms ({rooms!r}); "
                         f"disambiguate in calibration.json (e.g. {asn.office_id!r}-N / "
                         f"{asn.office_id!r}-S) and update the spreadsheet"
                     ),
@@ -158,23 +137,22 @@ def validate_labels(
             )
             continue
 
-        matched_office_ids.add(office_candidates[0].id.upper())
+        matched_office_ids.add(candidates[0].id.upper())
 
     # --- per-calibration-label warnings ----------------------------------
-    for label in calibration.office_labels():
+    #
+    # Without a Classification enum we can't tell which labeled rooms were
+    # *expected* to be occupied — almost every label in a real map (offices,
+    # hallways, lobbies, copy rooms) is a perfectly fine candidate for being
+    # absent from the spreadsheet. So we drop the old ``vacant_office``
+    # warning entirely (it would fire on every non-office room and bury real
+    # signal). The low-confidence-AND-unmatched warning is still useful as
+    # a probable-OCR-misread signal regardless of classification.
+    for label in calibration.labels:
+        if label.room_id is None:
+            continue
         if label.id.upper() in matched_office_ids:
             continue
-        issues.append(
-            ValidationIssue(
-                severity="warning",
-                code="vacant_office",
-                message=(
-                    f"office {label.id!r} (room {label.room_id}) has no assigned occupants; "
-                    "it will be left white"
-                ),
-                office_id=label.id,
-            )
-        )
         if label.ocr_confidence < low_confidence_threshold:
             issues.append(
                 ValidationIssue(
@@ -382,7 +360,11 @@ def validate_fill(
     wall_mask = build_fill_mask(image, calibration.wall_patches)
 
     rooms_by_id = {room.id: room for room in calibration.rooms}
-    office_labels = calibration.office_labels()
+    # Without a Classification enum we can no longer filter to "offices only";
+    # treat every label that's linked to a room as a fill candidate. The few
+    # extra hallway-style fills are cheap and the leak-detection signal is
+    # still valid (any leak is a real defect in the calibration).
+    office_labels = [lab for lab in calibration.labels if lab.room_id is not None]
     if not office_labels:
         return []
 
@@ -772,7 +754,7 @@ def render_rooms_overview_png(
     )
 
     rooms_by_id = {r.id: r for r in calibration.rooms}
-    office_labels = calibration.office_labels()
+    office_labels = [lab for lab in calibration.labels if lab.room_id is not None]
     overlay_arr = np.zeros((h, w, 4), dtype=np.uint8)
 
     n = max(len(office_labels), 1)

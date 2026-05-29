@@ -34,7 +34,6 @@ import numpy as np
 
 from .calibration import (
     Calibration,
-    Classification,
     Label,
     RenderDefaults,
     Room,
@@ -90,18 +89,6 @@ DEFAULT_MIN_ROOM_AREA = 500
 # Tesseract's per-word confidence is reported 0-100. Anything below this is
 # discarded as likely noise.
 DEFAULT_MIN_OCR_CONFIDENCE = 30
-
-# Aspect-ratio thresholds for hallway classification (max side / min side).
-HALLWAY_ASPECT_RATIO = 4.0
-
-# Minimum solidity (polygon_area / bbox_area) to call a long-thin room a hallway.
-# L-shaped or T-shaped offices can have a high-aspect bounding box but the
-# polygon only fills part of it, so solidity is the dis-ambiguator.
-HALLWAY_MIN_SOLIDITY = 0.6
-
-# A room whose polygon area is more than this multiple of the median is
-# considered "very large" -> common-area classification.
-COMMON_AREA_MULTIPLIER = 4.0
 
 # Tesseract recognises labels matching this regex (after applying its
 # alphanumeric whitelist). Pure-digit, optional trailing letter, or
@@ -231,41 +218,6 @@ def _interior_mask(wall_mask: np.ndarray) -> np.ndarray:
 
 
 # ---------------------------------------------------------------------------
-# Classification
-# ---------------------------------------------------------------------------
-
-
-def _classify(
-    room_bbox: tuple[int, int, int, int],
-    room_area: int,
-    median_area: float,
-) -> Classification:
-    """Classify a room by polygon area + aspect ratio + solidity.
-
-    ``median_area`` should be computed over **labeled rooms only** — the
-    raw connected-component output contains hundreds of tiny noise polygons
-    (door swings, wall slivers) that would otherwise pull the median far
-    below typical-office size and cause real offices to be over-classified
-    as COMMON.
-    """
-    _, _, w, h = room_bbox
-    if w == 0 or h == 0:
-        return Classification.SKIP
-    long_side, short_side = max(w, h), min(w, h)
-    aspect = long_side / short_side
-    bbox_area = w * h
-    solidity = (room_area / bbox_area) if bbox_area > 0 else 0.0
-
-    # Hallway = long, thin, AND mostly fills its bounding box (so L-shaped
-    # offices don't slip in just because their bbox happens to be long).
-    if aspect >= HALLWAY_ASPECT_RATIO and solidity >= HALLWAY_MIN_SOLIDITY:
-        return Classification.HALLWAY
-    if median_area > 0 and room_area >= median_area * COMMON_AREA_MULTIPLIER:
-        return Classification.COMMON
-    return Classification.OFFICE
-
-
-# ---------------------------------------------------------------------------
 # Main pipeline
 # ---------------------------------------------------------------------------
 
@@ -364,9 +316,10 @@ def _build_calibration(
         )
         cc_by_id[new_id] = cc
 
-    # Phase 1: associate each OCR result with a room (or mark as orphan).
-    # We deliberately do this BEFORE classifying so the median-area
-    # computation can be restricted to rooms that actually have labels.
+    # Associate each OCR result with a room (or mark as orphan). The
+    # ``room_label_count`` map is kept solely so the post-loop loop can
+    # tell which rooms have at least one label (it used to drive the
+    # classification heuristic; that heuristic has been removed).
     ocr_assignments: list[tuple[Any, Optional[int], tuple[int, int]]] = []
     room_label_count: dict[int, list[str]] = {rid: [] for rid in rooms}
 
@@ -391,40 +344,16 @@ def _build_calibration(
             room_label_count[room_id].append(ocr.text)
             ocr_assignments.append((ocr, room_id, room_centroid))
 
-    # Phase 2: classification depends on the median room area, computed over
-    # rooms that have at least one label. Falling back to all-rooms median
-    # only when no labels were found at all keeps small synthetic test maps
-    # working.
-    labeled_room_areas = [
-        rooms[rid].area_px
-        for rid, lbls in room_label_count.items()
-        if lbls
-    ]
-    if labeled_room_areas:
-        median_area = float(np.median(labeled_room_areas))
-    elif rooms:
-        median_area = float(np.median([r.area_px for r in rooms.values()]))
-    else:
-        median_area = 0.0
-    classifications: dict[int, Classification] = {
-        rid: _classify(r.bbox, r.area_px, median_area) for rid, r in rooms.items()
-    }
-
-    # Phase 3: build the Label objects with their (now-known) classification.
+    # Build Label objects. Office-ness is no longer baked into the label —
+    # it's derived from the assignments spreadsheet at validate/render time.
     labels: list[Label] = []
     id_to_label_indices: dict[str, list[int]] = {}
 
     for ocr, room_id, fill_seed in ocr_assignments:
-        if room_id is None:
-            classification = Classification.SKIP
-        else:
-            classification = classifications[room_id]
-
         label = Label(
             id=ocr.text,
             bbox=ocr.bbox,
             room_id=room_id,
-            classification=classification,
             fill_seed=fill_seed,
             ocr_confidence=ocr.confidence,
         )
@@ -432,47 +361,13 @@ def _build_calibration(
         id_to_label_indices.setdefault(ocr.text, []).append(len(labels) - 1)
 
     # Auto-checks ----------------------------------------------------------
-
-    # No CC polygon should contain more than one OFFICE label (would mean two
-    # rooms merged into one CC, almost always via a flood-fill leak).
-    for room_id, ids in room_label_count.items():
-        office_ids = [
-            i for i in ids if classifications[room_id] == Classification.OFFICE
-        ]
-        if len(office_ids) > 1:
-            issues.append(
-                CalibrationIssue(
-                    severity="error",
-                    code="multiple_office_labels_in_room",
-                    message=(
-                        f"room {room_id} contains {len(office_ids)} office "
-                        f"labels {office_ids!r}; usually this means two rooms "
-                        "merged via an open doorway — add a wall_patches entry "
-                        "and re-calibrate"
-                    ),
-                )
-            )
-
-    # No two OFFICE labels should share the same ID across the whole floor.
-    for label_id, indices in id_to_label_indices.items():
-        office_indices = [
-            i for i in indices if labels[i].classification == Classification.OFFICE
-        ]
-        if len(office_indices) > 1:
-            offending_rooms = sorted(
-                {labels[i].room_id for i in office_indices if labels[i].room_id is not None}
-            )
-            issues.append(
-                CalibrationIssue(
-                    severity="error",
-                    code="duplicate_office_id",
-                    message=(
-                        f"office id {label_id!r} appears in rooms "
-                        f"{offending_rooms!r}; disambiguate by editing the labels "
-                        f"in calibration.json (e.g. {label_id!r}-N / {label_id!r}-S)"
-                    ),
-                )
-            )
+    #
+    # The earlier "duplicate OFFICE id" and "multiple OFFICE labels in one
+    # room" checks have been removed: without a Classification enum and
+    # without the assignments spreadsheet, calibrate cannot tell whether a
+    # repeated id is a real conflict (two offices both labeled 1480) or
+    # something benign (a hallway sign appearing on multiple doors). Those
+    # checks are now done in ``validate`` against the spreadsheet.
 
     # Every label bbox should be fully inside its assigned polygon. Skip orphans.
     for label in labels:

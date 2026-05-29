@@ -157,7 +157,19 @@ def _team_for_office(
 
 
 def _label_by_office(calibration: Calibration) -> dict[str, Label]:
-    return {lbl.id.upper(): lbl for lbl in calibration.office_labels()}
+    """Return labels keyed by id (upper-cased), one entry per unique id.
+
+    Without a Classification enum every labeled room is potentially an
+    office; office-ness is established at render time by intersecting the
+    keys here with the assignments spreadsheet. Labels with no ``room_id``
+    are skipped since they can't be filled.
+    """
+    by_id: dict[str, Label] = {}
+    for lbl in calibration.labels:
+        if lbl.room_id is None:
+            continue
+        by_id.setdefault(lbl.id.upper(), lbl)
+    return by_id
 
 
 def _write_composite_meta(
@@ -188,10 +200,14 @@ def _write_composite_meta(
         team = asn.team or ""
         headcount[team] = headcount.get(team, 0) + 1
 
+    # "Total offices" used to mean "labels classified as OFFICE". Without
+    # classification it just means "labels we *could* assign someone to" —
+    # i.e. any labeled room. Vacant = the difference vs what was actually
+    # assigned in this render.
     total_office_labels = sum(
         1
         for lbl in calibration.labels
-        if lbl.classification.value == "office"
+        if lbl.room_id is not None
     )
     vacant_offices = max(total_office_labels - len(assigned_offices), 0)
 

@@ -42,7 +42,7 @@ from typing import Iterable, Optional
 
 import numpy as np
 
-from .calibration import Calibration, Classification, Label, RenderDefaults, Room
+from .calibration import Calibration, Label, RenderDefaults, Room
 from .geometry import (
     BBox,
     Point,
@@ -286,7 +286,9 @@ def plan_layout(
         by_office[asn.office_id.upper()].append(asn)
 
     rooms_by_id = {r.id: r for r in calibration.rooms}
-    office_labels = calibration.office_labels()
+    # Every labeled room is a potential office target. Office-ness is
+    # established by the spreadsheet (``by_office``) intersecting this index.
+    office_labels = [lab for lab in calibration.labels if lab.room_id is not None]
     # Index for fast lookup; only one office_id per label by construction.
     labels_by_id: dict[str, Label] = {lab.id.upper(): lab for lab in office_labels}
 
