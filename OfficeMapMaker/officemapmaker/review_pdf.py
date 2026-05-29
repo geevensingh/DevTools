@@ -36,10 +36,74 @@ from .geometry import rle_to_mask
 # ---------------------------------------------------------------------------
 
 _MARGIN_PT = 36                # 0.5"
-_TITLE_HEIGHT_PT = 36          # space reserved at the top for page title + caption
+_TITLE_FONT_SIZE_PT = 14
+_CAPTION_FONT_SIZE_PT = 9
+_CAPTION_LEADING_PT = 11       # vertical space between caption lines
+_TITLE_GAP_PT = 8              # gap between title baseline and first caption line
+_TITLE_BLOCK_GAP_BELOW_PT = 10 # gap between last caption line and page content
 _THUMB_PADDING_PT = 6
 _THUMB_COLS = 6                # default grid width on pages 3 and 4
 _MAX_THUMBNAILS_PER_PAGE = 60  # cap so the PDF stays usable
+
+
+# ---------------------------------------------------------------------------
+# Title-block helpers
+# ---------------------------------------------------------------------------
+
+
+def _wrap_text(text: str, max_width_pt: float, font_name: str, font_size: float) -> list[str]:
+    """Greedy word-wrap to fit ``max_width_pt`` at the given font.
+
+    Returns a list of lines (no trailing newlines). Long single words that
+    exceed the max width are kept on their own line rather than split.
+    """
+    from reportlab.pdfbase.pdfmetrics import stringWidth
+
+    words = text.split()
+    if not words:
+        return [""]
+    lines: list[str] = []
+    current = words[0]
+    for word in words[1:]:
+        candidate = current + " " + word
+        if stringWidth(candidate, font_name, font_size) <= max_width_pt:
+            current = candidate
+        else:
+            lines.append(current)
+            current = word
+    lines.append(current)
+    return lines
+
+
+def _draw_title_block(c, page_w: float, page_h: float, title: str, caption: str) -> float:
+    """Draw the page title + a word-wrapped caption.
+
+    Returns the *total* vertical space consumed below the top page margin
+    (including the title, every caption line, and the gap before content),
+    so callers can fit the rest of the page beneath it.
+    """
+    c.setFillGray(0)
+    avail_w = page_w - 2 * _MARGIN_PT
+    title_baseline = page_h - _MARGIN_PT - _TITLE_FONT_SIZE_PT
+    c.setFont("Helvetica-Bold", _TITLE_FONT_SIZE_PT)
+    c.drawString(_MARGIN_PT, title_baseline, title)
+
+    c.setFont("Helvetica", _CAPTION_FONT_SIZE_PT)
+    caption_lines = _wrap_text(caption, avail_w, "Helvetica", _CAPTION_FONT_SIZE_PT)
+    line_y = title_baseline - _TITLE_GAP_PT - _CAPTION_FONT_SIZE_PT
+    for line in caption_lines:
+        c.drawString(_MARGIN_PT, line_y, line)
+        line_y -= _CAPTION_LEADING_PT
+
+    # Total height = top margin -> baseline of last caption line + a gap.
+    consumed = (
+        _TITLE_FONT_SIZE_PT
+        + _TITLE_GAP_PT
+        + _CAPTION_FONT_SIZE_PT
+        + max(0, len(caption_lines) - 1) * _CAPTION_LEADING_PT
+        + _TITLE_BLOCK_GAP_BELOW_PT
+    )
+    return consumed
 
 
 # ---------------------------------------------------------------------------
@@ -128,14 +192,10 @@ def _embed_map(
     """Draw a page title + the map as a fitted inline image. Return MapFit."""
     from reportlab.lib.utils import ImageReader
 
-    c.setFillGray(0)
-    c.setFont("Helvetica-Bold", 14)
-    c.drawString(_MARGIN_PT, page_h - _MARGIN_PT - 14, title)
-    c.setFont("Helvetica", 9)
-    c.drawString(_MARGIN_PT, page_h - _MARGIN_PT - 30, caption)
+    title_block_h = _draw_title_block(c, page_w, page_h, title, caption)
 
     avail_w = page_w - 2 * _MARGIN_PT
-    avail_h = page_h - 2 * _MARGIN_PT - _TITLE_HEIGHT_PT
+    avail_h = page_h - 2 * _MARGIN_PT - title_block_h
     src_w, src_h = map_image.size
     scale = min(avail_w / src_w, avail_h / src_h)
     draw_w = src_w * scale
@@ -166,9 +226,11 @@ def _render_page1_labels(c, page_w, page_h, map_image, cal: Calibration) -> None
         c, page_w, page_h, map_image,
         title="Page 1 — Detected labels on the map",
         caption=(
-            f"{len(cal.labels)} labels detected. "
-            "Green box = OCR bbox, text = OCR-read ID. Translucent fill = assigned room polygon. "
-            "Look for boxes around things that aren't room numbers."
+            f"{len(cal.labels)} labels found by OCR. Each green box is where OCR "
+            "found a label and the green text is what it read. The translucent fill "
+            "marks the room polygon we associated with that label "
+            "(blue=office, yellow=hallway, green=common). "
+            "Scan for boxes around things that aren't actually room numbers."
         ),
     )
 
@@ -199,9 +261,10 @@ def _render_page2_polygons(c, page_w, page_h, map_image, cal: Calibration) -> No
         c, page_w, page_h, map_image,
         title="Page 2 — Connected-component room polygons",
         caption=(
-            f"{len(cal.rooms)} rooms detected. Each polygon outlined in a distinct color. "
-            "Look for two rooms merged into one polygon (open doorways) or a room "
-            "split into two by a stray dark pixel."
+            f"{len(cal.rooms)} rooms detected. Each polygon is outlined in a distinct color. "
+            "Watch for two rooms merged into a single polygon (an open doorway "
+            "that needs a wall_patches entry) or a single room split into two by "
+            "a stray dark pixel."
         ),
     )
 
@@ -236,7 +299,7 @@ def _render_page3_confidence(c, page_w, page_h, map_image, cal: Calibration) -> 
         caption=(
             f"{len(displayed)} lowest-confidence labels shown{suffix}. "
             "Misreads almost always live here — compare the green text "
-            "(OCR result) to the original digits in each crop."
+            "(what OCR thought it read) to the original digits in each crop."
         ),
     )
 
@@ -272,9 +335,9 @@ def _render_page4_orphans(c, page_w, page_h, map_image, cal: Calibration) -> Non
         title="Page 4 — Orphans",
         caption=(
             f"{len(orphan_labels)} labels with no room + {len(orphan_rooms)} rooms with no label"
-            f"{suffix}. Each tile is the relevant bbox cropped from the map. "
-            "Resolve by editing calibration.json (assign room_id, add a label, "
-            "or change classification to 'skip')."
+            f"{suffix}. Each tile is the relevant area cropped from the map. "
+            "Resolve by editing calibration.json (assign a room, add a label, "
+            "or set classification to 'skip')."
         ),
     )
 
@@ -357,18 +420,14 @@ def _render_label_thumbnail_grid(
     """Render up to _MAX_THUMBNAILS_PER_PAGE label crops in a uniform grid."""
     from reportlab.lib.utils import ImageReader
 
-    c.setFillGray(0)
-    c.setFont("Helvetica-Bold", 14)
-    c.drawString(_MARGIN_PT, page_h - _MARGIN_PT - 14, title)
-    c.setFont("Helvetica", 9)
-    c.drawString(_MARGIN_PT, page_h - _MARGIN_PT - 30, caption)
+    title_block_h = _draw_title_block(c, page_w, page_h, title, caption)
 
     if not labels:
         c.setFont("Helvetica-Oblique", 12)
         c.drawString(_MARGIN_PT, page_h / 2, "(none)")
         return
 
-    grid_top = page_h - _MARGIN_PT - _TITLE_HEIGHT_PT
+    grid_top = page_h - _MARGIN_PT - title_block_h
     grid_bottom = _MARGIN_PT
     avail_w = page_w - 2 * _MARGIN_PT
     cell_w = avail_w / _THUMB_COLS

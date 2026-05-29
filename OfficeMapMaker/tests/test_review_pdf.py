@@ -20,6 +20,7 @@ from officemapmaker.review_pdf import (
     _color_for_classification,
     _crop_label_region,
     _distinct_color,
+    _wrap_text,
     build_calibration_review_pdf,
 )
 
@@ -125,6 +126,44 @@ def test_crop_label_region_returns_none_for_zero_area():
     # Bbox entirely outside the image.
     crop = _crop_label_region(img, bbox=(200, 200, 30, 20), expand=4.0)
     assert crop is None
+
+
+# ---------------------------------------------------------------------------
+# Caption word-wrap
+# ---------------------------------------------------------------------------
+
+
+def test_wrap_text_returns_single_line_when_text_fits():
+    lines = _wrap_text("short caption", max_width_pt=500.0, font_name="Helvetica", font_size=9)
+    assert lines == ["short caption"]
+
+
+def test_wrap_text_breaks_into_multiple_lines_when_too_long():
+    caption = (
+        "230 labels found by OCR. Each green box is where OCR found a label and "
+        "the green text is what it read. The translucent fill marks the room "
+        "polygon we associated with that label."
+    )
+    # Letter page width minus 1" of margins ~= 540 pt.
+    lines = _wrap_text(caption, max_width_pt=540.0, font_name="Helvetica", font_size=9)
+    assert len(lines) >= 2, f"expected wrap, got {lines!r}"
+    # Every individual line must fit the width.
+    from reportlab.pdfbase.pdfmetrics import stringWidth
+
+    for line in lines:
+        assert stringWidth(line, "Helvetica", 9) <= 540.0, f"line still too wide: {line!r}"
+    # Round-trip: joining lines must give back the original tokens.
+    assert " ".join(lines).split() == caption.split()
+
+
+def test_wrap_text_handles_empty_string():
+    assert _wrap_text("", max_width_pt=200.0, font_name="Helvetica", font_size=9) == [""]
+
+
+def test_wrap_text_keeps_long_unbreakable_word_on_its_own_line():
+    word = "supercalifragilisticexpialidocious"
+    lines = _wrap_text(f"a {word} z", max_width_pt=30.0, font_name="Helvetica", font_size=9)
+    assert word in lines
 
 
 # ---------------------------------------------------------------------------
