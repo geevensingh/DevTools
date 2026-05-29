@@ -9,6 +9,7 @@ Subcommand grammar (see README §"Quick reference"):
     officemapmaker calibrate          --map MAP.png  [--out calibration.json]
     officemapmaker calibrate review   --calibration calibration.json
     officemapmaker calibrate confirm  --calibration calibration.json
+    officemapmaker calibrate edit     --calibration calibration.json
     officemapmaker validate labels    --calibration calibration.json --assignments PEOPLE
     officemapmaker validate fill      --map MAP.png  --calibration calibration.json
     officemapmaker layout             --map MAP.png  --calibration calibration.json --assignments PEOPLE
@@ -92,6 +93,27 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_cal_confirm.add_argument("--calibration", type=Path, default=Path("calibration.json"))
     _add_common_flags(p_cal_confirm)
+
+    p_cal_edit = cal_subs.add_parser(
+        "edit",
+        help=(
+            "Open the interactive calibration editor "
+            "(PySide6 desktop app — primary way to fix OCR misreads, "
+            "missing labels, misclassified rooms, etc.)."
+        ),
+    )
+    p_cal_edit.add_argument("--calibration", type=Path, default=Path("calibration.json"))
+    p_cal_edit.add_argument(
+        "--map",
+        type=Path,
+        default=None,
+        help=(
+            "Optional. Path to the source map. Defaults to the 'map_image' "
+            "field recorded in the calibration, resolved relative to the "
+            "calibration file."
+        ),
+    )
+    _add_common_flags(p_cal_edit)
 
     # ---- validate { labels | fill } ----------------------------------------
     p_val = subs.add_parser(
@@ -326,6 +348,21 @@ def _run_calibrate_confirm(args: argparse.Namespace) -> int:
     sentinel = confirm_review(cal_path)
     print(f"wrote {sentinel}")
     return 0
+
+
+def _run_calibrate_edit(args: argparse.Namespace) -> int:
+    """Launch the interactive PySide6 calibration editor."""
+    try:
+        from .editor import launch
+    except ImportError as exc:
+        print(
+            f"error: the editor requires PySide6 but it could not be imported ({exc}).\n"
+            f"Install it with: py -m pip install -r requirements.txt",
+            file=sys.stderr,
+        )
+        return 2
+    return launch(args.calibration, args.map)
+
 
 
 def _run_validate_labels(args: argparse.Namespace) -> int:
@@ -738,6 +775,8 @@ def dispatch(args: argparse.Namespace) -> int:
             return _run_calibrate_review(args)
         if action == "confirm":
             return _run_calibrate_confirm(args)
+        if action == "edit":
+            return _run_calibrate_edit(args)
         if args.map is None:
             print("error: --map is required when running calibration", file=sys.stderr)
             return 2
