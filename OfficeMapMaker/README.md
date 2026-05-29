@@ -4,6 +4,8 @@ Build a colored, labelled office floor map from a floor-plan image plus a
 spreadsheet of people → offices → teams. Output a full-resolution composite,
 letter-size print tiles, and a single printable PDF.
 
+![Source map → finished composite](docs/screenshots/04_composite.png)
+
 ## What it does
 
 - Reads a floor-plan image (PNG) and an assignments file (`.xlsx`, `.xls`, or `.csv`)
@@ -28,7 +30,6 @@ letter-size print tiles, and a single printable PDF.
 | Render the composite | `OfficeMapMaker build --map MAP.png --calibration calibration.json --assignments PEOPLE --layout layout.json` |
 | Confirm composite is correct | `OfficeMapMaker build confirm --composite composite.png` |
 | Tile + PDF for print | `OfficeMapMaker tile --composite composite.png --out tiles\` |
-| Re-render after a small assignment change (skips review gates) | `OfficeMapMaker all --map MAP.png --assignments PEOPLE --auto` |
 
 Common flags on every subcommand: `--auto` (skip review gates) and `--force`
 (ignore stale-input SHA mismatches).
@@ -48,6 +49,26 @@ The `OfficeMapMaker.cmd` wrapper in this folder forwards arguments to
 `py -m officemapmaker`, so you can launch the tool the same way as the other
 DevTools utilities.
 
+## Try the included Demo
+
+`samples\Demo\` ships with a six-office synthetic floor plan, an 8-person
+`assignments.csv`, a `teams.json`, and a hand-vetted `calibration.json` so
+you can walk the whole pipeline (skipping the `calibrate` step) without
+needing your own map:
+
+```
+cd samples\Demo
+OfficeMapMaker validate labels --calibration calibration.json --assignments assignments.csv
+OfficeMapMaker validate fill   --map map.png --calibration calibration.json
+OfficeMapMaker layout          --map map.png --calibration calibration.json --assignments assignments.csv
+OfficeMapMaker layout confirm  --layout layout.json
+OfficeMapMaker build           --map map.png --calibration calibration.json --assignments assignments.csv --layout layout.json --teams teams.json
+OfficeMapMaker build confirm   --composite composite.png
+OfficeMapMaker tile            --composite composite.png --out tiles
+```
+
+Each screenshot in this README was generated from that sample.
+
 ## The end-to-end workflow
 
 The tool runs as six passes. Each pass produces a **review artifact** (image or PDF) that
@@ -63,9 +84,18 @@ a fill leak before sending the printed map to your team.
 OfficeMapMaker calibrate --map MAP.png
 ```
 
+**Source map** (the only required input besides the spreadsheet):
+
+![Source map](docs/screenshots/01_source_map.png)
+
 **What happens:** OCR finds every numeric/alphanumeric label, connected-components
 detects every room, the tool associates labels to rooms and auto-classifies each as
 `office`, `hallway`, or `common`. Writes `calibration.json` next to the map.
+
+The detected rooms are written to `calibration_rooms_overview.png` in distinct
+alternating colors so you can scan for merged-room patterns at a glance:
+
+![Calibration rooms overview](docs/screenshots/02_calibration_rooms.png)
 
 **Auto-checks:** every label is inside exactly one room; no room contains two `office`
 labels; no duplicate IDs.
@@ -112,7 +142,7 @@ Errors are fatal; warnings are informational.
 - Duplicate (Name + Office + Team) rows in the spreadsheet.
 - A team name is a near-duplicate of another (`Revenue` vs `revenue`).
 
-**Review:** open `validation_labels_review.png` to see flagged labels circled in red.
+**Review:** open `calibration_validation_labels_review.png` to see flagged labels circled in red.
 If clusters of errors appear in one wing, you've probably got a systematic problem.
 
 **Fix flow:** edit the spreadsheet or the calibration, then re-run. There is no `confirm` step
@@ -132,15 +162,16 @@ to the room polygon and checks that the fill doesn't reach another room's seed.
 - Filled area is too large (> 3× polygon area, or > 3× median office area).
 - One office's fill reaches another office's seed point — the two rooms are connected through a gap.
 
-**Review the leak overlays:** `leaks\room-<id>.png` shows the original map (faded) with
-the leak in cyan and the involved seed points marked. The text report suggests two
-endpoints to add to `wall_patches`. For example:
+**Review the leak overlays:** `calibration_leaks\room-<id>-<code>.png` shows the
+original map (faded) with the leak in cyan and the involved seed points marked.
+The text report suggests two endpoints to add to `wall_patches`. For example:
 
 > Room 1480 leaks into Room 1481. Suggested patch: `[612, 940, 612, 968]`.
 
 Copy that into `calibration.json.wall_patches`, re-run `validate fill`, and repeat
-until the report is empty. Also browse `rooms_overview.png` once — it colors every
-room distinctly so you can scan for any merged-room patterns that survived.
+until the report is empty. Also browse `calibration_rooms_overview.png` once — it
+colors every room distinctly so you can scan for any merged-room patterns that
+survived.
 
 ### Step 4 — Plan name layout
 
@@ -167,6 +198,8 @@ text overlaid in its final positions, no fill yet. Also `layout_review_problems.
 shows only the rooms that fell back beyond `shrink` (initials, last-only, or leader line) —
 worth a quick scan; you may want to hand-edit `layout.json` for some of them.
 
+![Layout review (planned names, no fill yet)](docs/screenshots/03_layout_review.png)
+
 **Confirm:**
 ```
 OfficeMapMaker layout confirm --layout layout.json
@@ -183,6 +216,8 @@ OfficeMapMaker build --map MAP.png --calibration calibration.json ^
 `teams.json`), flood-fills each office, white-outs and redraws the office numbers,
 draws the names, and adds the legend overlay in the configured corner.
 Writes `composite.png`.
+
+![Final composite (Demo sample)](docs/screenshots/04_composite.png)
 
 **Auto-checks (the big safety net):**
 - Every pixel that changed from the original map lies inside (an office room polygon ∪ planned text bboxes ∪ legend bbox). Any unexpected pixel change is a bug — fail.
@@ -210,19 +245,16 @@ Default is 150 DPI letter portrait with 0.25" overlap. Outputs:
 
 **Auto-checks:** every composite pixel appears in ≥ 1 tile; no tile text is below `min_font_pt` at the chosen DPI; tile crops actually match the composite.
 
+A `tiles\contact_sheet.png` is written alongside the per-page PNGs so you can
+sanity-check the whole grid at once before printing:
+
+![Tile contact sheet](docs/screenshots/05_tiles_contact_sheet.png)
+
 Print the PDF, tape pages together along the overlap, post on the wall, take a victory lap.
 
-## The all-in-one shortcut
-
-Once you've reviewed and confirmed a calibration for this map, day-to-day reruns (e.g., the spreadsheet changed by a few rows) can use:
-
-```
-OfficeMapMaker all --map MAP.png --assignments people.xlsx --auto
-```
-
-`--auto` skips the human-review gates. Use this only when you trust that
-calibration + layout reviews are still valid for the current inputs. If the
-map itself changed, drop `--auto` and walk through the gates again.
+> **Future:** an `OfficeMapMaker all` subcommand is planned that will run every
+> pass end-to-end. For now, drive the passes one at a time so you walk through
+> each review gate explicitly.
 
 ## Recipes (common iterations)
 
@@ -232,7 +264,7 @@ map itself changed, drop `--auto` and walk through the gates again.
 3. Re-run `calibrate review` (regenerates the PDF), then `calibrate confirm`.
 
 ### "Two rooms are getting merged in flood-fill"
-1. Open `leaks\room-<id>.png`, find the gap visually.
+1. Open `calibration_leaks\room-<id>-<code>.png`, find the gap visually.
 2. Add the suggested `[x1,y1,x2,y2]` to `wall_patches` in `calibration.json`.
 3. Re-run `validate fill`. Repeat until clean.
 
@@ -248,7 +280,8 @@ map itself changed, drop `--auto` and walk through the gates again.
 ### "The spreadsheet changed (people moved, but offices are unchanged)"
 1. Skip `calibrate` (calibration is still valid).
 2. Re-run `validate labels` → `layout` → `layout confirm` → `build` → `build confirm` → `tile`.
-3. Or simply `OfficeMapMaker all --auto` if you trust the layout review will still hold.
+   Pass `--auto` to any pass whose prior review gate you trust is still valid
+   for the new spreadsheet.
 
 ### "I want explicit colors for teams"
 1. Create `teams.json` next to your assignments with `{"TeamName": "#RRGGBB", ...}`.

@@ -9,13 +9,14 @@ __pycache__/
 # Generated outputs (regenerate from inputs)
 composite.png
 composite_review.png
+composite_meta.json
 calibration_review.pdf
-validation_labels_review.png
-rooms_overview.png
+calibration_validation_labels_review.png
+calibration_rooms_overview.png
+calibration_leaks/
 layout.json
 layout_review.png
 layout_review_problems.png
-leaks/
 tiles/
 report.txt
 
