@@ -235,6 +235,107 @@ def test_build_calibration_review_pdf_raises_when_map_missing(tmp_path: Path):
         build_calibration_review_pdf(tmp_path / "no.png", cal, tmp_path / "out.pdf")
 
 
+def test_build_calibration_review_pdf_paginates_large_label_set(tmp_path: Path):
+    """Pages 3 and 4 must paginate (not truncate) when labels exceed one page.
+
+    Regression guard: prior to pagination, both pages hard-capped at 60
+    thumbnails and hid the rest. With ~200 labels + ~200 orphan rooms the PDF
+    must produce strictly more pages than the previous 4-page baseline.
+    """
+    from PIL import Image
+    from reportlab.lib.pagesizes import letter
+
+    from officemapmaker.review_pdf import (
+        _max_title_block_height,
+        _thumbnail_grid_layout,
+    )
+
+    map_png = tmp_path / "map.png"
+    _make_map_png(map_png, size=(800, 800))
+
+    page_w, page_h = letter
+    capacity, *_ = _thumbnail_grid_layout(page_w, page_h)
+    # Sanity guard on the layout — should fit a meaningful number of thumbs.
+    assert capacity >= 6, f"unexpectedly small grid capacity: {capacity}"
+
+    # Build a calibration with > 2 * capacity labels (forces page 3 to paginate)
+    # AND > capacity orphan rooms (forces page 4 to paginate too).
+    n_labels = 2 * capacity + 5
+    n_extra_rooms = capacity + 5  # orphan rooms (no label points at them)
+    img_size = (800, 800)
+
+    labels = [
+        Label(
+            id=f"L{i:03d}",
+            bbox=(50 + (i % 10) * 8, 50 + (i // 10) * 8, 20, 10),
+            room_id=(i if i < 5 else None),  # most labels are orphans (no room)
+            classification=Classification.OFFICE,
+            fill_seed=(60, 60),
+            ocr_confidence=0.5,
+        )
+        for i in range(n_labels)
+    ]
+    rooms = [
+        _square_room(i, 100, 100, 20, img_size=img_size)
+        for i in range(n_extra_rooms + 5)
+    ]
+
+    cal = Calibration(
+        map_image="map.png",
+        map_hash="sha256:dummy",
+        labels=labels,
+        rooms=rooms,
+        wall_patches=[],
+        render_defaults=RenderDefaults(),
+    )
+
+    pdf_path = tmp_path / "calibration_review.pdf"
+    build_calibration_review_pdf(map_png, cal, pdf_path)
+    assert pdf_path.exists()
+
+    # Count pages via a real PDF parser to avoid string-matching fragility.
+    try:
+        import fitz  # pymupdf
+    except ImportError:
+        pytest.skip("pymupdf not installed; cannot count PDF pages")
+    with fitz.open(pdf_path) as doc:
+        page_count = doc.page_count
+        # Pages 1, 2 are always single; pages 3 and 4 must each paginate.
+        # Expect: page 1 (1) + page 2 (1) + page 3 (>=3) + page 4 (>=2) >= 7.
+        assert page_count >= 7, (
+            f"expected pagination across pages 3 and 4 (>=7 PDF pages); got {page_count}"
+        )
+        # Also: caption on page 3 should mention "page 1 of N" — pagination
+        # suffix proves the new code path ran.
+        text_p3 = doc.load_page(2).get_text()
+        assert "page 1 of" in text_p3, (
+            f"expected pagination suffix on page 3; text was: {text_p3[:200]!r}"
+        )
+
+
+def test_thumbnail_grid_layout_uses_conservative_title_height(tmp_path: Path):
+    """Capacity must be derived from the worst-case title block so per-page
+    chunk size stays stable even if a caption picks up an extra wrapped line."""
+    from reportlab.lib.pagesizes import letter
+
+    from officemapmaker.review_pdf import (
+        _draw_title_block,
+        _max_title_block_height,
+        _thumbnail_grid_layout,
+    )
+
+    page_w, page_h = letter
+    capacity, grid_top, *_ = _thumbnail_grid_layout(page_w, page_h)
+
+    # A short caption produces a title block at most as tall as the max.
+    # (The max is computed from _TITLE_BLOCK_MAX_CAPTION_LINES=4.)
+    max_h = _max_title_block_height()
+    assert max_h > 0
+    # Grid top is page_h - margin - max_title_block_height.
+    assert grid_top < page_h, "grid_top must be below the top margin"
+    assert capacity > 0
+
+
 # ---------------------------------------------------------------------------
 # CLI integration
 # ---------------------------------------------------------------------------

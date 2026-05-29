@@ -43,7 +43,10 @@ _TITLE_GAP_PT = 8              # gap between title baseline and first caption li
 _TITLE_BLOCK_GAP_BELOW_PT = 10 # gap between last caption line and page content
 _THUMB_PADDING_PT = 6
 _THUMB_COLS = 6                # default grid width on pages 3 and 4
-_MAX_THUMBNAILS_PER_PAGE = 60  # cap so the PDF stays usable
+# Conservative upper bound on the caption's line count. Used only to compute a
+# stable per-page thumbnail capacity so the grid never overflows even if a
+# pagination suffix bumps the caption onto an extra wrapped line.
+_TITLE_BLOCK_MAX_CAPTION_LINES = 4
 _BBOX_PAD_PT = 3.0             # padding around each OCR bbox on page 1 so the
                                # outline visibly encloses (rather than covers)
                                # the digits beneath it
@@ -108,6 +111,42 @@ def _draw_title_block(c, page_w: float, page_h: float, title: str, caption: str)
         + _TITLE_BLOCK_GAP_BELOW_PT
     )
     return consumed
+
+
+def _max_title_block_height() -> float:
+    """Conservative upper bound on title-block height across all pages.
+
+    Used to compute a stable per-page thumbnail capacity that holds even when
+    a paginated caption picks up an extra wrapped line. The chunk size never
+    needs to change between pages, so labels paginate predictably.
+    """
+    return (
+        _TITLE_FONT_SIZE_PT
+        + _TITLE_GAP_PT
+        + _CAPTION_FONT_SIZE_PT
+        + max(0, _TITLE_BLOCK_MAX_CAPTION_LINES - 1) * _CAPTION_LEADING_PT
+        + _TITLE_BLOCK_GAP_BELOW_PT
+    )
+
+
+def _thumbnail_grid_layout(page_w: float, page_h: float) -> tuple[int, float, float, float, float, float]:
+    """Return ``(capacity, grid_top, cell_w, thumb_w, thumb_h, cell_h)``.
+
+    ``grid_top`` is the Y coordinate (PDF points, origin bottom-left) of the
+    top edge of the thumbnail grid assuming a max-height title block.
+    ``capacity`` is how many thumbnails fit on one such page.
+    """
+    title_block_h = _max_title_block_height()
+    grid_top = page_h - _MARGIN_PT - title_block_h
+    grid_bottom = _MARGIN_PT
+    avail_w = page_w - 2 * _MARGIN_PT
+    cell_w = avail_w / _THUMB_COLS
+    thumb_w = cell_w - _THUMB_PADDING_PT
+    thumb_h = thumb_w * 0.70  # 5:7 aspect leaves room for a caption line
+    cell_h = thumb_h + 22
+    rows_per_page = max(1, int((grid_top - grid_bottom) // cell_h))
+    capacity = rows_per_page * _THUMB_COLS
+    return capacity, grid_top, cell_w, thumb_w, thumb_h, cell_h
 
 
 # ---------------------------------------------------------------------------
@@ -290,31 +329,37 @@ def _render_page2_polygons(c, page_w, page_h, map_image, cal: Calibration) -> No
 
 
 def _render_page3_confidence(c, page_w, page_h, map_image, cal: Calibration) -> None:
-    """Page 3: thumbnail grid of labels sorted by ascending OCR confidence."""
-    sorted_labels = sorted(cal.labels, key=lambda lab: lab.ocr_confidence)
-    displayed = sorted_labels[:_MAX_THUMBNAILS_PER_PAGE]
-    omitted = len(sorted_labels) - len(displayed)
+    """Page 3: thumbnail grid of labels sorted by ascending OCR confidence.
 
-    suffix = f" ({omitted} more not shown)" if omitted else ""
+    Paginates across as many PDF pages as needed (one page per
+    ``_thumbnail_grid_layout`` capacity chunk) so every label is visible.
+    """
+    sorted_labels = sorted(cal.labels, key=lambda lab: lab.ocr_confidence)
     _render_label_thumbnail_grid(
         c, page_w, page_h, map_image,
-        labels=displayed,
+        labels=sorted_labels,
         title="Page 3 — Labels by ascending OCR confidence",
         caption=(
-            f"{len(displayed)} lowest-confidence labels shown{suffix}. "
-            "Misreads almost always live here — compare the green text "
-            "(what OCR thought it read) to the original digits in each crop."
+            f"{len(sorted_labels)} label(s), sorted lowest-confidence first. "
+            "Misreads almost always live near the top — compare the green text "
+            "(what OCR thought it read) to the original digits in each crop. "
+            "To edit one, find it in calibration.json by its room number (second caption line)."
         ),
     )
 
 
 def _render_page4_orphans(c, page_w, page_h, map_image, cal: Calibration) -> None:
-    """Page 4: orphan labels (no room) + orphan rooms (no label)."""
+    """Page 4: orphan labels (no room) + orphan rooms (no label).
+
+    Paginates so every orphan is visible (used to be capped at 60, which hid
+    every orphan room on real floor plans with hundreds of detected polygons).
+    """
     orphan_labels = [lab for lab in cal.labels if lab.room_id is None]
     referenced_rooms = {lab.room_id for lab in cal.labels if lab.room_id is not None}
     orphan_rooms = [r for r in cal.rooms if r.id not in referenced_rooms]
 
     # Build pseudo-labels for orphan rooms so we can reuse the thumbnail grid.
+    # These are visually distinguishable by their ``room#<id>`` id form.
     pseudo: list[Label] = []
     for room in orphan_rooms:
         pseudo.append(
@@ -329,19 +374,18 @@ def _render_page4_orphans(c, page_w, page_h, map_image, cal: Calibration) -> Non
         )
 
     combined = orphan_labels + pseudo
-    displayed = combined[:_MAX_THUMBNAILS_PER_PAGE]
-    omitted = len(combined) - len(displayed)
-    suffix = f" ({omitted} more not shown)" if omitted else ""
 
     _render_label_thumbnail_grid(
         c, page_w, page_h, map_image,
-        labels=displayed,
+        labels=combined,
         title="Page 4 — Orphans",
         caption=(
-            f"{len(orphan_labels)} labels with no room + {len(orphan_rooms)} rooms with no label"
-            f"{suffix}. Each tile is the relevant area cropped from the map. "
-            "Resolve by editing calibration.json (assign a room, add a label, "
-            "or set classification to 'skip')."
+            f"{len(orphan_labels)} label(s) with no room (shown first) + "
+            f"{len(orphan_rooms)} room(s) with no label (shown after, with id 'room#N'). "
+            "Each tile is the relevant area cropped from the map. "
+            "Resolve by editing calibration.json (set a label's room_id, "
+            "add a new Label entry pointing at an orphan room, or set "
+            "classification to 'skip')."
         ),
     )
 
@@ -433,43 +477,57 @@ def _render_label_thumbnail_grid(
     title: str,
     caption: str,
 ) -> None:
-    """Render up to _MAX_THUMBNAILS_PER_PAGE label crops in a uniform grid."""
+    """Render label crops in a uniform grid, paginating across PDF pages.
+
+    All ``labels`` are rendered — nothing is truncated. If the list exceeds
+    one page's grid capacity (see ``_thumbnail_grid_layout``), additional PDF
+    pages are emitted via ``c.showPage()`` BETWEEN chunks. The trailing
+    ``showPage()`` is left to the caller (``build_calibration_review_pdf``).
+
+    Paginated pages get a ``(page i of N)`` suffix appended to ``caption``.
+    """
     from reportlab.lib.utils import ImageReader
 
-    title_block_h = _draw_title_block(c, page_w, page_h, title, caption)
-
     if not labels:
+        _draw_title_block(c, page_w, page_h, title, caption)
         c.setFont("Helvetica-Oblique", 12)
         c.drawString(_MARGIN_PT, page_h / 2, "(none)")
         return
 
-    grid_top = page_h - _MARGIN_PT - title_block_h
-    grid_bottom = _MARGIN_PT
-    avail_w = page_w - 2 * _MARGIN_PT
-    cell_w = avail_w / _THUMB_COLS
-    thumb_w = cell_w - _THUMB_PADDING_PT
-    thumb_h = thumb_w * 0.70  # 5:7 aspect leaves room for a caption line
-    cell_h = thumb_h + 22
-    rows_per_page = max(1, int((grid_top - grid_bottom) // cell_h))
-    capacity = rows_per_page * _THUMB_COLS
+    capacity, grid_top, cell_w, thumb_w, thumb_h, cell_h = _thumbnail_grid_layout(
+        page_w, page_h
+    )
 
-    for i, label in enumerate(labels[:capacity]):
-        col = i % _THUMB_COLS
-        row = i // _THUMB_COLS
-        x = _MARGIN_PT + col * cell_w
-        y = grid_top - (row + 1) * cell_h
-        crop = _crop_label_region(map_image, label.bbox, expand=4.0)
-        if crop is not None:
-            c.drawImage(
-                ImageReader(crop),
-                x, y + 18, width=thumb_w, height=thumb_h, preserveAspectRatio=True, anchor="c",
-            )
-        c.setFont("Helvetica", 7)
-        c.setFillGray(0)
-        c.drawString(x, y + 9, f"{label.id}  conf={label.ocr_confidence:.2f}")
-        c.setFillGray(0.4)
-        room_str = "(orphan)" if label.room_id is None else f"room {label.room_id}"
-        c.drawString(x, y + 1, room_str)
+    total = len(labels)
+    num_pages = (total + capacity - 1) // capacity  # ceil-div
+
+    for page_i in range(num_pages):
+        if page_i > 0:
+            c.showPage()
+
+        chunk = labels[page_i * capacity : (page_i + 1) * capacity]
+        page_caption = caption
+        if num_pages > 1:
+            page_caption = f"{caption} (page {page_i + 1} of {num_pages})"
+        _draw_title_block(c, page_w, page_h, title, page_caption)
+
+        for i, label in enumerate(chunk):
+            col = i % _THUMB_COLS
+            row = i // _THUMB_COLS
+            x = _MARGIN_PT + col * cell_w
+            y = grid_top - (row + 1) * cell_h
+            crop = _crop_label_region(map_image, label.bbox, expand=4.0)
+            if crop is not None:
+                c.drawImage(
+                    ImageReader(crop),
+                    x, y + 18, width=thumb_w, height=thumb_h, preserveAspectRatio=True, anchor="c",
+                )
+            c.setFont("Helvetica", 7)
+            c.setFillGray(0)
+            c.drawString(x, y + 9, f"{label.id}  conf={label.ocr_confidence:.2f}")
+            c.setFillGray(0.4)
+            room_str = "(orphan)" if label.room_id is None else f"room {label.room_id}"
+            c.drawString(x, y + 1, room_str)
 
 
 def _crop_label_region(map_image, bbox: tuple[int, int, int, int], *, expand: float):
