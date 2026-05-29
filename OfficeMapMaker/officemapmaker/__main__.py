@@ -320,6 +320,80 @@ def _run_validate_labels(args: argparse.Namespace) -> int:
     return 1 if errors else 0
 
 
+def _run_validate_fill(args: argparse.Namespace) -> int:
+    """Execute Pass 2 (virtual flood-fill leak detection)."""
+    from .calibration import load_calibration
+    from .validate import (
+        render_leak_overlay_png,
+        render_rooms_overview_png,
+        validate_fill,
+    )
+
+    cal_path: Path = args.calibration
+    map_path: Path = args.map
+
+    if not cal_path.exists():
+        print(f"error: calibration not found at {cal_path}", file=sys.stderr)
+        return 2
+    if not map_path.exists():
+        print(f"error: map not found at {map_path}", file=sys.stderr)
+        return 2
+
+    try:
+        cal = load_calibration(cal_path)
+    except Exception as exc:  # noqa: BLE001
+        print(f"error: could not load calibration: {exc}", file=sys.stderr)
+        return 2
+
+    try:
+        leaks = validate_fill(map_path, cal)
+    except (FileNotFoundError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+
+    errors = [l for l in leaks if l.severity == "error"]
+    warnings = [l for l in leaks if l.severity == "warning"]
+
+    # Per-leak overlay PNGs in <calibration-stem>_leaks\ next to the calibration.
+    leaks_dir = cal_path.with_name(cal_path.stem + "_leaks")
+    if leaks:
+        leaks_dir.mkdir(parents=True, exist_ok=True)
+        for leak in leaks:
+            png = leaks_dir / f"room-{leak.office_id}-{leak.code}.png"
+            try:
+                render_leak_overlay_png(map_path, cal, leak, png)
+            except Exception as exc:  # noqa: BLE001
+                print(
+                    f"warning: failed to render {png.name}: {exc}",
+                    file=sys.stderr,
+                )
+        print(f"wrote {len(leaks)} leak overlay(s) to {leaks_dir}")
+
+    # Rooms overview is always useful; render it whether or not leaks were found.
+    overview_png = cal_path.with_name(cal_path.stem + "_rooms_overview.png")
+    try:
+        render_rooms_overview_png(map_path, cal, overview_png)
+        print(f"wrote {overview_png}")
+    except Exception as exc:  # noqa: BLE001
+        print(f"warning: failed to render rooms overview: {exc}", file=sys.stderr)
+
+    for leak in leaks:
+        stream = sys.stderr if leak.severity == "error" else sys.stdout
+        print(str(leak), file=stream)
+        if leak.suggested_patch:
+            x1, y1, x2, y2 = leak.suggested_patch
+            print(
+                f"  suggested wall_patches entry: [{x1}, {y1}, {x2}, {y2}]",
+                file=stream,
+            )
+
+    print(
+        f"summary: {len(cal.office_labels())} office(s), "
+        f"{len(errors)} error(s), {len(warnings)} warning(s)"
+    )
+    return 1 if errors else 0
+
+
 def dispatch(args: argparse.Namespace) -> int:
     cmd = args.cmd
 
@@ -339,7 +413,7 @@ def dispatch(args: argparse.Namespace) -> int:
         if action == "labels":
             return _run_validate_labels(args)
         if action == "fill":
-            return _not_implemented("validate fill")
+            return _run_validate_fill(args)
         # argparse guarantees we don't reach here, but be defensive.
         return _not_implemented(f"validate {action}")
 
