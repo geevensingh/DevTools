@@ -74,6 +74,34 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SessionMonitor", "SessionMo
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConnectionsSolver", "ConnectionsSolver\ConnectionsSolver.csproj", "{F7CFB915-EAD1-4190-A51E-4BBD04FF5A58}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "OfficeMapMaker", "OfficeMapMaker", "{CBA8EB6C-6B49-4122-B593-8B1A5F0F7D15}"
+	ProjectSection(SolutionItems) = preProject
+		OfficeMapMaker\.gitignore = OfficeMapMaker\.gitignore
+		OfficeMapMaker\OfficeMapMaker.cmd = OfficeMapMaker\OfficeMapMaker.cmd
+		OfficeMapMaker\README.md = OfficeMapMaker\README.md
+		OfficeMapMaker\requirements.txt = OfficeMapMaker\requirements.txt
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "officemapmaker", "officemapmaker", "{75D7CEB0-D228-43F3-BE82-9EF7D0433DBF}"
+	ProjectSection(SolutionItems) = preProject
+		OfficeMapMaker\officemapmaker\__init__.py = OfficeMapMaker\officemapmaker\__init__.py
+		OfficeMapMaker\officemapmaker\__main__.py = OfficeMapMaker\officemapmaker\__main__.py
+		OfficeMapMaker\officemapmaker\manifest.py = OfficeMapMaker\officemapmaker\manifest.py
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{978CB2CB-DA5E-459C-B8E6-886BB7985306}"
+	ProjectSection(SolutionItems) = preProject
+		OfficeMapMaker\tests\test_cli.py = OfficeMapMaker\tests\test_cli.py
+		OfficeMapMaker\tests\test_manifest.py = OfficeMapMaker\tests\test_manifest.py
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{269D28CF-ADD1-44F4-817F-F26B18EE9BA1}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Millennium_B", "Millennium_B", "{2E82CC40-6EAF-411B-A418-F4C7CD1F018A}"
+	ProjectSection(SolutionItems) = preProject
+		OfficeMapMaker\samples\Millennium_B\README.md = OfficeMapMaker\samples\Millennium_B\README.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -613,6 +641,12 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{75D7CEB0-D228-43F3-BE82-9EF7D0433DBF} = {CBA8EB6C-6B49-4122-B593-8B1A5F0F7D15}
+		{978CB2CB-DA5E-459C-B8E6-886BB7985306} = {CBA8EB6C-6B49-4122-B593-8B1A5F0F7D15}
+		{269D28CF-ADD1-44F4-817F-F26B18EE9BA1} = {CBA8EB6C-6B49-4122-B593-8B1A5F0F7D15}
+		{2E82CC40-6EAF-411B-A418-F4C7CD1F018A} = {269D28CF-ADD1-44F4-817F-F26B18EE9BA1}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {107AC4FE-615A-4A2C-8061-758E04391DF2}
