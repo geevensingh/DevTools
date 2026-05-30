@@ -72,30 +72,39 @@ ChangeCallback = Callable[[LabelChange], None]
 class RoomChange:
     """Notification payload for an edit that affected one or more rooms.
 
-    Parallel to :class:`LabelChange` but on the room side. v1 only fires
-    on Add-room (Phase 1 of the add-room feature); future room edits
-    (delete, polygon-edit) should reuse the same payload shape so the
-    controller and canvas already know how to react.
+    Parallel to :class:`LabelChange` but on the room side. v1 only fired
+    on Add-room (Phase 1 of the add-room feature). ed8 added Delete-room,
+    which can also affect *labels* (the deleted room's links get cleared),
+    so this payload now also carries an optional list of label indices
+    whose visual state may have changed.
 
     Attributes:
         room_ids: Room ids whose existence or geometry just changed.
             For Add: the new room's id (after redo) or the just-removed
             room's id (after undo) — used by the controller to focus the
             inspector / select the new item.
+        label_indices: Indices into ``Calibration.labels`` whose visual
+            state may have changed because of this room edit — e.g. on
+            Delete-room, every label that was linked to the deleted room
+            had its ``room_id`` cleared and so flipped to orphan status.
+            Empty by default (Add-room doesn't affect labels).
         structural: True if the set of rooms itself changed (one was added
             or removed). The canvas can no longer trust its cached
             ``room_id → RoomItem`` dict and does a room-only rebuild via
             ``rebuild_rooms()``. Label items are untouched (no label
-            indices shift on a room change).
+            indices shift on a room change) — but they may need
+            *re-styling* if ``label_indices`` is non-empty.
     """
 
     def __init__(
         self,
         *,
         room_ids: Optional[list[int]] = None,
+        label_indices: Optional[list[int]] = None,
         structural: bool = False,
     ) -> None:
         self.room_ids: list[int] = list(room_ids or [])
+        self.label_indices: list[int] = list(label_indices or [])
         self.structural: bool = structural
 
 
@@ -447,12 +456,98 @@ class AddRoomCommand(QtGui.QUndoCommand):
             self._on_change(RoomChange(room_ids=[], structural=True))
 
 
+class DeleteRoomCommand(QtGui.QUndoCommand):
+    """Remove an existing ``Room`` from the calibration (undoable).
+
+    Mirror of :class:`DeleteLabelCommand` on the room side. Captures the
+    deleted room and every label that was linked to it (the ``room_id``
+    of each linked label is cleared on redo so we don't leave behind
+    stale references, and is restored on undo as part of the same
+    command — so a single undo brings back both the room *and* every
+    link).
+
+    Like :class:`AddRoomCommand` this is a structural change; the canvas
+    rebuilds its room overlay items rather than trying to splice indices.
+    The fired :class:`RoomChange` also carries the affected label indices
+    so the controller can re-style those label items (their orphan
+    status just flipped) and refresh the inspector if it's currently
+    showing one of them.
+    """
+
+    def __init__(
+        self,
+        calibration: Calibration,
+        room_index: int,
+        *,
+        on_change: Optional[RoomChangeCallback] = None,
+    ) -> None:
+        if not (0 <= room_index < len(calibration.rooms)):
+            raise IndexError(
+                f"DeleteRoomCommand: room_index {room_index} out of range "
+                f"(have {len(calibration.rooms)} rooms)"
+            )
+        snapshot = calibration.rooms[room_index]
+        super().__init__(f"delete room {snapshot.id}")
+        self._cal = calibration
+        self._index = room_index
+        self._room = snapshot
+        # List of (label_index, original_room_id) for every label that
+        # currently points at this room. We record both ends so undo can
+        # restore the link exactly even if the original_room_id wasn't
+        # the same as ``snapshot.id`` (defensive — it always should be).
+        self._affected_labels: list[tuple[int, Optional[int]]] = [
+            (i, lab.room_id)
+            for i, lab in enumerate(calibration.labels)
+            if lab.room_id == snapshot.id
+        ]
+        self._on_change = on_change
+
+    def redo(self) -> None:  # noqa: D401
+        if not (0 <= self._index < len(self._cal.rooms)):
+            # Concurrent edit pulled the rug — log silently rather than crash.
+            return
+        # Clear room_id on every affected label so we don't leave stale
+        # references to a now-deleted room.
+        for li, _ in self._affected_labels:
+            if 0 <= li < len(self._cal.labels):
+                self._cal.labels[li].room_id = None
+        del self._cal.rooms[self._index]
+        if self._on_change is not None:
+            self._on_change(
+                RoomChange(
+                    room_ids=[],
+                    label_indices=[li for li, _ in self._affected_labels],
+                    structural=True,
+                )
+            )
+
+    def undo(self) -> None:  # noqa: D401
+        # Re-insert at the original index. If the rooms list has grown
+        # beyond that index, the resurrected room still occupies the same
+        # logical slot it had before deletion.
+        insert_at = min(self._index, len(self._cal.rooms))
+        self._cal.rooms.insert(insert_at, self._room)
+        # Restore each affected label's room_id to its original value.
+        for li, original_rid in self._affected_labels:
+            if 0 <= li < len(self._cal.labels):
+                self._cal.labels[li].room_id = original_rid
+        if self._on_change is not None:
+            self._on_change(
+                RoomChange(
+                    room_ids=[self._room.id],
+                    label_indices=[li for li, _ in self._affected_labels],
+                    structural=True,
+                )
+            )
+
+
 __all__ = [
     "AddLabelCommand",
     "AddRoomCommand",
     "ChangeCallback",
     "ChangeRoomLinkCommand",
     "DeleteLabelCommand",
+    "DeleteRoomCommand",
     "EditLabelIdCommand",
     "EditLabelNotesCommand",
     "LabelChange",

@@ -216,14 +216,14 @@ class EditorMainWindow(QtWidgets.QMainWindow):
         self._act_add_label.toggled.connect(self._on_add_label_toggled)
         tools_menu.addAction(self._act_add_label)
 
-        self._act_delete_label = QtGui.QAction("&Delete selected label", self)
+        self._act_delete_label = QtGui.QAction("&Delete selected", self)
         # Del + Backspace both feel natural for delete; bind both.
         self._act_delete_label.setShortcuts(
             [QtGui.QKeySequence(QtCore.Qt.Key.Key_Delete),
              QtGui.QKeySequence(QtCore.Qt.Key.Key_Backspace)]
         )
         self._act_delete_label.setStatusTip(
-            "Delete the currently-selected label. Undoable."
+            "Delete the currently-selected label or room. Undoable."
         )
         self._act_delete_label.triggered.connect(self._on_delete_label)
         tools_menu.addAction(self._act_delete_label)
@@ -632,12 +632,21 @@ class EditorMainWindow(QtWidgets.QMainWindow):
             self._filter_dock._orphans_only_checkbox().blockSignals(False)  # noqa: SLF001
 
     def _on_delete_label(self) -> None:
-        """Delete the selected label, or flash a hint if nothing's selected."""
-        if not self._controller.delete_selected_label():
-            self.statusBar().showMessage(
-                "Select a label first (click a yellow / green box on the map).",
-                2500,
-            )
+        """Delete the selected label or room; flash a hint if nothing's selected.
+
+        Tries label first (mirrors selection priority in the controller —
+        labels are smaller and a click usually meant the label). Falls
+        back to room if no label is selected. Both deletions are
+        undoable on the same stack.
+        """
+        if self._controller.delete_selected_label():
+            return
+        if self._controller.delete_selected_room():
+            return
+        self.statusBar().showMessage(
+            "Select a label or room first (click one on the map).",
+            2500,
+        )
 
     def _on_dirty_changed(self, dirty: bool) -> None:
         """Update the window title + status-bar marker on stack clean/dirty.

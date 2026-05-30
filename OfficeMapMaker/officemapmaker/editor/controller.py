@@ -31,6 +31,7 @@ from .commands import (
     AddRoomCommand,
     ChangeRoomLinkCommand,
     DeleteLabelCommand,
+    DeleteRoomCommand,
     EditLabelIdCommand,
     EditLabelNotesCommand,
     LabelChange,
@@ -906,6 +907,48 @@ class EditorController(QtCore.QObject):
         self._undo_stack.push(cmd)
         return True
 
+    # --------------------------------------------------- delete room
+
+    def delete_selected_room(self) -> bool:
+        """Push a ``DeleteRoomCommand`` for the currently-selected room.
+
+        Returns:
+            ``True`` if a room was selected and a delete command was pushed,
+            ``False`` if there was nothing to delete. Used by the menu /
+            shortcut action to decide whether to show a status-bar hint.
+
+        Note: priority order is label > room, mirroring selection priority
+        in :meth:`_handle_selection_changed`. The caller is expected to
+        check :meth:`delete_selected_label` first (the unified app-level
+        action does this).
+        """
+        try:
+            selected = self._canvas.scene().selectedItems()
+        except RuntimeError:
+            return False
+        room_item = next(
+            (it for it in selected if isinstance(it, RoomItem)), None
+        )
+        if room_item is None:
+            return False
+        # Find the room's index in cal.rooms (commands address by index,
+        # not by id, so undo can restore at the exact original slot).
+        target_id = room_item.room.id
+        room_index = next(
+            (i for i, r in enumerate(self._cal.rooms) if r.id == target_id),
+            None,
+        )
+        if room_index is None:
+            # Selection out of sync with model — shouldn't happen but guard.
+            return False
+        cmd = DeleteRoomCommand(
+            self._cal,
+            room_index,
+            on_change=self._on_room_change,
+        )
+        self._undo_stack.push(cmd)
+        return True
+
     # -------------------------------------------- in-place refresh hook
 
     def _on_label_change(self, change: LabelChange) -> None:
@@ -989,23 +1032,64 @@ class EditorController(QtCore.QObject):
     def _on_room_change(self, change: RoomChange) -> None:
         """Apply a ``RoomChange`` to the canvas + inspector.
 
-        v1 is fired only by :class:`AddRoomCommand` (Add + Undo-Add).
-        Structural changes always rebuild the room layer (room id sets
-        change, polygon decode is needed for the new entry); after the
-        rebuild we re-select the new (or, on undo, no) room so the
-        inspector tracks the current state.
+        Fired by :class:`AddRoomCommand` (Add + Undo-Add) and
+        :class:`DeleteRoomCommand` (Delete + Undo-Delete). Structural
+        changes always rebuild the room layer (room id sets change,
+        polygon decode is needed for any resurrected entry).
+
+        When ``change.label_indices`` is non-empty (delete-room cleared
+        some labels' ``room_id``, or undo-delete restored them), the
+        corresponding label items are re-styled in place and the
+        inspector is refreshed if it's currently showing one of them.
         """
         if change.structural:
             self._canvas.rebuild_rooms()
+            inspector_refreshed = False
+            # Re-style any labels whose orphan status flipped because
+            # the deleted (or resurrected) room's links changed. Mirrors
+            # the in-place style refresh in ``_on_label_change``.
+            if change.label_indices:
+                duplicate_ids = find_duplicate_label_ids(self._cal.labels)
+                label_items = self._canvas.label_items()
+                for idx in change.label_indices:
+                    item = label_items.get(idx)
+                    if item is None:
+                        continue
+                    if not (0 <= idx < len(self._cal.labels)):
+                        continue
+                    item.status = compute_label_status(
+                        self._cal.labels[idx], duplicate_ids
+                    )
+                    item._apply_style()  # noqa: SLF001 — intentional cross-module style refresh
+                # If the inspector is currently showing one of the
+                # affected labels, refresh it so the room combo reflects
+                # the new (cleared / restored) room_id.
+                current = self._inspector.current_label_index()
+                if current is not None and current in change.label_indices:
+                    if 0 <= current < len(self._cal.labels):
+                        label = self._cal.labels[current]
+                        available_room_ids = sorted(
+                            room.id for room in self._cal.rooms
+                        )
+                        self._inspector.show_label(
+                            label=label,
+                            label_index=current,
+                            available_room_ids=available_room_ids,
+                        )
+                        inspector_refreshed = True
             if change.room_ids:
-                # Select the newly-added room so the inspector shows it
-                # right away — letting the user click "Create label for
-                # this room" without any extra navigation.
+                # Select the newly-added (or resurrected) room so the
+                # inspector shows it right away — letting the user click
+                # "Create label for this room" without any extra
+                # navigation.
                 self._canvas.select_room(change.room_ids[-1])
-            else:
-                # Undo-Add path: the room is gone. If the inspector was
-                # showing it, clear the panel so we don't display stale
-                # info for a vanished room.
+            elif not inspector_refreshed and self._inspector.current_label_index() is None:
+                # Add-undo or delete-redo path: the room is gone. Only
+                # clear the inspector if it wasn't showing a label — a
+                # label-currently-displayed could be unrelated to the
+                # deleted room (or could be one we just refreshed via
+                # the affected-labels branch above), and clobbering it
+                # would erase the user's working context.
                 self._inspector.show_nothing()
 
     # --------------------------------------------------- clean tracking
