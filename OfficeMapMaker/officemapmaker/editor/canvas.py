@@ -259,6 +259,14 @@ class MapCanvas(QtWidgets.QGraphicsView):
         self._labels_visible = True
         self._rooms_visible = True
         self._orphans_only = False
+        # ed5 filters: minimum room area (px) below which rooms are hidden
+        # entirely (catches the door-arc-sized polygons that account for
+        # most "orphan room" noise), and a standalone "hide labeled rooms"
+        # toggle for the workflow of "stop showing me the rooms I've
+        # already taken care of". Both default off so the editor's
+        # first-launch behaviour is unchanged.
+        self._min_room_area_px = 0
+        self._hide_labeled_rooms = False
 
     # ------------------------------------------------------------------ map
 
@@ -427,6 +435,43 @@ class MapCanvas(QtWidgets.QGraphicsView):
             # miss otherwise after an add at scroll-distant coordinates.
             self.ensureVisible(item)
 
+    def find_label_indices(self, query: str) -> list[int]:
+        """Return label indices whose ``id`` contains ``query`` (case-insensitive).
+
+        Used by the filter dock's search box. Results are sorted by the
+        label's on-canvas position (top-to-bottom, then left-to-right) so
+        F3 / Shift+F3 cycle in a predictable order. An empty / whitespace
+        query returns no results.
+        """
+        needle = query.strip().casefold()
+        if not needle:
+            return []
+        if self._calibration is None:
+            return []
+        matches: list[tuple[float, float, int]] = []
+        for idx, lab in enumerate(self._calibration.labels):
+            if needle in lab.id.casefold():
+                x, y, _w, _h = lab.bbox
+                matches.append((float(y), float(x), idx))
+        matches.sort()
+        return [idx for _y, _x, idx in matches]
+
+    def center_on_label(self, label_index: int) -> None:
+        """Select the label and scroll the view so it sits in the centre.
+
+        Stronger than :meth:`select_label`'s ``ensureVisible`` (which only
+        nudges if off-screen): jumping to a search result should always
+        feel like the view *moved* to the match, otherwise the user can't
+        tell if the search hit anything.
+        """
+        item = self._label_items.get(label_index)
+        if item is None:
+            return
+        scene = self.scene()
+        scene.clearSelection()
+        item.setSelected(True)
+        self.centerOn(item)
+
     def label_items(self) -> dict[int, LabelItem]:
         """Read-only view of the per-label overlay items, keyed by index."""
         return dict(self._label_items)
@@ -454,6 +499,25 @@ class MapCanvas(QtWidgets.QGraphicsView):
         self._orphans_only = on
         self._apply_visibility()
 
+    def set_min_room_area(self, area_px: int) -> None:
+        """Hide rooms whose ``area_px`` is strictly less than ``area_px``.
+
+        Set to 0 to disable the filter. Useful for cutting the door-arc /
+        notch-sized polygons that make up most of the "orphan room" noise
+        on real calibrations.
+        """
+        self._min_room_area_px = max(0, int(area_px))
+        self._apply_visibility()
+
+    def set_hide_labeled_rooms(self, hide: bool) -> None:
+        """When on, hide every room polygon that has at least one label.
+
+        Independent of orphans-only: this only affects rooms (orphans-only
+        also hides linked labels).
+        """
+        self._hide_labeled_rooms = bool(hide)
+        self._apply_visibility()
+
     def labels_visible(self) -> bool:
         return self._labels_visible
 
@@ -462,6 +526,12 @@ class MapCanvas(QtWidgets.QGraphicsView):
 
     def orphans_only(self) -> bool:
         return self._orphans_only
+
+    def min_room_area(self) -> int:
+        return self._min_room_area_px
+
+    def hide_labeled_rooms(self) -> bool:
+        return self._hide_labeled_rooms
 
     # --------------------------------------------------------- pick-room
 
@@ -774,6 +844,13 @@ class MapCanvas(QtWidgets.QGraphicsView):
         for item in self._room_items.values():
             base = self._rooms_visible
             if self._orphans_only and item.labeled:
+                base = False
+            if self._hide_labeled_rooms and item.labeled:
+                base = False
+            if (
+                self._min_room_area_px > 0
+                and item.room.area_px < self._min_room_area_px
+            ):
                 base = False
             item.setVisible(base)
 

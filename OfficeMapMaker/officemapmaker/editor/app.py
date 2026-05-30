@@ -25,6 +25,7 @@ from ..calibration import (
 )
 from .canvas import MapCanvas
 from .controller import EditorController, save_calibration_with_backup
+from .filter_dock import FilterDock
 from .sidebar import InspectorPanel
 
 
@@ -76,6 +77,20 @@ class EditorMainWindow(QtWidgets.QMainWindow):
         self.addDockWidget(
             QtCore.Qt.DockWidgetArea.RightDockWidgetArea, self._inspector_dock
         )
+
+        # Filter / find dock on the left. The dock holds its own state;
+        # the main window translates its signals into canvas operations
+        # (search jumps + visibility toggles).
+        self._filter_dock = FilterDock(self)
+        self.addDockWidget(
+            QtCore.Qt.DockWidgetArea.LeftDockWidgetArea, self._filter_dock
+        )
+        # Tracks the cycle position within the current set of search
+        # matches so F3 / Shift+F3 / "Next" / "Prev" stay coherent across
+        # multiple presses without re-running the substring scan.
+        self._search_matches: list[int] = []
+        self._search_cursor: int = -1
+        self._search_last_query: str = ""
 
         self._controller = EditorController(
             calibration=calibration,
@@ -183,7 +198,7 @@ class EditorMainWindow(QtWidgets.QMainWindow):
         self._act_orphans.setShortcut(QtGui.QKeySequence("O"))
         self._act_orphans.setCheckable(True)
         self._act_orphans.setChecked(self._canvas.orphans_only())
-        self._act_orphans.toggled.connect(self._canvas.set_orphans_only)
+        self._act_orphans.toggled.connect(self._on_menu_orphans_only_toggled)
         view_menu.addAction(self._act_orphans)
 
         # Tools menu — actions that change the canvas's interaction mode.
@@ -273,6 +288,34 @@ class EditorMainWindow(QtWidgets.QMainWindow):
         )
         add_room_menu.addAction(self._act_add_room_polygon)
 
+        # Window menu — dock visibility toggles + the global Ctrl+F /
+        # F3 shortcuts. ``createToggleViewAction()`` gives a properly
+        # synced check-state out of the box.
+        window_menu = self.menuBar().addMenu("&Window")
+        window_menu.addAction(self._inspector_dock.toggleViewAction())
+        window_menu.addAction(self._filter_dock.toggleViewAction())
+        window_menu.addSeparator()
+
+        act_focus_search = QtGui.QAction("&Find label…", self)
+        act_focus_search.setShortcut(QtGui.QKeySequence.StandardKey.Find)
+        act_focus_search.setStatusTip(
+            "Focus the label search box in the Find & filter dock."
+        )
+        act_focus_search.triggered.connect(self._on_focus_search)
+        window_menu.addAction(act_focus_search)
+
+        act_find_next = QtGui.QAction("Find &next", self)
+        act_find_next.setShortcut(QtGui.QKeySequence(QtCore.Qt.Key.Key_F3))
+        act_find_next.triggered.connect(self._on_find_next)
+        window_menu.addAction(act_find_next)
+
+        act_find_prev = QtGui.QAction("Find &previous", self)
+        act_find_prev.setShortcut(
+            QtGui.QKeySequence(QtCore.Qt.Modifier.SHIFT | QtCore.Qt.Key.Key_F3)
+        )
+        act_find_prev.triggered.connect(self._on_find_previous)
+        window_menu.addAction(act_find_prev)
+
     def _build_status_bar(self) -> None:
         """Status bar shows cursor coords, calibration counts, and dirty state.
 
@@ -329,6 +372,23 @@ class EditorMainWindow(QtWidgets.QMainWindow):
         )
         self._canvas.add_room_polygon_cancelled.connect(
             self._on_add_room_polygon_mode_ended
+        )
+
+        # ed5 — wire the filter / find dock to the canvas. The dock owns
+        # its own widget state; the main window translates dock signals
+        # into canvas method calls and keeps the View menu's "Orphans
+        # only" toggle in sync with the dock's matching checkbox.
+        self._filter_dock.search_text_changed.connect(self._on_search_text_changed)
+        self._filter_dock.find_next_requested.connect(self._on_find_next)
+        self._filter_dock.find_previous_requested.connect(self._on_find_previous)
+        self._filter_dock.min_room_area_changed.connect(
+            self._canvas.set_min_room_area
+        )
+        self._filter_dock.hide_labeled_rooms_changed.connect(
+            self._canvas.set_hide_labeled_rooms
+        )
+        self._filter_dock.orphans_only_changed.connect(
+            self._on_dock_orphans_only_toggled
         )
 
     # -------------------------------------------------------------- slots
@@ -485,6 +545,91 @@ class EditorMainWindow(QtWidgets.QMainWindow):
         self._act_add_room_polygon.setChecked(False)
         self._act_add_room_polygon.blockSignals(False)
         self.statusBar().clearMessage()
+
+    # ---------------------------------------------------- search / filter
+
+    def _on_search_text_changed(self, text: str) -> None:
+        """Refresh the cached match list and the "N matches" hint.
+
+        Doesn't jump the view — that only happens on Enter / F3 / Next.
+        Editing the box mid-cycle is a common pattern (type a few more
+        characters to narrow the result set); auto-jumping would steal
+        focus from the line edit on every keystroke.
+        """
+        self._search_last_query = text
+        self._search_matches = self._canvas.find_label_indices(text)
+        self._search_cursor = -1
+        if not text.strip():
+            self._filter_dock.set_results_text("")
+        elif self._search_matches:
+            self._filter_dock.set_results_text(
+                f"{len(self._search_matches)} match"
+                + ("es" if len(self._search_matches) != 1 else "")
+            )
+        else:
+            self._filter_dock.set_results_text("no matches")
+
+    def _on_focus_search(self) -> None:
+        """Ctrl+F → bring the dock to the front + focus the search box."""
+        # If the dock has been hidden by the user, show it first;
+        # otherwise focus has nowhere to land.
+        if not self._filter_dock.isVisible():
+            self._filter_dock.show()
+        self._filter_dock.raise_()
+        self._filter_dock.focus_search()
+
+    def _on_find_next(self) -> None:
+        self._cycle_to_match(+1)
+
+    def _on_find_previous(self) -> None:
+        self._cycle_to_match(-1)
+
+    def _cycle_to_match(self, step: int) -> None:
+        """Step through the cached match list by ``step`` (±1), wrapping.
+
+        Recomputes the match list if the search box's current text doesn't
+        match the cached query — covers the case where the user edited
+        the box then hit F3 without re-triggering ``textChanged`` (e.g.
+        pasting the same text won't fire change events in some Qt
+        builds).
+        """
+        current_text = self._filter_dock.search_text()
+        if current_text != self._search_last_query:
+            self._on_search_text_changed(current_text)
+        if not self._search_matches:
+            if current_text.strip():
+                self.statusBar().showMessage(
+                    f"No labels match '{current_text.strip()}'.", 2500
+                )
+            return
+        self._search_cursor = (
+            self._search_cursor + step
+        ) % len(self._search_matches)
+        idx = self._search_matches[self._search_cursor]
+        self._canvas.center_on_label(idx)
+        self._filter_dock.set_results_text(
+            f"{self._search_cursor + 1} of {len(self._search_matches)}"
+        )
+
+    def _on_dock_orphans_only_toggled(self, checked: bool) -> None:
+        """Keep the View menu's Orphans-only toggle in sync with the dock."""
+        # The View menu action drives ``set_orphans_only`` on the canvas
+        # via its ``toggled`` slot; if we just called that here we'd
+        # double-toggle. Sync via ``setChecked`` with signals blocked,
+        # then push the new state to the canvas directly.
+        if self._act_orphans.isChecked() != checked:
+            self._act_orphans.blockSignals(True)
+            self._act_orphans.setChecked(checked)
+            self._act_orphans.blockSignals(False)
+        self._canvas.set_orphans_only(checked)
+
+    def _on_menu_orphans_only_toggled(self, checked: bool) -> None:
+        """View → Orphans only / O shortcut: sync canvas + dock checkbox."""
+        self._canvas.set_orphans_only(checked)
+        if self._filter_dock.orphans_only() != checked:
+            self._filter_dock._orphans_only_checkbox().blockSignals(True)  # noqa: SLF001
+            self._filter_dock.set_orphans_only(checked)
+            self._filter_dock._orphans_only_checkbox().blockSignals(False)  # noqa: SLF001
 
     def _on_delete_label(self) -> None:
         """Delete the selected label, or flash a hint if nothing's selected."""
