@@ -25,7 +25,7 @@ from typing import Callable, Optional
 
 from PySide6 import QtGui
 
-from ..calibration import Calibration
+from ..calibration import Calibration, Label
 
 
 # ---------------------------------------------------------------------------
@@ -42,8 +42,16 @@ class LabelChange:
 
     Attributes:
         label_indices: Indices into ``Calibration.labels`` whose visual state
-            may have changed (color, bbox, text).
+            may have changed (color, bbox, text). For structural changes
+            (Add/Delete) the *new* indices of any labels the caller would
+            like the canvas to select afterwards — empty means "no selection
+            target" (the controller will clear the inspector).
         room_ids: Room ids whose ``labeled`` flag may have flipped.
+        structural: True if the set of labels itself changed (one was added
+            or removed). The canvas can no longer trust its cached
+            ``label_index → LabelItem`` dict — indices may have shifted —
+            so it does a label-only rebuild. Room polygons are untouched
+            (rebuilding them is expensive and they didn't change).
     """
 
     def __init__(
@@ -51,9 +59,11 @@ class LabelChange:
         *,
         label_indices: Optional[list[int]] = None,
         room_ids: Optional[list[int]] = None,
+        structural: bool = False,
     ) -> None:
         self.label_indices: list[int] = list(label_indices or [])
         self.room_ids: list[int] = list(room_ids or [])
+        self.structural: bool = structural
 
 
 ChangeCallback = Callable[[LabelChange], None]
@@ -215,9 +225,146 @@ class ChangeRoomLinkCommand(QtGui.QUndoCommand):
             )
 
 
+class AddLabelCommand(QtGui.QUndoCommand):
+    """Append a new ``Label`` to the calibration (undoable).
+
+    The label is always appended (never inserted at an arbitrary index),
+    so undo just removes the last entry the redo added. This keeps existing
+    label indices stable for every prior command on the stack — important
+    because other queued commands may reference them.
+
+    The change notification has ``structural=True`` because the set of
+    labels itself just changed: any cached ``label_index → LabelItem``
+    map in the canvas is now incomplete (missing the new item). The
+    canvas reacts by rebuilding all label items from the updated
+    calibration; room polygons are untouched.
+
+    ``label_indices=[self._new_index]`` after redo so the controller can
+    optionally select the new label and focus the inspector on it.
+    """
+
+    def __init__(
+        self,
+        calibration: Calibration,
+        new_label: Label,
+        *,
+        on_change: Optional[ChangeCallback] = None,
+    ) -> None:
+        super().__init__(f"add label {new_label.id!r}")
+        self._cal = calibration
+        self._label = new_label
+        self._on_change = on_change
+        # Index is recorded at first redo (always equal to len(labels) at
+        # that moment) and reused thereafter so undo + redo are exact.
+        self._new_index: Optional[int] = None
+
+    def redo(self) -> None:  # noqa: D401
+        if self._new_index is None:
+            self._new_index = len(self._cal.labels)
+        # Defensive: if some other command shrank the list (shouldn't happen
+        # in practice, but undo/redo interleavings can be subtle) just
+        # append to the end again rather than insert at a stale index.
+        if self._new_index > len(self._cal.labels):
+            self._new_index = len(self._cal.labels)
+        self._cal.labels.insert(self._new_index, self._label)
+        if self._on_change is not None:
+            self._on_change(
+                LabelChange(
+                    label_indices=[self._new_index],
+                    room_ids=(
+                        [self._label.room_id] if self._label.room_id is not None else []
+                    ),
+                    structural=True,
+                )
+            )
+
+    def undo(self) -> None:  # noqa: D401
+        if self._new_index is None or self._new_index >= len(self._cal.labels):
+            return
+        del self._cal.labels[self._new_index]
+        if self._on_change is not None:
+            self._on_change(
+                LabelChange(
+                    label_indices=[],
+                    room_ids=(
+                        [self._label.room_id] if self._label.room_id is not None else []
+                    ),
+                    structural=True,
+                )
+            )
+
+
+class DeleteLabelCommand(QtGui.QUndoCommand):
+    """Remove an existing ``Label`` from the calibration (undoable).
+
+    Captures the deleted Label and its original list index at construction
+    so undo can restore it to the exact same position — preserving the
+    indices of all labels that originally came after it.
+
+    Like ``AddLabelCommand`` this is a structural change; the canvas
+    rebuilds its label items rather than trying to splice indices.
+    On undo, ``label_indices=[self._index]`` so the controller can
+    re-select the resurrected label.
+    """
+
+    def __init__(
+        self,
+        calibration: Calibration,
+        label_index: int,
+        *,
+        on_change: Optional[ChangeCallback] = None,
+    ) -> None:
+        if not (0 <= label_index < len(calibration.labels)):
+            raise IndexError(
+                f"DeleteLabelCommand: label_index {label_index} out of range "
+                f"(have {len(calibration.labels)} labels)"
+            )
+        snapshot = calibration.labels[label_index]
+        super().__init__(f"delete label {snapshot.id!r}")
+        self._cal = calibration
+        self._index = label_index
+        self._label = snapshot  # captured by reference — the controller will not mutate it once deleted
+        self._on_change = on_change
+
+    def redo(self) -> None:  # noqa: D401
+        if not (0 <= self._index < len(self._cal.labels)):
+            # Concurrent edit pulled the rug — log silently rather than crash.
+            return
+        del self._cal.labels[self._index]
+        if self._on_change is not None:
+            self._on_change(
+                LabelChange(
+                    label_indices=[],
+                    room_ids=(
+                        [self._label.room_id] if self._label.room_id is not None else []
+                    ),
+                    structural=True,
+                )
+            )
+
+    def undo(self) -> None:  # noqa: D401
+        # Re-insert at the original index. If the list has grown beyond
+        # that index, the resurrected label still occupies the same
+        # logical slot it had before deletion.
+        insert_at = min(self._index, len(self._cal.labels))
+        self._cal.labels.insert(insert_at, self._label)
+        if self._on_change is not None:
+            self._on_change(
+                LabelChange(
+                    label_indices=[insert_at],
+                    room_ids=(
+                        [self._label.room_id] if self._label.room_id is not None else []
+                    ),
+                    structural=True,
+                )
+            )
+
+
 __all__ = [
+    "AddLabelCommand",
     "ChangeCallback",
     "ChangeRoomLinkCommand",
+    "DeleteLabelCommand",
     "EditLabelIdCommand",
     "EditLabelNotesCommand",
     "LabelChange",

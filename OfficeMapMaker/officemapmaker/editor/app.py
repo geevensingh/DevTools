@@ -185,6 +185,33 @@ class EditorMainWindow(QtWidgets.QMainWindow):
         self._act_orphans.toggled.connect(self._canvas.set_orphans_only)
         view_menu.addAction(self._act_orphans)
 
+        # Tools menu — actions that change the canvas's interaction mode.
+        # Add-label is a toggle (canvas stays armed until the user clicks
+        # somewhere or presses Esc); delete-label is a one-shot.
+        tools_menu = self.menuBar().addMenu("&Tools")
+
+        self._act_add_label = QtGui.QAction("Add &label", self)
+        self._act_add_label.setShortcut(QtGui.QKeySequence("N"))
+        self._act_add_label.setCheckable(True)
+        self._act_add_label.setStatusTip(
+            "Arm add-label mode. The next click on the map drops a new label "
+            "(prompts for the id). Esc cancels."
+        )
+        self._act_add_label.toggled.connect(self._on_add_label_toggled)
+        tools_menu.addAction(self._act_add_label)
+
+        self._act_delete_label = QtGui.QAction("&Delete selected label", self)
+        # Del + Backspace both feel natural for delete; bind both.
+        self._act_delete_label.setShortcuts(
+            [QtGui.QKeySequence(QtCore.Qt.Key.Key_Delete),
+             QtGui.QKeySequence(QtCore.Qt.Key.Key_Backspace)]
+        )
+        self._act_delete_label.setStatusTip(
+            "Delete the currently-selected label. Undoable."
+        )
+        self._act_delete_label.triggered.connect(self._on_delete_label)
+        tools_menu.addAction(self._act_delete_label)
+
     def _build_status_bar(self) -> None:
         """Status bar shows cursor coords, calibration counts, and dirty state.
 
@@ -213,6 +240,12 @@ class EditorMainWindow(QtWidgets.QMainWindow):
         self._canvas.room_pick_cancelled.connect(self._on_pick_mode_ended)
         self._inspector.room_pick_requested.connect(self._on_pick_mode_requested)
 
+        # Same dance for add-label mode: status-bar prompt while armed,
+        # and reset the menu toggle whenever the canvas leaves add mode
+        # (so a click-to-place flow doesn't leave the menu stuck "on").
+        self._canvas.add_label_requested.connect(self._on_add_label_mode_ended)
+        self._canvas.add_label_cancelled.connect(self._on_add_label_mode_ended)
+
     # -------------------------------------------------------------- slots
 
     def _on_cursor_moved(self, point: QtCore.QPointF) -> None:
@@ -238,6 +271,44 @@ class EditorMainWindow(QtWidgets.QMainWindow):
         # elsewhere (e.g. save confirmations) are unaffected because they
         # were posted with their own timeout.
         self.statusBar().clearMessage()
+
+    def _on_add_label_toggled(self, checked: bool) -> None:
+        """Drive the canvas's add-label mode from the menu toggle.
+
+        Also posts / clears a sticky status-bar prompt so the user
+        understands what the crosshair cursor means.
+        """
+        self._canvas.set_add_label_mode(checked)
+        if checked:
+            self.statusBar().showMessage(
+                "Click on the map to place a new label. (Esc to cancel)", 0
+            )
+        else:
+            self.statusBar().clearMessage()
+
+    def _on_add_label_mode_ended(self, *_args) -> None:
+        """Canvas dropped out of add mode → re-sync the menu toggle.
+
+        Guards against re-entrancy: ``setChecked`` would re-fire ``toggled``
+        and bounce back into ``set_add_label_mode``, but the canvas's own
+        ``set_add_label_mode`` is already idempotent so the redundant call
+        is harmless. We still ``blockSignals`` to keep the status-bar
+        message change happening exactly once per transition.
+        """
+        if not self._act_add_label.isChecked():
+            return
+        self._act_add_label.blockSignals(True)
+        self._act_add_label.setChecked(False)
+        self._act_add_label.blockSignals(False)
+        self.statusBar().clearMessage()
+
+    def _on_delete_label(self) -> None:
+        """Delete the selected label, or flash a hint if nothing's selected."""
+        if not self._controller.delete_selected_label():
+            self.statusBar().showMessage(
+                "Select a label first (click a yellow / green box on the map).",
+                2500,
+            )
 
     def _on_dirty_changed(self, dirty: bool) -> None:
         """Update the window title + status-bar marker on stack clean/dirty.

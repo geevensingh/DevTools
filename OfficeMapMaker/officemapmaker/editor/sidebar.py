@@ -61,6 +61,15 @@ class InspectorPanel(QtWidgets.QWidget):
     nearby room id to look for.
     """
 
+    create_label_for_room = QtCore.Signal(int)
+    """``(room_id)`` — user clicked the "Create label for this room" button.
+
+    Emitted only when the selected room currently has no labels (the
+    button is shown only in that case). The controller prompts the user
+    for the new label id, then pushes an ``AddLabelCommand`` that links
+    the new label to the room at the polygon's center.
+    """
+
     def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
 
@@ -84,6 +93,11 @@ class InspectorPanel(QtWidgets.QWidget):
         # selected something else before pressing Enter).
         self._current_label_index: Optional[int] = None
 
+        # Track which room is currently shown so the "Create label for this
+        # room" button knows where to attach the new label. ``None`` when
+        # nothing or a label is selected.
+        self._current_room_id: Optional[int] = None
+
         # Suppress signals while we programmatically repopulate fields
         # — without this guard, ``setText`` would re-emit ``editingFinished``
         # and bounce a phantom edit through the undo stack.
@@ -96,6 +110,7 @@ class InspectorPanel(QtWidgets.QWidget):
 
     def show_nothing(self) -> None:
         self._current_label_index = None
+        self._current_room_id = None
         # Selection cleared → any in-flight pick-room mode no longer has a
         # target label, so reset the button visually. The controller is
         # responsible for taking the canvas out of pick mode in response
@@ -112,6 +127,7 @@ class InspectorPanel(QtWidgets.QWidget):
     ) -> None:
         """Populate the label-edit form for ``label`` and switch to it."""
         self._current_label_index = label_index
+        self._current_room_id = None
         self._suppress_signals = True
         try:
             w = self._label_widgets
@@ -144,8 +160,16 @@ class InspectorPanel(QtWidgets.QWidget):
         self._set_pick_button_checked(active)
 
     def show_room(self, *, room: Room, labels: list[Label]) -> None:
-        """Populate the read-only room summary and switch to it."""
+        """Populate the read-only room summary and switch to it.
+
+        Shows a "Create label for this room" button when the room has no
+        labels — a one-click shortcut for the most common orphan-room
+        workflow ("the OCR missed this room entirely").
+        """
         self._current_label_index = None
+        # A room is selected — any in-flight pick-room mode no longer has a
+        # target label, so reset the picker button visually too.
+        self.set_room_pick_active(False)
         w = self._room_widgets
         w["id"].setText(str(room.id))
         w["area"].setText(f"{room.area_px:,} px²")
@@ -157,6 +181,12 @@ class InspectorPanel(QtWidgets.QWidget):
             )
         else:
             w["labels"].setText("(none — orphan room)")
+        # Remember the current room id so the create-button click handler
+        # knows which room to attach the new label to. Stored even when
+        # the button is hidden (cheap; avoids reading the QLabel text back
+        # out and parsing it).
+        self._current_room_id = room.id
+        w["create_button"].setVisible(not labels)
         self._stack.setCurrentWidget(self._room_form)
 
     # ----------------------------------------------------- build UI
@@ -268,9 +298,23 @@ class InspectorPanel(QtWidgets.QWidget):
         )
         form.addRow("Labels here:", labels_lbl)
 
-        # Read-only-for-now reminder until ed4 adds add/delete-label tools.
+        # "Create label" affordance: visible only when the selected room
+        # has no labels (set by ``show_room``). Lets the user fix an
+        # orphan room with one click instead of "add label tool, click
+        # the room, type id" — same end result, fewer steps when the
+        # user is already looking at the offending room.
+        create_button = QtWidgets.QPushButton("Create label for this room")
+        create_button.setToolTip(
+            "Add a new label centered on this room. You'll be prompted "
+            "for the label id (e.g. office number). Undoable."
+        )
+        create_button.clicked.connect(self._emit_create_label_for_room)
+        create_button.setVisible(False)
+
+        # Polygon-edit reminder. Editing polygons is a Future Work item;
+        # the fill-mask workflow via wall_patches is the supported path.
         hint = QtWidgets.QLabel(
-            "Editing rooms (polygons) is not supported in this editor. "
+            "Editing room polygons is not supported in this editor. "
             "To fix a merged or split room, edit ``wall_patches`` in "
             "calibration.json and re-run ``calibrate``."
         )
@@ -281,6 +325,7 @@ class InspectorPanel(QtWidgets.QWidget):
         wrap_layout = QtWidgets.QVBoxLayout(wrapper)
         wrap_layout.setContentsMargins(0, 0, 0, 0)
         wrap_layout.addWidget(box)
+        wrap_layout.addWidget(create_button)
         wrap_layout.addWidget(hint)
         wrap_layout.addStretch(1)
 
@@ -289,6 +334,7 @@ class InspectorPanel(QtWidgets.QWidget):
             "area": area_lbl,
             "bbox": bbox_lbl,
             "labels": labels_lbl,
+            "create_button": create_button,
         }
         return wrapper, widgets
 
@@ -353,6 +399,15 @@ class InspectorPanel(QtWidgets.QWidget):
         if self._suppress_signals or self._current_label_index is None:
             return
         self.room_pick_requested.emit(self._current_label_index, checked)
+
+    def _emit_create_label_for_room(self) -> None:
+        # Guarded against signal bouncing the same way as the other emitters.
+        # ``_current_room_id`` is set whenever the room form is shown, so a
+        # ``None`` here means the user somehow clicked the button while no
+        # room was selected — silently ignore rather than crash.
+        if self._suppress_signals or self._current_room_id is None:
+            return
+        self.create_label_for_room.emit(self._current_room_id)
 
     def _set_pick_button_checked(self, checked: bool) -> None:
         """Set the button state without re-emitting ``room_pick_requested``."""

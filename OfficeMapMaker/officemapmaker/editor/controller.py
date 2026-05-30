@@ -23,16 +23,27 @@ from typing import Optional
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ..calibration import Calibration, save_calibration
+from ..calibration import Calibration, Label, save_calibration
 from .canvas import MapCanvas
 from .commands import (
+    AddLabelCommand,
     ChangeRoomLinkCommand,
+    DeleteLabelCommand,
     EditLabelIdCommand,
     EditLabelNotesCommand,
     LabelChange,
 )
 from .items import LabelItem, RoomItem, compute_label_status, find_duplicate_label_ids
 from .sidebar import InspectorPanel
+
+
+# Default size (px) of the bbox we draw for a user-added label. The number
+# is irrelevant downstream — only the label's ``fill_seed`` and ``room_id``
+# matter for fill/render — but the box is visible in the editor so it
+# needs a reasonable size. Roughly matches a typical 4-digit Tesseract
+# bbox at the maps we work with.
+_NEW_LABEL_BBOX_W = 48
+_NEW_LABEL_BBOX_H = 18
 
 
 # ---------------------------------------------------------------------------
@@ -125,6 +136,9 @@ class EditorController(QtCore.QObject):
         self._inspector.label_notes_changed.connect(self._handle_label_notes_changed)
         self._inspector.label_room_changed.connect(self._handle_label_room_changed)
         self._inspector.room_pick_requested.connect(self._handle_room_pick_requested)
+        self._inspector.create_label_for_room.connect(
+            self._handle_create_label_for_room
+        )
 
         # Canvas selection → inspector: populate the panel when the user
         # clicks an item. Qt emits ``selectionChanged`` from the scene.
@@ -136,6 +150,10 @@ class EditorController(QtCore.QObject):
         # reason (user picked, Esc, clicked empty space).
         self._canvas.room_picked.connect(self._handle_canvas_room_picked)
         self._canvas.room_pick_cancelled.connect(self._handle_canvas_pick_cancelled)
+
+        # Canvas add-label mode → controller: convert a click in the canvas
+        # into a prompt-then-AddLabelCommand sequence.
+        self._canvas.add_label_requested.connect(self._handle_canvas_add_label_at)
 
         # Remember which label the user was editing when they entered pick
         # mode. Selection is locked while pick mode is active (clicks on
@@ -286,6 +304,130 @@ class EditorController(QtCore.QObject):
         self._canvas.set_room_pick_mode(False)
         self._inspector.set_room_pick_active(False)
 
+    # ------------------------------------------------- add / delete label
+
+    def _handle_canvas_add_label_at(self, scene_pos: "QtCore.QPointF") -> None:
+        """User clicked the canvas in add-label mode → prompt + AddLabelCommand.
+
+        Hit-tests the click point against room polygons so a click inside
+        a room auto-links the new label to that room (the common case).
+        A click in a hallway / outside any room creates an orphan label
+        the user can link later via the room picker.
+        """
+        # Defensive: the canvas's mousePressEvent disarms add mode before
+        # emitting, but make sure here too so any future emit path is safe.
+        self._canvas.set_add_label_mode(False)
+
+        x = int(round(scene_pos.x()))
+        y = int(round(scene_pos.y()))
+
+        room_item = self._canvas.room_at_scene_pos(scene_pos)
+        room_id = room_item.room.id if room_item is not None else None
+
+        prompt = "Label id (e.g. office number):"
+        if room_id is not None:
+            prompt += f"\n(will link to room {room_id})"
+        else:
+            prompt += "\n(no room polygon under this click — will be an orphan)"
+
+        new_id, ok = QtWidgets.QInputDialog.getText(
+            self._canvas, "Add label", prompt, text=""
+        )
+        if not ok:
+            return
+        new_id = new_id.strip()
+        if not new_id:
+            # Empty id = silently cancel rather than create a broken label.
+            return
+
+        # Center the bbox on the click so the visual rectangle stays
+        # underneath the user's cursor — easy to find after placement.
+        bx = x - _NEW_LABEL_BBOX_W // 2
+        by = y - _NEW_LABEL_BBOX_H // 2
+        new_label = Label(
+            id=new_id,
+            bbox=(bx, by, _NEW_LABEL_BBOX_W, _NEW_LABEL_BBOX_H),
+            room_id=room_id,
+            fill_seed=(x, y),
+            # User-placed labels are "perfectly confident" by definition;
+            # they didn't come from OCR. Setting 1.0 also prevents these
+            # from cluttering low-confidence review pages in the PDF.
+            ocr_confidence=1.0,
+            notes="",
+        )
+        cmd = AddLabelCommand(
+            self._cal, new_label, on_change=self._on_label_change
+        )
+        self._undo_stack.push(cmd)
+
+    def _handle_create_label_for_room(self, room_id: int) -> None:
+        """Inspector "Create label for this room" → prompt + AddLabelCommand.
+
+        Same dataflow as :meth:`_handle_canvas_add_label_at` but seeded
+        from a room id instead of an arbitrary click position; the new
+        label is centered on the room's bbox center (good-enough default
+        — most rooms are bbox-convex; the user can drag the seed later).
+        """
+        room = next((r for r in self._cal.rooms if r.id == room_id), None)
+        if room is None:
+            # Stale signal (room polygon vanished from under us — shouldn't
+            # happen but defensive coding doesn't hurt).
+            return
+
+        new_id, ok = QtWidgets.QInputDialog.getText(
+            self._canvas,
+            "Create label for this room",
+            f"Label id for room {room_id}:",
+            text="",
+        )
+        if not ok:
+            return
+        new_id = new_id.strip()
+        if not new_id:
+            return
+
+        cx = room.bbox[0] + room.bbox[2] // 2
+        cy = room.bbox[1] + room.bbox[3] // 2
+        bx = cx - _NEW_LABEL_BBOX_W // 2
+        by = cy - _NEW_LABEL_BBOX_H // 2
+        new_label = Label(
+            id=new_id,
+            bbox=(bx, by, _NEW_LABEL_BBOX_W, _NEW_LABEL_BBOX_H),
+            room_id=room_id,
+            fill_seed=(cx, cy),
+            ocr_confidence=1.0,
+            notes="",
+        )
+        cmd = AddLabelCommand(
+            self._cal, new_label, on_change=self._on_label_change
+        )
+        self._undo_stack.push(cmd)
+
+    def delete_selected_label(self) -> bool:
+        """Push a ``DeleteLabelCommand`` for the currently-selected label.
+
+        Returns:
+            ``True`` if a label was selected and a delete command was pushed,
+            ``False`` if there was nothing to delete. Used by the menu /
+            shortcut action to decide whether to show a status-bar hint.
+        """
+        try:
+            selected = self._canvas.scene().selectedItems()
+        except RuntimeError:
+            return False
+        label_item = next(
+            (it for it in selected if isinstance(it, LabelItem)), None
+        )
+        if label_item is None:
+            return False
+        cmd = DeleteLabelCommand(
+            self._cal,
+            label_item.label_index,
+            on_change=self._on_label_change,
+        )
+        self._undo_stack.push(cmd)
+        return True
+
     # -------------------------------------------- in-place refresh hook
 
     def _on_label_change(self, change: LabelChange) -> None:
@@ -293,7 +435,43 @@ class EditorController(QtCore.QObject):
 
         Called by every command's ``redo``/``undo`` so the view tracks the
         model after both edits and undo operations.
+
+        Structural changes (add / delete) shift label indices, so per-item
+        in-place style refresh isn't enough — the canvas's ``_label_items``
+        dict needs a full rebuild. We do that lazily here rather than
+        teaching every command how to splice the dict.
         """
+        # ---- Structural fast path: rebuild label layer wholesale -----
+        if change.structural:
+            self._canvas.rebuild_labels()
+            # Room "labeled?" flags may flip when a room loses its last
+            # label or gains its first; mirror the in-place path below
+            # so the room recolor still happens.
+            if change.room_ids:
+                room_items = self._canvas.room_items()
+                labels_by_room: dict[int, int] = {}
+                for lab in self._cal.labels:
+                    if lab.room_id is not None:
+                        labels_by_room[lab.room_id] = (
+                            labels_by_room.get(lab.room_id, 0) + 1
+                        )
+                for rid in change.room_ids:
+                    ritem = room_items.get(rid)
+                    if ritem is None:
+                        continue
+                    ritem.set_labeled(bool(labels_by_room.get(rid)))
+            # Re-select the new (or resurrected) label so the inspector
+            # focuses it — for Add this puts the user right at the new
+            # label with the id field ready; for Undo-Delete it returns
+            # focus to the label that just came back. Empty list means
+            # Delete-redo: nothing to focus, drop to the empty pane.
+            if change.label_indices:
+                self._canvas.select_label(change.label_indices[-1])
+            else:
+                self._inspector.show_nothing()
+            return
+
+        # ---- Non-structural: in-place style + selective inspector refresh
         # 1. Recompute duplicate-id set once and update each affected label.
         duplicate_ids = find_duplicate_label_ids(self._cal.labels)
         label_items = self._canvas.label_items()

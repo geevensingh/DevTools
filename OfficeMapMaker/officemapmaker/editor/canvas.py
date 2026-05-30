@@ -72,6 +72,23 @@ class MapCanvas(QtWidgets.QGraphicsView):
     which case selection then proceeds normally).
     """
 
+    add_label_requested = QtCore.Signal(QtCore.QPointF)
+    """Emitted when the user clicks the canvas while in add-label mode.
+
+    Payload is the click position in scene (image-pixel) coordinates. The
+    controller turns this into an ``AddLabelCommand`` after prompting the
+    user for the new label's id (and auto-linking to a room polygon under
+    the click, if any).
+    """
+
+    add_label_cancelled = QtCore.Signal()
+    """Emitted when add-label mode is dismissed without placing a label.
+
+    Sources: Esc key. (Unlike pick-room mode, a click *always* attempts a
+    placement — there is no "click empty space to cancel" because every
+    pixel of the canvas is a valid location for a manually-added label.)
+    """
+
     def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
         self._scene = QtWidgets.QGraphicsScene(self)
@@ -111,6 +128,12 @@ class MapCanvas(QtWidgets.QGraphicsView):
         # fall through to normal behavior.
         self._room_pick_mode = False
 
+        # Add-label mode: while True, the next left-click anywhere on the
+        # canvas emits ``add_label_requested`` with the scene position.
+        # Esc cancels without placement. Pick-room and add-label modes are
+        # mutually exclusive — turning one on turns the other off.
+        self._add_label_mode = False
+
         # Track mouse position even when no button is pressed so the status
         # bar can show live image-pixel coords.
         self.setMouseTracking(True)
@@ -120,11 +143,18 @@ class MapCanvas(QtWidgets.QGraphicsView):
 
         # Overlay item storage. Keyed by stable identifiers so we can
         # re-style or remove items without re-iterating the scene.
-        # Label index = position in ``Calibration.labels`` (stable across edits
-        # because we never reorder labels in the data model).
+        # Label index = position in ``Calibration.labels`` (stable across
+        # in-place edits because we never reorder labels in the data model;
+        # structural changes like Add/Delete cause a label-only rebuild
+        # via ``rebuild_labels()``).
         self._label_items: dict[int, LabelItem] = {}
         # Room id = ``Room.id`` (the stable integer assigned at calibration).
         self._room_items: dict[int, RoomItem] = {}
+
+        # Reference to the live calibration so structural changes (Add/Delete
+        # label) can rebuild the label items without the caller having to
+        # re-pass the whole calibration each time.
+        self._calibration: Optional[Calibration] = None
 
         # Layer visibility — separate from item visibility because the
         # "orphans only" filter also flips per-item visibility.
@@ -158,9 +188,13 @@ class MapCanvas(QtWidgets.QGraphicsView):
         """Build (or rebuild) all overlay items from a ``Calibration``.
 
         Tear-and-rebuild is the simplest correct approach for an initial
-        load or after a major undo/redo step. Incremental updates (after a
-        single label edit) will be added in ed3 alongside the undo stack.
+        load or after a major undo/redo step. Incremental updates for
+        in-place edits are handled by the controller calling per-item
+        style methods; structural changes (Add/Delete label) call
+        :meth:`rebuild_labels` which rebuilds *just* the label items
+        without redoing the expensive room polygon decode.
         """
+        self._calibration = calibration
         # Clear existing overlay items but keep the pixmap.
         for item in list(self._label_items.values()):
             self._scene.removeItem(item)
@@ -193,16 +227,57 @@ class MapCanvas(QtWidgets.QGraphicsView):
             self._scene.addItem(item)
             self._room_items[room.id] = item
 
-        # Build labels.
-        duplicate_ids = find_duplicate_label_ids(calibration.labels)
-        for idx, lab in enumerate(calibration.labels):
+        self._build_label_items_from_current_calibration()
+
+        # Re-apply current visibility settings to the new items.
+        self._apply_visibility()
+
+    def rebuild_labels(self) -> None:
+        """Tear down and recreate all ``LabelItem``s from the current model.
+
+        Cheap counterpart to :meth:`set_calibration` for structural label
+        changes (Add/Delete): a label-only rebuild leaves the room
+        polygons (and the expensive RLE decode that produced them) alone.
+
+        After a rebuild, scene selection is empty (Qt drops selection on
+        item removal); the caller is responsible for re-selecting any
+        target label via :meth:`select_label` if appropriate.
+        """
+        if self._calibration is None:
+            return
+        for item in list(self._label_items.values()):
+            self._scene.removeItem(item)
+        self._label_items.clear()
+        self._build_label_items_from_current_calibration()
+        self._apply_visibility()
+
+    def _build_label_items_from_current_calibration(self) -> None:
+        """Internal helper: create one ``LabelItem`` per label in the model."""
+        if self._calibration is None:
+            return
+        duplicate_ids = find_duplicate_label_ids(self._calibration.labels)
+        for idx, lab in enumerate(self._calibration.labels):
             status = compute_label_status(lab, duplicate_ids)
             item = LabelItem(lab, idx, status=status)
             self._scene.addItem(item)
             self._label_items[idx] = item
 
-        # Re-apply current visibility settings to the new items.
-        self._apply_visibility()
+    def select_label(self, label_index: int) -> None:
+        """Clear scene selection and select the ``LabelItem`` for ``label_index``.
+
+        Used by the controller after a structural change (Add: select the
+        new label; Undo-Delete: select the resurrected label) to drive the
+        ``selectionChanged`` signal that re-populates the inspector. No-op
+        if no item exists for that index (e.g. just-deleted).
+        """
+        item = self._label_items.get(label_index)
+        scene = self.scene()
+        scene.clearSelection()
+        if item is not None:
+            item.setSelected(True)
+            # Bring the new label into view if it's off-screen — easy to
+            # miss otherwise after an add at scroll-distant coordinates.
+            self.ensureVisible(item)
 
     def label_items(self) -> dict[int, LabelItem]:
         """Read-only view of the per-label overlay items, keyed by index."""
@@ -247,10 +322,15 @@ class MapCanvas(QtWidgets.QGraphicsView):
 
         While active, the viewport shows a crosshair cursor as a visual
         cue and ``mousePressEvent`` intercepts left-clicks (see there).
-        Idempotent: setting the same state twice is a no-op.
+        Idempotent: setting the same state twice is a no-op. Mutually
+        exclusive with add-label mode — turning this on turns the other
+        off.
         """
         if self._room_pick_mode == active:
             return
+        if active and self._add_label_mode:
+            # Don't leave both modes armed at the same time.
+            self.set_add_label_mode(False)
         self._room_pick_mode = active
         if active:
             self.viewport().setCursor(QtCore.Qt.CursorShape.CrossCursor)
@@ -262,6 +342,46 @@ class MapCanvas(QtWidgets.QGraphicsView):
 
     def room_pick_mode(self) -> bool:
         return self._room_pick_mode
+
+    def set_add_label_mode(self, active: bool) -> None:
+        """Enter or leave "click on the map to add a label" mode.
+
+        While active, the viewport shows a crosshair cursor and the next
+        left-click anywhere on the canvas emits ``add_label_requested``
+        with the scene position. Idempotent. Mutually exclusive with
+        pick-room mode.
+        """
+        if self._add_label_mode == active:
+            return
+        if active and self._room_pick_mode:
+            self.set_room_pick_mode(False)
+        self._add_label_mode = active
+        if active:
+            self.viewport().setCursor(QtCore.Qt.CursorShape.CrossCursor)
+            self.setFocus(QtCore.Qt.FocusReason.OtherFocusReason)
+        else:
+            self.viewport().unsetCursor()
+
+    def add_label_mode(self) -> bool:
+        return self._add_label_mode
+
+    def room_at_scene_pos(self, scene_pos: QtCore.QPointF) -> Optional[RoomItem]:
+        """Return the topmost ``RoomItem`` containing ``scene_pos``, if any.
+
+        Used by add-label to auto-link a new label to the room polygon the
+        user clicked inside. Iterates ``scene.items(scene_pos)`` (which is
+        already z-ordered, topmost first) and returns the first ``RoomItem``
+        whose polygon contains the point. Returns ``None`` if the click is
+        in a hallway / outside any room.
+        """
+        for item in self.scene().items(scene_pos):
+            if isinstance(item, RoomItem):
+                # scene.items already filters by bounding rect; verify the
+                # actual polygon shape so concave rooms don't false-positive
+                # on a click in their bbox-but-outside-polygon corner.
+                if item.contains(item.mapFromScene(scene_pos)):
+                    return item
+        return None
 
     def _apply_visibility(self) -> None:
         for item in self._label_items.values():
@@ -371,6 +491,18 @@ class MapCanvas(QtWidgets.QGraphicsView):
             return
 
         if (
+            self._add_label_mode
+            and event.button() == QtCore.Qt.MouseButton.LeftButton
+        ):
+            scene_pos = self.mapToScene(event.position().toPoint())
+            # Disarm before emitting so the controller's handler (which
+            # may pop a dialog) sees the canvas already out of add mode.
+            self.set_add_label_mode(False)
+            self.add_label_requested.emit(scene_pos)
+            event.accept()
+            return
+
+        if (
             self._room_pick_mode
             and event.button() == QtCore.Qt.MouseButton.LeftButton
         ):
@@ -442,6 +574,14 @@ class MapCanvas(QtWidgets.QGraphicsView):
             # inspector button.
             self.set_room_pick_mode(False)
             self.room_pick_cancelled.emit()
+            event.accept()
+            return
+        if key == QtCore.Qt.Key.Key_Escape and self._add_label_mode:
+            # Esc bails out of add-label mode without placing a label.
+            # The toolbar action listens for ``add_label_cancelled`` to
+            # un-check itself.
+            self.set_add_label_mode(False)
+            self.add_label_cancelled.emit()
             event.accept()
             return
         super().keyPressEvent(event)
