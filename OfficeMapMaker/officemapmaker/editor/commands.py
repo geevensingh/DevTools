@@ -25,7 +25,7 @@ from typing import Callable, Optional
 
 from PySide6 import QtGui
 
-from ..calibration import Calibration, Label
+from ..calibration import Calibration, Label, Room
 
 
 # ---------------------------------------------------------------------------
@@ -67,6 +67,39 @@ class LabelChange:
 
 
 ChangeCallback = Callable[[LabelChange], None]
+
+
+class RoomChange:
+    """Notification payload for an edit that affected one or more rooms.
+
+    Parallel to :class:`LabelChange` but on the room side. v1 only fires
+    on Add-room (Phase 1 of the add-room feature); future room edits
+    (delete, polygon-edit) should reuse the same payload shape so the
+    controller and canvas already know how to react.
+
+    Attributes:
+        room_ids: Room ids whose existence or geometry just changed.
+            For Add: the new room's id (after redo) or the just-removed
+            room's id (after undo) — used by the controller to focus the
+            inspector / select the new item.
+        structural: True if the set of rooms itself changed (one was added
+            or removed). The canvas can no longer trust its cached
+            ``room_id → RoomItem`` dict and does a room-only rebuild via
+            ``rebuild_rooms()``. Label items are untouched (no label
+            indices shift on a room change).
+    """
+
+    def __init__(
+        self,
+        *,
+        room_ids: Optional[list[int]] = None,
+        structural: bool = False,
+    ) -> None:
+        self.room_ids: list[int] = list(room_ids or [])
+        self.structural: bool = structural
+
+
+RoomChangeCallback = Callable[[RoomChange], None]
 
 
 # ---------------------------------------------------------------------------
@@ -360,12 +393,69 @@ class DeleteLabelCommand(QtGui.QUndoCommand):
             )
 
 
+class AddRoomCommand(QtGui.QUndoCommand):
+    """Append a new ``Room`` to the calibration (undoable).
+
+    Mirror of :class:`AddLabelCommand` on the room side. The room is
+    always appended (never inserted at an arbitrary position) so undo
+    just removes whatever entry redo last added. Existing room ids
+    therefore stay stable across an Add/Undo cycle — important because
+    labels reference rooms by ``room_id`` and we don't want an undo on
+    a brand-new room to silently re-number an unrelated one.
+
+    The fired :class:`RoomChange` carries ``structural=True`` so the
+    canvas knows to rebuild its room overlay items wholesale (room ids
+    don't shift, but the set just grew, and the canvas's cached
+    ``_room_items`` dict needs the new entry plus a fresh polygon
+    decode for it).
+    """
+
+    def __init__(
+        self,
+        calibration: Calibration,
+        new_room: Room,
+        *,
+        on_change: Optional[RoomChangeCallback] = None,
+    ) -> None:
+        super().__init__(f"add room {new_room.id}")
+        self._cal = calibration
+        self._room = new_room
+        self._on_change = on_change
+        # Index recorded at first redo so undo / redo always touch the
+        # same slot (same idiom as AddLabelCommand).
+        self._new_index: Optional[int] = None
+
+    def redo(self) -> None:  # noqa: D401
+        if self._new_index is None:
+            self._new_index = len(self._cal.rooms)
+        if self._new_index > len(self._cal.rooms):
+            self._new_index = len(self._cal.rooms)
+        self._cal.rooms.insert(self._new_index, self._room)
+        if self._on_change is not None:
+            self._on_change(
+                RoomChange(room_ids=[self._room.id], structural=True)
+            )
+
+    def undo(self) -> None:  # noqa: D401
+        if self._new_index is None or self._new_index >= len(self._cal.rooms):
+            return
+        del self._cal.rooms[self._new_index]
+        if self._on_change is not None:
+            # Empty room_ids: the room is gone, so the controller should
+            # drop selection on it (no item to focus). Still structural
+            # because the canvas needs to drop the RoomItem.
+            self._on_change(RoomChange(room_ids=[], structural=True))
+
+
 __all__ = [
     "AddLabelCommand",
+    "AddRoomCommand",
     "ChangeCallback",
     "ChangeRoomLinkCommand",
     "DeleteLabelCommand",
     "EditLabelIdCommand",
     "EditLabelNotesCommand",
     "LabelChange",
+    "RoomChange",
+    "RoomChangeCallback",
 ]

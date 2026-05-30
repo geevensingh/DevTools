@@ -89,6 +89,23 @@ class MapCanvas(QtWidgets.QGraphicsView):
     pixel of the canvas is a valid location for a manually-added label.)
     """
 
+    add_room_flood_requested = QtCore.Signal(QtCore.QPointF)
+    """Emitted when the user clicks the canvas while in add-room-flood mode.
+
+    Payload is the click position in scene (image-pixel) coordinates. The
+    controller turns this into an ``AddRoomCommand`` after running a
+    virtual flood-fill from the click point against the binarized map
+    (+ wall_patches) to discover the room's polygon.
+    """
+
+    add_room_flood_cancelled = QtCore.Signal()
+    """Emitted when add-room-flood mode is dismissed without placing a room.
+
+    Sources: Esc key. As with add-label, every pixel of the canvas is a
+    *candidate* click target — the controller is responsible for rejecting
+    seeds that land on a wall or produce an implausibly large fill.
+    """
+
     def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
         self._scene = QtWidgets.QGraphicsScene(self)
@@ -130,9 +147,16 @@ class MapCanvas(QtWidgets.QGraphicsView):
 
         # Add-label mode: while True, the next left-click anywhere on the
         # canvas emits ``add_label_requested`` with the scene position.
-        # Esc cancels without placement. Pick-room and add-label modes are
-        # mutually exclusive — turning one on turns the other off.
+        # Esc cancels without placement. Pick-room, add-label, and
+        # add-room-flood modes are mutually exclusive — turning one on
+        # turns the others off.
         self._add_label_mode = False
+
+        # Add-room-flood mode: while True, the next left-click on the
+        # canvas emits ``add_room_flood_requested`` with the scene
+        # position. The controller runs a virtual flood-fill from that
+        # point to build the room polygon. Esc cancels.
+        self._add_room_flood_mode = False
 
         # Track mouse position even when no button is pressed so the status
         # bar can show live image-pixel coords.
@@ -262,6 +286,56 @@ class MapCanvas(QtWidgets.QGraphicsView):
             self._scene.addItem(item)
             self._label_items[idx] = item
 
+    def rebuild_rooms(self) -> None:
+        """Tear down and recreate all ``RoomItem``s from the current model.
+
+        Counterpart to :meth:`rebuild_labels` for structural room changes
+        (Add-room today; future delete-room / edit-polygon will reuse the
+        same path). Re-decodes RLE polygons because the set of rooms just
+        changed — but only for rooms; label items keep their existing
+        positions and selection state.
+        """
+        if self._calibration is None:
+            return
+        for item in list(self._room_items.values()):
+            self._scene.removeItem(item)
+        self._room_items.clear()
+
+        labels_by_room: dict[int, list] = {}
+        for lab in self._calibration.labels:
+            if lab.room_id is not None:
+                labels_by_room.setdefault(lab.room_id, []).append(lab)
+
+        rooms = list(self._calibration.rooms)
+        # Match set_calibration's parallel polygon decode so add-room
+        # after many rooms already exist still feels instantaneous.
+        with ThreadPoolExecutor() as pool:
+            polygons = list(pool.map(build_room_polygon, rooms))
+
+        for room, polygon in zip(rooms, polygons):
+            if polygon is None:
+                continue
+            labeled = bool(labels_by_room.get(room.id))
+            item = RoomItem(polygon, room=room, labeled=labeled)
+            self._scene.addItem(item)
+            self._room_items[room.id] = item
+
+        self._apply_visibility()
+
+    def select_room(self, room_id: int) -> None:
+        """Clear scene selection and select the ``RoomItem`` for ``room_id``.
+
+        Used by the controller after add-room so the inspector immediately
+        focuses the new room (which lets the user click "Create label for
+        this room" right away). No-op if no item exists for that id.
+        """
+        item = self._room_items.get(room_id)
+        scene = self.scene()
+        scene.clearSelection()
+        if item is not None:
+            item.setSelected(True)
+            self.ensureVisible(item)
+
     def select_label(self, label_index: int) -> None:
         """Clear scene selection and select the ``LabelItem`` for ``label_index``.
 
@@ -323,14 +397,17 @@ class MapCanvas(QtWidgets.QGraphicsView):
         While active, the viewport shows a crosshair cursor as a visual
         cue and ``mousePressEvent`` intercepts left-clicks (see there).
         Idempotent: setting the same state twice is a no-op. Mutually
-        exclusive with add-label mode — turning this on turns the other
-        off.
+        exclusive with add-label and add-room-flood modes — turning this
+        on turns the others off.
         """
         if self._room_pick_mode == active:
             return
-        if active and self._add_label_mode:
-            # Don't leave both modes armed at the same time.
-            self.set_add_label_mode(False)
+        if active:
+            # Don't leave any other arm-modes hot at the same time.
+            if self._add_label_mode:
+                self.set_add_label_mode(False)
+            if self._add_room_flood_mode:
+                self.set_add_room_flood_mode(False)
         self._room_pick_mode = active
         if active:
             self.viewport().setCursor(QtCore.Qt.CursorShape.CrossCursor)
@@ -349,12 +426,15 @@ class MapCanvas(QtWidgets.QGraphicsView):
         While active, the viewport shows a crosshair cursor and the next
         left-click anywhere on the canvas emits ``add_label_requested``
         with the scene position. Idempotent. Mutually exclusive with
-        pick-room mode.
+        pick-room and add-room-flood modes.
         """
         if self._add_label_mode == active:
             return
-        if active and self._room_pick_mode:
-            self.set_room_pick_mode(False)
+        if active:
+            if self._room_pick_mode:
+                self.set_room_pick_mode(False)
+            if self._add_room_flood_mode:
+                self.set_add_room_flood_mode(False)
         self._add_label_mode = active
         if active:
             self.viewport().setCursor(QtCore.Qt.CursorShape.CrossCursor)
@@ -364,6 +444,34 @@ class MapCanvas(QtWidgets.QGraphicsView):
 
     def add_label_mode(self) -> bool:
         return self._add_label_mode
+
+    def set_add_room_flood_mode(self, active: bool) -> None:
+        """Enter or leave "click on the map to flood-fill a new room" mode.
+
+        While active, the viewport shows a crosshair cursor and the next
+        left-click on the canvas emits ``add_room_flood_requested`` with
+        the scene position. The controller does the actual flood-fill +
+        room construction; the canvas is only responsible for the cursor,
+        the click capture, and Esc cancellation.
+
+        Idempotent. Mutually exclusive with pick-room and add-label.
+        """
+        if self._add_room_flood_mode == active:
+            return
+        if active:
+            if self._room_pick_mode:
+                self.set_room_pick_mode(False)
+            if self._add_label_mode:
+                self.set_add_label_mode(False)
+        self._add_room_flood_mode = active
+        if active:
+            self.viewport().setCursor(QtCore.Qt.CursorShape.CrossCursor)
+            self.setFocus(QtCore.Qt.FocusReason.OtherFocusReason)
+        else:
+            self.viewport().unsetCursor()
+
+    def add_room_flood_mode(self) -> bool:
+        return self._add_room_flood_mode
 
     def room_at_scene_pos(self, scene_pos: QtCore.QPointF) -> Optional[RoomItem]:
         """Return the topmost ``RoomItem`` containing ``scene_pos``, if any.
@@ -491,6 +599,20 @@ class MapCanvas(QtWidgets.QGraphicsView):
             return
 
         if (
+            self._add_room_flood_mode
+            and event.button() == QtCore.Qt.MouseButton.LeftButton
+        ):
+            scene_pos = self.mapToScene(event.position().toPoint())
+            # Disarm before emitting: the controller will pop a dialog or
+            # status message on rejection, and the cleanest UX is for the
+            # mode to end on a single click (success or fail). The user
+            # re-arms via the menu / shortcut to add another room.
+            self.set_add_room_flood_mode(False)
+            self.add_room_flood_requested.emit(scene_pos)
+            event.accept()
+            return
+
+        if (
             self._add_label_mode
             and event.button() == QtCore.Qt.MouseButton.LeftButton
         ):
@@ -582,6 +704,12 @@ class MapCanvas(QtWidgets.QGraphicsView):
             # un-check itself.
             self.set_add_label_mode(False)
             self.add_label_cancelled.emit()
+            event.accept()
+            return
+        if key == QtCore.Qt.Key.Key_Escape and self._add_room_flood_mode:
+            # Esc bails out of add-room-flood mode without placing a room.
+            self.set_add_room_flood_mode(False)
+            self.add_room_flood_cancelled.emit()
             event.accept()
             return
         super().keyPressEvent(event)

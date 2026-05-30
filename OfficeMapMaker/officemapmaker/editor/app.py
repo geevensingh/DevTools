@@ -82,6 +82,7 @@ class EditorMainWindow(QtWidgets.QMainWindow):
             calibration_path=calibration_path,
             canvas=self._canvas,
             inspector=self._inspector,
+            map_path=map_path,
             parent=self,
         )
         self._controller.dirty_changed.connect(self._on_dirty_changed)
@@ -212,6 +213,32 @@ class EditorMainWindow(QtWidgets.QMainWindow):
         self._act_delete_label.triggered.connect(self._on_delete_label)
         tools_menu.addAction(self._act_delete_label)
 
+        tools_menu.addSeparator()
+
+        # Add-room submenu — one entry per fill-mode. Phase 1 ships the
+        # flood-fill mode; rect + polygon land in subsequent phases. The
+        # submenu structure is established up front so the user has a
+        # consistent place to find them as they appear.
+        add_room_menu = tools_menu.addMenu("Add &room")
+
+        self._act_add_room_flood = QtGui.QAction(
+            "From &flood-fill click", self
+        )
+        # Shift+N pairs naturally with N (add label) — both are "add a
+        # new thing by clicking". Shift = "the bigger thing" (a room is
+        # bigger than a label).
+        self._act_add_room_flood.setShortcut(QtGui.QKeySequence("Shift+N"))
+        self._act_add_room_flood.setCheckable(True)
+        self._act_add_room_flood.setStatusTip(
+            "Arm add-room mode. The next click on the map runs a flood-fill "
+            "from the click point and adds the filled region as a new room. "
+            "Esc cancels."
+        )
+        self._act_add_room_flood.toggled.connect(
+            self._on_add_room_flood_toggled
+        )
+        add_room_menu.addAction(self._act_add_room_flood)
+
     def _build_status_bar(self) -> None:
         """Status bar shows cursor coords, calibration counts, and dirty state.
 
@@ -245,6 +272,14 @@ class EditorMainWindow(QtWidgets.QMainWindow):
         # (so a click-to-place flow doesn't leave the menu stuck "on").
         self._canvas.add_label_requested.connect(self._on_add_label_mode_ended)
         self._canvas.add_label_cancelled.connect(self._on_add_label_mode_ended)
+
+        # And again for add-room-flood mode — same shape, different mode.
+        self._canvas.add_room_flood_requested.connect(
+            self._on_add_room_flood_mode_ended
+        )
+        self._canvas.add_room_flood_cancelled.connect(
+            self._on_add_room_flood_mode_ended
+        )
 
     # -------------------------------------------------------------- slots
 
@@ -300,6 +335,38 @@ class EditorMainWindow(QtWidgets.QMainWindow):
         self._act_add_label.blockSignals(True)
         self._act_add_label.setChecked(False)
         self._act_add_label.blockSignals(False)
+        self.statusBar().clearMessage()
+
+    def _on_add_room_flood_toggled(self, checked: bool) -> None:
+        """Drive the canvas's add-room-flood mode from the menu toggle.
+
+        Routes through the controller (not the canvas directly) so the
+        controller can short-circuit with a friendly error if the
+        feature can't run (e.g. no map path configured).
+        """
+        self._controller.set_add_room_flood_mode(checked)
+        # The controller may have refused to arm (no map path) — in that
+        # case the canvas is still off and we need to un-check ourselves.
+        if checked and not self._canvas.add_room_flood_mode():
+            self._act_add_room_flood.blockSignals(True)
+            self._act_add_room_flood.setChecked(False)
+            self._act_add_room_flood.blockSignals(False)
+            return
+        if checked:
+            self.statusBar().showMessage(
+                "Click inside a room to flood-fill it as a new room. "
+                "(Esc to cancel)", 0
+            )
+        else:
+            self.statusBar().clearMessage()
+
+    def _on_add_room_flood_mode_ended(self, *_args) -> None:
+        """Canvas dropped out of add-room-flood mode → re-sync the toggle."""
+        if not self._act_add_room_flood.isChecked():
+            return
+        self._act_add_room_flood.blockSignals(True)
+        self._act_add_room_flood.setChecked(False)
+        self._act_add_room_flood.blockSignals(False)
         self.statusBar().clearMessage()
 
     def _on_delete_label(self) -> None:

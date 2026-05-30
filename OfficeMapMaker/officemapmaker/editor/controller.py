@@ -23,15 +23,18 @@ from typing import Optional
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ..calibration import Calibration, Label, save_calibration
+from ..calibration import Calibration, Label, Room, save_calibration
+from ..geometry import mask_to_rle
 from .canvas import MapCanvas
 from .commands import (
     AddLabelCommand,
+    AddRoomCommand,
     ChangeRoomLinkCommand,
     DeleteLabelCommand,
     EditLabelIdCommand,
     EditLabelNotesCommand,
     LabelChange,
+    RoomChange,
 )
 from .items import LabelItem, RoomItem, compute_label_status, find_duplicate_label_ids
 from .sidebar import InspectorPanel
@@ -44,6 +47,21 @@ from .sidebar import InspectorPanel
 # bbox at the maps we work with.
 _NEW_LABEL_BBOX_W = 48
 _NEW_LABEL_BBOX_H = 18
+
+
+# Upper bound on a single flood-fill's area as a fraction of the full map.
+# A typical office on a Millennium B-scale map is well under 1% of the
+# map's pixel area, so anything above this threshold means the flood
+# escaped the room (the click was on the wrong side of a wall gap, or
+# the user clicked a hallway). Reject with a friendly message instead of
+# silently creating a bogus full-map room.
+_ADD_ROOM_FLOOD_MAX_FRACTION = 0.30
+
+# Below this many pixels we refuse to create a room: real offices are
+# always > a couple hundred pixels at usable map resolutions, and tiny
+# slivers are almost always the "click landed in a single-pixel pocket
+# between walls" misclick.
+_ADD_ROOM_FLOOD_MIN_PIXELS = 50
 
 
 # ---------------------------------------------------------------------------
@@ -117,6 +135,7 @@ class EditorController(QtCore.QObject):
         calibration_path: Path,
         canvas: MapCanvas,
         inspector: InspectorPanel,
+        map_path: Optional[Path] = None,
         parent: Optional[QtCore.QObject] = None,
     ) -> None:
         super().__init__(parent)
@@ -124,6 +143,24 @@ class EditorController(QtCore.QObject):
         self._calibration_path = calibration_path
         self._canvas = canvas
         self._inspector = inspector
+        # Path to the source map image. Only needed for tools that
+        # re-binarize the image (add-room flood-fill). Stored as
+        # ``Optional`` so unit tests can spin up a controller without
+        # needing a real map on disk; tools that require it pop a
+        # graceful error when it's missing rather than crashing.
+        self._map_path = map_path
+
+        # Lazy-built wall mask for flood-fill (cv2 + adaptive threshold +
+        # wall_patches rasterization). Built the first time an add-room
+        # flood click happens, then reused for subsequent clicks within
+        # the session. None means "not built yet"; a numpy array means
+        # "ready". We intentionally do not invalidate on every edit:
+        # `wall_patches` is the only thing that affects the mask and the
+        # editor doesn't have a UI for editing it (yet) so within a
+        # single session the mask is stable. If a future feature mutates
+        # ``calibration.wall_patches`` it should call
+        # :meth:`invalidate_wall_mask` to drop the cache.
+        self._wall_mask_cache = None
 
         self._undo_stack = QtGui.QUndoStack(self)
         self._undo_stack.cleanChanged.connect(self._on_clean_changed)
@@ -154,6 +191,16 @@ class EditorController(QtCore.QObject):
         # Canvas add-label mode → controller: convert a click in the canvas
         # into a prompt-then-AddLabelCommand sequence.
         self._canvas.add_label_requested.connect(self._handle_canvas_add_label_at)
+
+        # Canvas add-room-flood mode → controller: convert a click into a
+        # virtual flood-fill against the binarized map (+ wall_patches),
+        # build a Room from the filled mask, and push AddRoomCommand.
+        self._canvas.add_room_flood_requested.connect(
+            self._handle_canvas_add_room_flood
+        )
+        self._canvas.add_room_flood_cancelled.connect(
+            self._handle_canvas_add_room_flood_cancelled
+        )
 
         # Remember which label the user was editing when they entered pick
         # mode. Selection is locked while pick mode is active (clicks on
@@ -403,6 +450,174 @@ class EditorController(QtCore.QObject):
         )
         self._undo_stack.push(cmd)
 
+    # --------------------------------------------------- add room (flood)
+
+    def invalidate_wall_mask(self) -> None:
+        """Drop any cached wall mask (next add-room click rebuilds it).
+
+        Call this if anything that affects the binarized map changes —
+        most importantly ``calibration.wall_patches``. The editor itself
+        doesn't yet have a UI for editing wall_patches, so this is
+        currently unreachable from user actions, but it's the public
+        invalidation hook future code should use.
+        """
+        self._wall_mask_cache = None
+
+    def _get_wall_mask(self):
+        """Return (and cache) the binary wall mask used for flood-fills.
+
+        Lazy: only loaded the first time an add-room flood click happens
+        so the editor's startup cost stays just the calibration decode.
+        Returns ``None`` if the map can't be loaded (missing file, unsupported
+        format, no ``map_path`` configured); the caller is responsible for
+        showing the user an error in that case.
+        """
+        if self._wall_mask_cache is not None:
+            return self._wall_mask_cache
+        if self._map_path is None or not Path(self._map_path).exists():
+            return None
+        # Import lazily so unit tests that don't use add-room don't pay
+        # the cv2 import cost (and so the import failure surfaces only
+        # when the feature is actually used).
+        import cv2  # noqa: WPS433 — intentional lazy import
+
+        from ..validate import build_fill_mask
+
+        image = cv2.imread(str(self._map_path), cv2.IMREAD_COLOR)
+        if image is None:
+            return None
+        self._wall_mask_cache = build_fill_mask(image, self._cal.wall_patches)
+        return self._wall_mask_cache
+
+    def set_add_room_flood_mode(self, active: bool) -> None:
+        """Public toggle for the canvas's add-room-flood mode.
+
+        Routes through the controller so the menu action and the canvas
+        stay in sync, and so we can short-circuit with a friendly error
+        if the feature can't run (no map path configured).
+        """
+        if active and self._map_path is None:
+            QtWidgets.QMessageBox.warning(
+                self._canvas,
+                "Add room",
+                "Add-room mode needs the source map image to do the\n"
+                "flood-fill, but no map path was supplied when the editor\n"
+                "was launched. Re-open the editor with --map MAP.png.",
+            )
+            return
+        self._canvas.set_add_room_flood_mode(active)
+
+    def _handle_canvas_add_room_flood(
+        self, scene_pos: "QtCore.QPointF"
+    ) -> None:
+        """User clicked the canvas in add-room-flood mode.
+
+        Runs a virtual flood-fill from the click point against the
+        binarized map (+ wall_patches), builds a Room from the filled
+        mask, and pushes :class:`AddRoomCommand`. The new room is
+        selected so the inspector immediately offers "Create label for
+        this room".
+
+        Rejects with a status-bar / dialog message when:
+
+        * the seed point is on a wall (flood-fill returns empty),
+        * the filled region is implausibly small (< _MIN_PIXELS),
+        * the filled region covers more than _MAX_FRACTION of the map
+          (the click leaked into a hallway or escaped the wall),
+        * the map image can't be loaded.
+        """
+        # Defensive: the canvas disarms before emitting, but make sure.
+        self._canvas.set_add_room_flood_mode(False)
+
+        wall_mask = self._get_wall_mask()
+        if wall_mask is None:
+            QtWidgets.QMessageBox.warning(
+                self._canvas,
+                "Add room",
+                "Could not load the source map image for flood-fill.\n"
+                "Make sure the map file exists and the editor was launched\n"
+                "with --map MAP.png.",
+            )
+            return
+
+        h, w = wall_mask.shape[:2]
+        x = int(round(scene_pos.x()))
+        y = int(round(scene_pos.y()))
+        if not (0 <= x < w and 0 <= y < h):
+            QtWidgets.QMessageBox.warning(
+                self._canvas,
+                "Add room",
+                "Click was outside the map image. Click somewhere inside\n"
+                "the room you want to add.",
+            )
+            return
+
+        from ..validate import virtual_flood_fill  # lazy
+
+        filled = virtual_flood_fill(wall_mask, (x, y))
+        area_px = int(filled.sum())
+
+        if area_px < _ADD_ROOM_FLOOD_MIN_PIXELS:
+            QtWidgets.QMessageBox.warning(
+                self._canvas,
+                "Add room",
+                "The click landed on a wall (or in a tiny pocket of\n"
+                "background). Click a clear spot well inside the room.",
+            )
+            return
+
+        max_pixels = int(_ADD_ROOM_FLOOD_MAX_FRACTION * h * w)
+        if area_px > max_pixels:
+            pct = 100.0 * area_px / float(h * w)
+            QtWidgets.QMessageBox.warning(
+                self._canvas,
+                "Add room",
+                f"Flood-fill from that point covered {pct:.0f}% of the map\n"
+                f"(threshold: {int(_ADD_ROOM_FLOOD_MAX_FRACTION * 100)}%).\n\n"
+                "That usually means the room has a wall gap and the fill\n"
+                "leaked into a hallway. Add a wall_patches entry to plug\n"
+                "the gap in calibration.json, reload, and try again.",
+            )
+            return
+
+        # Compute bbox of filled pixels for Room.bbox.
+        ys, xs = filled.nonzero()
+        x_min, x_max = int(xs.min()), int(xs.max())
+        y_min, y_max = int(ys.min()), int(ys.max())
+        bbox = (x_min, y_min, x_max - x_min + 1, y_max - y_min + 1)
+
+        # mask_to_rle expects a uint8 mask with values in {0, 1} (or 0/255 —
+        # any nonzero is treated as foreground). filled is bool; cast.
+        rle = mask_to_rle(filled.astype("uint8"))
+
+        new_id = self._next_room_id()
+        new_room = Room(id=new_id, polygon_rle=rle, area_px=area_px, bbox=bbox)
+        cmd = AddRoomCommand(
+            self._cal, new_room, on_change=self._on_room_change
+        )
+        self._undo_stack.push(cmd)
+
+    def _handle_canvas_add_room_flood_cancelled(self) -> None:
+        """Esc out of add-room-flood mode — purely informational hook.
+
+        The canvas already cleared the cursor; nothing else to do at the
+        controller level today. Kept as a named slot so future status-bar
+        / toolbar wiring has a place to hang off.
+        """
+        return
+
+    def _next_room_id(self) -> int:
+        """Return the next unused integer ``Room.id``.
+
+        Strategy: max existing id + 1. Simple and stable across undo
+        because undo removes whatever redo added (so the room id doesn't
+        get recycled unless the user deliberately deletes a room).
+        """
+        existing = [r.id for r in self._cal.rooms]
+        return (max(existing) + 1) if existing else 1
+
+    # --------------------------------------------------- delete label
+
     def delete_selected_label(self) -> bool:
         """Push a ``DeleteLabelCommand`` for the currently-selected label.
 
@@ -505,6 +720,30 @@ class EditorController(QtCore.QObject):
                 label_index=current,
                 available_room_ids=available_room_ids,
             )
+
+    # ------------------------------------------ room change handler
+
+    def _on_room_change(self, change: RoomChange) -> None:
+        """Apply a ``RoomChange`` to the canvas + inspector.
+
+        v1 is fired only by :class:`AddRoomCommand` (Add + Undo-Add).
+        Structural changes always rebuild the room layer (room id sets
+        change, polygon decode is needed for the new entry); after the
+        rebuild we re-select the new (or, on undo, no) room so the
+        inspector tracks the current state.
+        """
+        if change.structural:
+            self._canvas.rebuild_rooms()
+            if change.room_ids:
+                # Select the newly-added room so the inspector shows it
+                # right away — letting the user click "Create label for
+                # this room" without any extra navigation.
+                self._canvas.select_room(change.room_ids[-1])
+            else:
+                # Undo-Add path: the room is gone. If the inspector was
+                # showing it, clear the panel so we don't display stale
+                # info for a vanished room.
+                self._inspector.show_nothing()
 
     # --------------------------------------------------- clean tracking
 
