@@ -63,6 +63,12 @@ _ADD_ROOM_FLOOD_MAX_FRACTION = 0.30
 # between walls" misclick.
 _ADD_ROOM_FLOOD_MIN_PIXELS = 50
 
+# Smallest acceptable rectangle (in pixels) for add-room-rect. Smaller
+# than this is almost certainly a misclick / accidental shake; rooms
+# on real maps are always significantly larger. Same threshold as the
+# flood-fill minimum so both add-room modes feel consistent.
+_ADD_ROOM_RECT_MIN_PIXELS = 50
+
 
 # ---------------------------------------------------------------------------
 # Save with backup
@@ -200,6 +206,17 @@ class EditorController(QtCore.QObject):
         )
         self._canvas.add_room_flood_cancelled.connect(
             self._handle_canvas_add_room_flood_cancelled
+        )
+
+        # Canvas add-room-rect mode → controller: convert a dragged
+        # rectangle into a Room whose polygon IS the rectangle and
+        # push AddRoomCommand. No flood-fill / image binarization
+        # needed, so this mode works even without a map_path.
+        self._canvas.add_room_rect_requested.connect(
+            self._handle_canvas_add_room_rect
+        )
+        self._canvas.add_room_rect_cancelled.connect(
+            self._handle_canvas_add_room_rect_cancelled
         )
 
         # Remember which label the user was editing when they entered pick
@@ -604,6 +621,103 @@ class EditorController(QtCore.QObject):
         controller level today. Kept as a named slot so future status-bar
         / toolbar wiring has a place to hang off.
         """
+        return
+
+    # --------------------------------------------------- add room (rect)
+
+    def set_add_room_rect_mode(self, active: bool) -> None:
+        """Public toggle for the canvas's add-room-rect mode.
+
+        Unlike the flood-fill mode, this one doesn't need the source
+        image (the rectangle IS the geometry) so there's no map_path
+        guard. We do still need a loaded pixmap to know the image
+        dimensions for the full-size mask; if no map is loaded we
+        refuse to arm and warn.
+        """
+        if active and self._canvas.image_size() is None:
+            QtWidgets.QMessageBox.warning(
+                self._canvas,
+                "Add room",
+                "Add-room mode needs the map image to be loaded so the\n"
+                "new room's polygon can be sized to match. Re-open the\n"
+                "editor with --map MAP.png.",
+            )
+            return
+        self._canvas.set_add_room_rect_mode(active)
+
+    def _handle_canvas_add_room_rect(self, rect: "QtCore.QRectF") -> None:
+        """User finished a rubber-band drag in add-room-rect mode.
+
+        Clamps the rectangle to the image bounds, validates that what
+        remains is large enough to plausibly be a room, builds a Room
+        with a full-image-sized mask (matching the convention used by
+        :meth:`_handle_canvas_add_room_flood`), and pushes an
+        :class:`AddRoomCommand` so the action is undoable.
+        """
+        # Defensive: the canvas disarms before emitting, but be sure.
+        self._canvas.set_add_room_rect_mode(False)
+
+        size = self._canvas.image_size()
+        if size is None:
+            QtWidgets.QMessageBox.warning(
+                self._canvas,
+                "Add room",
+                "Could not read the map image dimensions. Re-open the\n"
+                "editor with --map MAP.png.",
+            )
+            return
+        img_w, img_h = size
+
+        # Clamp the dragged rectangle to the image bounds. Drags that
+        # extended past the edge are common (rectangle handles are
+        # off-screen at high zoom); clipping is friendlier than rejecting.
+        x_min = max(0, int(round(rect.left())))
+        y_min = max(0, int(round(rect.top())))
+        x_max = min(img_w, int(round(rect.right())))
+        y_max = min(img_h, int(round(rect.bottom())))
+        w = x_max - x_min
+        h = y_max - y_min
+
+        if w <= 0 or h <= 0:
+            QtWidgets.QMessageBox.warning(
+                self._canvas,
+                "Add room",
+                "The dragged rectangle was entirely outside the map\n"
+                "image. Drag inside the map to add a room.",
+            )
+            return
+
+        area_px = w * h
+        if area_px < _ADD_ROOM_RECT_MIN_PIXELS:
+            QtWidgets.QMessageBox.warning(
+                self._canvas,
+                "Add room",
+                "The dragged rectangle is too small to be a room "
+                f"({area_px} px;\nminimum {_ADD_ROOM_RECT_MIN_PIXELS}). "
+                "Try again with a bigger drag.",
+            )
+            return
+
+        # Build a full-image-sized mask matching the convention used by
+        # the existing calibrate / flood-fill code (Room.polygon_rle is
+        # always full-image-sized; the bbox tells us where the geometry
+        # lives within it).
+        import numpy as np  # noqa: WPS433 — lazy: avoid numpy cost for editor-only sessions
+
+        mask = np.zeros((img_h, img_w), dtype=np.uint8)
+        mask[y_min:y_max, x_min:x_max] = 1
+        rle = mask_to_rle(mask)
+        bbox = (x_min, y_min, w, h)
+
+        new_id = self._next_room_id()
+        new_room = Room(id=new_id, polygon_rle=rle, area_px=area_px, bbox=bbox)
+        cmd = AddRoomCommand(
+            self._cal, new_room, on_change=self._on_room_change
+        )
+        self._undo_stack.push(cmd)
+
+    def _handle_canvas_add_room_rect_cancelled(self) -> None:
+        """Esc / misclick during add-room-rect mode — informational hook."""
         return
 
     def _next_room_id(self) -> int:

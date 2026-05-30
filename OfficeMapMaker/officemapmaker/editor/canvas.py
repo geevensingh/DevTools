@@ -42,6 +42,13 @@ _ZOOM_FACTOR_PER_NOTCH = 1.15
 _MIN_ZOOM = 0.05
 _MAX_ZOOM = 40.0
 
+# Below this size in viewport pixels (in either dimension), a press-then-
+# release in add-room-rect mode is treated as a "I didn't mean to drag"
+# misclick rather than a real rectangle. Picked at 4 px because real
+# add-room-rect gestures are always > 50 px on a workable map; 4 px is
+# well under the smallest plausible intentional drag.
+_RECT_MIN_DRAG_PIXELS = 4
+
 
 class MapCanvas(QtWidgets.QGraphicsView):
     """Scrollable, zoomable view of a floor-plan map plus overlay items.
@@ -106,6 +113,23 @@ class MapCanvas(QtWidgets.QGraphicsView):
     seeds that land on a wall or produce an implausibly large fill.
     """
 
+    add_room_rect_requested = QtCore.Signal(QtCore.QRectF)
+    """Emitted when the user finishes a rubber-band drag in add-room-rect mode.
+
+    Payload is the dragged rectangle in scene (image-pixel) coordinates,
+    already normalized so width / height are positive. The controller turns
+    this into a Room whose polygon is the rectangle itself and pushes an
+    ``AddRoomCommand``.
+    """
+
+    add_room_rect_cancelled = QtCore.Signal()
+    """Emitted when add-room-rect mode ends without producing a rectangle.
+
+    Sources: Esc key, or a press-then-release with no perceptible drag
+    (the user clicked rather than dragged — we treat this as "I changed
+    my mind" rather than building a 1-pixel room).
+    """
+
     def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
         self._scene = QtWidgets.QGraphicsScene(self)
@@ -157,6 +181,18 @@ class MapCanvas(QtWidgets.QGraphicsView):
         # position. The controller runs a virtual flood-fill from that
         # point to build the room polygon. Esc cancels.
         self._add_room_flood_mode = False
+
+        # Add-room-rect mode: while True, the next left-press starts a
+        # rubber-band drag; the next left-release emits
+        # ``add_room_rect_requested`` with the dragged rectangle (or
+        # ``add_room_rect_cancelled`` if the drag was too small).
+        # We draw our own preview rect overlay during the drag so the
+        # user gets visual feedback regardless of the canvas's
+        # ``RubberBandDrag`` selection rectangle (which we suppress
+        # for this mode by intercepting press/move/release).
+        self._add_room_rect_mode = False
+        self._rect_drag_start_scene: Optional[QtCore.QPointF] = None
+        self._rect_preview_item: Optional[QtWidgets.QGraphicsRectItem] = None
 
         # Track mouse position even when no button is pressed so the status
         # bar can show live image-pixel coords.
@@ -397,7 +433,7 @@ class MapCanvas(QtWidgets.QGraphicsView):
         While active, the viewport shows a crosshair cursor as a visual
         cue and ``mousePressEvent`` intercepts left-clicks (see there).
         Idempotent: setting the same state twice is a no-op. Mutually
-        exclusive with add-label and add-room-flood modes — turning this
+        exclusive with the three add-room / add-label modes — turning this
         on turns the others off.
         """
         if self._room_pick_mode == active:
@@ -408,6 +444,8 @@ class MapCanvas(QtWidgets.QGraphicsView):
                 self.set_add_label_mode(False)
             if self._add_room_flood_mode:
                 self.set_add_room_flood_mode(False)
+            if self._add_room_rect_mode:
+                self.set_add_room_rect_mode(False)
         self._room_pick_mode = active
         if active:
             self.viewport().setCursor(QtCore.Qt.CursorShape.CrossCursor)
@@ -426,7 +464,7 @@ class MapCanvas(QtWidgets.QGraphicsView):
         While active, the viewport shows a crosshair cursor and the next
         left-click anywhere on the canvas emits ``add_label_requested``
         with the scene position. Idempotent. Mutually exclusive with
-        pick-room and add-room-flood modes.
+        the pick-room and add-room modes.
         """
         if self._add_label_mode == active:
             return
@@ -435,6 +473,8 @@ class MapCanvas(QtWidgets.QGraphicsView):
                 self.set_room_pick_mode(False)
             if self._add_room_flood_mode:
                 self.set_add_room_flood_mode(False)
+            if self._add_room_rect_mode:
+                self.set_add_room_rect_mode(False)
         self._add_label_mode = active
         if active:
             self.viewport().setCursor(QtCore.Qt.CursorShape.CrossCursor)
@@ -454,7 +494,7 @@ class MapCanvas(QtWidgets.QGraphicsView):
         room construction; the canvas is only responsible for the cursor,
         the click capture, and Esc cancellation.
 
-        Idempotent. Mutually exclusive with pick-room and add-label.
+        Idempotent. Mutually exclusive with the other three arm-modes.
         """
         if self._add_room_flood_mode == active:
             return
@@ -463,6 +503,8 @@ class MapCanvas(QtWidgets.QGraphicsView):
                 self.set_room_pick_mode(False)
             if self._add_label_mode:
                 self.set_add_label_mode(False)
+            if self._add_room_rect_mode:
+                self.set_add_room_rect_mode(False)
         self._add_room_flood_mode = active
         if active:
             self.viewport().setCursor(QtCore.Qt.CursorShape.CrossCursor)
@@ -472,6 +514,68 @@ class MapCanvas(QtWidgets.QGraphicsView):
 
     def add_room_flood_mode(self) -> bool:
         return self._add_room_flood_mode
+
+    def set_add_room_rect_mode(self, active: bool) -> None:
+        """Enter or leave "drag a rectangle to add a new room" mode.
+
+        While active, the viewport shows a crosshair cursor and a left
+        press-drag-release sequence draws a preview rectangle and then
+        emits ``add_room_rect_requested`` with the dragged QRectF in
+        scene coordinates. A press-then-release with no perceptible
+        drag (< _RECT_MIN_DRAG_PIXELS in either dimension) emits
+        ``add_room_rect_cancelled`` instead so a misclick doesn't
+        produce a 1-pixel room.
+
+        Idempotent. Mutually exclusive with the other three arm-modes.
+        Disarming mid-drag tears down any preview rect overlay.
+        """
+        if self._add_room_rect_mode == active:
+            return
+        if active:
+            if self._room_pick_mode:
+                self.set_room_pick_mode(False)
+            if self._add_label_mode:
+                self.set_add_label_mode(False)
+            if self._add_room_flood_mode:
+                self.set_add_room_flood_mode(False)
+        self._add_room_rect_mode = active
+        if active:
+            self.viewport().setCursor(QtCore.Qt.CursorShape.CrossCursor)
+            self.setFocus(QtCore.Qt.FocusReason.OtherFocusReason)
+        else:
+            self.viewport().unsetCursor()
+            # If we were mid-drag, tear down the preview cleanly.
+            self._discard_rect_preview()
+
+    def add_room_rect_mode(self) -> bool:
+        return self._add_room_rect_mode
+
+    def image_size(self) -> Optional[tuple[int, int]]:
+        """Return ``(width, height)`` of the loaded map in image pixels.
+
+        ``None`` if no map has been loaded yet. Used by the controller to
+        size the full-image mask for rectangle-based add-room without
+        having to re-read the source image file.
+        """
+        if self._pixmap_item is None:
+            return None
+        pixmap = self._pixmap_item.pixmap()
+        return (pixmap.width(), pixmap.height())
+
+    def _discard_rect_preview(self) -> None:
+        """Tear down any in-progress rect-drag preview item.
+
+        Called when add-room-rect mode is turned off mid-drag, when Esc
+        is hit during a drag, and after a successful emit. Idempotent.
+        """
+        if self._rect_preview_item is not None:
+            try:
+                self._scene.removeItem(self._rect_preview_item)
+            except RuntimeError:
+                # Scene already torn down — fine, the item is gone too.
+                pass
+            self._rect_preview_item = None
+        self._rect_drag_start_scene = None
 
     def room_at_scene_pos(self, scene_pos: QtCore.QPointF) -> Optional[RoomItem]:
         """Return the topmost ``RoomItem`` containing ``scene_pos``, if any.
@@ -569,6 +673,18 @@ class MapCanvas(QtWidgets.QGraphicsView):
             event.accept()
             return
 
+        if (
+            self._add_room_rect_mode
+            and self._rect_drag_start_scene is not None
+            and self._rect_preview_item is not None
+        ):
+            # Update the live preview rectangle. ``QRectF`` from two
+            # corners normalizes width/height to positive automatically.
+            rect = QtCore.QRectF(self._rect_drag_start_scene, scene_pos).normalized()
+            self._rect_preview_item.setRect(rect)
+            event.accept()
+            return
+
         super().mouseMoveEvent(event)
 
     def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:  # noqa: N802 — Qt API
@@ -609,6 +725,32 @@ class MapCanvas(QtWidgets.QGraphicsView):
             # re-arms via the menu / shortcut to add another room.
             self.set_add_room_flood_mode(False)
             self.add_room_flood_requested.emit(scene_pos)
+            event.accept()
+            return
+
+        if (
+            self._add_room_rect_mode
+            and event.button() == QtCore.Qt.MouseButton.LeftButton
+        ):
+            # Start a rubber-band rectangle drag. Don't disarm yet —
+            # we need the matching mouseMove + mouseRelease to finish
+            # the gesture. ``mouseReleaseEvent`` is responsible for
+            # disarming and emitting (or cancelling).
+            scene_pos = self.mapToScene(event.position().toPoint())
+            self._rect_drag_start_scene = scene_pos
+            preview = QtWidgets.QGraphicsRectItem(QtCore.QRectF(scene_pos, scene_pos))
+            pen = QtGui.QPen(QtGui.QColor("#0078d4"))
+            pen.setStyle(QtCore.Qt.PenStyle.DashLine)
+            # Cosmetic pen keeps the dashed outline 1 px wide regardless
+            # of zoom — otherwise dashes shrink to invisibility at high
+            # zoom and bloat into a band at low zoom.
+            pen.setCosmetic(True)
+            pen.setWidth(2)
+            preview.setPen(pen)
+            preview.setBrush(QtGui.QBrush(QtGui.QColor(0, 120, 212, 40)))
+            preview.setZValue(1000)
+            self._scene.addItem(preview)
+            self._rect_preview_item = preview
             event.accept()
             return
 
@@ -669,6 +811,32 @@ class MapCanvas(QtWidgets.QGraphicsView):
             self.viewport().unsetCursor()
             event.accept()
             return
+
+        if (
+            self._add_room_rect_mode
+            and event.button() == QtCore.Qt.MouseButton.LeftButton
+            and self._rect_drag_start_scene is not None
+        ):
+            # Compute the final rect (normalized) and decide whether the
+            # gesture was a real drag or a misclick. Either way, disarm
+            # the mode + tear down the preview before any signal fires
+            # so handlers see a clean canvas state.
+            end_scene = self.mapToScene(event.position().toPoint())
+            rect = QtCore.QRectF(self._rect_drag_start_scene, end_scene).normalized()
+            self.set_add_room_rect_mode(False)
+            # set_add_room_rect_mode(False) already calls
+            # _discard_rect_preview, which clears _rect_drag_start_scene
+            # and removes the preview item.
+            if (
+                rect.width() < _RECT_MIN_DRAG_PIXELS
+                or rect.height() < _RECT_MIN_DRAG_PIXELS
+            ):
+                self.add_room_rect_cancelled.emit()
+            else:
+                self.add_room_rect_requested.emit(rect)
+            event.accept()
+            return
+
         super().mouseReleaseEvent(event)
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:  # noqa: N802 — Qt API
@@ -710,6 +878,15 @@ class MapCanvas(QtWidgets.QGraphicsView):
             # Esc bails out of add-room-flood mode without placing a room.
             self.set_add_room_flood_mode(False)
             self.add_room_flood_cancelled.emit()
+            event.accept()
+            return
+        if key == QtCore.Qt.Key.Key_Escape and self._add_room_rect_mode:
+            # Esc bails out of add-room-rect mode. If a drag is in
+            # progress, the preview is torn down by
+            # ``set_add_room_rect_mode(False)`` so no stray rectangle
+            # is left on the scene.
+            self.set_add_room_rect_mode(False)
+            self.add_room_rect_cancelled.emit()
             event.accept()
             return
         super().keyPressEvent(event)
