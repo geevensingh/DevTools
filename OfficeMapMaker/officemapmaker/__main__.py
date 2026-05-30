@@ -6,7 +6,7 @@ right now — implementation is tracked in plan.md milestones 2 through 9.
 
 Subcommand grammar (see README §"Quick reference"):
 
-    officemapmaker calibrate          --map MAP.png  [--out calibration.json]
+    officemapmaker calibrate          --map MAP.png  [--out calibration.json] [--edit]
     officemapmaker calibrate review   --calibration calibration.json
     officemapmaker calibrate confirm  --calibration calibration.json
     officemapmaker calibrate edit     --calibration calibration.json
@@ -68,6 +68,15 @@ def build_parser() -> argparse.ArgumentParser:
     p_cal.add_argument(
         "--out", type=Path, default=Path("calibration.json"),
         help="Where to write calibration.json (default: ./calibration.json).",
+    )
+    p_cal.add_argument(
+        "--edit",
+        action="store_true",
+        help=(
+            "After OCR + connected-components, immediately launch the "
+            "interactive editor on the new calibration. Recommended one-shot "
+            "flow for new maps: 'OfficeMapMaker calibrate --map MAP.png --edit'."
+        ),
     )
     _add_common_flags(p_cal)
     cal_subs = p_cal.add_subparsers(dest="cal_action", required=False, metavar="ACTION")
@@ -249,6 +258,18 @@ def _run_calibrate(args: argparse.Namespace) -> int:
         print(str(issue), file=stream)
 
     print(f"summary: {len(errors)} error(s), {len(warnings)} warning(s)")
+    if getattr(args, "edit", False):
+        # One-shot flow: OCR → editor. The editor returns 0 on clean close.
+        # We preserve exit-code 1 if the calibration itself had errors so
+        # callers / CI can still detect that, but only after the editor closes.
+        from .editor import launch as _launch_editor
+
+        print(f"launching editor on {args.out}")
+        editor_rc = _launch_editor(args.out, args.map)
+        if editor_rc != 0:
+            return editor_rc
+        return 1 if errors else 0
+
     print(
         f"next: review {review_pdf_path} then run "
         f"'officemapmaker calibrate confirm --calibration {args.out}'"

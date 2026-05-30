@@ -22,8 +22,10 @@ def parser():
     "argv",
     [
         ["calibrate", "--map", "map.png"],
+        ["calibrate", "--map", "map.png", "--edit"],
         ["calibrate", "review", "--calibration", "cal.json"],
         ["calibrate", "confirm", "--calibration", "cal.json"],
+        ["calibrate", "edit", "--calibration", "cal.json"],
         ["validate", "labels", "--calibration", "cal.json", "--assignments", "p.csv"],
         ["validate", "fill", "--map", "map.png", "--calibration", "cal.json"],
         ["layout", "--map", "map.png", "--calibration", "cal.json", "--assignments", "p.csv"],
@@ -38,6 +40,16 @@ def parser():
 def test_every_documented_form_parses(parser, argv):
     args = parser.parse_args(argv)
     assert args.cmd == argv[0]
+
+
+def test_calibrate_edit_flag_defaults_false(parser):
+    args = parser.parse_args(["calibrate", "--map", "map.png"])
+    assert args.edit is False
+
+
+def test_calibrate_edit_flag_sets_true(parser):
+    args = parser.parse_args(["calibrate", "--map", "map.png", "--edit"])
+    assert args.edit is True
 
 
 def test_common_flags_present_on_every_subcommand(parser):

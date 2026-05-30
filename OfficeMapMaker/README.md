@@ -20,8 +20,9 @@ letter-size print tiles, and a single printable PDF.
 
 | When you want to… | Run |
 |---|---|
-| Set up calibration for a new map (one time per map) | `OfficeMapMaker calibrate --map MAP.png` |
-| Open the calibration review PDF (auto-rebuilds if you edited the calibration) | `OfficeMapMaker calibrate review --calibration calibration.json` |
+| Set up calibration for a new map (one-shot: OCR → editor) | `OfficeMapMaker calibrate --map MAP.png --edit` |
+| Fix an existing calibration in the interactive editor | `OfficeMapMaker calibrate edit --calibration calibration.json` |
+| Open the calibration review PDF (alternative review surface; auto-rebuilds if you edited the calibration) | `OfficeMapMaker calibrate review --calibration calibration.json` |
 | Confirm calibration is correct | `OfficeMapMaker calibrate confirm --calibration calibration.json` |
 | Check assignments match the map | `OfficeMapMaker validate labels --calibration calibration.json --assignments PEOPLE` |
 | Find flood-fill leaks | `OfficeMapMaker validate fill --map MAP.png --calibration calibration.json` |
@@ -75,60 +76,93 @@ The tool runs as six passes. Each pass produces a **review artifact** (image or 
 you eyeball before confirming the result. The next pass refuses to run until the previous
 one's `.reviewed` sentinel exists and its inputs still match.
 
-That sounds heavy, but it pays off the first time you catch a misclassified hallway or
+That sounds heavy, but it pays off the first time you catch an OCR misread or
 a fill leak before sending the printed map to your team.
 
 ### Step 1 — Calibrate the map (one time per floor plan)
 
 ```
-OfficeMapMaker calibrate --map MAP.png
+OfficeMapMaker calibrate --map MAP.png --edit
 ```
+
+This runs OCR + connected-components on the map, writes `calibration.json`
+next to it, and **immediately launches the interactive editor** so you can
+fix anything OCR got wrong without round-tripping through a JSON file.
 
 **Source map** (the only required input besides the spreadsheet):
 
 ![Source map](docs/screenshots/01_source_map.png)
 
-**What happens:** OCR finds every numeric/alphanumeric label, connected-components
-detects every room, the tool associates labels to rooms and auto-classifies each as
-`office`, `hallway`, or `common`. Writes `calibration.json` next to the map.
+**What happens under the hood:** OCR finds every numeric/alphanumeric label,
+connected-components detects every room, the tool associates labels to
+rooms, and writes `calibration.json`.
 
-The detected rooms are written to `calibration_rooms_overview.png` in distinct
-alternating colors so you can scan for merged-room patterns at a glance:
+#### The interactive editor (recommended fix-up surface)
 
-![Calibration rooms overview](docs/screenshots/02_calibration_rooms.png)
+Closing the editor window leaves your edits in `calibration.json` (it
+prompts you to save on close if you haven't already). Reopen the editor
+on an existing calibration any time with:
 
-**Auto-checks:** every label is inside exactly one room; no room contains two `office`
-labels; no duplicate IDs.
-
-**Review:**
 ```
-OfficeMapMaker calibrate review --calibration calibration.json
+OfficeMapMaker calibrate edit --calibration calibration.json
 ```
-Builds `calibration_review.pdf` (if it doesn't exist yet or you've hand-edited
-`calibration.json` since it was last built) and opens it in your default viewer.
-It has four pages:
-1. Map with every label boxed in green and the OCR-read text shown.
-2. Every room polygon outlined in a distinct color with its area + classification. **Look for two rooms that are actually one merged region** — those usually need a `wall_patches` entry.
-3. Thumbnail grid of labels sorted by OCR confidence (lowest first). **Scan for misreads.**
-4. Orphans: any detected room with no label, or any label outside all rooms.
 
-**Common edits to `calibration.json`:**
-- Fix an OCR misread: edit `labels[*].id`.
-- Reclassify a hallway label the tool guessed as an office: change `classification` to `hallway`.
-- Disambiguate duplicate room numbers (e.g., the `1003` in two wings): change one to `1003-N` and the other to `1003-S`. The spreadsheet must use the same form.
-- Plug a flood-fill leak: add `[x1, y1, x2, y2]` to `wall_patches` (you'll be guided to specific endpoints in Step 3).
+The editor is a single window with the map in the center, an inspector
+panel on the right, and a status bar showing label / room counts.
 
-After any of these edits, run `calibrate review` again — it notices the
-calibration is newer than the PDF, rebuilds the PDF, and opens it. Any prior
-`calibration.json.reviewed` sentinel is cleared automatically (you'll need to
-re-confirm). Don't re-run `calibrate` to pick up your hand-edits — that does a
-fresh OCR pass and overwrites them.
+**The five things you'll do most often:**
+
+| You want to… | How |
+|---|---|
+| **Fix an OCR misread** (e.g. `15O5B` should be `1505B`) | Click the label on the map, edit the `id` field in the inspector. |
+| **Add a missing label** (OCR skipped a room entirely) | Tools → Add label (or press `N`), click inside the room, type the id. Auto-links to that room. |
+| **Link an orphan label** to its room (or change the link) | Select the label, click the 📍 Pick room button next to the room dropdown, then click the room on the map. |
+| **Create a label for an unlabeled room** (the room exists but no number was read) | Click the room, then click "Create label for this room" in the inspector. |
+| **Delete a spurious label** (OCR read text where there is none) | Select the label, press `Del`. |
+
+Every change is undoable (`Ctrl-Z` / `Ctrl-Y`). The window title shows
+a `*` while you have unsaved changes; `Ctrl-S` saves and writes a
+`calibration.json.bak` of the prior version.
+
+**Keyboard cheatsheet:** `N` add-label · `Del` delete-label · `L` toggle
+labels · `R` toggle rooms · `O` orphans-only · `0` fit-to-window · `Ctrl-+` /
+`Ctrl--` zoom · `Ctrl-Z` / `Ctrl-Y` undo / redo · `Ctrl-S` save ·
+`Ctrl-R` reload from disk.
 
 **Confirm:**
 ```
 OfficeMapMaker calibrate confirm --calibration calibration.json
 ```
-Writes `calibration.json.reviewed`. Subsequent passes are now allowed to use this calibration.
+Writes `calibration.json.reviewed`. Subsequent passes are now allowed
+to use this calibration.
+
+#### Alternative: PDF review + JSON editing
+
+If you'd rather review on paper or share the calibration with a
+teammate, the original PDF + JSON flow is still available:
+
+```
+OfficeMapMaker calibrate review --calibration calibration.json
+```
+
+Builds `calibration_review.pdf` (rebuilds it automatically if you've
+hand-edited `calibration.json` since) and opens it in your default
+viewer. It has four pages:
+1. Map with every label boxed in green and the OCR-read text shown.
+2. Every room polygon outlined in a distinct color with its area. **Look for two rooms that are actually one merged region** — those usually need a `wall_patches` entry.
+3. Thumbnail grid of labels sorted by OCR confidence (lowest first). **Scan for misreads.**
+4. Orphans: any detected room with no label, or any label outside all rooms.
+
+You can then hand-edit `calibration.json`:
+- Fix an OCR misread: edit `labels[*].id`.
+- Disambiguate duplicate room numbers (e.g., the `1003` in two wings): change one to `1003-N` and the other to `1003-S`. The spreadsheet must use the same form.
+- Plug a flood-fill leak: add `[x1, y1, x2, y2]` to `wall_patches` (you'll be guided to specific endpoints in Step 3).
+
+After any edit, re-run `calibrate review` — it notices the calibration
+is newer than the PDF, rebuilds it, opens it, and clears any prior
+`.reviewed` sentinel (you'll need to re-confirm). Don't re-run
+`calibrate` to pick up your hand-edits — that does a fresh OCR pass
+and overwrites them.
 
 ### Step 2 — Validate labels against your assignments
 
@@ -141,7 +175,6 @@ Errors are fatal; warnings are informational.
 
 **Errors (must fix):**
 - A person's office isn't on the map.
-- A person's office is classified `hallway` or `common`.
 - A person's office matches a duplicate (ambiguous) ID.
 
 **Warnings (worth reading):**
@@ -267,13 +300,19 @@ Print the PDF, tape pages together along the overlap, post on the wall, take a v
 ## Recipes (common iterations)
 
 ### "OCR misread a number"
-1. Open `calibration_review.pdf` and find the wrong label on page 3 (lowest confidence first).
-2. Edit the `id` field in `calibration.json`.
-3. Re-run `calibrate review` — it sees the calibration is newer than the PDF, rebuilds and opens it. Then run `calibrate confirm`.
+1. `OfficeMapMaker calibrate edit --calibration calibration.json`
+2. Find the wrong label on the map (the `O` key toggles orphans-only view if it's an unlinked misread; the inspector lists labels by OCR confidence too).
+3. Click it, edit the `id` field, `Ctrl-S` to save.
+4. Run `calibrate confirm`.
+
+### "OCR missed a room entirely"
+1. Open the editor as above.
+2. Either click the room and press "Create label for this room" in the inspector, OR press `N` and click inside the room.
+3. Type the office number when prompted. `Ctrl-S`, then `calibrate confirm`.
 
 ### "Two rooms are getting merged in flood-fill"
 1. Open `calibration_leaks\room-<id>-<code>.png`, find the gap visually.
-2. Add the suggested `[x1,y1,x2,y2]` to `wall_patches` in `calibration.json`.
+2. Add the suggested `[x1,y1,x2,y2]` to `wall_patches` in `calibration.json` (no editor support for `wall_patches` yet — hand-edit the JSON).
 3. Re-run `validate fill`. Repeat until clean.
 
 ### "A name falls back to a leader line and I want it inside the room instead"
@@ -309,7 +348,6 @@ Print the PDF, tape pages together along the overlap, post on the wall, take a v
       "id": "1480",                 // string; supports "1479A", "MER101"
       "bbox": [x, y, w, h],         // original location of the number on the map
       "room_id": 142,               // id of the connected-component room polygon
-      "classification": "office",   // office | hallway | common | skip
       "fill_seed": [x, y],          // seed point for flood-fill (defaults to polygon centroid)
       "ocr_confidence": 0.92,
       "notes": ""
