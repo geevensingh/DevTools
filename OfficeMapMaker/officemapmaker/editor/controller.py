@@ -69,6 +69,17 @@ _ADD_ROOM_FLOOD_MIN_PIXELS = 50
 # flood-fill minimum so both add-room modes feel consistent.
 _ADD_ROOM_RECT_MIN_PIXELS = 50
 
+# Smallest acceptable polygon area for add-room-polygon. Same threshold
+# as rect / flood so all three add-room modes reject the same set of
+# "too small to be a room" drafts.
+_ADD_ROOM_POLYGON_MIN_PIXELS = 50
+
+# Minimum vertex count for a polygon close. The canvas enforces this
+# at the gesture level too, but the controller re-validates so a
+# programmatic / scripted caller can't slip a degenerate polygon
+# past the safety net.
+_ADD_ROOM_POLYGON_MIN_VERTICES = 3
+
 
 # ---------------------------------------------------------------------------
 # Save with backup
@@ -217,6 +228,18 @@ class EditorController(QtCore.QObject):
         )
         self._canvas.add_room_rect_cancelled.connect(
             self._handle_canvas_add_room_rect_cancelled
+        )
+
+        # Canvas add-room-polygon mode → controller: rasterize the
+        # placed-vertex polygon into a full-image mask via PIL
+        # ImageDraw, build a Room, and push AddRoomCommand. Same
+        # "no map_path needed" property as rect mode — the editor's
+        # loaded pixmap supplies the image dimensions.
+        self._canvas.add_room_polygon_requested.connect(
+            self._handle_canvas_add_room_polygon
+        )
+        self._canvas.add_room_polygon_cancelled.connect(
+            self._handle_canvas_add_room_polygon_cancelled
         )
 
         # Remember which label the user was editing when they entered pick
@@ -718,6 +741,132 @@ class EditorController(QtCore.QObject):
 
     def _handle_canvas_add_room_rect_cancelled(self) -> None:
         """Esc / misclick during add-room-rect mode — informational hook."""
+        return
+
+    # ------------------------------------------------ add room (polygon)
+
+    def set_add_room_polygon_mode(self, active: bool) -> None:
+        """Public toggle for the canvas's add-room-polygon mode.
+
+        Same arm-guard as :meth:`set_add_room_rect_mode` — needs a
+        loaded pixmap so we know the image dimensions for the mask.
+        Doesn't need a map_path (unlike flood-fill) because the polygon
+        IS the geometry; the source image is only consulted for size.
+        """
+        if active and self._canvas.image_size() is None:
+            QtWidgets.QMessageBox.warning(
+                self._canvas,
+                "Add room",
+                "Add-room mode needs the map image to be loaded so the\n"
+                "new room's polygon can be sized to match. Re-open the\n"
+                "editor with --map MAP.png.",
+            )
+            return
+        self._canvas.set_add_room_polygon_mode(active)
+
+    def _handle_canvas_add_room_polygon(
+        self, polygon: "QtGui.QPolygonF"
+    ) -> None:
+        """User closed a polygon in add-room-polygon mode.
+
+        Clamps vertices to the image bounds, validates that the
+        rasterized polygon's area clears the same floor we use for
+        rect / flood, builds a Room with a full-image-sized mask
+        (matching the convention used elsewhere), and pushes an
+        :class:`AddRoomCommand` so the action is undoable.
+
+        Why PIL for the rasterization: ``PIL.ImageDraw.Draw.polygon``
+        is already a dependency used throughout the rendering pipeline
+        (see ``render.py``, ``layout.py``, ``tile.py``), and it handles
+        concave / self-intersecting polygons exactly the way ``cv2``
+        and ``QPainter`` do (even-odd rule). Rolling our own scanline
+        rasterizer would be extra code and behaviour for no benefit.
+        """
+        # Defensive: the canvas disarms before emitting, but be sure.
+        self._canvas.set_add_room_polygon_mode(False)
+
+        size = self._canvas.image_size()
+        if size is None:
+            QtWidgets.QMessageBox.warning(
+                self._canvas,
+                "Add room",
+                "Could not read the map image dimensions. Re-open the\n"
+                "editor with --map MAP.png.",
+            )
+            return
+        img_w, img_h = size
+
+        # Pull vertices out of QPolygonF in image-pixel coordinates,
+        # clamp to image bounds. (Vertices off the image are common at
+        # zoomed-in editing — the user can drag past the edge — so we
+        # clip rather than reject the whole polygon.)
+        verts: list[tuple[int, int]] = []
+        for i in range(polygon.size()):
+            p = polygon.at(i)
+            x = max(0, min(img_w, int(round(p.x()))))
+            y = max(0, min(img_h, int(round(p.y()))))
+            verts.append((x, y))
+
+        if len(verts) < _ADD_ROOM_POLYGON_MIN_VERTICES:
+            QtWidgets.QMessageBox.warning(
+                self._canvas,
+                "Add room",
+                "A polygon needs at least "
+                f"{_ADD_ROOM_POLYGON_MIN_VERTICES} vertices to be a room.\n"
+                "Click more points before closing.",
+            )
+            return
+
+        # Rasterize the polygon onto a full-image-sized mask. We draw
+        # into an L-mode PIL image with fill=1, then numpy-array it
+        # back out. (PIL's polygon rasterizer uses the even-odd fill
+        # rule, which matches every other polygon renderer in this
+        # codebase.)
+        from PIL import Image, ImageDraw  # noqa: WPS433 — lazy import
+        import numpy as np  # noqa: WPS433 — lazy import
+
+        canvas_img = Image.new("L", (img_w, img_h), 0)
+        draw = ImageDraw.Draw(canvas_img)
+        draw.polygon(verts, fill=1)
+        mask = np.array(canvas_img, dtype=np.uint8)
+
+        area_px = int(mask.sum())
+        if area_px < _ADD_ROOM_POLYGON_MIN_PIXELS:
+            QtWidgets.QMessageBox.warning(
+                self._canvas,
+                "Add room",
+                "The drawn polygon's area is too small to be a room "
+                f"({area_px} px;\nminimum {_ADD_ROOM_POLYGON_MIN_PIXELS}). "
+                "Try a larger polygon — degenerate shapes "
+                "(collinear vertices, self-overlapping loops) often\n"
+                "rasterize to zero pixels.",
+            )
+            return
+
+        # Bounding box from the actual rasterized mask, not from the
+        # raw vertices: a polygon with collinear "spurs" outside the
+        # filled area shouldn't inflate the bbox. ``np.where`` returns
+        # row / col indices of non-zero pixels.
+        ys, xs = np.where(mask > 0)
+        x_min = int(xs.min())
+        y_min = int(ys.min())
+        # Add 1 to make the bbox half-open / width-style (matches the
+        # convention used by the rect handler and by calibrate.py).
+        bbox_w = int(xs.max()) - x_min + 1
+        bbox_h = int(ys.max()) - y_min + 1
+        bbox = (x_min, y_min, bbox_w, bbox_h)
+
+        rle = mask_to_rle(mask)
+
+        new_id = self._next_room_id()
+        new_room = Room(id=new_id, polygon_rle=rle, area_px=area_px, bbox=bbox)
+        cmd = AddRoomCommand(
+            self._cal, new_room, on_change=self._on_room_change
+        )
+        self._undo_stack.push(cmd)
+
+    def _handle_canvas_add_room_polygon_cancelled(self) -> None:
+        """Esc / too-few-vertices close — informational hook."""
         return
 
     def _next_room_id(self) -> int:

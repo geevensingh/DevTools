@@ -49,6 +49,14 @@ _MAX_ZOOM = 40.0
 # well under the smallest plausible intentional drag.
 _RECT_MIN_DRAG_PIXELS = 4
 
+# Smallest legal polygon for add-room-polygon mode. Two-vertex "polygons"
+# are degenerate lines; one-vertex is a point. The controller still does
+# its own area-based reject after rasterizing (so a thin sliver still
+# gets rejected even with 3+ vertices), but we filter the structural
+# minimum at the gesture level so the user gets a clean "not enough
+# vertices" message instead of a confusing area-based one.
+_POLYGON_MIN_VERTICES = 3
+
 
 class MapCanvas(QtWidgets.QGraphicsView):
     """Scrollable, zoomable view of a floor-plan map plus overlay items.
@@ -130,6 +138,23 @@ class MapCanvas(QtWidgets.QGraphicsView):
     my mind" rather than building a 1-pixel room).
     """
 
+    add_room_polygon_requested = QtCore.Signal(QtGui.QPolygonF)
+    """Emitted when the user closes a polygon in add-room-polygon mode.
+
+    Payload is the placed-vertex polygon in scene (image-pixel)
+    coordinates. The cursor position at the moment of close is *not*
+    appended — only the explicitly placed vertices are included.
+    Requires at least ``_POLYGON_MIN_VERTICES`` vertices; below that
+    the canvas emits ``add_room_polygon_cancelled`` instead.
+    """
+
+    add_room_polygon_cancelled = QtCore.Signal()
+    """Emitted when add-room-polygon mode ends without producing a polygon.
+
+    Sources: Esc key, or a "close" gesture (Enter / double-click /
+    right-click) with fewer than ``_POLYGON_MIN_VERTICES`` placed.
+    """
+
     def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
         self._scene = QtWidgets.QGraphicsScene(self)
@@ -193,6 +218,19 @@ class MapCanvas(QtWidgets.QGraphicsView):
         self._add_room_rect_mode = False
         self._rect_drag_start_scene: Optional[QtCore.QPointF] = None
         self._rect_preview_item: Optional[QtWidgets.QGraphicsRectItem] = None
+
+        # Add-room-polygon mode: while True, each left-click appends a
+        # vertex; close gestures (Enter / double-click / right-click)
+        # emit ``add_room_polygon_requested`` with the placed vertices.
+        # The preview item is a single ``QGraphicsPolygonItem`` that
+        # we re-set on every vertex add / mouse move so the user sees
+        # a live polygon outline plus a "rubber-band" segment from the
+        # last placed vertex to the cursor.
+        self._add_room_polygon_mode = False
+        self._polygon_vertices: list[QtCore.QPointF] = []
+        self._polygon_preview_item: Optional[
+            QtWidgets.QGraphicsPolygonItem
+        ] = None
 
         # Track mouse position even when no button is pressed so the status
         # bar can show live image-pixel coords.
@@ -446,6 +484,8 @@ class MapCanvas(QtWidgets.QGraphicsView):
                 self.set_add_room_flood_mode(False)
             if self._add_room_rect_mode:
                 self.set_add_room_rect_mode(False)
+            if self._add_room_polygon_mode:
+                self.set_add_room_polygon_mode(False)
         self._room_pick_mode = active
         if active:
             self.viewport().setCursor(QtCore.Qt.CursorShape.CrossCursor)
@@ -475,6 +515,8 @@ class MapCanvas(QtWidgets.QGraphicsView):
                 self.set_add_room_flood_mode(False)
             if self._add_room_rect_mode:
                 self.set_add_room_rect_mode(False)
+            if self._add_room_polygon_mode:
+                self.set_add_room_polygon_mode(False)
         self._add_label_mode = active
         if active:
             self.viewport().setCursor(QtCore.Qt.CursorShape.CrossCursor)
@@ -505,6 +547,8 @@ class MapCanvas(QtWidgets.QGraphicsView):
                 self.set_add_label_mode(False)
             if self._add_room_rect_mode:
                 self.set_add_room_rect_mode(False)
+            if self._add_room_polygon_mode:
+                self.set_add_room_polygon_mode(False)
         self._add_room_flood_mode = active
         if active:
             self.viewport().setCursor(QtCore.Qt.CursorShape.CrossCursor)
@@ -538,6 +582,8 @@ class MapCanvas(QtWidgets.QGraphicsView):
                 self.set_add_label_mode(False)
             if self._add_room_flood_mode:
                 self.set_add_room_flood_mode(False)
+            if self._add_room_polygon_mode:
+                self.set_add_room_polygon_mode(False)
         self._add_room_rect_mode = active
         if active:
             self.viewport().setCursor(QtCore.Qt.CursorShape.CrossCursor)
@@ -549,6 +595,52 @@ class MapCanvas(QtWidgets.QGraphicsView):
 
     def add_room_rect_mode(self) -> bool:
         return self._add_room_rect_mode
+
+    def set_add_room_polygon_mode(self, active: bool) -> None:
+        """Enter or leave "click vertices to add a new room polygon" mode.
+
+        While active, the viewport shows a crosshair cursor and each
+        left-click on the canvas appends a vertex (visualised as a live
+        ``QGraphicsPolygonItem`` preview that includes the cursor as
+        its provisional last vertex). Closing gestures (Enter,
+        double-click, or right-click) emit ``add_room_polygon_requested``
+        with the placed-vertex polygon. Esc cancels. Backspace removes
+        the most recent vertex (so the user can correct a misclick
+        without starting over).
+
+        Idempotent. Mutually exclusive with the other four arm-modes.
+        Disarming mid-draft discards any in-progress vertices + preview.
+        """
+        if self._add_room_polygon_mode == active:
+            return
+        if active:
+            if self._room_pick_mode:
+                self.set_room_pick_mode(False)
+            if self._add_label_mode:
+                self.set_add_label_mode(False)
+            if self._add_room_flood_mode:
+                self.set_add_room_flood_mode(False)
+            if self._add_room_rect_mode:
+                self.set_add_room_rect_mode(False)
+        self._add_room_polygon_mode = active
+        if active:
+            self.viewport().setCursor(QtCore.Qt.CursorShape.CrossCursor)
+            self.setFocus(QtCore.Qt.FocusReason.OtherFocusReason)
+        else:
+            self.viewport().unsetCursor()
+            # If we were mid-draft, discard the placed vertices + preview.
+            self._discard_polygon_preview()
+
+    def add_room_polygon_mode(self) -> bool:
+        return self._add_room_polygon_mode
+
+    def polygon_vertex_count(self) -> int:
+        """Number of vertices placed so far in the in-progress polygon.
+
+        Exposed for tests and any future inspector-side "vertices: N"
+        indicator. Zero when not in polygon mode or no vertices yet.
+        """
+        return len(self._polygon_vertices)
 
     def image_size(self) -> Optional[tuple[int, int]]:
         """Return ``(width, height)`` of the loaded map in image pixels.
@@ -576,6 +668,84 @@ class MapCanvas(QtWidgets.QGraphicsView):
                 pass
             self._rect_preview_item = None
         self._rect_drag_start_scene = None
+
+    def _ensure_polygon_preview_item(self) -> QtWidgets.QGraphicsPolygonItem:
+        """Lazily create the in-progress polygon preview item.
+
+        Re-uses the same item across mouse moves / vertex adds so we
+        don't churn ``QGraphicsPolygonItem`` instances on every event
+        (a hundreds-of-vertex polygon would feel sluggish otherwise,
+        and the cumulative scene churn shows up in tests' weakref
+        cleanup too).
+        """
+        if self._polygon_preview_item is None:
+            item = QtWidgets.QGraphicsPolygonItem()
+            pen = QtGui.QPen(QtGui.QColor("#0078d4"))
+            pen.setStyle(QtCore.Qt.PenStyle.DashLine)
+            # Cosmetic so the dashed outline stays 1 px wide regardless
+            # of zoom — matches the rect preview's pen for visual parity.
+            pen.setCosmetic(True)
+            pen.setWidth(2)
+            item.setPen(pen)
+            item.setBrush(QtGui.QBrush(QtGui.QColor(0, 120, 212, 40)))
+            item.setZValue(1000)
+            self._scene.addItem(item)
+            self._polygon_preview_item = item
+        return self._polygon_preview_item
+
+    def _refresh_polygon_preview(
+        self, cursor_scene_pos: Optional[QtCore.QPointF] = None
+    ) -> None:
+        """Re-render the in-progress polygon preview.
+
+        ``cursor_scene_pos`` is appended as a *provisional* last vertex
+        (so the user can see "where would the polygon go if I clicked
+        here") without it being permanently placed. Pass ``None`` to
+        render only the committed vertices (e.g., after Backspace,
+        before the next mouseMove).
+        """
+        pts: list[QtCore.QPointF] = list(self._polygon_vertices)
+        if cursor_scene_pos is not None and len(pts) >= 1:
+            pts.append(cursor_scene_pos)
+        if len(pts) < 2:
+            # A single point is not a polygon. Hide the preview by
+            # setting an empty polygon (the item itself stays around
+            # so subsequent moves can fill it back in cheaply).
+            if self._polygon_preview_item is not None:
+                self._polygon_preview_item.setPolygon(QtGui.QPolygonF())
+            return
+        item = self._ensure_polygon_preview_item()
+        item.setPolygon(QtGui.QPolygonF(pts))
+
+    def _discard_polygon_preview(self) -> None:
+        """Drop the in-progress polygon draft + remove preview overlay.
+
+        Called on Esc, on disarming the mode mid-draft, and after a
+        successful close. Idempotent.
+        """
+        if self._polygon_preview_item is not None:
+            try:
+                self._scene.removeItem(self._polygon_preview_item)
+            except RuntimeError:
+                pass
+            self._polygon_preview_item = None
+        self._polygon_vertices = []
+
+    def _finish_polygon(self) -> None:
+        """Close the in-progress polygon, or cancel if too few vertices.
+
+        Common path for Enter, double-click, and right-click. The canvas
+        is always disarmed at the end (whether emitting requested or
+        cancelled); the controller is responsible for any error popup
+        when not enough vertices are placed.
+        """
+        if len(self._polygon_vertices) < _POLYGON_MIN_VERTICES:
+            self.set_add_room_polygon_mode(False)
+            self.add_room_polygon_cancelled.emit()
+            return
+        polygon = QtGui.QPolygonF(self._polygon_vertices)
+        self.set_add_room_polygon_mode(False)
+        self.add_room_polygon_requested.emit(polygon)
 
     def room_at_scene_pos(self, scene_pos: QtCore.QPointF) -> Optional[RoomItem]:
         """Return the topmost ``RoomItem`` containing ``scene_pos``, if any.
@@ -685,6 +855,15 @@ class MapCanvas(QtWidgets.QGraphicsView):
             event.accept()
             return
 
+        if self._add_room_polygon_mode and self._polygon_vertices:
+            # Re-render the preview polygon using the cursor as the
+            # provisional last vertex so the user sees "where would
+            # the polygon close if I clicked here". No effect when zero
+            # vertices have been placed (nothing to extend yet).
+            self._refresh_polygon_preview(cursor_scene_pos=scene_pos)
+            event.accept()
+            return
+
         super().mouseMoveEvent(event)
 
     def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:  # noqa: N802 — Qt API
@@ -751,6 +930,28 @@ class MapCanvas(QtWidgets.QGraphicsView):
             preview.setZValue(1000)
             self._scene.addItem(preview)
             self._rect_preview_item = preview
+            event.accept()
+            return
+
+        if self._add_room_polygon_mode and event.button() == QtCore.Qt.MouseButton.LeftButton:
+            # Append a vertex. Don't disarm yet — the user explicitly
+            # closes via Enter / double-click / right-click. Refresh
+            # without a cursor override (the click position IS now the
+            # last vertex; passing it as cursor too would just stack a
+            # duplicate point).
+            scene_pos = self.mapToScene(event.position().toPoint())
+            self._polygon_vertices.append(scene_pos)
+            self._refresh_polygon_preview()
+            event.accept()
+            return
+
+        if (
+            self._add_room_polygon_mode
+            and event.button() == QtCore.Qt.MouseButton.RightButton
+        ):
+            # Right-click closes the polygon (same effect as Enter /
+            # double-click). Suppress the default context-menu behaviour.
+            self._finish_polygon()
             event.accept()
             return
 
@@ -839,6 +1040,26 @@ class MapCanvas(QtWidgets.QGraphicsView):
 
         super().mouseReleaseEvent(event)
 
+    def mouseDoubleClickEvent(self, event: QtGui.QMouseEvent) -> None:  # noqa: N802 — Qt API
+        """Double-click closes an in-progress polygon.
+
+        Note that the second left-press of the double-click also goes
+        through ``mousePressEvent`` first (Qt fires press → press →
+        doubleClick → release), so by the time we get here the second
+        click's vertex has already been appended. Closing now uses that
+        last vertex as the closing point — which matches the user's
+        intuition that the second click of the double-click is "the
+        last vertex".
+        """
+        if (
+            self._add_room_polygon_mode
+            and event.button() == QtCore.Qt.MouseButton.LeftButton
+        ):
+            self._finish_polygon()
+            event.accept()
+            return
+        super().mouseDoubleClickEvent(event)
+
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:  # noqa: N802 — Qt API
         """Keyboard shortcuts owned by the canvas itself.
 
@@ -889,5 +1110,28 @@ class MapCanvas(QtWidgets.QGraphicsView):
             self.add_room_rect_cancelled.emit()
             event.accept()
             return
+        if self._add_room_polygon_mode:
+            # Polygon mode owns several keys: Enter/Return to close,
+            # Backspace to undo the last vertex, Esc to cancel. Handle
+            # them here so they fire regardless of which child widget
+            # has focus (as long as the canvas is the focused widget,
+            # which ``set_add_room_polygon_mode`` ensures).
+            if key in (QtCore.Qt.Key.Key_Return, QtCore.Qt.Key.Key_Enter):
+                self._finish_polygon()
+                event.accept()
+                return
+            if key == QtCore.Qt.Key.Key_Backspace and self._polygon_vertices:
+                # Drop the most recent vertex. Render without a cursor
+                # override — the next mouseMove will fill the preview
+                # back in with a live rubber-band segment.
+                self._polygon_vertices.pop()
+                self._refresh_polygon_preview()
+                event.accept()
+                return
+            if key == QtCore.Qt.Key.Key_Escape:
+                self.set_add_room_polygon_mode(False)
+                self.add_room_polygon_cancelled.emit()
+                event.accept()
+                return
         super().keyPressEvent(event)
 

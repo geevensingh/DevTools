@@ -255,6 +255,24 @@ class EditorMainWindow(QtWidgets.QMainWindow):
         )
         add_room_menu.addAction(self._act_add_room_rect)
 
+        self._act_add_room_polygon = QtGui.QAction(
+            "Draw &polygon", self
+        )
+        # Shift+P: "polygon". Completes the set with Shift+N (flood)
+        # and Shift+R (rect); all three add-room modes share the
+        # Shift-letter convention.
+        self._act_add_room_polygon.setShortcut(QtGui.QKeySequence("Shift+P"))
+        self._act_add_room_polygon.setCheckable(True)
+        self._act_add_room_polygon.setStatusTip(
+            "Arm add-room-polygon mode. Click points to define the "
+            "room outline; Enter / double-click / right-click to close, "
+            "Backspace to undo the last vertex, Esc to cancel."
+        )
+        self._act_add_room_polygon.toggled.connect(
+            self._on_add_room_polygon_toggled
+        )
+        add_room_menu.addAction(self._act_add_room_polygon)
+
     def _build_status_bar(self) -> None:
         """Status bar shows cursor coords, calibration counts, and dirty state.
 
@@ -303,6 +321,14 @@ class EditorMainWindow(QtWidgets.QMainWindow):
         )
         self._canvas.add_room_rect_cancelled.connect(
             self._on_add_room_rect_mode_ended
+        )
+
+        # And once more for add-room-polygon mode.
+        self._canvas.add_room_polygon_requested.connect(
+            self._on_add_room_polygon_mode_ended
+        )
+        self._canvas.add_room_polygon_cancelled.connect(
+            self._on_add_room_polygon_mode_ended
         )
 
     # -------------------------------------------------------------- slots
@@ -424,6 +450,40 @@ class EditorMainWindow(QtWidgets.QMainWindow):
         self._act_add_room_rect.blockSignals(True)
         self._act_add_room_rect.setChecked(False)
         self._act_add_room_rect.blockSignals(False)
+        self.statusBar().clearMessage()
+
+    def _on_add_room_polygon_toggled(self, checked: bool) -> None:
+        """Drive the canvas's add-room-polygon mode from the menu toggle.
+
+        Routes through the controller so it can short-circuit with a
+        friendly error if the map image hasn't been loaded yet (polygon
+        mode needs the image dimensions to build the polygon mask).
+        """
+        self._controller.set_add_room_polygon_mode(checked)
+        # The controller may have refused to arm (no image loaded) —
+        # in that case the canvas is still off and we need to un-check
+        # ourselves so the menu stays consistent with the canvas.
+        if checked and not self._canvas.add_room_polygon_mode():
+            self._act_add_room_polygon.blockSignals(True)
+            self._act_add_room_polygon.setChecked(False)
+            self._act_add_room_polygon.blockSignals(False)
+            return
+        if checked:
+            self.statusBar().showMessage(
+                "Click points to outline the room. "
+                "Enter / double-click / right-click closes, "
+                "Backspace undoes a vertex, Esc cancels.", 0
+            )
+        else:
+            self.statusBar().clearMessage()
+
+    def _on_add_room_polygon_mode_ended(self, *_args) -> None:
+        """Canvas dropped out of add-room-polygon mode → re-sync the toggle."""
+        if not self._act_add_room_polygon.isChecked():
+            return
+        self._act_add_room_polygon.blockSignals(True)
+        self._act_add_room_polygon.setChecked(False)
+        self._act_add_room_polygon.blockSignals(False)
         self.statusBar().clearMessage()
 
     def _on_delete_label(self) -> None:
