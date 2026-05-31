@@ -454,13 +454,28 @@ class CalibrateStep(StepBase):
         act_delete.triggered.connect(self._on_delete_selected)
         self._toolbar.addAction(act_delete)
 
-        # Push everything to the left; spacer pins Re-run to the right.
+        # Push everything to the left; spacer pins Re-validate +
+        # Re-run to the right.
         spacer = QtWidgets.QWidget(self._toolbar)
         spacer.setSizePolicy(
             QtWidgets.QSizePolicy.Policy.Expanding,
             QtWidgets.QSizePolicy.Policy.Preferred,
         )
         self._toolbar.addWidget(spacer)
+
+        # Re-validate runs the FULL issue check (including the
+        # expensive label-in-room mask test that we skip during live
+        # edits for responsiveness). User-triggered so the multi-
+        # second hang is expected, not surprising.
+        act_revalidate = QtGui.QAction("Re-validate", self)
+        act_revalidate.setToolTip(
+            "Re-run all calibration checks against the current "
+            "edits, including the label-position check that's "
+            "skipped during live editing for performance. May take "
+            "a few seconds on large maps."
+        )
+        act_revalidate.triggered.connect(self._on_revalidate_clicked)
+        self._toolbar.addAction(act_revalidate)
 
         act_rerun = QtGui.QAction("Re-run calibration", self)
         act_rerun.setToolTip(
@@ -508,6 +523,34 @@ class CalibrateStep(StepBase):
         self._kick_off_calibration()
         self._stack.setCurrentWidget(self._landing)
 
+    def _on_revalidate_clicked(self) -> None:
+        """Run the FULL revalidation (including the slow mask check).
+
+        Live editing uses ``quick=True`` to skip the per-room mask
+        decode (multi-second on large maps). This handler runs the
+        full check on demand so the user can confirm no label has
+        been dragged outside its assigned room.
+
+        Synchronous + wait-cursor: simpler than a background thread,
+        and acceptable because the user explicitly asked for it.
+        """
+        cal = self.main_window.session.calibration
+        if cal is None:
+            return
+
+        QtWidgets.QApplication.setOverrideCursor(
+            QtGui.QCursor(QtCore.Qt.CursorShape.WaitCursor)
+        )
+        try:
+            full_issues = revalidate_calibration(cal, quick=False)
+        finally:
+            QtWidgets.QApplication.restoreOverrideCursor()
+
+        status, issue_strs = _classify_issues(full_issues)
+        self.main_window.set_step_status(
+            "calibrate", status, issues=issue_strs
+        )
+
     # ------------------------------------------------------------------
     # Undo-stack mirror to session
     # ------------------------------------------------------------------
@@ -532,7 +575,7 @@ class CalibrateStep(StepBase):
         cal = self.main_window.session.calibration
         if cal is None:
             return
-        live_issues = revalidate_calibration(cal)
+        live_issues = revalidate_calibration(cal, quick=True)
         status, issue_strs = _classify_issues(live_issues)
         self.main_window.set_step_status(
             "calibrate", status, issues=issue_strs

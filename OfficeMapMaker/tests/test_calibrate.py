@@ -500,3 +500,81 @@ def test_revalidate_count_decreases_as_user_fixes_issues(tmp_path: Path):
     assert n_after_one_fix < n_initial
     assert n_after_two_fixes < n_after_one_fix
     assert n_after_two_fixes == 0
+
+
+# ---------------------------------------------------------------------------
+# revalidate_calibration(..., quick=True) — used by live editing for speed
+# ---------------------------------------------------------------------------
+
+
+def test_revalidate_quick_skips_label_outside_room_mask_check(tmp_path: Path):
+    """quick=True must NOT report a label-outside-room issue when the
+    label is geometrically outside its assigned room's polygon but the
+    room itself still exists. The mask test is too expensive to run on
+    every keystroke; the full check is reserved for the on-demand
+    Re-validate button.
+    """
+    from dataclasses import replace as dc_replace
+
+    cal = _two_room_calibration(tmp_path)
+    # Move label 1480 far outside room 1's polygon, but keep room 1.
+    cal.labels[0] = dc_replace(cal.labels[0], bbox=(900, 900, 30, 20))
+
+    # Full check should still flag it.
+    full = revalidate_calibration(cal, quick=False)
+    assert any(
+        i.code == "label_outside_assigned_room" for i in full
+    ), [(i.code, i.message) for i in full]
+
+    # Quick check must not flag it (room still exists, so the cheap
+    # "room missing" branch doesn't apply either).
+    quick = revalidate_calibration(cal, quick=True)
+    assert not any(
+        i.code == "label_outside_assigned_room" for i in quick
+    ), [(i.code, i.message) for i in quick]
+
+
+def test_revalidate_quick_still_flags_label_referencing_deleted_room(tmp_path: Path):
+    """quick=True must still catch labels whose room_id no longer exists.
+    That sub-case of label_outside_assigned_room is free to check (just
+    a dict lookup) and is the exact thing a user can produce by
+    deleting a room mid-edit, so it should still surface live.
+    """
+    cal = _two_room_calibration(tmp_path)
+    cal.rooms = [r for r in cal.rooms if r.id != 1]
+
+    quick = revalidate_calibration(cal, quick=True)
+    msgs = [
+        i.message
+        for i in quick
+        if i.code == "label_outside_assigned_room"
+    ]
+    assert any("no longer exists" in m for m in msgs), msgs
+
+
+def test_revalidate_quick_still_flags_orphan_label(tmp_path: Path):
+    """quick=True should still catch the most common live-editing
+    issue: an unassigned label."""
+    from dataclasses import replace as dc_replace
+
+    cal = _two_room_calibration(tmp_path)
+    cal.labels[0] = dc_replace(cal.labels[0], room_id=None)
+
+    quick = revalidate_calibration(cal, quick=True)
+    assert any(i.code == "orphan_label" for i in quick), [
+        (i.code, i.message) for i in quick
+    ]
+
+
+def test_revalidate_quick_still_flags_orphan_room(tmp_path: Path):
+    """quick=True should still catch a room with no labels."""
+    cal = _two_room_calibration(tmp_path)
+    # Delete both labels so both rooms become orphans.
+    cal.labels = []
+
+    quick = revalidate_calibration(cal, quick=True)
+    orphan_codes = [i.code for i in quick if i.code == "orphan_room"]
+    assert len(orphan_codes) == len(cal.rooms), [
+        (i.code, i.message) for i in quick
+    ]
+

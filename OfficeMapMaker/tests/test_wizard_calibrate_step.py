@@ -494,3 +494,85 @@ def test_undo_index_changed_clears_status_to_ok_when_no_issues(qapp, inputs):
         assert w._steps[0].issues == []
     finally:
         w.close()
+
+
+def test_undo_index_changed_uses_quick_revalidate(qapp, inputs, monkeypatch):
+    """Live revalidation must call revalidate_calibration with quick=True.
+
+    The mask-decode path takes multi-seconds on real calibrations, so
+    every keystroke / drag would hang the UI. This test pins the
+    contract that the live hook never asks for the slow check.
+    """
+    from officemapmaker.wizard.steps import calibrate_step as cs_mod
+
+    map_path, assn_path, out = inputs
+
+    w = MainWindow(map_path=map_path, assignments_path=assn_path, output_dir=out)
+    try:
+        cal = _two_room_cal_with_orphan(map_path)
+        w.session.calibration = cal
+        step = w._steps[0].widget
+        step.on_activated()
+
+        calls: list[dict] = []
+        real = cs_mod.revalidate_calibration
+
+        def spy(cal_arg, **kwargs):
+            calls.append(kwargs)
+            return real(cal_arg, **kwargs)
+
+        monkeypatch.setattr(cs_mod, "revalidate_calibration", spy)
+
+        step._on_undo_index_changed(0)
+
+        assert calls == [{"quick": True}], (
+            f"live revalidation must pass quick=True; got {calls}"
+        )
+    finally:
+        w.close()
+
+
+def test_revalidate_button_runs_full_check(qapp, inputs, monkeypatch):
+    """The Re-validate toolbar button should call revalidate_calibration
+    with quick=False so the slow mask check actually runs."""
+    from officemapmaker.wizard.steps import calibrate_step as cs_mod
+
+    map_path, assn_path, out = inputs
+
+    w = MainWindow(map_path=map_path, assignments_path=assn_path, output_dir=out)
+    try:
+        cal = _two_room_cal_with_orphan(map_path)
+        w.session.calibration = cal
+        step = w._steps[0].widget
+        step.on_activated()
+
+        calls: list[dict] = []
+        real = cs_mod.revalidate_calibration
+
+        def spy(cal_arg, **kwargs):
+            calls.append(kwargs)
+            return real(cal_arg, **kwargs)
+
+        monkeypatch.setattr(cs_mod, "revalidate_calibration", spy)
+
+        step._on_revalidate_clicked()
+
+        assert calls == [{"quick": False}], (
+            f"Re-validate must run the full check; got {calls}"
+        )
+    finally:
+        w.close()
+
+
+def test_revalidate_button_is_noop_when_no_calibration(qapp, inputs):
+    """Clicking Re-validate before any calibration runs should not crash."""
+    map_path, assn_path, out = inputs
+
+    w = MainWindow(map_path=map_path, assignments_path=assn_path, output_dir=out)
+    try:
+        assert w.session.calibration is None
+        step = w._steps[0].widget
+        # Don't activate / build editor -- just hit the handler.
+        step._on_revalidate_clicked()  # must not raise
+    finally:
+        w.close()

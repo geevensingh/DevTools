@@ -471,15 +471,15 @@ def _find_containing_room(
     return None
 
 
-def revalidate_calibration(cal: Calibration) -> list[CalibrationIssue]:
+def revalidate_calibration(
+    cal: Calibration, *, quick: bool = False
+) -> list[CalibrationIssue]:
     """Recompute the calibration issue list from a Calibration object alone.
 
     Unlike :func:`calibrate_map`, this does **not** re-run OCR or
     connected-components analysis -- it just re-evaluates the issue
     checks that depend only on the current state of the Calibration
-    (label / room assignments, polygons, bboxes). Cheap enough to call
-    after every wizard edit so the issue count + step badge update
-    live as the user fixes problems.
+    (label / room assignments, polygons, bboxes).
 
     Issue codes produced are a strict subset of :func:`calibrate_map`'s:
     ``no_rooms_detected``, ``no_labels_detected``, ``orphan_label``,
@@ -488,11 +488,23 @@ def revalidate_calibration(cal: Calibration) -> list[CalibrationIssue]:
     references a ``room_id`` that no longer exists (e.g. the user
     deleted the room without reassigning).
 
+    Parameters
+    ----------
+    quick:
+        When True, skip the per-room mask-containment check (which
+        decompresses one RLE blob per labeled room and can take
+        multiple seconds on a 200+ room calibration). The
+        ``label_outside_assigned_room`` code can still fire, but only
+        for the "room no longer exists" sub-case, which is free to
+        check. Used by the wizard's live re-validation hook so every
+        keystroke / drag doesn't trigger a multi-second hang. The
+        full check is still available via the wizard's explicit
+        "Re-validate" button and during initial calibration.
+
     Memory: room masks are materialized one room at a time and
     discarded between rooms (each mask is H*W bytes, so on a
     4000x5000 map ~20 MB; holding 200 of them at once would be
-    multi-GB). Worst-case wall time on a ~200-room map is well
-    under a second.
+    multi-GB).
     """
     issues: list[CalibrationIssue] = []
 
@@ -546,7 +558,9 @@ def revalidate_calibration(cal: Calibration) -> list[CalibrationIssue]:
 
     # Per-room pass: check each label's bbox center is inside its
     # room's polygon. Done one room at a time so only one (potentially
-    # large) mask is in memory at any moment.
+    # large) mask is in memory at any moment. When ``quick`` is True
+    # we still report the cheap "room no longer exists" sub-case but
+    # skip the expensive RLE decode + mask test for living rooms.
     for room_id in sorted(labels_by_room):
         room = rooms_by_id.get(room_id)
         if room is None:
@@ -562,6 +576,9 @@ def revalidate_calibration(cal: Calibration) -> list[CalibrationIssue]:
                         ),
                     )
                 )
+            continue
+
+        if quick:
             continue
 
         mask = rle_to_mask(room.polygon_rle)
