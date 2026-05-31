@@ -10,8 +10,10 @@ This module implements the calibration pipeline described in plan.md §8:
        bbox center.
     5. Auto-classify each labeled room as office / hallway / common by polygon
        area and aspect ratio.
-    6. Default fill_seed = room centroid (more reliable than label center,
-       which often sits in a corner).
+    6. Default fill_seed = pole of inaccessibility of the room's interior
+       mask (the pixel farthest from any boundary). Geometric centroid is a
+       bad choice here because it frequently lands on the room's OCR'd label
+       text — i.e. on a wall pixel — making the seed useless for flood-fill.
     7. Run the auto-checks (orphans, duplicate IDs, ambiguous rooms).
     8. Return ``(Calibration, list[CalibrationIssue])``.
 
@@ -44,9 +46,9 @@ from .geometry import (
     bbox_center,
     bbox_contains_point,
     find_connected_components,
-    mask_centroid,
     mask_contains_point,
     mask_to_rle,
+    pole_of_inaccessibility,
 )
 
 
@@ -340,9 +342,12 @@ def _build_calibration(
             )
             ocr_assignments.append((ocr, None, center))
         else:
-            room_centroid = mask_centroid(cc_by_id[room_id].mask) or center
+            # pole_of_inaccessibility = the pixel deepest inside the CC,
+            # which avoids landing on a glyph (the geometric centroid often
+            # falls on the OCR'd label text itself for typical office rooms).
+            room_seed = pole_of_inaccessibility(cc_by_id[room_id].mask) or center
             room_label_count[room_id].append(ocr.text)
-            ocr_assignments.append((ocr, room_id, room_centroid))
+            ocr_assignments.append((ocr, room_id, room_seed))
 
     # Build Label objects. Office-ness is no longer baked into the label —
     # it's derived from the assignments spreadsheet at validate/render time.

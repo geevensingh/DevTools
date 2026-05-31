@@ -495,8 +495,13 @@ def test_controller_create_label_for_room_centers_on_room(
     added = cal.labels[0]
     assert added.id == "9900"
     assert added.room_id == 99
-    # Center of bbox (20,30,40,40) is (40, 50).
-    assert added.fill_seed == (40, 50)
+    # Bbox is (20,30,40,40); the seed picker uses pole_of_inaccessibility on
+    # the room mask so it lands near (but not always exactly at) the bbox
+    # center (40, 50) — DIST_L2 with kernel-size 3 has ~1px quantization.
+    sx, sy = added.fill_seed
+    assert abs(sx - 40) <= 2 and abs(sy - 50) <= 2, (
+        f"fill_seed {added.fill_seed} should be near bbox center (40, 50)"
+    )
 
 
 def test_controller_delete_selected_label_pushes_command(qtbot, tmp_path):

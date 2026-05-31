@@ -192,11 +192,51 @@ def mask_centroid(mask: np.ndarray) -> Optional[Point]:
     """Centroid (rounded to int pixels) of the nonzero pixels in ``mask``.
 
     Returns ``None`` if the mask is entirely zero.
+
+    NOTE: For picking flood-fill seeds, prefer :func:`pole_of_inaccessibility`.
+    The geometric centroid is the mean of all foreground pixels, which can land
+    on a "hole" within the mask — e.g. a room interior whose connected component
+    has letter-shaped holes around an OCR'd label will frequently produce a
+    centroid that lies right ON a glyph (i.e. a wall pixel), making it useless
+    as a flood-fill seed.
     """
     ys, xs = np.nonzero(mask)
     if xs.size == 0:
         return None
     return (int(round(xs.mean())), int(round(ys.mean())))
+
+
+def pole_of_inaccessibility(mask: np.ndarray) -> Optional[Point]:
+    """Pick the interior pixel farthest from any boundary of ``mask``.
+
+    Uses an L2 distance transform and returns the argmax — i.e. the pixel
+    that has the most "clearance" from the nearest zero pixel in the mask.
+    This is the right point to use as a **flood-fill seed**: it's guaranteed
+    to be a foreground pixel (so the fill starts), and being deep in the
+    interior it sits as far as possible from text glyphs, door arcs, and
+    other near-centroid hazards that would corrupt a naive centroid pick.
+
+    Returns ``None`` if the mask is entirely zero. OpenCV is loaded lazily
+    so unit tests that mock out OpenCV continue to work.
+    """
+    if not mask.any():
+        return None
+    import cv2
+
+    # distanceTransform expects 8-bit single-channel with foreground != 0,
+    # boundary == 0. Our masks are uint8/0-or-255, which already satisfies
+    # that contract.
+    binary = mask if mask.dtype == np.uint8 else (mask > 0).astype(np.uint8) * 255
+    # OpenCV's distanceTransform does NOT treat the image edges as zero
+    # pixels — so a foreground pixel sitting in the image corner would
+    # report an arbitrarily large distance because no zero pixel is "above"
+    # or "left of" it. Pad with a 1-pixel zero border so an image-edge
+    # foreground pixel behaves like a true boundary pixel, then shift the
+    # result back into the original coordinate space.
+    padded = np.pad(binary, 1, mode="constant", constant_values=0)
+    dist = cv2.distanceTransform(padded, cv2.DIST_L2, 3)
+    py, px = np.unravel_index(int(np.argmax(dist)), dist.shape)
+    return (int(px) - 1, int(py) - 1)
 
 
 def mask_bbox(mask: np.ndarray) -> Optional[BBox]:
@@ -352,6 +392,7 @@ __all__ = [
     "mask_contains_point",
     "mask_area",
     "mask_centroid",
+    "pole_of_inaccessibility",
     "mask_bbox",
     "mask_to_rle",
     "rle_to_mask",

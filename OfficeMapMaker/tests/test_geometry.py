@@ -18,6 +18,7 @@ from officemapmaker.geometry import (
     mask_centroid,
     mask_contains_point,
     mask_to_rle,
+    pole_of_inaccessibility,
     rle_to_mask,
 )
 
@@ -95,6 +96,65 @@ def test_empty_mask_helpers_return_none() -> None:
     assert mask_centroid(empty) is None
     assert mask_bbox(empty) is None
     assert mask_area(empty) == 0
+
+
+def test_pole_of_inaccessibility_returns_geometric_center_for_a_simple_rect() -> None:
+    # 20x20 mask of all-foreground: the deepest point should be in the middle.
+    m = np.zeros((20, 20), dtype=np.uint8)
+    m[2:18, 2:18] = 255  # 16x16 filled block at (2,2)
+    px = pole_of_inaccessibility(m)
+    assert px is not None
+    x, y = px
+    # The exact pixel is implementation-dependent (argmax of distance
+    # transform may tie-break), but it must be the deepest interior pixel.
+    assert 8 <= x <= 11 and 8 <= y <= 11
+
+
+def test_pole_of_inaccessibility_avoids_glyph_hole_at_geometric_centroid() -> None:
+    """The crucial property: when a room interior has a text-glyph-shaped
+    hole right at its geometric centroid, the pole picks a point *not* in
+    that hole. This is the exact scenario that produces seed_on_wall
+    warnings if you use mask_centroid for the flood-fill seed.
+    """
+    m = np.zeros((50, 50), dtype=np.uint8)
+    m[5:45, 5:45] = 255           # 40x40 interior
+    # Punch a glyph-like hole right around the geometric centroid (25, 25).
+    m[23:28, 18:32] = 0
+    # The pure mask_centroid lands somewhere very close to the hole.
+    cx, cy = mask_centroid(m)  # type: ignore[misc]
+    # The pole must NOT be inside the hole.
+    px, py = pole_of_inaccessibility(m)  # type: ignore[misc]
+    assert m[py, px] == 255, (
+        f"pole_of_inaccessibility returned ({px},{py}) which is on a 0 pixel "
+        f"(hole) — defeats the whole point of using it as a flood-fill seed."
+    )
+    # Sanity: the geometric centroid would have been a bad pick.
+    # We're not asserting that mask_centroid IS in the hole — it could be
+    # just outside — but the pole's value is clearly better at distance.
+
+
+def test_pole_of_inaccessibility_returns_none_for_empty_mask() -> None:
+    empty = np.zeros((10, 10), dtype=np.uint8)
+    assert pole_of_inaccessibility(empty) is None
+
+
+def test_pole_of_inaccessibility_handles_l_shaped_room() -> None:
+    """L-shaped rooms are the textbook case for centroid being on a wall:
+    the mean of an L's pixels lands in the L's notch, which is *outside*
+    the mask. The pole, by contrast, picks a deep point inside one of the
+    two arms.
+    """
+    m = np.zeros((50, 50), dtype=np.uint8)
+    # L-shape: vertical bar on left + horizontal bar at bottom
+    m[5:45, 5:15] = 255
+    m[35:45, 5:45] = 255
+    px = pole_of_inaccessibility(m)
+    assert px is not None
+    x, y = px
+    assert m[y, x] == 255, (
+        f"pole at ({x},{y}) is outside the L-shape — should always be a "
+        f"foreground pixel"
+    )
 
 
 # ---------------------------------------------------------------------------

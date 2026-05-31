@@ -124,6 +124,41 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_common_flags(p_cal_edit)
 
+    p_cal_fix_seeds = cal_subs.add_parser(
+        "fix-seeds",
+        help=(
+            "Heal calibration.json: re-pick fill_seed for any label whose "
+            "current seed lands on a wall or yields a near-empty flood-fill. "
+            "Use after a 'validate fill' run with many 'seed_on_wall' warnings."
+        ),
+    )
+    p_cal_fix_seeds.add_argument("--calibration", type=Path, default=Path("calibration.json"))
+    p_cal_fix_seeds.add_argument(
+        "--map",
+        type=Path,
+        default=None,
+        help=(
+            "Optional. Path to the source map. Defaults to the 'map_image' "
+            "field recorded in the calibration, resolved relative to the "
+            "calibration file."
+        ),
+    )
+    p_cal_fix_seeds.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print what would change, but don't modify calibration.json.",
+    )
+    p_cal_fix_seeds.add_argument(
+        "--threshold",
+        type=float,
+        default=0.30,
+        help=(
+            "Consider a seed 'broken' if its flood-fill produces fewer pixels "
+            "than this fraction of the room's polygon area (default: 0.30)."
+        ),
+    )
+    _add_common_flags(p_cal_fix_seeds)
+
     # ---- validate { labels | fill } ----------------------------------------
     p_val = subs.add_parser(
         "validate",
@@ -383,6 +418,167 @@ def _run_calibrate_edit(args: argparse.Namespace) -> int:
         )
         return 2
     return launch(args.calibration, args.map)
+
+
+def _run_calibrate_fix_seeds(args: argparse.Namespace) -> int:
+    """Heal fill_seed values that land on walls.
+
+    Strategy:
+      1. Load calibration + binarize map (same wall mask validate uses).
+      2. For each label with a room_id, virtual-flood-fill from the current
+         seed. If the fill covers less than ``--threshold`` (default 30%) of
+         the room's polygon area, the seed is "broken".
+      3. For each broken seed, recompute via
+         :func:`pole_of_inaccessibility` on (room polygon mask AND interior).
+         This guarantees the seed lands on a true interior pixel inside the
+         room polygon — even for L-shaped rooms or rooms whose polygon was
+         hand-drawn.
+      4. Verify the new seed fills above the threshold; only then accept it.
+      5. Write calibration.json with a ``.bak`` backup if anything changed.
+
+    Returns 0 on clean success (including "nothing to heal"), 2 on I/O errors.
+    """
+    from .calibration import CalibrationFormatError, load_calibration, save_calibration
+    from .geometry import pole_of_inaccessibility, rle_to_mask
+    from .validate import build_fill_mask, virtual_flood_fill
+
+    cal_path: Path = args.calibration
+
+    if not cal_path.exists():
+        print(f"error: calibration not found at {cal_path}", file=sys.stderr)
+        return 2
+
+    try:
+        cal = load_calibration(cal_path)
+    except CalibrationFormatError as exc:
+        print(f"error: could not load calibration: {exc}", file=sys.stderr)
+        return 2
+
+    if args.map is not None:
+        map_path = args.map
+    else:
+        map_path = (cal_path.parent / cal.map_image).resolve()
+
+    if not map_path.exists():
+        print(
+            f"error: source map not found at {map_path}.\n"
+            f"Pass --map to point at the map explicitly, or move the map "
+            f"next to {cal_path.name}.",
+            file=sys.stderr,
+        )
+        return 2
+
+    import cv2  # noqa: WPS433 — lazy import keeps non-CV CLI paths cheap
+    import numpy as np
+
+    image = cv2.imread(str(map_path), cv2.IMREAD_COLOR)
+    if image is None:
+        print(f"error: could not decode map image: {map_path}", file=sys.stderr)
+        return 2
+    wall_mask = build_fill_mask(image, cal.wall_patches)
+
+    threshold: float = float(args.threshold)
+    dry_run: bool = bool(args.dry_run)
+    rooms_by_id = {r.id: r for r in cal.rooms}
+
+    healed = 0
+    unchanged = 0
+    skipped_no_room = 0
+    skipped_no_polygon = 0
+    still_broken = 0
+
+    for label in cal.labels:
+        if label.room_id is None:
+            skipped_no_room += 1
+            continue
+        room = rooms_by_id.get(label.room_id)
+        if room is None:
+            skipped_no_room += 1
+            continue
+
+        filled = virtual_flood_fill(wall_mask, label.fill_seed)
+        filled_area = int(filled.sum())
+        if filled_area >= threshold * room.area_px:
+            unchanged += 1
+            continue
+
+        try:
+            room_mask = rle_to_mask(room.polygon_rle)
+        except Exception as exc:  # noqa: BLE001
+            print(
+                f"warning: could not decode polygon for room {room.id} "
+                f"(label {label.id!r}): {exc}",
+                file=sys.stderr,
+            )
+            skipped_no_polygon += 1
+            continue
+
+        # Search for the deepest interior pixel that's BOTH inside the room's
+        # recorded polygon AND on a non-wall pixel. Without the AND, the pole
+        # could land in a glyph-shaped hole inside the polygon (the same bug
+        # mask_centroid had).
+        if room_mask.shape != wall_mask.shape:
+            print(
+                f"warning: polygon for room {room.id} (label {label.id!r}) "
+                f"has shape {room_mask.shape}, but map is {wall_mask.shape}; "
+                f"skipping (calibration is stale relative to the map)",
+                file=sys.stderr,
+            )
+            skipped_no_polygon += 1
+            continue
+
+        polygon_interior = (
+            ((room_mask > 0) & (wall_mask == 0)).astype(np.uint8) * 255
+        )
+        new_seed = pole_of_inaccessibility(polygon_interior)
+        if new_seed is None:
+            print(
+                f"warning: room {room.id} (label {label.id!r}) has no interior "
+                f"pixels left after masking with walls; calibration may need a "
+                f"manual fix in the editor",
+                file=sys.stderr,
+            )
+            still_broken += 1
+            continue
+
+        new_filled = virtual_flood_fill(wall_mask, new_seed)
+        new_area = int(new_filled.sum())
+        if new_area < threshold * room.area_px:
+            print(
+                f"warning: label {label.id!r}: new seed at {new_seed} still "
+                f"fills only {new_area} px (< {threshold:.0%} of {room.area_px}); "
+                f"leaving the old seed in place — fix manually in the editor",
+                file=sys.stderr,
+            )
+            still_broken += 1
+            continue
+
+        action = "would heal" if dry_run else "healed"
+        print(
+            f"{action} {label.id!r}: "
+            f"{tuple(label.fill_seed)} -> {tuple(new_seed)} "
+            f"(fill {filled_area:,} -> {new_area:,} px / room {room.area_px:,} px)"
+        )
+        if not dry_run:
+            label.fill_seed = new_seed
+        healed += 1
+
+    if healed > 0 and not dry_run:
+        bak_path = cal_path.with_name(cal_path.name + ".bak")
+        bak_path.write_bytes(cal_path.read_bytes())
+        save_calibration(cal, cal_path)
+        print(f"wrote {cal_path} (backup at {bak_path.name})")
+    elif healed > 0 and dry_run:
+        print(f"(dry-run: would write {cal_path} with {healed} updated seed(s))")
+    else:
+        print(f"no changes made")
+
+    print(
+        f"summary: {healed} healed, {unchanged} already-good, "
+        f"{still_broken} still-broken, {skipped_no_room} orphan/missing-room, "
+        f"{skipped_no_polygon} bad-polygon"
+    )
+    return 0
 
 
 
@@ -799,6 +995,8 @@ def dispatch(args: argparse.Namespace) -> int:
             return _run_calibrate_confirm(args)
         if action == "edit":
             return _run_calibrate_edit(args)
+        if action == "fix-seeds":
+            return _run_calibrate_fix_seeds(args)
         if args.map is None:
             print("error: --map is required when running calibration", file=sys.stderr)
             return 2

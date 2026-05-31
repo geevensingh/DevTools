@@ -24,7 +24,7 @@ from typing import Optional
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ..calibration import Calibration, Label, Room, save_calibration
-from ..geometry import mask_to_rle
+from ..geometry import mask_to_rle, pole_of_inaccessibility, rle_to_mask
 from .canvas import MapCanvas
 from .commands import (
     AddLabelCommand,
@@ -476,13 +476,22 @@ class EditorController(QtCore.QObject):
 
         cx = room.bbox[0] + room.bbox[2] // 2
         cy = room.bbox[1] + room.bbox[3] // 2
+        # Prefer the pole of inaccessibility (deepest interior pixel) over
+        # the bbox center for the flood-fill seed: bbox center frequently
+        # lands on a wall for concave rooms and on a glyph for rooms with
+        # embedded text. Fall back to (cx, cy) if the polygon is empty.
+        try:
+            room_mask = rle_to_mask(room.polygon_rle)
+            seed = pole_of_inaccessibility(room_mask) or (cx, cy)
+        except Exception:  # noqa: BLE001 — defensive: bad RLE shouldn't crash add-label
+            seed = (cx, cy)
         bx = cx - _NEW_LABEL_BBOX_W // 2
         by = cy - _NEW_LABEL_BBOX_H // 2
         new_label = Label(
             id=new_id,
             bbox=(bx, by, _NEW_LABEL_BBOX_W, _NEW_LABEL_BBOX_H),
             room_id=room_id,
-            fill_seed=(cx, cy),
+            fill_seed=seed,
             ocr_confidence=1.0,
             notes="",
         )
