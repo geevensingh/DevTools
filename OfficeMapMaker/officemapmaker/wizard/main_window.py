@@ -1,8 +1,9 @@
 """Top-level wizard window: sidebar + stacked content + issues panel + footer.
 
-This is the W1 shell. It owns step navigation and status badges. Real
-per-step content widgets are added in W4..W9; until then each step shows
-a placeholder. See plan.md section 14 for the design rationale.
+This is the W1+W2 shell. It owns step navigation, status badges, and now
+the persisted ``Session`` (W2). Real per-step content widgets are added in
+W4..W9; until then each step shows a placeholder. See plan.md section 14
+for the design rationale.
 
 Navigation rules (per plan.md section 14.3):
 - Sidebar lists the six steps with status badges (pending/running/ok/
@@ -13,6 +14,13 @@ Navigation rules (per plan.md section 14.3):
   whenever the current step's status is ``running`` or ``error``.
   Advisory steps still require an explicit Next click (per resolved
   decision Q3 in section 14.10).
+
+W2 additions:
+- The window owns a ``Session`` and persists every status/issues
+  change to ``<map_basename>.session.json`` in the output dir.
+- On launch, the launcher prompts before construction if input files
+  changed since the last save; ``MainWindow`` itself only sees the
+  resolved session.
 """
 
 from __future__ import annotations
@@ -23,6 +31,14 @@ from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
 from PySide6 import QtCore, QtGui, QtWidgets
+
+from ..session import (
+    Issue as SessionIssue,
+    STEP_IDS,
+    Session,
+    StepState,
+    StepStatus as SessionStepStatus,
+)
 
 
 # Window starts at a reasonable working size that fits on a 1366x768
@@ -41,6 +57,22 @@ class StepStatus(enum.Enum):
     WARNING = "warning"          # finished with warnings only
     ADVISORY = "advisory"        # finished with informational notes only
     ERROR = "error"              # finished with blocking errors
+
+
+# UI enum <-> session enum. The session uses ``INFO`` where the wizard
+# uses ``ADVISORY``; otherwise they're identical strings. Kept as a
+# bidirectional table so the two layers can evolve independently.
+_TO_SESSION_STATUS: Dict[StepStatus, SessionStepStatus] = {
+    StepStatus.PENDING: SessionStepStatus.PENDING,
+    StepStatus.RUNNING: SessionStepStatus.RUNNING,
+    StepStatus.OK: SessionStepStatus.OK,
+    StepStatus.WARNING: SessionStepStatus.WARNING,
+    StepStatus.ADVISORY: SessionStepStatus.INFO,
+    StepStatus.ERROR: SessionStepStatus.ERROR,
+}
+_FROM_SESSION_STATUS: Dict[SessionStepStatus, StepStatus] = {
+    v: k for k, v in _TO_SESSION_STATUS.items()
+}
 
 
 # Order matters: this list IS the wizard's step order. Each tuple is
@@ -111,24 +143,65 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(
         self,
         *,
-        map_path: Path,
-        assignments_path: Path,
-        output_dir: Path,
+        map_path: Optional[Path] = None,
+        assignments_path: Optional[Path] = None,
+        output_dir: Optional[Path] = None,
         teams_path: Optional[Path] = None,
+        session: Optional[Session] = None,
     ) -> None:
         super().__init__()
-        self._map_path = map_path
-        self._assignments_path = assignments_path
-        self._output_dir = output_dir
-        self._teams_path = teams_path
+
+        # Two construction modes:
+        #   (a) pass a fully-resolved ``session`` — the launcher does
+        #       this after running ``Session.load_or_create`` and any
+        #       input-mismatch prompt.
+        #   (b) pass raw paths — used by tests + first-time launches in
+        #       embedded contexts. We construct a fresh session from
+        #       them, silently treating any prior session file as
+        #       "restored" (no prompt) to keep the convenience
+        #       constructor side-effect-free.
+        if session is None:
+            if map_path is None or assignments_path is None or output_dir is None:
+                raise TypeError(
+                    "MainWindow requires either session= or (map_path, "
+                    "assignments_path, output_dir)."
+                )
+            session = Session.load_or_create(
+                map_path=map_path,
+                assignments_path=assignments_path,
+                output_dir=output_dir,
+                teams_path=teams_path,
+            ).session
+
+        self._session = session
+        self._map_path = session.map_path
+        self._assignments_path = session.assignments_path
+        self._output_dir = session.output_dir
+        self._teams_path = session.teams_path
 
         self.setWindowTitle(self._compose_title())
         self.resize(_DEFAULT_WINDOW_SIZE)
 
-        self._steps: List[_StepEntry] = [
-            _StepEntry(step_id=sid, label=label) for sid, label in _STEPS
-        ]
-        self._current_index = 0
+        # Seed UI-level _StepEntry rows from the persisted step_state
+        # so a restored session shows last run's status + issues.
+        self._steps: List[_StepEntry] = []
+        for sid, label in _STEPS:
+            st = session.step_state.get(sid, StepState())
+            issues_text = [iss.message for iss in st.issues]
+            self._steps.append(
+                _StepEntry(
+                    step_id=sid,
+                    label=label,
+                    status=_FROM_SESSION_STATUS.get(st.status, StepStatus.PENDING),
+                    issues=issues_text,
+                )
+            )
+        # Restore to the step the user was last on (or step 0 for fresh
+        # sessions / unknown ids).
+        try:
+            self._current_index = STEP_IDS.index(session.current_step)
+        except ValueError:
+            self._current_index = 0
 
         # Build UI: central widget is a horizontal splitter holding the
         # sidebar and a right-hand container; the right container stacks
@@ -139,7 +212,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self._populate_steps()
         self._refresh_navigation()
         # Initial selection so the right pane shows something useful.
-        self._sidebar.setCurrentRow(0)
+        self._sidebar.setCurrentRow(self._current_index)
+        # Save once on launch so a freshly-created session lands on
+        # disk even if the user closes the window without doing
+        # anything (so they can pick up where they left off).
+        self._save_session()
 
     # ------------------------------------------------------------------
     # UI construction
@@ -321,6 +398,23 @@ class MainWindow(QtWidgets.QMainWindow):
         if idx == self._current_index:
             self._refresh_issues_panel()
         self._refresh_navigation()
+        # Mirror into the persisted session. We translate the string
+        # issues into Issue objects with the step's severity baked in;
+        # W4+ pipeline steps will pass real Issue objects via a new
+        # set_step_issues(...) API.
+        sess_status = _TO_SESSION_STATUS[status]
+        severity = (
+            "warning" if status == StepStatus.WARNING
+            else "info" if status == StepStatus.ADVISORY
+            else "error" if status == StepStatus.ERROR
+            else "info"
+        )
+        sess_issues = [
+            SessionIssue(code="placeholder", severity=severity, message=msg)
+            for msg in entry.issues
+        ]
+        self._session.set_step(step_id, status=sess_status, issues=sess_issues)
+        self._save_session()
 
     def _invalidate_downstream(self, from_index: int) -> None:
         """Reset steps after ``from_index`` to PENDING with no issues.
@@ -332,6 +426,11 @@ class MainWindow(QtWidgets.QMainWindow):
             entry.status = StepStatus.PENDING
             entry.issues = []
             self._sidebar.item(i).setText(self._format_sidebar_label(entry))
+        # Mirror to the session: invalidate_from clears steps from
+        # ``from_index + 1`` forward.
+        if from_index + 1 < len(STEP_IDS):
+            self._session.invalidate_from(STEP_IDS[from_index + 1])
+        self._save_session()
 
     # ------------------------------------------------------------------
     # Navigation handlers
@@ -375,6 +474,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self._content_stack.setCurrentIndex(new_index)
         self._refresh_issues_panel()
         self._refresh_navigation()
+        # Persist "where the user was" so reopening drops them on the
+        # same step.
+        self._session.current_step = STEP_IDS[new_index]
+        self._save_session()
         self.step_changed.emit(new_index, self._steps[new_index].step_id)
 
     def _refresh_navigation(self) -> None:
@@ -471,6 +574,37 @@ class MainWindow(QtWidgets.QMainWindow):
     @property
     def current_step_index(self) -> int:
         return self._current_index
+
+    @property
+    def session(self) -> Session:
+        """The persisted session this window is backed by."""
+        return self._session
+
+    # ------------------------------------------------------------------
+    # Persistence
+    # ------------------------------------------------------------------
+
+    def _save_session(self) -> None:
+        """Write the current session to disk.
+
+        Called from every state-mutating handler. Swallows write
+        errors and surfaces them in the footer so a broken save
+        doesn't take the whole window down. (The session file is a
+        convenience for resume — if it can't be written, the in-memory
+        wizard is still usable for this run.)
+        """
+        try:
+            self._session.save()
+        except OSError as exc:
+            self._footer_status.setText(
+                f"Warning: could not save session ({exc.strerror or exc}). "
+                "Your work is still in memory for this run."
+            )
+
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+        """Final save when the user closes the window."""
+        self._save_session()
+        super().closeEvent(event)
 
 
 # One-line descriptions shown inside each placeholder so the W1 shell is
