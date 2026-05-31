@@ -577,6 +577,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # ``StepStatus`` from this module at the top of its file) can
         # finish loading without a circular import.
         from .steps.base import StepBase
+        from .steps.build_step import BuildStep
         from .steps.calibrate_step import CalibrateStep
         from .steps.layout_step import LayoutStep
         from .steps.validate_fill_step import ValidateFillStep
@@ -592,6 +593,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 entry.widget = ValidateFillStep(self)
             elif entry.step_id == "layout":
                 entry.widget = LayoutStep(self)
+            elif entry.step_id == "build":
+                entry.widget = BuildStep(self)
             else:
                 entry.widget = self._make_placeholder_step(entry)
             self._content_stack.addWidget(entry.widget)
