@@ -576,3 +576,100 @@ def test_revalidate_button_is_noop_when_no_calibration(qapp, inputs):
         step._on_revalidate_clicked()  # must not raise
     finally:
         w.close()
+
+
+# ---------------------------------------------------------------------------
+# Add-room toolbar wiring (Shift+N / Shift+R / Shift+P)
+# ---------------------------------------------------------------------------
+
+
+def _toolbar_action(step, label_text: str):
+    """Find a QAction on the calibrate-step toolbar by its visible text."""
+    assert step._toolbar is not None, "toolbar should be built after on_activated"
+    for action in step._toolbar.actions():
+        if action.text() == label_text:
+            return action
+    raise AssertionError(
+        f"toolbar action {label_text!r} not found; "
+        f"have {[a.text() for a in step._toolbar.actions()]}"
+    )
+
+
+@pytest.mark.parametrize(
+    "label,controller_attr",
+    [
+        ("Add room: flood-fill", "set_add_room_flood_mode"),
+        ("Add room: rectangle", "set_add_room_rect_mode"),
+        ("Add room: polygon", "set_add_room_polygon_mode"),
+    ],
+)
+def test_add_room_toolbar_actions_exist_and_route_to_controller(
+    qapp, inputs, monkeypatch, label, controller_attr
+):
+    """Each Add-room toolbar button should toggle the corresponding
+    controller mode. These were dropped from the wizard at some
+    point; this test pins them so they don't regress again."""
+    map_path, assn_path, out = inputs
+
+    w = MainWindow(map_path=map_path, assignments_path=assn_path, output_dir=out)
+    try:
+        cal = _two_room_cal_with_orphan(map_path)
+        w.session.calibration = cal
+        step = w._steps[0].widget
+        step.on_activated()  # builds editor + toolbar
+
+        action = _toolbar_action(step, label)
+        assert action.isCheckable(), f"{label!r} must be checkable"
+
+        calls: list[bool] = []
+        monkeypatch.setattr(
+            step._controller, controller_attr, lambda checked: calls.append(checked)
+        )
+
+        action.setChecked(True)
+        assert calls == [True], f"{label!r} on -> {controller_attr}(True); got {calls}"
+
+        action.setChecked(False)
+        assert calls == [True, False], (
+            f"{label!r} off -> {controller_attr}(False); got {calls}"
+        )
+    finally:
+        w.close()
+
+
+@pytest.mark.parametrize(
+    "label,cancel_signal",
+    [
+        ("Add room: flood-fill", "add_room_flood_cancelled"),
+        ("Add room: rectangle", "add_room_rect_cancelled"),
+        ("Add room: polygon", "add_room_polygon_cancelled"),
+    ],
+)
+def test_add_room_toolbar_resyncs_on_canvas_cancel(
+    qapp, inputs, label, cancel_signal
+):
+    """If the canvas drops out of add-room mode (Esc, etc.), the
+    toolbar toggle should pop back up so it doesn't stay 'down'."""
+    map_path, assn_path, out = inputs
+
+    w = MainWindow(map_path=map_path, assignments_path=assn_path, output_dir=out)
+    try:
+        cal = _two_room_cal_with_orphan(map_path)
+        w.session.calibration = cal
+        step = w._steps[0].widget
+        step.on_activated()
+
+        action = _toolbar_action(step, label)
+        # Force-check the toggle (bypassing the controller call) so
+        # we can verify the canvas-cancel handler clears it.
+        action.blockSignals(True)
+        action.setChecked(True)
+        action.blockSignals(False)
+        assert action.isChecked()
+
+        getattr(step._canvas, cancel_signal).emit()
+        assert not action.isChecked(), (
+            f"{label!r} should pop up when {cancel_signal} fires"
+        )
+    finally:
+        w.close()

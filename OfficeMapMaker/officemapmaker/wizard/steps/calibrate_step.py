@@ -428,6 +428,72 @@ class CalibrateStep(StepBase):
             lambda *_a: _sync_toggle_off(act_add_label)
         )
 
+        # Three "Add room" entries mirror the standalone editor's
+        # Tools > Add room submenu. The user picks the mode that
+        # matches the geometry of the room they're adding:
+        #   - Flood-fill click: room already has clean wall outlines.
+        #   - Drag rectangle: walls are leaky / no enclosed CC exists.
+        #   - Draw polygon: irregular shape that rect can't capture.
+        # All three route through the EditorController so it can
+        # refuse to arm if the map image isn't loaded yet, and the
+        # toggles re-sync on the canvas's *_cancelled / *_requested
+        # signals (so a successful add or an Esc cancel both pop the
+        # button back up).
+        act_add_room_flood = QtGui.QAction("Add room: flood-fill", self)
+        act_add_room_flood.setShortcut(QtGui.QKeySequence("Shift+N"))
+        act_add_room_flood.setToolTip(
+            "Click inside a room on the map to flood-fill it as a new "
+            "room. Esc cancels."
+        )
+        act_add_room_flood.setCheckable(True)
+        act_add_room_flood.toggled.connect(
+            self._controller.set_add_room_flood_mode
+        )
+        self._toolbar.addAction(act_add_room_flood)
+        self._canvas.add_room_flood_cancelled.connect(
+            lambda *_a: _sync_toggle_off(act_add_room_flood)
+        )
+        self._canvas.add_room_flood_requested.connect(
+            lambda *_a: _sync_toggle_off(act_add_room_flood)
+        )
+
+        act_add_room_rect = QtGui.QAction("Add room: rectangle", self)
+        act_add_room_rect.setShortcut(QtGui.QKeySequence("Shift+R"))
+        act_add_room_rect.setToolTip(
+            "Drag a rectangle on the map to add it as a new room. "
+            "Useful when flood-fill leaks. Esc cancels."
+        )
+        act_add_room_rect.setCheckable(True)
+        act_add_room_rect.toggled.connect(
+            self._controller.set_add_room_rect_mode
+        )
+        self._toolbar.addAction(act_add_room_rect)
+        self._canvas.add_room_rect_cancelled.connect(
+            lambda *_a: _sync_toggle_off(act_add_room_rect)
+        )
+        self._canvas.add_room_rect_requested.connect(
+            lambda *_a: _sync_toggle_off(act_add_room_rect)
+        )
+
+        act_add_room_polygon = QtGui.QAction("Add room: polygon", self)
+        act_add_room_polygon.setShortcut(QtGui.QKeySequence("Shift+P"))
+        act_add_room_polygon.setToolTip(
+            "Click points to outline the room. "
+            "Enter / double-click / right-click closes the polygon, "
+            "Backspace undoes the last vertex, Esc cancels."
+        )
+        act_add_room_polygon.setCheckable(True)
+        act_add_room_polygon.toggled.connect(
+            self._controller.set_add_room_polygon_mode
+        )
+        self._toolbar.addAction(act_add_room_polygon)
+        self._canvas.add_room_polygon_cancelled.connect(
+            lambda *_a: _sync_toggle_off(act_add_room_polygon)
+        )
+        self._canvas.add_room_polygon_requested.connect(
+            lambda *_a: _sync_toggle_off(act_add_room_polygon)
+        )
+
         act_add_wall_patch = QtGui.QAction("Add wall patch", self)
         act_add_wall_patch.setShortcut(QtGui.QKeySequence("Shift+W"))
         act_add_wall_patch.setCheckable(True)
