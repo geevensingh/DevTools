@@ -19,6 +19,8 @@ layout_review.png
 layout_review_problems.png
 tiles/
 report.txt
+# Per-map wizard session state (W2)
+*.session.json
 
 # Per-sample exceptions: keep golden calibration + inputs checked in if/when added
 !samples/*/calibration.json

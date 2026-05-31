@@ -136,3 +136,160 @@ def test_advisory_status_maps_to_info_in_session(qapp, inputs):
 def test_constructor_requires_either_session_or_paths(qapp):
     with pytest.raises(TypeError):
         MainWindow()  # no session, no paths
+
+
+# ---------------------------------------------------------------------------
+# Pipeline runner integration (W3)
+# ---------------------------------------------------------------------------
+
+
+import time  # noqa: E402  (helpers below)
+
+
+def _drain_until(predicate, *, timeout_s: float = 5.0, tick_ms: int = 10) -> bool:
+    """Spin Qt's event loop until ``predicate()`` is true or timeout."""
+    from PySide6 import QtCore as _Qt
+
+    deadline = time.monotonic() + timeout_s
+    app = QtWidgets.QApplication.instance()
+    assert app is not None
+    while time.monotonic() < deadline:
+        app.processEvents(_Qt.QEventLoop.ProcessEventsFlag.AllEvents, tick_ms)
+        if predicate():
+            return True
+    return False
+
+
+def test_run_pipeline_step_marks_running_then_ok(qapp, inputs):
+    map_path, assn_path, out = inputs
+    w = MainWindow(map_path=map_path, assignments_path=assn_path, output_dir=out)
+    try:
+        captured = {}
+
+        def func(*, progress_cb, cancel_cb):
+            progress_cb(0.5, "halfway")
+            return "the-result", []
+
+        def on_finished(result, issues):
+            captured["result"] = result
+            captured["issues"] = issues
+
+        runner = w.run_pipeline_step("calibrate", func, on_finished=on_finished)
+        assert runner is not None
+        # Footer should be in "running" mode immediately.
+        # (isVisible() is false on hidden parents; isHidden() reports
+        # the widget's explicit visibility state independently.)
+        assert not w._progress_bar.isHidden()
+        assert not w._cancel_button.isHidden()
+        assert w._steps[0].status == StepStatus.RUNNING
+
+        assert _drain_until(lambda: "result" in captured)
+        runner.wait(2000)
+        _drain_until(lambda: not runner.is_running())
+
+        assert captured["result"] == "the-result"
+        assert w._steps[0].status == StepStatus.OK
+        assert w._progress_bar.isHidden()
+        assert w._cancel_button.isHidden()
+    finally:
+        w.close()
+
+
+def test_run_pipeline_step_failed_sets_error_with_issue(qapp, inputs):
+    map_path, assn_path, out = inputs
+    w = MainWindow(map_path=map_path, assignments_path=assn_path, output_dir=out)
+    try:
+        captured = {}
+
+        def func(*, progress_cb, cancel_cb):
+            raise RuntimeError("boom")
+
+        def on_failed(exc):
+            captured["exc"] = exc
+
+        runner = w.run_pipeline_step("calibrate", func, on_failed=on_failed)
+        assert runner is not None
+
+        assert _drain_until(lambda: "exc" in captured)
+        runner.wait(2000)
+        _drain_until(lambda: not runner.is_running())
+
+        assert isinstance(captured["exc"], RuntimeError)
+        assert w._steps[0].status == StepStatus.ERROR
+        assert any("boom" in iss for iss in w._steps[0].issues)
+    finally:
+        w.close()
+
+
+def test_run_pipeline_step_canceled_reverts_to_prior_status(qapp, inputs):
+    """Cancel mid-run -> status reverts (not stuck on RUNNING, not ERROR)."""
+    import threading
+
+    from officemapmaker.pipeline import PipelineCanceled
+
+    map_path, assn_path, out = inputs
+    w = MainWindow(map_path=map_path, assignments_path=assn_path, output_dir=out)
+    try:
+        # Give the step a prior status so we can assert the revert.
+        w.set_step_status("calibrate", StepStatus.WARNING, issues=["prior"])
+
+        started = threading.Event()
+        released = threading.Event()
+
+        def func(*, progress_cb, cancel_cb):
+            started.set()
+            released.wait(timeout=5)
+            if cancel_cb():
+                raise PipelineCanceled()
+            return None, []
+
+        canceled_seen = {}
+
+        def on_canceled():
+            canceled_seen["yes"] = True
+
+        runner = w.run_pipeline_step(
+            "calibrate", func, on_canceled=on_canceled
+        )
+        assert runner is not None
+        assert started.wait(timeout=2)
+        # Click Cancel.
+        w._on_cancel_pipeline()
+        released.set()
+
+        assert _drain_until(lambda: canceled_seen.get("yes"))
+        runner.wait(2000)
+        _drain_until(lambda: not runner.is_running())
+
+        assert w._steps[0].status == StepStatus.WARNING
+        assert w._steps[0].issues == ["prior"]
+        assert w._progress_bar.isHidden()
+        assert w._cancel_button.isHidden()
+    finally:
+        w.close()
+
+
+def test_run_pipeline_step_refuses_when_another_is_active(qapp, inputs):
+    import threading
+
+    map_path, assn_path, out = inputs
+    w = MainWindow(map_path=map_path, assignments_path=assn_path, output_dir=out)
+    try:
+        release = threading.Event()
+
+        def slow(*, progress_cb, cancel_cb):
+            release.wait(timeout=5)
+            return None, []
+
+        r1 = w.run_pipeline_step("calibrate", slow)
+        assert r1 is not None
+        r2 = w.run_pipeline_step(
+            "calibrate", lambda *, progress_cb, cancel_cb: (None, [])
+        )
+        assert r2 is None  # refused while r1 is active
+
+        release.set()
+        assert _drain_until(lambda: not r1.is_running())
+        r1.wait(2000)
+    finally:
+        w.close()

@@ -30,7 +30,7 @@ import re
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 import numpy as np
 
@@ -229,14 +229,24 @@ def calibrate_map(
     *,
     min_room_area: int = DEFAULT_MIN_ROOM_AREA,
     min_ocr_confidence: int = DEFAULT_MIN_OCR_CONFIDENCE,
+    progress_cb: Optional[Callable[[float, str], None]] = None,
+    cancel_cb: Optional[Callable[[], bool]] = None,
 ) -> tuple[Calibration, list[CalibrationIssue]]:
     """Run the calibration pipeline against a map image.
 
     Args:
-        map_path: Path to the map image (PNG / JPEG — anything OpenCV reads).
+        map_path: Path to the map image (PNG / JPEG -- anything OpenCV reads).
         min_room_area: Discard CC polygons smaller than this many pixels.
         min_ocr_confidence: Discard OCR detections below this confidence
             (Tesseract scale, 0-100).
+        progress_cb: Optional callback ``(fraction, message)`` invoked
+            between phases. The wizard's PipelineRunner injects this so
+            the UI can show a progress bar / status string. Pipeline
+            unit tests typically pass ``None``.
+        cancel_cb: Optional callback returning ``True`` once the user
+            has asked to cancel. Checked between phases. When it
+            returns True we raise :class:`PipelineCanceled` instead of
+            finishing the run. Same source as ``progress_cb``.
 
     Returns:
         Tuple of ``(Calibration, issues)``. Issues may be errors or warnings;
@@ -246,31 +256,55 @@ def calibrate_map(
     Raises:
         FileNotFoundError: if ``map_path`` doesn't exist.
         TesseractNotFoundError: if no Tesseract executable can be located.
+        PipelineCanceled: if ``cancel_cb()`` returns True between phases.
     """
     import cv2
+
+    from .pipeline import PipelineCanceled
+
+    def _report(fraction: float, message: str) -> None:
+        if progress_cb is not None:
+            progress_cb(fraction, message)
+
+    def _check_cancel() -> None:
+        if cancel_cb is not None and cancel_cb():
+            raise PipelineCanceled()
 
     map_path = Path(map_path)
     if not map_path.exists():
         raise FileNotFoundError(map_path)
 
+    _report(0.0, f"Loading {map_path.name}...")
+    _check_cancel()
+
     image = cv2.imread(str(map_path), cv2.IMREAD_COLOR)
     if image is None:
         raise ValueError(f"could not decode image: {map_path}")
 
+    _report(0.10, "Preparing image...")
+    _check_cancel()
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     wall_mask = _binarize(gray)
     interior = _interior_mask(wall_mask)
 
+    _report(0.25, "Finding rooms...")
+    _check_cancel()
     components = find_connected_components(
         interior, min_area=min_room_area, discard_largest=True
     )
+
+    _report(0.45, "Running OCR (this is the slow part)...")
+    _check_cancel()
     ocr_labels = _run_ocr(gray, min_confidence=min_ocr_confidence)
 
+    _report(0.90, "Matching labels to rooms...")
+    _check_cancel()
     cal, issues = _build_calibration(
         map_path=map_path,
         components=components,
         ocr_labels=ocr_labels,
     )
+    _report(1.0, "Done.")
     return cal, issues
 
 

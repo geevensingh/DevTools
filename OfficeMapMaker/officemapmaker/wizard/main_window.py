@@ -1,9 +1,10 @@
 """Top-level wizard window: sidebar + stacked content + issues panel + footer.
 
-This is the W1+W2 shell. It owns step navigation, status badges, and now
-the persisted ``Session`` (W2). Real per-step content widgets are added in
-W4..W9; until then each step shows a placeholder. See plan.md section 14
-for the design rationale.
+This is the W1+W2+W3 shell. It owns step navigation, status badges, the
+persisted ``Session`` (W2), and the background ``PipelineRunner``
+plumbing (W3). Real per-step content widgets are added in W4..W9;
+until then each step shows a placeholder. See plan.md section 14 for
+the design rationale.
 
 Navigation rules (per plan.md section 14.3):
 - Sidebar lists the six steps with status badges (pending/running/ok/
@@ -21,6 +22,14 @@ W2 additions:
 - On launch, the launcher prompts before construction if input files
   changed since the last save; ``MainWindow`` itself only sees the
   resolved session.
+
+W3 additions:
+- ``run_pipeline_step(step_id, func, ...)`` runs ``func`` on a worker
+  thread via ``PipelineRunner``, with progress bar + Cancel button
+  in the footer and automatic status-badge bookkeeping.
+- Step widgets (W4+) call ``run_pipeline_step`` instead of invoking
+  pipeline functions directly so the UI never blocks on OCR /
+  flood-fill / layout / render.
 """
 
 from __future__ import annotations
@@ -32,6 +41,7 @@ from typing import Callable, Dict, List, Optional
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from ..pipeline import PipelineRunner
 from ..session import (
     Issue as SessionIssue,
     STEP_IDS,
@@ -203,6 +213,13 @@ class MainWindow(QtWidgets.QMainWindow):
         except ValueError:
             self._current_index = 0
 
+        # Pipeline-runner bookkeeping (W3). Only one pipeline call may
+        # be in flight at a time; the wizard's UX is linear.
+        self._active_runner: Optional[PipelineRunner] = None
+        self._active_runner_step_id: Optional[str] = None
+        self._active_runner_prior_status: Optional[StepStatus] = None
+        self._active_runner_prior_issues: Optional[List[str]] = None
+
         # Build UI: central widget is a horizontal splitter holding the
         # sidebar and a right-hand container; the right container stacks
         # content + issues panel vertically, with the Back/Next footer
@@ -280,7 +297,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self._issues_list.setVisible(False)
         right_layout.addWidget(self._issues_group)
 
-        # Footer: status label on the left, Back / Next on the right.
+        # Footer: status label + (hidden by default) progress bar on
+        # the left, Cancel + Back / Next on the right.
         footer = QtWidgets.QFrame(right)
         footer.setFrameShape(QtWidgets.QFrame.Shape.StyledPanel)
         footer.setStyleSheet("QFrame { background: #fafafa; }")
@@ -289,6 +307,18 @@ class MainWindow(QtWidgets.QMainWindow):
         self._footer_status = QtWidgets.QLabel("", footer)
         self._footer_status.setStyleSheet("QLabel { color: #555; }")
         footer_layout.addWidget(self._footer_status, stretch=1)
+        # Progress bar is hidden when no pipeline step is running.
+        self._progress_bar = QtWidgets.QProgressBar(footer)
+        self._progress_bar.setRange(0, 1000)
+        self._progress_bar.setFixedWidth(220)
+        self._progress_bar.setTextVisible(False)
+        self._progress_bar.setVisible(False)
+        footer_layout.addWidget(self._progress_bar)
+        # Cancel is shown only while a pipeline step is running.
+        self._cancel_button = QtWidgets.QPushButton("Cancel", footer)
+        self._cancel_button.setVisible(False)
+        self._cancel_button.clicked.connect(self._on_cancel_pipeline)
+        footer_layout.addWidget(self._cancel_button)
         self._back_button = QtWidgets.QPushButton("< Back", footer)
         self._back_button.clicked.connect(self._on_back)
         footer_layout.addWidget(self._back_button)
@@ -579,6 +609,166 @@ class MainWindow(QtWidgets.QMainWindow):
     def session(self) -> Session:
         """The persisted session this window is backed by."""
         return self._session
+
+    # ------------------------------------------------------------------
+    # Pipeline runner integration (W3)
+    # ------------------------------------------------------------------
+
+    def run_pipeline_step(
+        self,
+        step_id: str,
+        func: Callable[..., tuple],
+        *,
+        args: tuple = (),
+        kwargs: Optional[dict] = None,
+        on_finished: Optional[Callable[[object, list], None]] = None,
+        on_failed: Optional[Callable[[BaseException], None]] = None,
+        on_canceled: Optional[Callable[[], None]] = None,
+    ) -> "Optional[PipelineRunner]":
+        """Kick off a background pipeline call for ``step_id``.
+
+        The wizard's per-step widgets (W4+) call this to run their
+        expensive function off the UI thread. The runner is wired to:
+
+        - flip the step's status to ``RUNNING``, show the footer
+          progress bar + Cancel button, and disable Back / Next;
+        - on ``finished``, hand ``(result, issues)`` to ``on_finished``
+          (the caller's responsibility to set the step's final status
+          via :meth:`set_step_status` and stash the result on the
+          session, e.g. ``session.calibration = result``);
+        - on ``canceled``, revert the step to its prior status and
+          invoke ``on_canceled``;
+        - on ``failed``, set the step to ERROR with a one-line issue
+          summarizing the exception, then invoke ``on_failed``.
+
+        Returns the runner so callers can hold a reference (we also
+        retain ``self._active_runner`` so the runner outlives this
+        call). Returns ``None`` if another pipeline call is already
+        running on this window (we serialize for simplicity -- the
+        wizard's linear UX never needs concurrent runs).
+        """
+        from ..pipeline import PipelineRunner
+
+        if self._active_runner is not None:
+            # Don't queue / pre-empt: just refuse. The caller is
+            # expected to have disabled its "Run" button already, so
+            # this branch only fires on a logic bug.
+            return None
+
+        entry = self._step_by_id(step_id)
+        if entry is None:
+            raise ValueError(f"unknown step id: {step_id!r}")
+
+        prior_status = entry.status
+        prior_issues = list(entry.issues)
+        self.set_step_status(step_id, StepStatus.RUNNING)
+
+        # Footer UI: show progress + Cancel; disable Back / Next.
+        self._progress_bar.setValue(0)
+        self._progress_bar.setVisible(True)
+        self._cancel_button.setVisible(True)
+        self._cancel_button.setEnabled(True)
+        self._back_button.setEnabled(False)
+        self._next_button.setEnabled(False)
+
+        runner = PipelineRunner(func, args=args, kwargs=kwargs, parent=self)
+        self._active_runner = runner
+        self._active_runner_step_id = step_id
+        self._active_runner_prior_status = prior_status
+        self._active_runner_prior_issues = prior_issues
+
+        runner.progress.connect(self._on_pipeline_progress)
+        runner.finished.connect(
+            lambda result, issues: self._on_pipeline_finished(
+                step_id, result, issues, on_finished
+            )
+        )
+        runner.failed.connect(
+            lambda exc: self._on_pipeline_failed(step_id, exc, on_failed)
+        )
+        runner.canceled.connect(
+            lambda: self._on_pipeline_canceled(
+                step_id, prior_status, prior_issues, on_canceled
+            )
+        )
+        runner.start()
+        return runner
+
+    def _on_pipeline_progress(self, fraction: float, message: str) -> None:
+        # Map [0..1] to the progress bar's int range.
+        self._progress_bar.setValue(int(round(fraction * 1000)))
+        if message:
+            self._footer_status.setText(message)
+
+    def _on_pipeline_finished(
+        self,
+        step_id: str,
+        result: object,
+        issues: list,
+        on_finished: Optional[Callable[[object, list], None]],
+    ) -> None:
+        self._reset_pipeline_footer()
+        self._active_runner = None
+        self._active_runner_step_id = None
+        self._active_runner_prior_status = None
+        self._active_runner_prior_issues = None
+        if on_finished is not None:
+            on_finished(result, issues)
+        # If on_finished didn't update the step (e.g. tests that don't
+        # care), revert it from RUNNING so the UI isn't stuck.
+        entry = self._step_by_id(step_id)
+        if entry is not None and entry.status == StepStatus.RUNNING:
+            self.set_step_status(step_id, StepStatus.OK)
+
+    def _on_pipeline_failed(
+        self,
+        step_id: str,
+        exc: BaseException,
+        on_failed: Optional[Callable[[BaseException], None]],
+    ) -> None:
+        self._reset_pipeline_footer()
+        self._active_runner = None
+        self._active_runner_step_id = None
+        self._active_runner_prior_status = None
+        self._active_runner_prior_issues = None
+        message = f"{type(exc).__name__}: {exc}"
+        self.set_step_status(step_id, StepStatus.ERROR, issues=[message])
+        if on_failed is not None:
+            on_failed(exc)
+
+    def _on_pipeline_canceled(
+        self,
+        step_id: str,
+        prior_status: StepStatus,
+        prior_issues: List[str],
+        on_canceled: Optional[Callable[[], None]],
+    ) -> None:
+        self._reset_pipeline_footer()
+        self._active_runner = None
+        self._active_runner_step_id = None
+        self._active_runner_prior_status = None
+        self._active_runner_prior_issues = None
+        # Revert to the step's status + issues from before the run so
+        # the user can re-attempt without confusing leftover state.
+        self.set_step_status(step_id, prior_status, issues=prior_issues)
+        self._footer_status.setText("Canceled.")
+        if on_canceled is not None:
+            on_canceled()
+
+    def _on_cancel_pipeline(self) -> None:
+        if self._active_runner is not None:
+            self._cancel_button.setEnabled(False)
+            self._footer_status.setText("Canceling...")
+            self._active_runner.cancel()
+
+    def _reset_pipeline_footer(self) -> None:
+        self._progress_bar.setVisible(False)
+        self._progress_bar.setValue(0)
+        self._cancel_button.setVisible(False)
+        self._cancel_button.setEnabled(True)
+        # Re-enable nav: _refresh_navigation handles enable/disable
+        # based on the new step status.
+        self._refresh_navigation()
 
     # ------------------------------------------------------------------
     # Persistence

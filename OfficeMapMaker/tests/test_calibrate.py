@@ -323,6 +323,61 @@ def test_calibrate_map_missing_file_raises(tmp_path: Path):
         calibrate_map(tmp_path / "does-not-exist.png")
 
 
+@requires_tesseract
+def test_calibrate_map_reports_progress(tmp_path: Path):
+    """progress_cb is invoked with monotonically non-decreasing fractions in [0,1]."""
+    map_path = tmp_path / "synthetic.png"
+    _make_synthetic_map(map_path)
+
+    records: list[tuple[float, str]] = []
+    calibrate_map(
+        map_path,
+        progress_cb=lambda frac, msg: records.append((frac, msg)),
+    )
+    assert records, "progress_cb was never called"
+    fractions = [r[0] for r in records]
+    assert all(0.0 <= f <= 1.0 for f in fractions), fractions
+    assert fractions == sorted(fractions), (
+        f"progress fractions should be non-decreasing: {fractions}"
+    )
+    assert fractions[-1] == 1.0, f"last fraction should be 1.0: {fractions[-1]}"
+    # And every progress call should carry a non-empty status message.
+    assert all(msg for _, msg in records)
+
+
+def test_calibrate_map_honors_cancel_cb(tmp_path: Path):
+    """cancel_cb returning True between phases raises PipelineCanceled."""
+    from officemapmaker.pipeline import PipelineCanceled
+
+    # Use a real file so the FileNotFoundError isn't what trips first;
+    # the cancel check happens before the (expensive) cv2.imread, so we
+    # don't even need a valid PNG.
+    map_path = tmp_path / "synthetic.png"
+    map_path.write_bytes(b"not a real png")
+
+    with pytest.raises(PipelineCanceled):
+        calibrate_map(map_path, cancel_cb=lambda: True)
+
+
+@requires_tesseract
+def test_calibrate_map_via_pipeline_runner_blocking(tmp_path: Path):
+    """End-to-end: calibrate_map plays nicely with PipelineRunner.run_blocking."""
+    from officemapmaker.pipeline import PipelineRunner
+
+    map_path = tmp_path / "synthetic.png"
+    _make_synthetic_map(map_path)
+
+    progress: list = []
+    result, issues = PipelineRunner.run_blocking(
+        calibrate_map,
+        args=(map_path,),
+        progress_records=progress,
+    )
+    assert result is not None
+    assert isinstance(issues, list)
+    assert progress, "runner did not record any progress"
+
+
 # ---------------------------------------------------------------------------
 # CLI integration
 # ---------------------------------------------------------------------------
