@@ -37,7 +37,7 @@ from typing import TYPE_CHECKING, List, Optional
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ...calibrate import CalibrationIssue, calibrate_map
+from ...calibrate import CalibrationIssue, calibrate_map, revalidate_calibration
 from ..main_window import StepStatus
 from .base import StepBase
 
@@ -513,22 +513,30 @@ class CalibrateStep(StepBase):
     # ------------------------------------------------------------------
 
     def _on_undo_index_changed(self, _new_index: int) -> None:
-        """Persist the session after every edit.
+        """Persist the session + recompute issues after every edit.
 
         ``EditorController._cal`` is the same Python object as
         ``session.calibration``, so the in-memory state is already in
         sync -- we just need to flush to disk so a wizard close +
         reopen restores the latest edits.
+
+        We also re-run the lightweight ``revalidate_calibration`` so
+        the step's issue count and badge reflect the live state.
+        Editing a label id, deleting an orphan label, drawing a new
+        room to absorb an orphan -- all of these should update the
+        counter immediately.
         """
-        # Re-classify issues for this step. Edits like fixing a
-        # duplicate id should clear the warning that flagged it.
-        # We re-evaluate by re-running the calibration's lightweight
-        # validation rather than re-running OCR; for now we keep the
-        # previous issue list (we don't have a "validate cached
-        # calibration" entry point yet). A later polish step can add
-        # that.
         # pylint: disable=protected-access
         self.main_window._save_session()  # noqa: SLF001
+
+        cal = self.main_window.session.calibration
+        if cal is None:
+            return
+        live_issues = revalidate_calibration(cal)
+        status, issue_strs = _classify_issues(live_issues)
+        self.main_window.set_step_status(
+            "calibrate", status, issues=issue_strs
+        )
 
 
 # ---------------------------------------------------------------------------

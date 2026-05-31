@@ -358,3 +358,139 @@ def test_session_with_cached_calibration_mounts_editor(qapp, inputs):
         assert step._stack.currentWidget() is step._editor_pane
     finally:
         w.close()
+
+
+# ---------------------------------------------------------------------------
+# Live re-validation on every edit
+# ---------------------------------------------------------------------------
+
+
+def _two_room_cal_with_orphan(map_path: Path):
+    """Build a real 2-room calibration where label 1480 is unassigned.
+
+    Re-uses the synthetic CC + OCR helpers from test_calibrate to land
+    on the same code path the wizard hits in production.
+    """
+    import numpy as np
+
+    from officemapmaker.calibrate import _build_calibration, _OCRLabel
+    from officemapmaker.geometry import ConnectedComponent
+
+    def _square_cc(cc_id, x, y, side):
+        mask = np.zeros((y + side + 10, x + side + 10), dtype=np.uint8)
+        mask[y : y + side, x : x + side] = 1
+        return ConnectedComponent(
+            cc_id=cc_id,
+            area_px=side * side,
+            bbox=(x, y, side, side),
+            centroid=(x + side // 2, y + side // 2),
+            mask=mask.astype(bool),
+        )
+
+    components = [_square_cc(1, 10, 10, 100), _square_cc(2, 200, 10, 100)]
+    ocr_labels = [
+        _OCRLabel(text="1480", bbox=(40, 40, 30, 20), confidence=0.9),
+        _OCRLabel(text="1481", bbox=(230, 40, 30, 20), confidence=0.9),
+    ]
+    cal, _ = _build_calibration(
+        map_path=map_path, components=components, ocr_labels=ocr_labels
+    )
+    # Force label 1480 into orphan state -- the wizard test fixture's
+    # 64x64 white PNG bbox-checks would otherwise place both labels
+    # cleanly; we want a known issue baseline to measure.
+    from dataclasses import replace as dc_replace
+
+    for i, lab in enumerate(cal.labels):
+        if lab.id == "1480":
+            cal.labels[i] = dc_replace(lab, room_id=None)
+            break
+    return cal
+
+
+def test_undo_index_changed_recomputes_issue_count(qapp, inputs):
+    """Editing the calibration should refresh the step's issue list live."""
+    map_path, assn_path, out = inputs
+
+    w = MainWindow(map_path=map_path, assignments_path=assn_path, output_dir=out)
+    try:
+        cal = _two_room_cal_with_orphan(map_path)
+        w.session.calibration = cal
+        step = w._steps[0].widget
+        step.on_activated()
+        assert step._editor_built is True
+
+        # Prime the step with the initial issue list (mimicking what
+        # _on_calibration_finished would do after a real run).
+        from officemapmaker.calibrate import revalidate_calibration
+
+        initial = revalidate_calibration(cal)
+        initial_status, initial_msgs = _classify_issues(initial)
+        w.set_step_status("calibrate", initial_status, issues=initial_msgs)
+        n_initial = len(w._steps[0].issues)
+        assert n_initial >= 1, "fixture should produce at least one issue"
+
+        # Simulate the user fixing the orphan label by assigning room_id.
+        from dataclasses import replace as dc_replace
+
+        for i, lab in enumerate(cal.labels):
+            if lab.id == "1480":
+                cal.labels[i] = dc_replace(lab, room_id=1)
+                break
+
+        # Fire the undo signal directly -- this is the slot wired to
+        # the EditorController's undo_stack.indexChanged in production.
+        step._on_undo_index_changed(0)
+
+        n_after = len(w._steps[0].issues)
+        assert n_after < n_initial, (
+            f"issue count should drop after fix: {n_initial} -> {n_after}"
+        )
+    finally:
+        w.close()
+
+
+def test_undo_index_changed_is_noop_when_session_calibration_is_none(qapp, inputs):
+    """Calling the slot before a calibration exists shouldn't crash."""
+    map_path, assn_path, out = inputs
+
+    w = MainWindow(map_path=map_path, assignments_path=assn_path, output_dir=out)
+    try:
+        step = w._steps[0].widget
+        # No calibration set, no editor built. The slot should still
+        # save the session (no-op effectively) and return cleanly.
+        assert w.session.calibration is None
+        step._on_undo_index_changed(0)  # must not raise
+    finally:
+        w.close()
+
+
+def test_undo_index_changed_clears_status_to_ok_when_no_issues(qapp, inputs):
+    """If every issue is fixed, the badge should drop to OK."""
+    map_path, assn_path, out = inputs
+
+    w = MainWindow(map_path=map_path, assignments_path=assn_path, output_dir=out)
+    try:
+        cal = _two_room_cal_with_orphan(map_path)
+        w.session.calibration = cal
+        step = w._steps[0].widget
+        step.on_activated()
+
+        # Seed with WARNING (orphan).
+        w.set_step_status(
+            "calibrate", StepStatus.WARNING, issues=["seeded warning"]
+        )
+
+        # Fix the orphan.
+        from dataclasses import replace as dc_replace
+
+        for i, lab in enumerate(cal.labels):
+            if lab.id == "1480":
+                cal.labels[i] = dc_replace(lab, room_id=1)
+                break
+
+        step._on_undo_index_changed(0)
+
+        assert w._steps[0].status == StepStatus.OK
+        assert w._steps[0].issues == []
+    finally:
+        w.close()

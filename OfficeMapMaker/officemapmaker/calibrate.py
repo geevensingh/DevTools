@@ -49,6 +49,7 @@ from .geometry import (
     mask_contains_point,
     mask_to_rle,
     pole_of_inaccessibility,
+    rle_to_mask,
 )
 
 
@@ -470,9 +471,136 @@ def _find_containing_room(
     return None
 
 
+def revalidate_calibration(cal: Calibration) -> list[CalibrationIssue]:
+    """Recompute the calibration issue list from a Calibration object alone.
+
+    Unlike :func:`calibrate_map`, this does **not** re-run OCR or
+    connected-components analysis -- it just re-evaluates the issue
+    checks that depend only on the current state of the Calibration
+    (label / room assignments, polygons, bboxes). Cheap enough to call
+    after every wizard edit so the issue count + step badge update
+    live as the user fixes problems.
+
+    Issue codes produced are a strict subset of :func:`calibrate_map`'s:
+    ``no_rooms_detected``, ``no_labels_detected``, ``orphan_label``,
+    ``label_outside_assigned_room``, ``orphan_room``. The check
+    "label_outside_assigned_room" can additionally fire when a label
+    references a ``room_id`` that no longer exists (e.g. the user
+    deleted the room without reassigning).
+
+    Memory: room masks are materialized one room at a time and
+    discarded between rooms (each mask is H*W bytes, so on a
+    4000x5000 map ~20 MB; holding 200 of them at once would be
+    multi-GB). Worst-case wall time on a ~200-room map is well
+    under a second.
+    """
+    issues: list[CalibrationIssue] = []
+
+    if not cal.rooms:
+        issues.append(
+            CalibrationIssue(
+                severity="error",
+                code="no_rooms_detected",
+                message=(
+                    "the calibration has no rooms; add at least one room "
+                    "polygon before continuing"
+                ),
+            )
+        )
+    if not cal.labels:
+        issues.append(
+            CalibrationIssue(
+                severity="error",
+                code="no_labels_detected",
+                message=(
+                    "the calibration has no labels; add at least one label "
+                    "before continuing"
+                ),
+            )
+        )
+
+    rooms_by_id: dict[int, Any] = {r.id: r for r in cal.rooms}
+
+    # Group labels by their assigned room so we materialize each room
+    # mask at most once and discard it before moving on.
+    labels_by_room: dict[int, list[Any]] = {}
+    orphan_labels: list[Any] = []
+    for label in cal.labels:
+        if label.room_id is None:
+            orphan_labels.append(label)
+        else:
+            labels_by_room.setdefault(label.room_id, []).append(label)
+
+    for label in orphan_labels:
+        issues.append(
+            CalibrationIssue(
+                severity="warning",
+                code="orphan_label",
+                message=(
+                    f"label {label.id!r} at bbox {label.bbox} is not "
+                    "assigned to any room; it will be ignored unless you "
+                    "assign a room"
+                ),
+            )
+        )
+
+    # Per-room pass: check each label's bbox center is inside its
+    # room's polygon. Done one room at a time so only one (potentially
+    # large) mask is in memory at any moment.
+    for room_id in sorted(labels_by_room):
+        room = rooms_by_id.get(room_id)
+        if room is None:
+            for label in labels_by_room[room_id]:
+                issues.append(
+                    CalibrationIssue(
+                        severity="error",
+                        code="label_outside_assigned_room",
+                        message=(
+                            f"label {label.id!r} is assigned to room "
+                            f"{room_id}, which no longer exists; reassign "
+                            "or delete this label"
+                        ),
+                    )
+                )
+            continue
+
+        mask = rle_to_mask(room.polygon_rle)
+        for label in labels_by_room[room_id]:
+            if not mask_contains_point(mask, bbox_center(label.bbox)):
+                issues.append(
+                    CalibrationIssue(
+                        severity="error",
+                        code="label_outside_assigned_room",
+                        message=(
+                            f"label {label.id!r} (bbox {label.bbox}) is "
+                            f"not inside its assigned room {room_id}"
+                        ),
+                    )
+                )
+
+    # Rooms with no labels are warnings.
+    referenced_room_ids = set(labels_by_room)
+    for room in cal.rooms:
+        if room.id not in referenced_room_ids:
+            issues.append(
+                CalibrationIssue(
+                    severity="warning",
+                    code="orphan_room",
+                    message=(
+                        f"room {room.id} (area {room.area_px}px, bbox "
+                        f"{room.bbox}) has no label; it will be ignored "
+                        "unless you add one"
+                    ),
+                )
+            )
+
+    return issues
+
+
 __all__ = [
     "CalibrationIssue",
     "TesseractNotFoundError",
     "calibrate_map",
     "find_tesseract",
+    "revalidate_calibration",
 ]

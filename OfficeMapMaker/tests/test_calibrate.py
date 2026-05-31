@@ -27,6 +27,7 @@ from officemapmaker.calibrate import (
     _LABEL_PATTERN,
     calibrate_map,
     find_tesseract,
+    revalidate_calibration,
 )
 from officemapmaker.geometry import ConnectedComponent
 
@@ -381,3 +382,121 @@ def test_calibrate_map_via_pipeline_runner_blocking(tmp_path: Path):
 # ---------------------------------------------------------------------------
 # CLI integration
 # ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# revalidate_calibration() -- cheap re-check used by the wizard after each edit
+# ---------------------------------------------------------------------------
+
+
+def _two_room_calibration(tmp_path: Path):
+    """Build a clean 2-room/2-label calibration via _build_calibration."""
+    components = [
+        _square_cc(1, 10, 10, 100),
+        _square_cc(2, 200, 10, 100),
+    ]
+    ocr_labels = [
+        _ocr("1480", (40, 40, 30, 20)),
+        _ocr("1481", (230, 40, 30, 20)),
+    ]
+    map_path = tmp_path / "map.png"
+    map_path.write_bytes(b"\x89PNG\r\n\x1a\nfake")
+    cal, _ = _build_calibration(
+        map_path=map_path, components=components, ocr_labels=ocr_labels
+    )
+    return cal
+
+
+def test_revalidate_clean_calibration_returns_empty(tmp_path: Path):
+    cal = _two_room_calibration(tmp_path)
+    assert revalidate_calibration(cal) == []
+
+
+def test_revalidate_flags_orphan_label_after_user_unassigns(tmp_path: Path):
+    from dataclasses import replace as dc_replace
+
+    cal = _two_room_calibration(tmp_path)
+    # Simulate the user unassigning a label by setting room_id to None.
+    cal.labels[0] = dc_replace(cal.labels[0], room_id=None)
+
+    issues = revalidate_calibration(cal)
+    codes = [(i.severity, i.code) for i in issues]
+    assert ("warning", "orphan_label") in codes
+    # And the room that lost its only label now becomes an orphan_room.
+    assert ("warning", "orphan_room") in codes
+
+
+def test_revalidate_flags_label_outside_assigned_room(tmp_path: Path):
+    from dataclasses import replace as dc_replace
+
+    cal = _two_room_calibration(tmp_path)
+    # Move label 1480's bbox to coordinates outside room 1.
+    cal.labels[0] = dc_replace(cal.labels[0], bbox=(900, 900, 30, 20))
+
+    issues = revalidate_calibration(cal)
+    codes = [(i.severity, i.code) for i in issues]
+    assert ("error", "label_outside_assigned_room") in codes
+
+
+def test_revalidate_flags_label_referencing_deleted_room(tmp_path: Path):
+    cal = _two_room_calibration(tmp_path)
+    # Simulate the user deleting room 1 without reassigning label 1480.
+    cal.rooms = [r for r in cal.rooms if r.id != 1]
+
+    issues = revalidate_calibration(cal)
+    codes = [(i.severity, i.code) for i in issues]
+    assert ("error", "label_outside_assigned_room") in codes
+    # The "no longer exists" branch should fire with a recognisable message.
+    msgs = [i.message for i in issues if i.code == "label_outside_assigned_room"]
+    assert any("no longer exists" in m for m in msgs), msgs
+
+
+def test_revalidate_flags_orphan_room_when_label_deleted(tmp_path: Path):
+    cal = _two_room_calibration(tmp_path)
+    # Simulate deleting the only label that referenced room 1.
+    cal.labels = [lab for lab in cal.labels if lab.id != "1480"]
+
+    issues = revalidate_calibration(cal)
+    codes = [(i.severity, i.code) for i in issues]
+    assert ("warning", "orphan_room") in codes
+    # Room 2 still has its label so no orphan for it.
+    msgs = [i.message for i in issues if i.code == "orphan_room"]
+    assert all("room 1 " in m for m in msgs), msgs
+
+
+def test_revalidate_no_rooms_is_error(tmp_path: Path):
+    cal = _two_room_calibration(tmp_path)
+    cal.rooms = []
+    issues = revalidate_calibration(cal)
+    codes = [(i.severity, i.code) for i in issues]
+    assert ("error", "no_rooms_detected") in codes
+
+
+def test_revalidate_no_labels_is_error(tmp_path: Path):
+    cal = _two_room_calibration(tmp_path)
+    cal.labels = []
+    issues = revalidate_calibration(cal)
+    codes = [(i.severity, i.code) for i in issues]
+    assert ("error", "no_labels_detected") in codes
+
+
+def test_revalidate_count_decreases_as_user_fixes_issues(tmp_path: Path):
+    """The behaviour the wizard relies on: count goes down as edits are made."""
+    from dataclasses import replace as dc_replace
+
+    cal = _two_room_calibration(tmp_path)
+    # Start broken: both labels unassigned.
+    cal.labels[0] = dc_replace(cal.labels[0], room_id=None)
+    cal.labels[1] = dc_replace(cal.labels[1], room_id=None)
+
+    n_initial = len(revalidate_calibration(cal))
+    # Fix one: reassign label 1480 to room 1.
+    cal.labels[0] = dc_replace(cal.labels[0], room_id=1)
+    n_after_one_fix = len(revalidate_calibration(cal))
+    # Fix the other: reassign label 1481 to room 2.
+    cal.labels[1] = dc_replace(cal.labels[1], room_id=2)
+    n_after_two_fixes = len(revalidate_calibration(cal))
+
+    assert n_after_one_fix < n_initial
+    assert n_after_two_fixes < n_after_one_fix
+    assert n_after_two_fixes == 0
