@@ -632,6 +632,69 @@ class AddWallPatchCommand(QtGui.QUndoCommand):
             self._on_change(WallPatchChange(structural=True))
 
 
+class DeleteWallPatchCommand(QtGui.QUndoCommand):
+    """Remove an existing wall-patch line segment from the calibration (undoable).
+
+    Mirror of :class:`DeleteRoomCommand` on the wall-patch side, simpler
+    because wall patches don't carry cross-references the way rooms do
+    (no labels point at a wall_patch_index). The patch tuple is
+    snapshotted at construction so undo can restore the exact same
+    ``(x1, y1, x2, y2)`` at the original list index — preserving the
+    indices of every patch that originally came after it.
+
+    Like :class:`AddWallPatchCommand` this is a structural change; the
+    canvas rebuilds its wall-patch overlay layer wholesale rather than
+    splicing indices (insert/remove shifts every subsequent patch's
+    index, and the cached fill mask must be invalidated regardless).
+    """
+
+    def __init__(
+        self,
+        calibration: Calibration,
+        patch_index: int,
+        *,
+        on_change: Optional[WallPatchChangeCallback] = None,
+    ) -> None:
+        if not (0 <= patch_index < len(calibration.wall_patches)):
+            raise IndexError(
+                f"DeleteWallPatchCommand: patch_index {patch_index} out of range "
+                f"(have {len(calibration.wall_patches)} wall patches)"
+            )
+        snapshot = calibration.wall_patches[patch_index]
+        # Coerce to a plain tuple of ints so undo's re-insert puts back a
+        # tuple identical in shape to AddWallPatchCommand's contract.
+        self._patch: tuple[int, int, int, int] = (
+            int(snapshot[0]),
+            int(snapshot[1]),
+            int(snapshot[2]),
+            int(snapshot[3]),
+        )
+        super().__init__(
+            f"delete wall patch ({self._patch[0]},{self._patch[1]})→"
+            f"({self._patch[2]},{self._patch[3]})"
+        )
+        self._cal = calibration
+        self._index = patch_index
+        self._on_change = on_change
+
+    def redo(self) -> None:  # noqa: D401 — Qt API
+        if not (0 <= self._index < len(self._cal.wall_patches)):
+            # Concurrent edit pulled the rug — log silently rather than crash.
+            return
+        del self._cal.wall_patches[self._index]
+        if self._on_change is not None:
+            self._on_change(WallPatchChange(structural=True))
+
+    def undo(self) -> None:  # noqa: D401 — Qt API
+        # Re-insert at the original index. If the list has grown beyond
+        # that index, the resurrected patch still occupies the same
+        # logical slot it had before deletion.
+        insert_at = min(self._index, len(self._cal.wall_patches))
+        self._cal.wall_patches.insert(insert_at, self._patch)
+        if self._on_change is not None:
+            self._on_change(WallPatchChange(structural=True))
+
+
 __all__ = [
     "AddLabelCommand",
     "AddRoomCommand",
@@ -640,6 +703,7 @@ __all__ = [
     "ChangeRoomLinkCommand",
     "DeleteLabelCommand",
     "DeleteRoomCommand",
+    "DeleteWallPatchCommand",
     "EditLabelIdCommand",
     "EditLabelNotesCommand",
     "LabelChange",

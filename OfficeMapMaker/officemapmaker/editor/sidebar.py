@@ -79,9 +79,11 @@ class InspectorPanel(QtWidgets.QWidget):
         self._empty = self._build_empty_widget()
         self._label_form, self._label_widgets = self._build_label_form()
         self._room_form, self._room_widgets = self._build_room_form()
+        self._wall_patch_form, self._wall_patch_widgets = self._build_wall_patch_form()
         self._stack.addWidget(self._empty)
         self._stack.addWidget(self._label_form)
         self._stack.addWidget(self._room_form)
+        self._stack.addWidget(self._wall_patch_form)
 
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
@@ -98,6 +100,11 @@ class InspectorPanel(QtWidgets.QWidget):
         # nothing or a label is selected.
         self._current_room_id: Optional[int] = None
 
+        # Track which wall patch is currently shown so external callers
+        # (controller, tests) can ask "what does the inspector think is
+        # selected right now?" without round-tripping through the canvas.
+        self._current_wall_patch_index: Optional[int] = None
+
         # Suppress signals while we programmatically repopulate fields
         # — without this guard, ``setText`` would re-emit ``editingFinished``
         # and bounce a phantom edit through the undo stack.
@@ -108,9 +115,18 @@ class InspectorPanel(QtWidgets.QWidget):
     def current_label_index(self) -> Optional[int]:
         return self._current_label_index
 
+    def current_wall_patch_index(self) -> Optional[int]:
+        """Index of the wall patch currently shown in the inspector, or None.
+
+        Parallel to :meth:`current_label_index` on the wall-patch side.
+        Returns ``None`` when the empty / label / room face is showing.
+        """
+        return self._current_wall_patch_index
+
     def show_nothing(self) -> None:
         self._current_label_index = None
         self._current_room_id = None
+        self._current_wall_patch_index = None
         # Selection cleared → any in-flight pick-room mode no longer has a
         # target label, so reset the button visually. The controller is
         # responsible for taking the canvas out of pick mode in response
@@ -128,6 +144,7 @@ class InspectorPanel(QtWidgets.QWidget):
         """Populate the label-edit form for ``label`` and switch to it."""
         self._current_label_index = label_index
         self._current_room_id = None
+        self._current_wall_patch_index = None
         self._suppress_signals = True
         try:
             w = self._label_widgets
@@ -167,6 +184,7 @@ class InspectorPanel(QtWidgets.QWidget):
         workflow ("the OCR missed this room entirely").
         """
         self._current_label_index = None
+        self._current_wall_patch_index = None
         # A room is selected — any in-flight pick-room mode no longer has a
         # target label, so reset the picker button visually too.
         self.set_room_pick_active(False)
@@ -188,6 +206,35 @@ class InspectorPanel(QtWidgets.QWidget):
         self._current_room_id = room.id
         w["create_button"].setVisible(not labels)
         self._stack.setCurrentWidget(self._room_form)
+
+    def show_wall_patch(
+        self,
+        *,
+        patch_index: int,
+        endpoints: tuple[float, float, float, float],
+    ) -> None:
+        """Populate the read-only wall-patch summary and switch to it.
+
+        Wall patches have no editable fields in v1 — the supported
+        workflow is delete-and-redraw (via the two-click add tool).
+        Showing the endpoints lets the user confirm they've selected
+        the right patch before pressing Delete.
+        """
+        self._current_label_index = None
+        self._current_room_id = None
+        self._current_wall_patch_index = patch_index
+        # A wall patch is selected — any in-flight pick-room mode no longer
+        # has a target label, so reset the picker button visually too.
+        self.set_room_pick_active(False)
+        w = self._wall_patch_widgets
+        x1, y1, x2, y2 = endpoints
+        w["index"].setText(f"wall patch #{patch_index}")
+        # Coords as ints — wall patches are stored as integer pixel
+        # coordinates (see AddWallPatchCommand's tuple-of-int coercion),
+        # so showing fractional values would be misleading.
+        w["start"].setText(f"({int(round(x1))}, {int(round(y1))})")
+        w["end"].setText(f"({int(round(x2))}, {int(round(y2))})")
+        self._stack.setCurrentWidget(self._wall_patch_form)
 
     # ----------------------------------------------------- build UI
 
@@ -335,6 +382,54 @@ class InspectorPanel(QtWidgets.QWidget):
             "bbox": bbox_lbl,
             "labels": labels_lbl,
             "create_button": create_button,
+        }
+        return wrapper, widgets
+
+    def _build_wall_patch_form(self) -> tuple[QtWidgets.QWidget, dict]:
+        box = QtWidgets.QGroupBox("Wall patch")
+        form = QtWidgets.QFormLayout(box)
+        form.setLabelAlignment(QtCore.Qt.AlignmentFlag.AlignRight)
+
+        index_lbl = QtWidgets.QLabel()
+        index_lbl.setStyleSheet("color: #888; font-size: 11px;")
+        form.addRow(index_lbl)
+
+        start_lbl = QtWidgets.QLabel()
+        start_lbl.setTextInteractionFlags(
+            QtCore.Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        form.addRow("Start (x, y):", start_lbl)
+
+        end_lbl = QtWidgets.QLabel()
+        end_lbl.setTextInteractionFlags(
+            QtCore.Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        form.addRow("End (x, y):", end_lbl)
+
+        # Wall patches are intentionally read-only here: the supported
+        # edit workflow is delete-and-redraw (the two-click add tool
+        # makes drawing a replacement just as fast as nudging endpoints,
+        # and avoids a whole class of stale-mask bugs). Mention the
+        # delete shortcut so the user knows what to do next.
+        hint = QtWidgets.QLabel(
+            "Wall-patch endpoints are read-only. To adjust a patch, "
+            "delete it (Delete / Backspace) and redraw with "
+            "Tools → Add wall patch (Shift+W)."
+        )
+        hint.setWordWrap(True)
+        hint.setStyleSheet("color: #888; font-size: 11px;")
+
+        wrapper = QtWidgets.QWidget()
+        wrap_layout = QtWidgets.QVBoxLayout(wrapper)
+        wrap_layout.setContentsMargins(0, 0, 0, 0)
+        wrap_layout.addWidget(box)
+        wrap_layout.addWidget(hint)
+        wrap_layout.addStretch(1)
+
+        widgets = {
+            "index": index_lbl,
+            "start": start_lbl,
+            "end": end_lbl,
         }
         return wrapper, widgets
 

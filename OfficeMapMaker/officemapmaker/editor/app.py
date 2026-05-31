@@ -701,19 +701,24 @@ class EditorMainWindow(QtWidgets.QMainWindow):
             self._filter_dock._orphans_only_checkbox().blockSignals(False)  # noqa: SLF001
 
     def _on_delete_label(self) -> None:
-        """Delete the selected label or room; flash a hint if nothing's selected.
+        """Delete the selected label, wall patch, or room; flash a hint if nothing's selected.
 
-        Tries label first (mirrors selection priority in the controller —
-        labels are smaller and a click usually meant the label). Falls
-        back to room if no label is selected. Both deletions are
+        Cascade order: label first, then wall patch, then room. Mirrors
+        the selection priority in :meth:`EditorController._handle_selection_changed`
+        — labels are the smallest hit target so a click usually meant the
+        label; wall patches are narrow line overlays the user deliberately
+        drew so clicking on one almost always means the patch; rooms are
+        the catch-all under everything else. All three deletions are
         undoable on the same stack.
         """
         if self._controller.delete_selected_label():
             return
+        if self._controller.delete_selected_wall_patch():
+            return
         if self._controller.delete_selected_room():
             return
         self.statusBar().showMessage(
-            "Select a label or room first (click one on the map).",
+            "Select a label, wall patch, or room first (click one on the map).",
             2500,
         )
 

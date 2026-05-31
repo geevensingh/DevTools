@@ -33,13 +33,14 @@ from .commands import (
     ChangeRoomLinkCommand,
     DeleteLabelCommand,
     DeleteRoomCommand,
+    DeleteWallPatchCommand,
     EditLabelIdCommand,
     EditLabelNotesCommand,
     LabelChange,
     RoomChange,
     WallPatchChange,
 )
-from .items import LabelItem, RoomItem, compute_label_status, find_duplicate_label_ids
+from .items import LabelItem, RoomItem, WallPatchItem, compute_label_status, find_duplicate_label_ids
 from .sidebar import InspectorPanel
 
 
@@ -286,11 +287,16 @@ class EditorController(QtCore.QObject):
     # ----------------------------------------------------- selection
 
     def _handle_selection_changed(self) -> None:
-        """Show the selected item in the inspector (label > room priority).
+        """Show the selected item in the inspector (label > wall_patch > room).
 
         If the user has multi-selected (rare with the current drag-mode but
         possible) we just show the first selected item — multi-edit comes
         later if ever needed.
+
+        Priority order: labels first (smallest, most-explicit click target),
+        then wall patches (narrow line overlays the user deliberately drew —
+        clicking on one almost always means "I want this patch"), then
+        rooms (the catch-all polygon under everything else).
         """
         try:
             selected = self._canvas.scene().selectedItems()
@@ -300,8 +306,12 @@ class EditorController(QtCore.QObject):
             return
         # Prefer labels over rooms when both are under the cursor — labels
         # are smaller (so a label-on-room click usually means "I wanted the
-        # label").
+        # label"). Wall patches sit in between: more specific than a room,
+        # less specific than a label.
         label_item = next((it for it in selected if isinstance(it, LabelItem)), None)
+        wall_patch_item = next(
+            (it for it in selected if isinstance(it, WallPatchItem)), None
+        )
         room_item = next((it for it in selected if isinstance(it, RoomItem)), None)
 
         if label_item is not None:
@@ -310,6 +320,11 @@ class EditorController(QtCore.QObject):
                 label=label_item.label,
                 label_index=label_item.label_index,
                 available_room_ids=available_room_ids,
+            )
+        elif wall_patch_item is not None:
+            self._inspector.show_wall_patch(
+                patch_index=wall_patch_item.patch_index,
+                endpoints=wall_patch_item.endpoints,
             )
         elif room_item is not None:
             room = room_item.room
@@ -1064,6 +1079,45 @@ class EditorController(QtCore.QObject):
             self._cal,
             room_index,
             on_change=self._on_room_change,
+        )
+        self._undo_stack.push(cmd)
+        return True
+
+    # --------------------------------------------------- delete wall patch
+
+    def delete_selected_wall_patch(self) -> bool:
+        """Push a ``DeleteWallPatchCommand`` for the currently-selected patch.
+
+        Returns:
+            ``True`` if a wall patch was selected and a delete command was
+            pushed, ``False`` if there was nothing to delete. Used by the
+            unified "Delete selected" app-level action to decide whether
+            to show the no-selection status-bar hint.
+
+        Selection priority in :meth:`_handle_selection_changed` is
+        label > wall_patch > room, so the unified action checks label and
+        wall patch first (in that order) and falls through to room last.
+        Caller is expected to invoke them in that same cascade order.
+        """
+        try:
+            selected = self._canvas.scene().selectedItems()
+        except RuntimeError:
+            return False
+        patch_item = next(
+            (it for it in selected if isinstance(it, WallPatchItem)), None
+        )
+        if patch_item is None:
+            return False
+        patch_index = patch_item.patch_index
+        # Defensive bounds check: the item's stored patch_index is set at
+        # construction and could be stale if a structural rebuild raced
+        # this call (shouldn't happen on the main thread, but guard).
+        if not (0 <= patch_index < len(self._cal.wall_patches)):
+            return False
+        cmd = DeleteWallPatchCommand(
+            self._cal,
+            patch_index,
+            on_change=self._on_wall_patch_change,
         )
         self._undo_stack.push(cmd)
         return True
