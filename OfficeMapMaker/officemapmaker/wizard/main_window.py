@@ -353,11 +353,14 @@ class MainWindow(QtWidgets.QMainWindow):
         # finish loading without a circular import.
         from .steps.base import StepBase
         from .steps.calibrate_step import CalibrateStep
+        from .steps.validate_labels_step import ValidateLabelsStep
 
         self._step_base_cls = StepBase  # cached for _activate_step lifecycle dispatch
         for entry in self._steps:
             if entry.step_id == "calibrate":
                 entry.widget = CalibrateStep(self)
+            elif entry.step_id == "validate_labels":
+                entry.widget = ValidateLabelsStep(self)
             else:
                 entry.widget = self._make_placeholder_step(entry)
             self._content_stack.addWidget(entry.widget)
@@ -514,6 +517,27 @@ class MainWindow(QtWidgets.QMainWindow):
     def _on_next(self) -> None:
         if self._can_advance() and self._current_index < len(self._steps) - 1:
             self._sidebar.setCurrentRow(self._current_index + 1)
+
+    def navigate_to_step(self, new_index: int) -> None:
+        """Programmatic navigation that bypasses the "invalidate
+        downstream?" prompt.
+
+        Used by step widgets' "Show in editor" / "Jump to step" action
+        buttons -- the user wants to look at a previous step, not
+        wipe out cached results. Cached results stay intact. If the
+        user actually edits the previous step's data, the relevant
+        step widget is responsible for cascading invalidation.
+        """
+        if new_index < 0 or new_index >= len(self._steps):
+            return
+        if new_index == self._current_index:
+            return
+        # Sync the sidebar selection without re-firing _on_sidebar_row_changed
+        # (which would re-trigger the invalidate-prompt path).
+        self._sidebar.blockSignals(True)
+        self._sidebar.setCurrentRow(new_index)
+        self._sidebar.blockSignals(False)
+        self._activate_step(new_index)
 
     def _activate_step(self, new_index: int) -> None:
         # Notify the outgoing step (if it's a StepBase) before swapping
