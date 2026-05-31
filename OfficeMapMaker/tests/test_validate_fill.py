@@ -370,7 +370,7 @@ def test_render_leak_overlay_raises_for_unknown_office(tmp_path):
     cv2.imwrite(str(map_path), canvas)
     cal = _build_cal(labels=[], rooms=[])
     bogus = FillLeak(
-        severity="error",
+        severity="warning",
         code="leak_oversized",
         office_id="999",
         room_id=1,
@@ -451,7 +451,8 @@ def test_cli_validate_fill_clean_run_returns_0(tmp_path):
     assert overview.exists()
 
 
-def test_cli_validate_fill_with_leaks_returns_1(tmp_path):
+def test_cli_validate_fill_with_leaks_returns_0_advisory(tmp_path):
+    """Leaks are advisory after render-time auto-clipping: exit 0, overlays still written."""
     from officemapmaker.__main__ import build_parser, dispatch
 
     h, w = 200, 320
@@ -478,7 +479,7 @@ def test_cli_validate_fill_with_leaks_returns_1(tmp_path):
     args = build_parser().parse_args(
         ["validate", "fill", "--map", str(map_path), "--calibration", str(cal_path)]
     )
-    assert dispatch(args) == 1
+    assert dispatch(args) == 0
     leaks_dir = cal_path.with_name(cal_path.stem + "_leaks")
     assert leaks_dir.exists()
     assert any(leaks_dir.iterdir()), "expected at least one leak overlay PNG"

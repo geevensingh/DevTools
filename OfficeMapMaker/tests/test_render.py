@@ -322,13 +322,19 @@ def test_render_composite_layout_with_unknown_team_emits_error(tmp_path):
     assert any(i.code == "palette_team_missing" for i in result.issues)
 
 
-def test_render_composite_detects_unexpected_pixel_changes_via_leaky_calibration(tmp_path):
-    """If the wall is missing (leak), the fill spills out and the diff check fires.
+def test_render_composite_clips_leaks_to_polygon_and_warns(tmp_path):
+    """If the wall is missing (leak), the fill is clipped to the polygon.
 
-    To simulate this cleanly, we craft a map where there is *no* dividing
-    wall between two rooms, but the calibration still declares two
-    separate seeds. The flood-fill will spill into a region the layout
-    didn't expect; the safety net should catch it.
+    Previous behavior: fill spilled out and the diff-check safety net
+    fired an ``unexpected_pixel_change`` error, blocking the render.
+
+    Current behavior: render_composite clips ``filled & polygon`` before
+    painting, so leaks cannot reach the safety net. A ``fill_leak_clipped``
+    warning surfaces the problem without blocking the build.
+
+    To simulate cleanly, we craft a map where there is *no* dividing wall
+    between two rooms, but the calibration declares the left-half polygon
+    only. The flood-fill spills past the polygon; the clip catches it.
     """
     h, w = 400, 600
     img = np.full((h, w, 3), 255, dtype=np.uint8)
@@ -337,8 +343,8 @@ def test_render_composite_detects_unexpected_pixel_changes_via_leaky_calibration
     map_path = tmp_path / "map.png"
     cv2.imwrite(str(map_path), img)
 
-    # Calibration claims two rooms separated by an imaginary line at x=250,
-    # but the floor-plan has no wall there.
+    # Calibration claims a room covering only the LEFT half, but the
+    # floor-plan has no wall at x=250 — the fill will spill into the right.
     mask_a = np.zeros((h, w), dtype=bool)
     mask_a[52:349, 52:249] = True  # only the left half
     room_a = Room(
@@ -350,7 +356,6 @@ def test_render_composite_detects_unexpected_pixel_changes_via_leaky_calibration
         room_id=1,
         fill_seed=(150, 200), ocr_confidence=0.95,
     )
-    # Only one office in the calibration so we have one fill.
     cal = Calibration(
         map_image="map.png", map_hash="sha256:leaky",
         labels=[label_a], rooms=[room_a], wall_patches=[],
@@ -362,10 +367,27 @@ def test_render_composite_detects_unexpected_pixel_changes_via_leaky_calibration
     out = tmp_path / "composite.png"
     result = render_composite(map_path, cal, layout, assignments, out)
 
-    # The fill leaks past x=250 into the part not covered by room_a's polygon
-    # nor by any text bbox → unexpected pixels reported.
-    assert result.unexpected_pixel_count > 0
-    assert any(i.code == "unexpected_pixel_change" for i in result.issues)
+    # Safety net does NOT fire — leak was clipped before painting.
+    assert result.unexpected_pixel_count == 0
+    assert not any(i.code == "unexpected_pixel_change" for i in result.issues)
+    # No error-level issues at all.
+    assert result.errors == [], f"expected no errors, got {result.errors}"
+    # But a warning DID surface to flag the underlying calibration problem.
+    leak_warnings = [i for i in result.issues if i.code == "fill_leak_clipped"]
+    assert leak_warnings, f"expected fill_leak_clipped warning, got {result.issues}"
+    assert leak_warnings[0].office_id == "100"
+    # Render produced the composite file successfully.
+    assert out.exists() and out.stat().st_size > 200
+
+    # Confirm the right-half (outside polygon) was NOT painted by reading
+    # back the composite and checking pixels at x > 250 differ from the
+    # team color (still white from the original).
+    composite = cv2.imread(str(out))
+    # Sample a point well inside the would-have-been-leaked area.
+    right_pixel = composite[200, 300]
+    assert tuple(int(v) for v in right_pixel) == (255, 255, 255), (
+        f"pixel inside leak region should still be white; got {right_pixel.tolist()}"
+    )
 
 
 # ---------------------------------------------------------------------------

@@ -25,7 +25,7 @@ letter-size print tiles, and a single printable PDF.
 | Open the calibration review PDF (alternative review surface; auto-rebuilds if you edited the calibration) | `OfficeMapMaker calibrate review --calibration calibration.json` |
 | Confirm calibration is correct | `OfficeMapMaker calibrate confirm --calibration calibration.json` |
 | Check assignments match the map | `OfficeMapMaker validate labels --calibration calibration.json --assignments PEOPLE` |
-| Find flood-fill leaks | `OfficeMapMaker validate fill --map MAP.png --calibration calibration.json` |
+| Find flood-fill leaks (optional health check; render auto-clips leaks) | `OfficeMapMaker validate fill --map MAP.png --calibration calibration.json` |
 | Plan name placement | `OfficeMapMaker layout --map MAP.png --calibration calibration.json --assignments PEOPLE` |
 | Confirm layout is correct | `OfficeMapMaker layout confirm --layout layout.json` |
 | Render the composite | `OfficeMapMaker build --map MAP.png --calibration calibration.json --assignments PEOPLE --layout layout.json` |
@@ -76,8 +76,8 @@ The tool runs as six passes. Each pass produces a **review artifact** (image or 
 you eyeball before confirming the result. The next pass refuses to run until the previous
 one's `.reviewed` sentinel exists and its inputs still match.
 
-That sounds heavy, but it pays off the first time you catch an OCR misread or
-a fill leak before sending the printed map to your team.
+That sounds heavy, but it pays off the first time you catch an OCR misread
+before sending the printed map to your team.
 
 ### Step 1 — Calibrate the map (one time per floor plan)
 
@@ -189,30 +189,43 @@ If clusters of errors appear in one wing, you've probably got a systematic probl
 **Fix flow:** edit the spreadsheet or the calibration, then re-run. There is no `confirm` step
 for this pass — a clean run is its own confirmation.
 
-### Step 3 — Validate fill (find flood-fill leaks)
+### Step 3 — Validate fill (optional: find flood-fill leaks)
 
 ```
 OfficeMapMaker validate fill --map MAP.png --calibration calibration.json
 ```
 
-**What happens:** the tool virtual-flood-fills every `office` room from its seed point
-against a mask built from the map plus any `wall_patches`. It compares the filled area
-to the room polygon and checks that the fill doesn't reach another room's seed.
+**This pass is optional.** The render in Step 5 automatically **clips each
+office's flood-fill to its own room polygon**, so a leak through a missing
+wall pixel can never smear team color into a hallway or another room.
+`validate fill` exists to flag the underlying calibration problem so you
+can fix it at the source — it does not block the build and always exits 0.
 
-**Errors (must fix):**
-- Filled area is too large (> 3× polygon area, or > 3× median office area).
-- One office's fill reaches another office's seed point — the two rooms are connected through a gap.
+**What it does:** virtual-flood-fills every office room from its seed point
+against a mask built from the map plus any `wall_patches`, then compares
+the filled area to the room polygon and checks whether the fill reaches
+another room's seed.
 
-**Review the leak overlays:** `calibration_leaks\room-<id>-<code>.png` shows the
-original map (faded) with the leak in cyan and the involved seed points marked.
-The text report suggests two endpoints to add to `wall_patches`. For example:
+**Warnings it emits (all advisory):**
+- Filled area is much larger than the room polygon (probable wall gap).
+- One office's fill reaches another office's seed (the two rooms are
+  connected through a gap).
+- Filled area is much larger than the median office (the polygon itself
+  may be two rooms merged into one — worth checking in the editor).
+
+**Review the leak overlays:** `calibration_leaks\room-<id>-<code>.png`
+shows the original map (faded) with the leaked region in cyan and the
+involved seed points marked. The text report suggests two endpoints to
+add to `wall_patches`. For example:
 
 > Room 1480 leaks into Room 1481. Suggested patch: `[612, 940, 612, 968]`.
 
-Copy that into `calibration.json.wall_patches`, re-run `validate fill`, and repeat
-until the report is empty. Also browse `calibration_rooms_overview.png` once — it
-colors every room distinctly so you can scan for any merged-room patterns that
-survived.
+If you want the cleanest possible result, copy that into
+`calibration.json.wall_patches` and re-run until the report is empty —
+but you can also just skip ahead to Step 4 and let the renderer's
+auto-clip handle it. Browsing `calibration_rooms_overview.png` once is
+still worthwhile — it colors every room distinctly so you can spot
+merged-room polygons that the editor's add/delete-room tools can fix.
 
 ### Step 4 — Plan name layout
 
@@ -311,6 +324,9 @@ Print the PDF, tape pages together along the overlap, post on the wall, take a v
 3. Type the office number when prompted. `Ctrl-S`, then `calibrate confirm`.
 
 ### "Two rooms are getting merged in flood-fill"
+The render clips each office's fill to its polygon, so a leak no longer
+ruins the composite — but if you want to silence the warning at the
+source:
 1. Open `calibration_leaks\room-<id>-<code>.png`, find the gap visually.
 2. Add the suggested `[x1,y1,x2,y2]` to `wall_patches` in `calibration.json` (no editor support for `wall_patches` yet — hand-edit the JSON).
 3. Re-run `validate fill`. Repeat until clean.
@@ -395,11 +411,11 @@ positions, relocated office-number bbox, leader-line endpoints if any.
 | `calibration.json is older than map.png` | Map image changed | Re-run `calibrate` |
 | `No .reviewed sentinel for calibration.json` | You haven't confirmed yet | Run `calibrate review` then `calibrate confirm` |
 | `Office "1003" is ambiguous (matches 2 labels)` | Duplicate room number across wings | Edit calibration to use `1003-N` / `1003-S`; update spreadsheet to match |
-| `Fill leaked from room 1480 into room 1481` | Open doorway in the map | Add the suggested `wall_patches` entry, re-run `validate fill` |
+| `Fill leaked from room 1480 into room 1481` (warning from `validate fill` or `fill_leak_clipped` warning from `build`) | Open doorway in the map; render auto-clips so the composite is safe. Optional fix: add the suggested `wall_patches` entry, re-run `validate fill`. |
 | `Person "Jane Doe" not placed: office 9999 not on map` | Spreadsheet typo or wrong floor | Fix the spreadsheet row, or add the office to calibration if it was missed |
 | `... is a password-protected or rights-managed Office document` | Spreadsheet is IRM-protected or encrypted | Open it in Excel and **Save As** an unprotected `.xlsx` or `.csv` before running OfficeMapMaker |
-| Composite looks fine but `validate fill` fails | Calibration polygon is itself wrong (two rooms merged in CC) | Add a `wall_patches` entry to split them, re-run `calibrate` (the CC will be recomputed) |
-| `Pixel changed outside any expected region` from `build` | Internal bug, or stale calibration | File a bug; in the meantime re-run `calibrate` |
+| Composite shows a `fill_leak_clipped` warning | Wall gap in the map — the renderer clipped the leak to the polygon, so the composite is correct; the warning is advisory | Optional: add a `wall_patches` entry to silence it. The composite is fine as-is. |
+| `Pixel changed outside any expected region` from `build` | Stale calibration polygon, or layout text placed outside its room polygon | Re-run `calibrate` and re-confirm the layout. (Flood-fill leaks cannot trigger this — they are clipped before painting.) |
 
 ## Glossary
 

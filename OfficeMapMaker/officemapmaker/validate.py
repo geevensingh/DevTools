@@ -414,14 +414,16 @@ def validate_fill(
             overflow = filled & ~polygon
             leaks.append(
                 FillLeak(
-                    severity="error",
+                    severity="warning",
                     code="leak_oversized",
                     office_id=label.id,
                     room_id=room.id,
                     message=(
                         f"office {label.id}: flood-fill covered {filled_area:,} px, "
                         f"which is {filled_area / room.area_px:.1f}× its room polygon "
-                        f"({room.area_px:,} px). The room's walls have a gap."
+                        f"({room.area_px:,} px). The room's walls have a gap. "
+                        f"The render auto-clips this to the polygon so the composite "
+                        f"is safe; adding a wall_patches entry will silence this warning."
                     ),
                     overflow_bbox=_bbox_of_bool_mask(overflow),
                     suggested_patch=_suggest_wall_patch(filled, polygon),
@@ -485,14 +487,16 @@ def validate_fill(
             overflow = (filled & ~polygon) if polygon is not None else filled
             leaks.append(
                 FillLeak(
-                    severity="error",
+                    severity="warning",
                     code="leak_into_other_office",
                     office_id=source.id,
                     room_id=source.room_id,
                     message=(
                         f"office {source.id} flood-fill reached office {other.id}'s "
                         f"seed point ({sx},{sy}) — the two rooms are connected "
-                        f"through a gap. Add a wall_patches entry to close it."
+                        f"through a gap. The render auto-clips each office to its "
+                        f"own polygon so colors stay separate; add a wall_patches "
+                        f"entry to silence this warning."
                     ),
                     leak_into_office_id=other.id,
                     overflow_bbox=_bbox_of_bool_mask(overflow),

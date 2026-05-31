@@ -511,35 +511,57 @@ def render_composite(
             )
             continue
 
-        # Paint the filled interior with the team color; walls stay dark
-        # because we only touch pixels in ``filled``.
-        # OpenCV order is BGR.
-        bgr = (color[2], color[1], color[0])
-        canvas[filled] = bgr
-        # The safety net uses the *polygon* (calibration's claim of where the
-        # room is) as the expected-change region — NOT the actual flood-fill
-        # result. That way, if the fill leaks past the polygon boundary, the
-        # diff check at the end catches it. If a calibration polygon is
-        # unavailable (shouldn't happen post-calibration), fall back to the
-        # fill itself so we don't false-positive every changed pixel.
+        # Clip the flood-fill to the room polygon so that wall-gap leaks
+        # cannot smear team color into hallways or neighbouring offices.
+        # If a leak was detected, surface it as a warning so the user can
+        # still choose to fix the underlying calibration (e.g. by adding
+        # a ``wall_patches`` entry) but the render itself is safe either way.
+        # When no polygon is available (shouldn't happen post-calibration)
+        # we paint the raw flood-fill and trust the diff-check safety net.
         room = rooms_by_id.get(entry.room_id)
         if room is not None:
             polygon = rle_to_mask(room.polygon_rle) > 0
-            expected_change |= polygon
-            if not (filled & polygon).any():
+            leak = filled & ~polygon
+            leak_px = int(leak.sum())
+            if leak_px > 0:
+                issues.append(
+                    RenderIssue(
+                        severity="warning",
+                        code="fill_leak_clipped",
+                        message=(
+                            f"office {entry.office_id} flood-fill leaked {leak_px:,} px "
+                            f"outside its calibration polygon; clipped at render time "
+                            f"so the team color stays inside the room. The source map "
+                            f"has a wall gap — run 'validate fill' for details and "
+                            f"suggested wall_patches if you want to fix it at the source."
+                        ),
+                        office_id=entry.office_id,
+                    )
+                )
+            filled = filled & polygon
+            if not filled.any():
                 issues.append(
                     RenderIssue(
                         severity="warning",
                         code="fill_polygon_mismatch_at_render",
                         message=(
                             f"office {entry.office_id} flood-fill region does not "
-                            f"intersect its calibration polygon — calibration may be stale"
+                            f"intersect its calibration polygon — calibration may be stale; "
+                            f"office will not be colored"
                         ),
                         office_id=entry.office_id,
                     )
                 )
+                continue
+            expected_change |= polygon
         else:
             expected_change |= filled
+
+        # Paint the filled interior with the team color; walls stay dark
+        # because we only touch pixels in ``filled`` (already clipped to the
+        # room polygon above when available). OpenCV order is BGR.
+        bgr = (color[2], color[1], color[0])
+        canvas[filled] = bgr
 
     # ---------- Step 4: white-out original office-number labels, then draw planned text ----------
     placed_text_mask = np.zeros((h, w), dtype=bool)
@@ -651,8 +673,9 @@ def render_composite(
                 message=(
                     f"{unexpected} pixel(s) changed outside any expected region "
                     f"(fill ∪ planned text ∪ legend). Sample coords: {samples}. "
-                    f"Likely cause: flood-fill leak, stale calibration, or layout text "
-                    f"placed outside its room polygon."
+                    f"Likely cause: stale calibration polygon or layout text "
+                    f"placed outside its room polygon (flood-fill leaks are "
+                    f"clipped before painting, so they cannot reach this check)."
                 ),
             )
         )
