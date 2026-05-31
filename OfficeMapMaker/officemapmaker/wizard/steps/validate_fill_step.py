@@ -80,8 +80,9 @@ _ROOM_CENTRIC_CODES = frozenset({"leak_oversized_vs_median"})
 
 def _classify_issues(
     issues: List[FillLeak],
-) -> Tuple[StepStatus, List[str]]:
-    """Map a list of ``FillLeak`` to (step status, stringified messages).
+) -> Tuple[StepStatus, List[str], List[str], List[str]]:
+    """Map a list of ``FillLeak`` to (step status, messages, per-leak
+    codes, per-leak severities).
 
     Since ``e38ddae`` demoted every leak code to ``severity="warning"``,
     we never raise to ERROR here. Any non-ignored leak -> ADVISORY
@@ -98,7 +99,19 @@ def _classify_issues(
         status = StepStatus.ADVISORY
     else:
         status = StepStatus.OK
-    return status, [str(i) for i in issues]
+    # FillLeaks live at ADVISORY level so the chip color stays blue
+    # rather than orange / red; use that for all rows regardless of
+    # the per-issue ``severity`` field (which may still say
+    # "warning" from the validator's own taxonomy).
+    sevs = ["advisory"] * len(issues) if not has_err else [
+        i.severity if i.severity == "error" else "advisory" for i in issues
+    ]
+    return (
+        status,
+        [str(i) for i in issues],
+        [i.code for i in issues],
+        sevs,
+    )
 
 
 def _issue_key(leak: FillLeak) -> str:
@@ -496,9 +509,10 @@ class ValidateFillStep(StepBase):
     def _refresh_status(self) -> None:
         """Push the current (non-ignored) leak set up to MainWindow."""
         visible = self._visible_leaks()
-        status, msgs = _classify_issues(visible)
+        status, msgs, codes, sevs = _classify_issues(visible)
         self.main_window.set_step_status(
-            self.STEP_ID, status, issues=msgs
+            self.STEP_ID, status, issues=msgs,
+            issue_codes=codes, issue_severities=sevs,
         )
 
     def _refresh_summary(self) -> None:

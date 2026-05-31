@@ -35,6 +35,7 @@ W3 additions:
 from __future__ import annotations
 
 import enum
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple
@@ -55,7 +56,7 @@ from ..session import (
 # laptop while leaving room for the sidebar.
 _DEFAULT_WINDOW_SIZE = QtCore.QSize(1366, 800)
 _SIDEBAR_WIDTH = 260
-_ISSUES_PANEL_INITIAL_HEIGHT = 140
+_ISSUES_PANEL_INITIAL_HEIGHT = 200
 
 
 # QSettings keys for persisted window geometry. The org / app name pair
@@ -165,6 +166,129 @@ class _StepEntry:
     # ``None`` entries mean "this issue has no single location" (e.g.
     # "no rooms detected") and clicking them is a no-op.
     issue_targets: List[Optional[Tuple[int, int]]] = field(default_factory=list)
+    # Parallel to ``issues``: the short machine-readable code for each
+    # issue (e.g. ``"orphan_room"``, ``"leak_into_other_office"``) and
+    # its severity (``"error"`` / ``"warning"`` / ``"info"``). Used by
+    # the issues panel to group identical kinds under filter chips and
+    # to color those chips by severity. Empty strings are valid for
+    # callers that don't yet pass a code (the chip row will then hide).
+    issue_codes: List[str] = field(default_factory=list)
+    issue_severities: List[str] = field(default_factory=list)
+
+
+def _pad_parallel(
+    values: Optional[List], length: int, *, fill
+) -> List:
+    """Return a list of exactly ``length`` items, padding / truncating
+    ``values``. Used to keep ``_StepEntry``'s parallel issue lists in
+    lock-step with the message list even when a caller passes the
+    wrong length (or ``None``)."""
+    if values is None:
+        return [fill] * length
+    out = list(values)
+    if len(out) < length:
+        out += [fill] * (length - len(out))
+    return out[:length]
+
+
+# Severity rank used by :func:`_max_severity` to pick the "worst" of a
+# set. Unknown / empty severities sort lowest. ``advisory`` falls
+# between ``info`` and ``warning``: it's stronger than a hint but
+# weaker than an actual warning.
+_SEVERITY_RANK: Dict[str, int] = {
+    "": 0,
+    "info": 1,
+    "advisory": 2,
+    "warning": 3,
+    "error": 4,
+}
+
+
+def _max_severity(a: str, b: str) -> str:
+    """Return whichever severity is worst (highest rank)."""
+    return a if _SEVERITY_RANK.get(a, 0) >= _SEVERITY_RANK.get(b, 0) else b
+
+
+# Colors for the chip border (severity-coded). Keep these subtle so the
+# chips don't fight the rest of the UI; full color is only used on the
+# 1-2px border, not the fill.
+_CHIP_SEVERITY_COLOR: Dict[str, str] = {
+    "error": "#c62828",       # red 800
+    "warning": "#ef6c00",     # orange 800
+    "advisory": "#1565c0",    # blue 800
+    "info": "#1565c0",
+    "": "#888888",
+}
+
+
+def _chip_stylesheet(severity: str) -> str:
+    """Return a QToolButton stylesheet for a chip of this severity.
+
+    The chip uses a colored border to encode severity, white fill when
+    inactive, and a tinted fill when checked so the active filter is
+    unmistakable at a glance.
+    """
+    border = _CHIP_SEVERITY_COLOR.get(severity, "#888888")
+    # Pre-multiplied 20%-opacity tint for the checked state.
+    tint = {
+        "error": "#fde7e7",
+        "warning": "#ffeed5",
+        "advisory": "#e3effa",
+        "info": "#e3effa",
+        "": "#eeeeee",
+    }.get(severity, "#eeeeee")
+    return (
+        "QToolButton {"
+        f"  border: 1px solid {border};"
+        "  border-radius: 10px;"
+        "  padding: 2px 8px;"
+        "  background: white;"
+        f"  color: {border};"
+        "  font-size: 11px;"
+        "}"
+        "QToolButton:hover {"
+        f"  background: {tint};"
+        "}"
+        "QToolButton:checked {"
+        f"  background: {tint};"
+        f"  border: 2px solid {border};"
+        "  font-weight: bold;"
+        "}"
+    )
+
+
+# Pattern used to peel off the leading "[severity] code: " prefix that
+# ``CalibrationIssue.__str__`` and friends prepend to every message.
+# Used when a single-kind chip is active so the rows aren't dominated
+# by repeated prefix text.
+_PREFIX_RE = re.compile(r"^\[(?:error|warning|info|advisory)\]\s+[^:]+:\s+")
+
+
+def _strip_severity_code_prefix(text: str) -> str:
+    return _PREFIX_RE.sub("", text, count=1)
+
+
+def _format_issues_title(total: int, severities: List[str]) -> str:
+    """Build the group-box title: ``Issues (N) - X errors, Y warnings``.
+
+    Trailing parts are omitted when their count is zero (so the title
+    stays compact when there are only errors, etc.). ``Issues`` alone
+    is returned when ``total == 0``.
+    """
+    if total == 0:
+        return "Issues"
+    err = sum(1 for s in severities if s == "error")
+    warn = sum(1 for s in severities if s == "warning")
+    adv = sum(1 for s in severities if s == "advisory")
+    parts: List[str] = []
+    if err:
+        parts.append(f"{err} error{'s' if err != 1 else ''}")
+    if warn:
+        parts.append(f"{warn} warning{'s' if warn != 1 else ''}")
+    if adv:
+        parts.append(f"{adv} advisory")
+    suffix = f" - {', '.join(parts)}" if parts else ""
+    return f"Issues ({total}){suffix}"
 
 
 # Status badges. Using short ASCII text keeps them legible at small
@@ -253,12 +377,16 @@ class MainWindow(QtWidgets.QMainWindow):
         for sid, label in _STEPS:
             st = session.step_state.get(sid, StepState())
             issues_text = [iss.message for iss in st.issues]
+            issue_codes = [iss.code for iss in st.issues]
+            issue_severities = [iss.severity for iss in st.issues]
             self._steps.append(
                 _StepEntry(
                     step_id=sid,
                     label=label,
                     status=_FROM_SESSION_STATUS.get(st.status, StepStatus.PENDING),
                     issues=issues_text,
+                    issue_codes=issue_codes,
+                    issue_severities=issue_severities,
                 )
             )
         # Restore to the step the user was last on (or step 0 for fresh
@@ -338,15 +466,51 @@ class MainWindow(QtWidgets.QMainWindow):
         self._content_stack = QtWidgets.QStackedWidget(right)
         right_layout.addWidget(self._content_stack, stretch=1)
 
-        # Issues panel: a collapsible QGroupBox with a scrollable list.
-        # In W1 it's always empty; W4+ steps populate it as their
-        # pipeline calls complete.
+        # Issues panel: a collapsible QGroupBox with a filter-chip row
+        # plus a scrollable list. The chip row groups issues by
+        # ``code`` (e.g. ``orphan_room``) so the user can see "how
+        # many of each kind" at a glance and click to filter the list
+        # to one kind. In W1 the panel is always empty; W4+ steps
+        # populate it as their pipeline calls complete.
         self._issues_group = QtWidgets.QGroupBox("Issues", right)
         self._issues_group.setCheckable(True)
         self._issues_group.setChecked(False)
         self._issues_group.setMaximumHeight(_ISSUES_PANEL_INITIAL_HEIGHT)
         issues_layout = QtWidgets.QVBoxLayout(self._issues_group)
         issues_layout.setContentsMargins(8, 8, 8, 8)
+        issues_layout.setSpacing(4)
+
+        # Chip row -- horizontally scrollable, holds an "All (N)" chip
+        # plus one chip per unique kind. Hidden when no chips would
+        # have content (e.g. on legacy sessions where codes are empty).
+        self._chip_scroll = QtWidgets.QScrollArea(self._issues_group)
+        self._chip_scroll.setWidgetResizable(True)
+        self._chip_scroll.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
+        self._chip_scroll.setVerticalScrollBarPolicy(
+            QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        self._chip_scroll.setHorizontalScrollBarPolicy(
+            QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
+        self._chip_scroll.setFixedHeight(34)
+        chip_container = QtWidgets.QWidget(self._chip_scroll)
+        self._chip_row_layout = QtWidgets.QHBoxLayout(chip_container)
+        self._chip_row_layout.setContentsMargins(0, 0, 0, 0)
+        self._chip_row_layout.setSpacing(4)
+        self._chip_row_layout.addStretch(1)
+        self._chip_scroll.setWidget(chip_container)
+        issues_layout.addWidget(self._chip_scroll)
+        # Cache: code -> chip button (None key = "All"). Rebuilt on
+        # every _refresh_issues_panel call.
+        self._chip_buttons: Dict[Optional[str], QtWidgets.QToolButton] = {}
+        # Active chip key (None = "All", "" = "Other" / uncoded,
+        # else a real code like "orphan_room").
+        self._active_issue_code: Optional[str] = None
+        # Track which step the active chip belongs to so we reset on
+        # step change rather than carrying a stale filter across
+        # unrelated step panels.
+        self._active_issue_step_id: Optional[str] = None
+
         self._issues_list = QtWidgets.QListWidget(self._issues_group)
         self._issues_list.setStyleSheet(
             "QListWidget { background: white; border: 1px solid #ddd; }"
@@ -359,8 +523,9 @@ class MainWindow(QtWidgets.QMainWindow):
         issues_layout.addWidget(self._issues_list)
         # Toggling the groupbox shows/hides its content; this gives a
         # cheap collapse-to-titlebar without writing a custom widget.
-        self._issues_group.toggled.connect(self._issues_list.setVisible)
+        self._issues_group.toggled.connect(self._on_issues_group_toggled)
         self._issues_list.setVisible(False)
+        self._chip_scroll.setVisible(False)
         right_layout.addWidget(self._issues_group)
 
         # Footer: status label + (hidden by default) progress bar on
@@ -494,6 +659,8 @@ class MainWindow(QtWidgets.QMainWindow):
         *,
         issues: Optional[List[str]] = None,
         issue_targets: Optional[List[Optional[Tuple[int, int]]]] = None,
+        issue_codes: Optional[List[str]] = None,
+        issue_severities: Optional[List[str]] = None,
     ) -> None:
         """Update a step's status badge and (optionally) issues list.
 
@@ -506,40 +673,52 @@ class MainWindow(QtWidgets.QMainWindow):
         (clicking that row will pan/zoom the step's canvas there) or
         ``None`` (clicking that row is a no-op). When omitted, every
         issue is treated as having no target.
+
+        ``issue_codes`` and ``issue_severities`` are optional lists
+        parallel to ``issues``. ``issue_codes`` holds the short
+        machine-readable kind (e.g. ``"orphan_room"``) used by the
+        issues-panel filter chips; empty string for "unclassified".
+        ``issue_severities`` holds ``"error"`` / ``"warning"`` /
+        ``"info"`` per row. When omitted, codes default to ``""`` and
+        severities are derived from the step ``status`` (the old
+        placeholder behaviour) so legacy callers still work.
         """
         entry = self._step_by_id(step_id)
         if entry is None:
             return
         entry.status = status
         entry.issues = list(issues or [])
-        if issue_targets is None:
-            entry.issue_targets = [None] * len(entry.issues)
-        else:
-            # Defensively pad / truncate so the parallel-list invariant
-            # holds even if a caller passes the wrong length.
-            targets = list(issue_targets)
-            if len(targets) < len(entry.issues):
-                targets += [None] * (len(entry.issues) - len(targets))
-            entry.issue_targets = targets[: len(entry.issues)]
-        idx = self._steps.index(entry)
-        self._sidebar.item(idx).setText(self._format_sidebar_label(entry))
-        if idx == self._current_index:
-            self._refresh_issues_panel()
-        self._refresh_navigation()
-        # Mirror into the persisted session. We translate the string
-        # issues into Issue objects with the step's severity baked in;
-        # W4+ pipeline steps will pass real Issue objects via a new
-        # set_step_issues(...) API.
-        sess_status = _TO_SESSION_STATUS[status]
-        severity = (
+        entry.issue_targets = _pad_parallel(
+            issue_targets, len(entry.issues), fill=None
+        )
+        entry.issue_codes = _pad_parallel(
+            issue_codes, len(entry.issues), fill=""
+        )
+        default_severity = (
             "warning" if status == StepStatus.WARNING
             else "info" if status == StepStatus.ADVISORY
             else "error" if status == StepStatus.ERROR
             else "info"
         )
+        entry.issue_severities = _pad_parallel(
+            issue_severities, len(entry.issues), fill=default_severity
+        )
+        idx = self._steps.index(entry)
+        self._sidebar.item(idx).setText(self._format_sidebar_label(entry))
+        if idx == self._current_index:
+            self._refresh_issues_panel()
+        self._refresh_navigation()
+        # Mirror into the persisted session. We now have real per-issue
+        # codes + severities so we no longer collapse them all to a
+        # single "placeholder" Issue.
+        sess_status = _TO_SESSION_STATUS[status]
         sess_issues = [
-            SessionIssue(code="placeholder", severity=severity, message=msg)
-            for msg in entry.issues
+            SessionIssue(
+                code=entry.issue_codes[i] or "placeholder",
+                severity=entry.issue_severities[i],
+                message=entry.issues[i],
+            )
+            for i in range(len(entry.issues))
         ]
         self._session.set_step(step_id, status=sess_status, issues=sess_issues)
         self._save_session()
@@ -554,6 +733,8 @@ class MainWindow(QtWidgets.QMainWindow):
             entry.status = StepStatus.PENDING
             entry.issues = []
             entry.issue_targets = []
+            entry.issue_codes = []
+            entry.issue_severities = []
             self._sidebar.item(i).setText(self._format_sidebar_label(entry))
         # Mirror to the session: invalidate_from clears steps from
         # ``from_index + 1`` forward.
@@ -673,30 +854,166 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _refresh_issues_panel(self) -> None:
         entry = self._steps[self._current_index]
+
+        # 1. Defensive: enforce parallel-list invariants. This protects
+        #    against legacy session-restore paths that may seed
+        #    ``issues`` without filling the parallel lists.
+        n = len(entry.issues)
+        targets = _pad_parallel(entry.issue_targets, n, fill=None)
+        codes = _pad_parallel(entry.issue_codes, n, fill="")
+        severities = _pad_parallel(entry.issue_severities, n, fill="")
+
+        # 2. Reset the active chip if the step changed under us, or if
+        #    the previously-active code no longer has any items.
+        if self._active_issue_step_id != entry.step_id:
+            self._active_issue_code = None
+            self._active_issue_step_id = entry.step_id
+        active = self._active_issue_code
+        if active is not None and active not in codes:
+            active = None
+            self._active_issue_code = None
+
+        # 3. Build kind summary (count + worst severity per code).
+        #    Empty-string codes are bucketed under "Other" to keep them
+        #    addressable; if every code is empty (legacy data) we skip
+        #    the chip row entirely.
+        kind_counts: Dict[str, int] = {}
+        kind_severity: Dict[str, str] = {}
+        for code, severity in zip(codes, severities):
+            key = code or ""
+            kind_counts[key] = kind_counts.get(key, 0) + 1
+            kind_severity[key] = _max_severity(
+                kind_severity.get(key, ""), severity
+            )
+        has_real_codes = any(k for k in kind_counts.keys())
+
+        # 4. Rebuild the chip row from scratch each call. The chip
+        #    count is small (rarely > 10) so the cost is negligible
+        #    and we avoid stale-button bugs.
+        self._rebuild_chip_row(
+            kind_counts, kind_severity, active=active,
+            show_chips=has_real_codes and n > 0,
+        )
+
+        # 5. Render the list, filtering by the active chip.
         self._issues_list.clear()
-        # Pad targets to issues length so we never index past the end
-        # (defensive: set_step_status normally enforces this).
-        targets = list(entry.issue_targets)
-        if len(targets) < len(entry.issues):
-            targets += [None] * (len(entry.issues) - len(targets))
-        for issue, target in zip(entry.issues, targets):
-            item = QtWidgets.QListWidgetItem(issue)
+        for i in range(n):
+            code = codes[i]
+            if active is not None and (code or "") != active:
+                continue
+            text = entry.issues[i]
+            if active is not None:
+                # When filtering by a single kind, drop the redundant
+                # "[severity] code: " prefix so the rows read cleanly.
+                text = _strip_severity_code_prefix(text)
+            item = QtWidgets.QListWidgetItem(text)
+            target = targets[i]
             if target is not None:
-                # Store the (x, y) tuple so the click handler can read
-                # it back without re-parsing the message string. The
-                # PointingHand cursor + tooltip signal that this row
-                # is interactive (most rows will have a target).
                 item.setData(QtCore.Qt.ItemDataRole.UserRole, tuple(target))
                 item.setToolTip("Click to show on map")
             self._issues_list.addItem(item)
-        has_issues = bool(entry.issues)
-        # Auto-expand when there are issues; collapse when empty so the
-        # panel doesn't waste vertical space on clean steps.
+
+        # 6. Title + visibility. Title shows total + severity split so
+        #    "how big is the problem?" is answerable without expanding.
+        has_issues = n > 0
         self._issues_group.setChecked(has_issues)
         self._issues_list.setVisible(has_issues)
-        self._issues_group.setTitle(
-            f"Issues ({len(entry.issues)})" if has_issues else "Issues"
+        self._chip_scroll.setVisible(has_issues and has_real_codes)
+        self._issues_group.setTitle(_format_issues_title(n, severities))
+
+    def _on_issues_group_toggled(self, checked: bool) -> None:
+        """Show / hide the content when the group's collapse arrow fires."""
+        self._issues_list.setVisible(checked)
+        # Only show chips if we have any and the panel is expanded.
+        # ``count() > 1`` accounts for the trailing addStretch item.
+        has_chips = bool(self._chip_buttons)
+        self._chip_scroll.setVisible(checked and has_chips)
+
+    def _rebuild_chip_row(
+        self,
+        kind_counts: Dict[str, int],
+        kind_severity: Dict[str, str],
+        *,
+        active: Optional[str],
+        show_chips: bool,
+    ) -> None:
+        """Replace the chip row contents from a fresh count map.
+
+        Chips are sorted by count (desc), then by code (asc) so the
+        ordering is stable across refreshes when counts tie. The
+        "All (N)" chip is always first.
+        """
+        # Tear down old chips. The trailing addStretch item must be
+        # preserved so the row stays left-aligned.
+        for btn in list(self._chip_buttons.values()):
+            btn.setParent(None)
+            btn.deleteLater()
+        self._chip_buttons.clear()
+
+        if not show_chips:
+            return
+
+        total = sum(kind_counts.values())
+        # Worst severity across all kinds drives the "All" chip color.
+        all_sev = ""
+        for sev in kind_severity.values():
+            all_sev = _max_severity(all_sev, sev)
+        # "All" is keyed by None.
+        all_btn = self._make_chip(
+            label=f"All ({total})", severity=all_sev,
+            checked=(active is None),
         )
+        all_btn.clicked.connect(lambda _checked=False: self._on_chip_clicked(None))
+        self._insert_chip(all_btn)
+        self._chip_buttons[None] = all_btn
+
+        # Sort kinds by descending count, then by code asc.
+        ordered = sorted(
+            kind_counts.items(), key=lambda kv: (-kv[1], kv[0])
+        )
+        for code, count in ordered:
+            label_code = code if code else "Other"
+            btn = self._make_chip(
+                label=f"{label_code} ({count})",
+                severity=kind_severity.get(code, ""),
+                checked=(active == code),
+            )
+            # Bind ``code`` via default-arg trick so each lambda
+            # closes over its own value.
+            btn.clicked.connect(
+                lambda _checked=False, c=code: self._on_chip_clicked(c)
+            )
+            self._insert_chip(btn)
+            self._chip_buttons[code] = btn
+
+    def _make_chip(
+        self, *, label: str, severity: str, checked: bool
+    ) -> QtWidgets.QToolButton:
+        """Create one chip button styled by severity."""
+        btn = QtWidgets.QToolButton(self._issues_group)
+        btn.setText(label)
+        btn.setCheckable(True)
+        btn.setChecked(checked)
+        btn.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
+        btn.setAutoRaise(False)
+        btn.setStyleSheet(_chip_stylesheet(severity))
+        return btn
+
+    def _insert_chip(self, btn: QtWidgets.QToolButton) -> None:
+        # Insert before the trailing stretch (the last item).
+        idx = max(0, self._chip_row_layout.count() - 1)
+        self._chip_row_layout.insertWidget(idx, btn)
+
+    def _on_chip_clicked(self, code: Optional[str]) -> None:
+        """Filter the issues list to one kind (or All when ``code`` is None)."""
+        # If the user clicked the already-active chip, treat that as a
+        # second click that toggles back to "All". This mirrors how
+        # GitHub's label filters work and avoids "stuck" filters.
+        if self._active_issue_code == code:
+            self._active_issue_code = None
+        else:
+            self._active_issue_code = code
+        self._refresh_issues_panel()
 
     def _on_issue_item_activated(
         self, item: QtWidgets.QListWidgetItem

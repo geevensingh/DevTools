@@ -452,3 +452,272 @@ def test_geometry_is_on_screen_rejects_off_screen_rect(qapp):
 
     far_away = QtCore.QRect(50_000, 50_000, 800, 600)
     assert not _geometry_is_on_screen(far_away)
+
+
+# ---------------------------------------------------------------------------
+# Issues-panel chip-row + summary title (kind-grouping UX)
+# ---------------------------------------------------------------------------
+
+
+def _set_calibrate_issues(
+    w: MainWindow,
+    issues,
+    codes=None,
+    severities=None,
+    status: StepStatus = StepStatus.ERROR,
+):
+    """Helper: drop a synthetic issue set onto the calibrate step.
+
+    Defaults severity to error so any code-shape-only test still
+    yields a deterministic status.
+    """
+    w.set_step_status(
+        "calibrate",
+        status,
+        issues=issues,
+        issue_codes=codes,
+        issue_severities=severities,
+    )
+
+
+def test_set_step_status_stores_parallel_codes_and_severities(qapp, inputs):
+    """Codes + severities passed to set_step_status land on _StepEntry."""
+    map_path, assn_path, out = inputs
+    w = MainWindow(map_path=map_path, assignments_path=assn_path, output_dir=out)
+    try:
+        _set_calibrate_issues(
+            w,
+            ["[error] orphan_room: a", "[warning] orphan_label: b"],
+            codes=["orphan_room", "orphan_label"],
+            severities=["error", "warning"],
+        )
+        entry = w._steps[0]
+        assert entry.issue_codes == ["orphan_room", "orphan_label"]
+        assert entry.issue_severities == ["error", "warning"]
+    finally:
+        w.close()
+
+
+def test_set_step_status_defaults_severity_from_status(qapp, inputs):
+    """Omitting issue_severities derives severity from the step status."""
+    map_path, assn_path, out = inputs
+    w = MainWindow(map_path=map_path, assignments_path=assn_path, output_dir=out)
+    try:
+        w.set_step_status(
+            "calibrate", StepStatus.WARNING, issues=["a", "b"]
+        )
+        entry = w._steps[0]
+        # Derived from StepStatus.WARNING.
+        assert entry.issue_severities == ["warning", "warning"]
+    finally:
+        w.close()
+
+
+def test_session_round_trip_preserves_codes(qapp, inputs):
+    """Real issue codes (not "placeholder") survive a save/load cycle."""
+    map_path, assn_path, out = inputs
+    w1 = MainWindow(map_path=map_path, assignments_path=assn_path, output_dir=out)
+    _set_calibrate_issues(
+        w1,
+        ["[error] orphan_room: a", "[warning] orphan_label: b"],
+        codes=["orphan_room", "orphan_label"],
+        severities=["error", "warning"],
+    )
+    w1.close()
+
+    data = json.loads((out / "demo.session.json").read_text(encoding="utf-8"))
+    issue_codes = [iss["code"] for iss in data["step_state"]["calibrate"]["issues"]]
+    assert issue_codes == ["orphan_room", "orphan_label"]
+
+    load = Session.load_or_create(
+        map_path=map_path, assignments_path=assn_path, output_dir=out
+    )
+    w2 = MainWindow(session=load.session)
+    try:
+        assert w2._steps[0].issue_codes == ["orphan_room", "orphan_label"]
+        assert w2._steps[0].issue_severities == ["error", "warning"]
+    finally:
+        w2.close()
+
+
+def test_chip_row_built_from_codes(qapp, inputs):
+    """Three issues across two codes -> All, a, b chips with counts."""
+    map_path, assn_path, out = inputs
+    w = MainWindow(map_path=map_path, assignments_path=assn_path, output_dir=out)
+    try:
+        _set_calibrate_issues(
+            w,
+            ["x", "y", "z"],
+            codes=["a", "a", "b"],
+            severities=["error", "error", "warning"],
+        )
+        # All + a + b -> 3 buttons total.
+        assert set(w._chip_buttons.keys()) == {None, "a", "b"}
+        assert "All (3)" in w._chip_buttons[None].text()
+        assert "a (2)" in w._chip_buttons["a"].text()
+        assert "b (1)" in w._chip_buttons["b"].text()
+    finally:
+        w.close()
+
+
+def test_chip_row_hidden_when_no_real_codes(qapp, inputs):
+    """Issues without any non-empty code -> chip scroll is hidden."""
+    map_path, assn_path, out = inputs
+    w = MainWindow(map_path=map_path, assignments_path=assn_path, output_dir=out)
+    try:
+        w.set_step_status(
+            "calibrate",
+            StepStatus.WARNING,
+            issues=["legacy row 1", "legacy row 2"],
+            # No codes / severities -> codes pad to "".
+        )
+        assert not w._chip_scroll.isVisibleTo(w._issues_group)
+        # And no chips were built.
+        assert w._chip_buttons == {}
+    finally:
+        w.close()
+
+
+def test_chip_click_filters_list_and_strips_prefix(qapp, inputs):
+    """Clicking a chip filters the list to that code + strips the prefix."""
+    map_path, assn_path, out = inputs
+    w = MainWindow(map_path=map_path, assignments_path=assn_path, output_dir=out)
+    try:
+        _set_calibrate_issues(
+            w,
+            [
+                "[error] orphan_room: room 1 has no label",
+                "[warning] orphan_label: label 9 has no room",
+                "[error] orphan_room: room 2 has no label",
+            ],
+            codes=["orphan_room", "orphan_label", "orphan_room"],
+            severities=["error", "warning", "error"],
+        )
+        # Unfiltered: 3 rows.
+        assert w._issues_list.count() == 3
+
+        # Filter on "orphan_room": 2 rows, prefix stripped.
+        w._on_chip_clicked("orphan_room")
+        assert w._issues_list.count() == 2
+        texts = [w._issues_list.item(i).text() for i in range(2)]
+        assert texts == [
+            "room 1 has no label",
+            "room 2 has no label",
+        ]
+    finally:
+        w.close()
+
+
+def test_reclicking_active_chip_unfilters(qapp, inputs):
+    """Clicking the active chip again clears the filter (back to All)."""
+    map_path, assn_path, out = inputs
+    w = MainWindow(map_path=map_path, assignments_path=assn_path, output_dir=out)
+    try:
+        _set_calibrate_issues(
+            w,
+            ["a-row", "b-row"],
+            codes=["a", "b"],
+            severities=["error", "warning"],
+        )
+        w._on_chip_clicked("a")
+        assert w._active_issue_code == "a"
+        w._on_chip_clicked("a")
+        assert w._active_issue_code is None
+        # And the list is back to showing every row.
+        assert w._issues_list.count() == 2
+    finally:
+        w.close()
+
+
+def test_step_change_resets_active_chip(qapp, inputs):
+    """Navigating to a different step clears the chip filter."""
+    map_path, assn_path, out = inputs
+    w = MainWindow(map_path=map_path, assignments_path=assn_path, output_dir=out)
+    try:
+        # Step 0 has issues + active chip.
+        _set_calibrate_issues(
+            w,
+            ["a-row"],
+            codes=["a"],
+            severities=["error"],
+        )
+        w._on_chip_clicked("a")
+        assert w._active_issue_code == "a"
+
+        # Activate step 1 (validate_labels). That refreshes the
+        # issues panel for the new step, which resets the filter.
+        w._activate_step(1)
+        assert w._active_issue_code is None
+    finally:
+        w.close()
+
+
+def test_title_formats_singular_and_plural(qapp, inputs):
+    """Issues title shows total + per-severity breakdown with plurals."""
+    from officemapmaker.wizard.main_window import _format_issues_title
+
+    # No issues -> bare title.
+    assert _format_issues_title(0, []) == "Issues"
+
+    # 1 error (singular).
+    assert _format_issues_title(1, ["error"]) == "Issues (1) - 1 error"
+
+    # 2 errors + 1 warning (plural / singular mix).
+    assert (
+        _format_issues_title(3, ["error", "error", "warning"])
+        == "Issues (3) - 2 errors, 1 warning"
+    )
+
+    # Advisory only -> uses "advisory" (no plural form).
+    assert (
+        _format_issues_title(2, ["advisory", "advisory"])
+        == "Issues (2) - 2 advisory"
+    )
+
+    # Zero counts are omitted.
+    assert _format_issues_title(1, ["warning"]) == "Issues (1) - 1 warning"
+
+
+def test_strip_severity_code_prefix_handles_known_severities(qapp):
+    """The prefix regex strips bracketed-severity + code: from a message."""
+    from officemapmaker.wizard.main_window import _strip_severity_code_prefix
+
+    assert (
+        _strip_severity_code_prefix("[error] orphan_room: foo bar")
+        == "foo bar"
+    )
+    assert (
+        _strip_severity_code_prefix("[warning] dup_row: y")
+        == "y"
+    )
+    # No prefix -> no-op.
+    assert _strip_severity_code_prefix("just a message") == "just a message"
+
+
+def test_chip_visibility_follows_group_collapse(qapp, inputs):
+    """Collapsing the issues group also hides the chip row."""
+    map_path, assn_path, out = inputs
+    w = MainWindow(map_path=map_path, assignments_path=assn_path, output_dir=out)
+    try:
+        _set_calibrate_issues(
+            w,
+            ["a-row"],
+            codes=["a"],
+            severities=["error"],
+        )
+        # Group expanded after set_step_status -> chips eligible to show.
+        assert w._issues_group.isChecked()
+
+        # Collapse via the group's toggled handler.
+        w._issues_group.setChecked(False)
+        # _on_issues_group_toggled hides chips along with the list.
+        assert not w._chip_scroll.isVisibleTo(w._issues_group)
+        assert not w._issues_list.isVisibleTo(w._issues_group)
+
+        # Re-expand restores both.
+        w._issues_group.setChecked(True)
+        assert w._chip_scroll.isVisibleTo(w._issues_group)
+        assert w._issues_list.isVisibleTo(w._issues_group)
+    finally:
+        w.close()
+

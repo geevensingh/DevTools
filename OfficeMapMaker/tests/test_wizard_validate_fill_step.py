@@ -460,24 +460,33 @@ def test_adapter_exception_sets_error_status(qapp, inputs, monkeypatch):
 
 def test_classify_issues_unit():
     # Empty -> OK.
-    status, msgs = _classify_issues([])
+    status, msgs, codes, sevs = _classify_issues([])
     assert status == StepStatus.OK
     assert msgs == []
+    assert codes == []
+    assert sevs == []
 
     # Warnings only -> ADVISORY (not WARNING -- the renderer clips).
     w = FillLeak(
         severity="warning", code="leak_oversized", office_id="1", room_id=2, message="m"
     )
-    status, _ = _classify_issues([w])
+    status, _, w_codes, w_sevs = _classify_issues([w])
     assert status == StepStatus.ADVISORY
+    assert w_codes == ["leak_oversized"]
+    # Demoted to "advisory" for chip-color consistency (advisory steps
+    # use the blue chip color).
+    assert w_sevs == ["advisory"]
 
     # Defensive: any error -> ERROR (future-proofing in case a new
     # leak code is introduced as an error).
     e = FillLeak(
         severity="error", code="x", office_id="1", room_id=2, message="m"
     )
-    status, _ = _classify_issues([w, e])
+    status, _, e_codes, e_sevs = _classify_issues([w, e])
     assert status == StepStatus.ERROR
+    assert e_codes == ["leak_oversized", "x"]
+    # The error stays "error"; the warning sibling stays "advisory".
+    assert e_sevs == ["advisory", "error"]
 
 
 def test_issue_key_is_stable_and_distinct():

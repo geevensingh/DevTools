@@ -307,10 +307,12 @@ def test_initial_activation_fires_on_construction(qapp, inputs):
 
 
 def test_classify_issues_empty_is_ok():
-    status, msgs, targets = _classify_issues([])
+    status, msgs, targets, codes, sevs = _classify_issues([])
     assert status == StepStatus.OK
     assert msgs == []
     assert targets == []
+    assert codes == []
+    assert sevs == []
 
 
 def test_classify_issues_warning_only():
@@ -318,10 +320,12 @@ def test_classify_issues_warning_only():
         CalibrationIssue(severity="warning", code="a", message="x"),
         CalibrationIssue(severity="warning", code="b", message="y"),
     ]
-    status, msgs, targets = _classify_issues(issues)
+    status, msgs, targets, codes, sevs = _classify_issues(issues)
     assert status == StepStatus.WARNING
     assert len(msgs) == 2
     assert targets == [None, None]
+    assert codes == ["a", "b"]
+    assert sevs == ["warning", "warning"]
 
 
 def test_classify_issues_error_dominates():
@@ -330,8 +334,10 @@ def test_classify_issues_error_dominates():
         CalibrationIssue(severity="warning", code="a", message="x"),
         CalibrationIssue(severity="error", code="b", message="y"),
     ]
-    status, _, _ = _classify_issues(issues)
+    status, _, _, codes, sevs = _classify_issues(issues)
     assert status == StepStatus.ERROR
+    assert codes == ["a", "b"]
+    assert sevs == ["warning", "error"]
 
 
 def test_classify_issues_propagates_points():
@@ -350,7 +356,7 @@ def test_classify_issues_propagates_points():
             message="z", point=(300, 400),
         ),
     ]
-    _, _, targets = _classify_issues(issues)
+    _, _, targets, _, _ = _classify_issues(issues)
     assert targets == [(100, 200), None, (300, 400)]
 
 
@@ -446,7 +452,13 @@ def test_undo_index_changed_recomputes_issue_count(qapp, inputs):
         from officemapmaker.calibrate import revalidate_calibration
 
         initial = revalidate_calibration(cal)
-        initial_status, initial_msgs, _initial_targets = _classify_issues(initial)
+        (
+            initial_status,
+            initial_msgs,
+            _initial_targets,
+            _initial_codes,
+            _initial_sevs,
+        ) = _classify_issues(initial)
         w.set_step_status("calibrate", initial_status, issues=initial_msgs)
         n_initial = len(w._steps[0].issues)
         assert n_initial >= 1, "fixture should produce at least one issue"

@@ -74,8 +74,9 @@ def _run_validate_labels(
 
 def _classify_issues(
     issues: List[ValidationIssue],
-) -> Tuple[StepStatus, List[str]]:
-    """Map a list of ``ValidationIssue`` to (step status, stringified messages)."""
+) -> Tuple[StepStatus, List[str], List[str], List[str]]:
+    """Map a list of ``ValidationIssue`` to (step status, messages,
+    per-issue codes, per-issue severities)."""
     has_err = any(i.severity == "error" for i in issues)
     has_warn = any(i.severity == "warning" for i in issues)
     if has_err:
@@ -84,7 +85,12 @@ def _classify_issues(
         status = StepStatus.WARNING
     else:
         status = StepStatus.OK
-    return status, [str(i) for i in issues]
+    return (
+        status,
+        [str(i) for i in issues],
+        [i.code for i in issues],
+        [i.severity for i in issues],
+    )
 
 
 def _issue_key(issue: ValidationIssue) -> str:
@@ -463,9 +469,10 @@ class ValidateLabelsStep(StepBase):
     def _refresh_status(self) -> None:
         """Push the current (non-ignored) issue set up to MainWindow."""
         visible = self._visible_issues()
-        status, msgs = _classify_issues(visible)
+        status, msgs, codes, sevs = _classify_issues(visible)
         self.main_window.set_step_status(
-            self.STEP_ID, status, issues=msgs
+            self.STEP_ID, status, issues=msgs,
+            issue_codes=codes, issue_severities=sevs,
         )
 
     def _refresh_summary(self) -> None:

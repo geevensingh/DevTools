@@ -144,10 +144,14 @@ class CalibrateStep(StepBase):
             # dead on the first restored launch. quick=True keeps this
             # to ~0.5ms on a 200+ room calibration.
             live_issues = revalidate_calibration(cal, quick=True)
-            status, issue_strs, issue_targets = _classify_issues(live_issues)
+            status, issue_strs, issue_targets, issue_codes, issue_sevs = (
+                _classify_issues(live_issues)
+            )
             self.main_window.set_step_status(
                 "calibrate", status, issues=issue_strs,
                 issue_targets=issue_targets,
+                issue_codes=issue_codes,
+                issue_severities=issue_sevs,
             )
 
             # Coming back to a step that's already calibrated --
@@ -252,10 +256,14 @@ class CalibrateStep(StepBase):
         # map image into a QPixmap and can fail (corrupt PNG, file
         # vanished, etc.); we don't want a mount failure to leave the
         # step stuck on RUNNING when the calibration itself is valid.
-        status, issue_strs, issue_targets = _classify_issues(issues)
+        status, issue_strs, issue_targets, issue_codes, issue_sevs = (
+            _classify_issues(issues)
+        )
         self.main_window.set_step_status(
             "calibrate", status, issues=issue_strs,
             issue_targets=issue_targets,
+            issue_codes=issue_codes,
+            issue_severities=issue_sevs,
         )
 
         # Now try to mount the editor. If the map image can't be
@@ -273,6 +281,8 @@ class CalibrateStep(StepBase):
                 StepStatus.WARNING if status == StepStatus.OK else status,
                 issues=issue_strs + [extra],
                 issue_targets=issue_targets + [None],
+                issue_codes=issue_codes + ["map_load_failed"],
+                issue_severities=issue_sevs + ["warning"],
             )
 
         self._run_button.setEnabled(True)
@@ -820,10 +830,14 @@ class CalibrateStep(StepBase):
         finally:
             QtWidgets.QApplication.restoreOverrideCursor()
 
-        status, issue_strs, issue_targets = _classify_issues(full_issues)
+        status, issue_strs, issue_targets, issue_codes, issue_sevs = (
+            _classify_issues(full_issues)
+        )
         self.main_window.set_step_status(
             "calibrate", status, issues=issue_strs,
             issue_targets=issue_targets,
+            issue_codes=issue_codes,
+            issue_severities=issue_sevs,
         )
 
     # ------------------------------------------------------------------
@@ -851,10 +865,14 @@ class CalibrateStep(StepBase):
         if cal is None:
             return
         live_issues = revalidate_calibration(cal, quick=True)
-        status, issue_strs, issue_targets = _classify_issues(live_issues)
+        status, issue_strs, issue_targets, issue_codes, issue_sevs = (
+            _classify_issues(live_issues)
+        )
         self.main_window.set_step_status(
             "calibrate", status, issues=issue_strs,
             issue_targets=issue_targets,
+            issue_codes=issue_codes,
+            issue_severities=issue_sevs,
         )
 
 
@@ -879,19 +897,29 @@ def _sync_toggle_off(action: QtGui.QAction) -> None:
 
 def _classify_issues(
     issues: List[CalibrationIssue],
-) -> tuple[StepStatus, List[str], List[Optional[Tuple[int, int]]]]:
+) -> tuple[
+    StepStatus,
+    List[str],
+    List[Optional[Tuple[int, int]]],
+    List[str],
+    List[str],
+]:
     """Decide the step's badge from the calibration issue list.
 
     Any error → ERROR. Any warning (and no errors) → WARNING. Empty
-    list → OK. Returns three parallel lists: the status badge, the
-    human-readable issue messages for the issues panel, and the
-    optional ``(x, y)`` pixel target for each issue (used by the
-    panel's click-to-navigate behaviour).
+    list → OK. Returns five parallel lists: the status badge, the
+    human-readable issue messages for the issues panel, the optional
+    ``(x, y)`` pixel target for each issue (used by the panel's
+    click-to-navigate behaviour), the per-issue machine-readable
+    ``code`` (used by the panel's filter chips), and the per-issue
+    severity.
     """
     messages = [str(i) for i in issues]
     targets: List[Optional[Tuple[int, int]]] = [i.point for i in issues]
-    if any(i.severity == "error" for i in issues):
-        return StepStatus.ERROR, messages, targets
-    if any(i.severity == "warning" for i in issues):
-        return StepStatus.WARNING, messages, targets
-    return StepStatus.OK, messages, targets
+    codes = [i.code for i in issues]
+    severities = [i.severity for i in issues]
+    if any(s == "error" for s in severities):
+        return StepStatus.ERROR, messages, targets, codes, severities
+    if any(s == "warning" for s in severities):
+        return StepStatus.WARNING, messages, targets, codes, severities
+    return StepStatus.OK, messages, targets, codes, severities
