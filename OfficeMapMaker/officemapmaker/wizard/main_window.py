@@ -229,7 +229,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self._populate_steps()
         self._refresh_navigation()
         # Initial selection so the right pane shows something useful.
+        # The setCurrentRow call short-circuits in _on_sidebar_row_changed
+        # when the row is already self._current_index, so we also
+        # explicitly fire on_activated() on the initial step here.
         self._sidebar.setCurrentRow(self._current_index)
+        initial_widget = self._steps[self._current_index].widget
+        if isinstance(initial_widget, self._step_base_cls):
+            initial_widget.on_activated()
         # Save once on launch so a freshly-created session lands on
         # disk even if the user closes the window without doing
         # anything (so they can pick up where they left off).
@@ -342,8 +348,18 @@ class MainWindow(QtWidgets.QMainWindow):
             self._sidebar.addItem(item)
 
     def _populate_steps(self) -> None:
+        # Deferred import so calibrate_step.py (which imports
+        # ``StepStatus`` from this module at the top of its file) can
+        # finish loading without a circular import.
+        from .steps.base import StepBase
+        from .steps.calibrate_step import CalibrateStep
+
+        self._step_base_cls = StepBase  # cached for _activate_step lifecycle dispatch
         for entry in self._steps:
-            entry.widget = self._make_placeholder_step(entry)
+            if entry.step_id == "calibrate":
+                entry.widget = CalibrateStep(self)
+            else:
+                entry.widget = self._make_placeholder_step(entry)
             self._content_stack.addWidget(entry.widget)
 
     # ------------------------------------------------------------------
@@ -500,6 +516,16 @@ class MainWindow(QtWidgets.QMainWindow):
             self._sidebar.setCurrentRow(self._current_index + 1)
 
     def _activate_step(self, new_index: int) -> None:
+        # Notify the outgoing step (if it's a StepBase) before swapping
+        # so it can pause animations / flush transient state. The
+        # _step_base_cls cache is set in _populate_steps; guard against
+        # being called before that (shouldn't happen in normal flow).
+        base_cls = getattr(self, "_step_base_cls", None)
+        if base_cls is not None and 0 <= self._current_index < len(self._steps):
+            outgoing = self._steps[self._current_index].widget
+            if isinstance(outgoing, base_cls) and outgoing is not None:
+                outgoing.on_deactivated()
+
         self._current_index = new_index
         self._content_stack.setCurrentIndex(new_index)
         self._refresh_issues_panel()
@@ -509,6 +535,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self._session.current_step = STEP_IDS[new_index]
         self._save_session()
         self.step_changed.emit(new_index, self._steps[new_index].step_id)
+
+        # Notify the incoming step. We do this AFTER the content stack
+        # swap so on_activated sees a visible widget; sometimes that
+        # matters for Qt layout calculations.
+        if base_cls is not None:
+            incoming = self._steps[new_index].widget
+            if isinstance(incoming, base_cls) and incoming is not None:
+                incoming.on_activated()
 
     def _refresh_navigation(self) -> None:
         self._back_button.setEnabled(self._current_index > 0)
