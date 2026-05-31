@@ -578,8 +578,9 @@ class MainWindow(QtWidgets.QMainWindow):
         # finish loading without a circular import.
         from .steps.base import StepBase
         from .steps.calibrate_step import CalibrateStep
-        from .steps.validate_labels_step import ValidateLabelsStep
+        from .steps.layout_step import LayoutStep
         from .steps.validate_fill_step import ValidateFillStep
+        from .steps.validate_labels_step import ValidateLabelsStep
 
         self._step_base_cls = StepBase  # cached for _activate_step lifecycle dispatch
         for entry in self._steps:
@@ -589,6 +590,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 entry.widget = ValidateLabelsStep(self)
             elif entry.step_id == "validate_fill":
                 entry.widget = ValidateFillStep(self)
+            elif entry.step_id == "layout":
+                entry.widget = LayoutStep(self)
             else:
                 entry.widget = self._make_placeholder_step(entry)
             self._content_stack.addWidget(entry.widget)
