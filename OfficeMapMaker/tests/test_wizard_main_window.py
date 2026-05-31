@@ -293,3 +293,162 @@ def test_run_pipeline_step_refuses_when_another_is_active(qapp, inputs):
         r1.wait(2000)
     finally:
         w.close()
+
+
+# ---------------------------------------------------------------------------
+# Window geometry persistence
+# ---------------------------------------------------------------------------
+
+
+def test_window_geometry_round_trips_across_relaunch(qapp, inputs, monkeypatch):
+    """Saving on close + restoring on next launch reuses size + position."""
+    from PySide6 import QtCore
+
+    from officemapmaker.wizard import main_window as mw
+
+    # Isolated settings file so this test doesn't depend on (or
+    # pollute) whatever's in the session-wide tmp QSettings dir.
+    tmp_ini = inputs[2] / "geom.ini"
+
+    def _local_settings() -> QtCore.QSettings:
+        return QtCore.QSettings(str(tmp_ini), QtCore.QSettings.Format.IniFormat)
+
+    monkeypatch.setattr(mw, "_make_settings", _local_settings)
+
+    map_path, assn_path, out = inputs
+
+    # Pick a target size that fits inside the offscreen test
+    # platform's reported screen (typically 800x800) -- otherwise
+    # Qt's restoreGeometry will clamp the saved width/height down to
+    # the available screen, and the round-trip won't be observable.
+    saved_w, saved_h = 600, 500
+
+    # First launch: resize to a distinctive size, then close (which
+    # triggers _save_window_geometry).
+    w1 = MainWindow(map_path=map_path, assignments_path=assn_path, output_dir=out)
+    w1.resize(saved_w, saved_h)
+    w1.move(20, 20)
+    # Process the move/resize so frameGeometry reflects them before
+    # we ask Qt to serialize the geometry.
+    QtWidgets.QApplication.processEvents()
+    w1.close()
+
+    # The blob should have landed in QSettings.
+    settings = _local_settings()
+    blob = settings.value(mw._SETTINGS_GEOMETRY_KEY)
+    assert blob is not None and bytes(blob), (
+        "closeEvent should have persisted a non-empty geometry blob"
+    )
+
+    # Second launch: should restore (or at least come up near) the
+    # size we set, not the default 1366x800.
+    w2 = MainWindow(map_path=map_path, assignments_path=assn_path, output_dir=out)
+    try:
+        # restoreGeometry is approximate (window frame, DPI, etc. all
+        # play in), so we test the size came back close, not exact.
+        assert abs(w2.width() - saved_w) < 50, (
+            f"width should restore near {saved_w}, got {w2.width()}"
+        )
+        assert abs(w2.height() - saved_h) < 50, (
+            f"height should restore near {saved_h}, got {w2.height()}"
+        )
+    finally:
+        w2.close()
+
+
+def test_window_geometry_falls_back_when_saved_off_screen(qapp, inputs, monkeypatch):
+    """An off-screen restored geometry should reset to the default size."""
+    from PySide6 import QtCore
+
+    from officemapmaker.wizard import main_window as mw
+
+    tmp_ini = inputs[2] / "offscreen.ini"
+
+    def _local_settings() -> QtCore.QSettings:
+        return QtCore.QSettings(str(tmp_ini), QtCore.QSettings.Format.IniFormat)
+
+    monkeypatch.setattr(mw, "_make_settings", _local_settings)
+
+    map_path, assn_path, out = inputs
+
+    # Prime the settings with a distinctive size we can later check
+    # was *not* used.
+    saved_w, saved_h = 600, 500
+    w1 = MainWindow(map_path=map_path, assignments_path=assn_path, output_dir=out)
+    w1.resize(saved_w, saved_h)
+    QtWidgets.QApplication.processEvents()
+    w1.close()
+
+    # Force the on-screen check to always say "no" so we exercise the
+    # fallback path deterministically (the real "monitor unplugged"
+    # case is hard to simulate in headless tests). Patch AFTER the
+    # save so the close() above still persists normally.
+    monkeypatch.setattr(mw, "_geometry_is_on_screen", lambda _rect: False)
+
+    w2 = MainWindow(map_path=map_path, assignments_path=assn_path, output_dir=out)
+    try:
+        # The saved 600x500 must NOT have been applied. The fallback
+        # resize asks for _DEFAULT_WINDOW_SIZE (1366x800); on a
+        # smaller test "screen" Qt may clamp it, but the result will
+        # still differ from the saved 600x500 by more than the
+        # tolerance we'd allow for a successful round-trip.
+        close_to_saved = (
+            abs(w2.width() - saved_w) < 50
+            and abs(w2.height() - saved_h) < 50
+        )
+        assert not close_to_saved, (
+            f"fallback path should not produce the saved size "
+            f"{saved_w}x{saved_h}; got {w2.width()}x{w2.height()}"
+        )
+    finally:
+        w2.close()
+
+
+def test_window_geometry_uses_default_when_no_prior_settings(qapp, inputs, monkeypatch):
+    """First-ever launch (no saved geometry) uses the default size."""
+    from PySide6 import QtCore
+
+    from officemapmaker.wizard import main_window as mw
+
+    tmp_ini = inputs[2] / "empty.ini"
+    # Don't pre-write to the INI -- it should be missing entirely.
+    assert not tmp_ini.exists()
+
+    def _local_settings() -> QtCore.QSettings:
+        return QtCore.QSettings(str(tmp_ini), QtCore.QSettings.Format.IniFormat)
+
+    monkeypatch.setattr(mw, "_make_settings", _local_settings)
+
+    map_path, assn_path, out = inputs
+    w = MainWindow(map_path=map_path, assignments_path=assn_path, output_dir=out)
+    try:
+        # No saved geometry => the constructor asked for
+        # _DEFAULT_WINDOW_SIZE (1366x800). On a small offscreen
+        # "screen" Qt may clamp it, but the window must at least be
+        # large enough to be usable.
+        assert w.width() >= 500
+        assert w.height() >= 400
+    finally:
+        w.close()
+
+
+def test_geometry_is_on_screen_accepts_window_on_primary(qapp):
+    """The helper should return True for a rect inside the primary screen."""
+    from PySide6 import QtCore
+
+    from officemapmaker.wizard.main_window import _geometry_is_on_screen
+
+    app = QtWidgets.QApplication.instance()
+    primary = app.primaryScreen().availableGeometry()
+    inside = QtCore.QRect(primary.x() + 10, primary.y() + 10, 400, 300)
+    assert _geometry_is_on_screen(inside)
+
+
+def test_geometry_is_on_screen_rejects_off_screen_rect(qapp):
+    """The helper should return False for a rect far from any screen."""
+    from PySide6 import QtCore
+
+    from officemapmaker.wizard.main_window import _geometry_is_on_screen
+
+    far_away = QtCore.QRect(50_000, 50_000, 800, 600)
+    assert not _geometry_is_on_screen(far_away)

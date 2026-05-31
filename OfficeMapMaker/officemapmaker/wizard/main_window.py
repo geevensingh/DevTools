@@ -58,6 +58,54 @@ _SIDEBAR_WIDTH = 260
 _ISSUES_PANEL_INITIAL_HEIGHT = 140
 
 
+# QSettings keys for persisted window geometry. The org / app name pair
+# determines where Qt writes them (Windows registry under
+# HKCU\Software\DevTools\OfficeMapMaker; ~/.config/DevTools/OfficeMapMaker.conf
+# on Linux; ~/Library/Preferences/com.devtools.OfficeMapMaker.plist on Mac).
+# These are intentionally machine-scoped (not stored in the session JSON)
+# so the user's preferred window layout follows them across sessions /
+# different floor plans rather than getting captured per-map.
+_SETTINGS_ORG = "DevTools"
+_SETTINGS_APP = "OfficeMapMaker"
+_SETTINGS_GEOMETRY_KEY = "MainWindow/geometry"
+_SETTINGS_STATE_KEY = "MainWindow/windowState"
+
+
+def _make_settings() -> QtCore.QSettings:
+    """Return the QSettings instance used for window-geometry persistence.
+
+    Factored out so tests can monkeypatch a tmp-path INI settings
+    object in here without poisoning the user's real registry / preferences.
+    """
+    return QtCore.QSettings(_SETTINGS_ORG, _SETTINGS_APP)
+
+
+def _geometry_is_on_screen(rect: QtCore.QRect) -> bool:
+    """True if ``rect`` overlaps at least one connected screen by a usable amount.
+
+    Used after ``restoreGeometry`` to detect the "monitor unplugged"
+    case: a window saved on a now-disconnected external display would
+    otherwise come back at coordinates that put it entirely outside
+    every available screen, leaving the user unable to drag it back.
+    We require at least 200x100 px of overlap with *some* available
+    screen geometry (the per-screen rect excludes the OS taskbar) so
+    a sliver-on-screen window still counts as visible.
+    """
+    app = QtWidgets.QApplication.instance()
+    if app is None:
+        return True  # No QApplication yet -- nothing to clamp against.
+    min_overlap = QtCore.QSize(200, 100)
+    for screen in app.screens():
+        avail = screen.availableGeometry()
+        inter = avail.intersected(rect)
+        if (
+            inter.width() >= min_overlap.width()
+            and inter.height() >= min_overlap.height()
+        ):
+            return True
+    return False
+
+
 class StepStatus(enum.Enum):
     """Lifecycle state shown in the sidebar badge for each step."""
 
@@ -190,7 +238,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self._teams_path = session.teams_path
 
         self.setWindowTitle(self._compose_title())
-        self.resize(_DEFAULT_WINDOW_SIZE)
+        self._restore_window_geometry()
 
         # Seed UI-level _StepEntry rows from the persisted step_state
         # so a restored session shows last run's status + issues.
@@ -854,8 +902,58 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         """Final save when the user closes the window."""
+        self._save_window_geometry()
         self._save_session()
         super().closeEvent(event)
+
+    # ------------------------------------------------------------------
+    # Window geometry persistence
+    # ------------------------------------------------------------------
+
+    def _restore_window_geometry(self) -> None:
+        """Restore the last-saved window geometry, or fall back to defaults.
+
+        Reads the persisted geometry blob from :func:`_make_settings`
+        and applies it via ``restoreGeometry``. If nothing is saved,
+        if the restored geometry sits entirely off any connected
+        display (e.g. saved on a monitor that has since been
+        unplugged), or if ``restoreGeometry`` itself rejects the
+        blob, we fall back to ``_DEFAULT_WINDOW_SIZE``.
+        """
+        settings = _make_settings()
+        geom = settings.value(_SETTINGS_GEOMETRY_KEY)
+        applied = False
+        if isinstance(geom, (bytes, QtCore.QByteArray)) and bytes(geom):
+            try:
+                applied = bool(self.restoreGeometry(QtCore.QByteArray(geom)))
+            except Exception:  # pylint: disable=broad-except
+                applied = False
+            if applied and not _geometry_is_on_screen(self.frameGeometry()):
+                # Saved on a now-disconnected screen. Reset.
+                applied = False
+
+        if not applied:
+            self.resize(_DEFAULT_WINDOW_SIZE)
+
+        # Restore maximized / fullscreen state (a separate blob from
+        # geometry; restoreState handles dock layouts but for a wizard
+        # without docks it's mostly window-state bits we care about).
+        state = settings.value(_SETTINGS_STATE_KEY)
+        if isinstance(state, (bytes, QtCore.QByteArray)) and bytes(state):
+            try:
+                self.restoreState(QtCore.QByteArray(state))
+            except Exception:  # pylint: disable=broad-except
+                pass
+
+    def _save_window_geometry(self) -> None:
+        """Persist the current window geometry + state to QSettings.
+
+        Called from ``closeEvent`` so the next launch reopens with
+        the same size, position, and maximized state.
+        """
+        settings = _make_settings()
+        settings.setValue(_SETTINGS_GEOMETRY_KEY, self.saveGeometry())
+        settings.setValue(_SETTINGS_STATE_KEY, self.saveState())
 
 
 # One-line descriptions shown inside each placeholder so the W1 shell is

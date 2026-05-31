@@ -326,7 +326,19 @@ class MapCanvas(QtWidgets.QGraphicsView):
         self._pixmap_item = self._scene.addPixmap(pixmap)
         self._pixmap_item.setZValue(-1000)  # always behind future overlays
         self._scene.setSceneRect(QtCore.QRectF(pixmap.rect()))
+        # Fit synchronously now (covers the case where the canvas is
+        # already visible, e.g. a re-load while the editor pane is
+        # open) AND defer a second fit to the next event-loop tick.
+        # The deferred call is what makes the initial launch DTRT:
+        # when the wizard mounts the editor pane after a successful
+        # calibration, the canvas is constructed and set_map_image
+        # runs *before* Qt has laid out the splitter, so the
+        # synchronous fitInView hits a 0-px viewport and silently
+        # no-ops. By the time singleShot(0) fires, layout has run
+        # and the viewport has its real size, so the fit takes
+        # effect and the user sees the whole map.
         self.fit_in_view()
+        QtCore.QTimer.singleShot(0, self.fit_in_view)
 
     # ----------------------------------------------------------- overlays
 
