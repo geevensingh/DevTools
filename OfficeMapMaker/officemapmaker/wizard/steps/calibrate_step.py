@@ -68,6 +68,17 @@ class CalibrateStep(StepBase):
         self._controller: Optional["object"] = None
         self._toolbar: Optional[QtWidgets.QToolBar] = None
 
+        # Find-by-id state. Mirrors the standalone editor's FilterDock
+        # (officemapmaker.editor.filter_dock) cycling semantics: a
+        # ``textChanged`` keystroke recomputes the cached match list,
+        # ``returnPressed`` / F3 advances the cursor, Shift+F3 retreats.
+        # Cached so F3 doesn't re-scan ~230 labels on each press.
+        self._search_box: Optional[QtWidgets.QLineEdit] = None
+        self._search_results_label: Optional[QtWidgets.QLabel] = None
+        self._search_matches: List[int] = []
+        self._search_cursor: int = -1
+        self._search_last_query: str = ""
+
         self._stack = QtWidgets.QStackedWidget(self)
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -382,6 +393,10 @@ class CalibrateStep(StepBase):
             self._canvas.set_calibration(live_cal)
             self._controller._cal = live_cal  # noqa: SLF001
             self._controller.undo_stack().clear()
+            # Cached search matches reference the OLD calibration's
+            # label indices; drop them so the next textChanged
+            # rebuild finds the new labels.
+            self._reset_search_state()
 
     # ------------------------------------------------------------------
     # Toolbar
@@ -561,6 +576,51 @@ class CalibrateStep(StepBase):
         act_delete.triggered.connect(self._on_delete_selected)
         self._toolbar.addAction(act_delete)
 
+        self._toolbar.addSeparator()
+
+        # Inline find-by-id widget. Ported from the standalone editor's
+        # ``FilterDock`` (officemapmaker.editor.filter_dock) but as
+        # toolbar widgets rather than a separate left-side dock, since
+        # the wizard already has the step sidebar on the left and the
+        # inspector on the right. Substring match on label id;
+        # case-insensitive; sorted top-to-bottom then left-to-right by
+        # the canvas's own ``find_label_indices``.
+        find_label = QtWidgets.QLabel("Find:")
+        self._toolbar.addWidget(find_label)
+
+        self._search_box = QtWidgets.QLineEdit()
+        self._search_box.setPlaceholderText("office id, e.g. 1480")
+        self._search_box.setClearButtonEnabled(True)
+        self._search_box.setMaximumWidth(180)
+        self._search_box.textChanged.connect(self._on_search_text_changed)
+        self._search_box.returnPressed.connect(self._on_search_return_pressed)
+        self._toolbar.addWidget(self._search_box)
+
+        self._search_results_label = QtWidgets.QLabel("")
+        self._search_results_label.setStyleSheet("QLabel { color: #666; }")
+        self._search_results_label.setMinimumWidth(80)
+        self._toolbar.addWidget(self._search_results_label)
+
+        # Ctrl+F / F3 / Shift+F3 attached to the step widget so the
+        # shortcuts fire whenever this step is focused; not on the
+        # main window since each step owns its own search state.
+        act_focus_search = QtGui.QAction("Focus search", self)
+        act_focus_search.setShortcut(QtGui.QKeySequence.StandardKey.Find)
+        act_focus_search.triggered.connect(self._focus_search)
+        self.addAction(act_focus_search)
+
+        act_find_next = QtGui.QAction("Find next", self)
+        act_find_next.setShortcut(QtGui.QKeySequence(QtCore.Qt.Key.Key_F3))
+        act_find_next.triggered.connect(self._on_find_next)
+        self.addAction(act_find_next)
+
+        act_find_prev = QtGui.QAction("Find previous", self)
+        act_find_prev.setShortcut(
+            QtGui.QKeySequence(QtCore.Qt.Modifier.SHIFT | QtCore.Qt.Key.Key_F3)
+        )
+        act_find_prev.triggered.connect(self._on_find_previous)
+        self.addAction(act_find_prev)
+
         # Push everything to the left; spacer pins Re-validate +
         # Re-run to the right.
         spacer = QtWidgets.QWidget(self._toolbar)
@@ -601,6 +661,113 @@ class CalibrateStep(StepBase):
         if self._controller.delete_selected_wall_patch():
             return
         self._controller.delete_selected_room()
+
+    # ------------------------------------------------------------------
+    # Find-by-id (inline toolbar search)
+    # ------------------------------------------------------------------
+
+    def _on_search_text_changed(self, text: str) -> None:
+        """Recompute the cached match list and refresh the "N matches" hint.
+
+        We don't auto-jump on each keystroke -- that would yank the
+        viewport around mid-typing. Jumping happens on Enter / F3 /
+        Shift+F3.
+        """
+        if self._canvas is None or self._search_results_label is None:
+            return
+        self._search_last_query = text
+        self._search_matches = self._canvas.find_label_indices(text)
+        self._search_cursor = -1
+        if not text.strip():
+            self._search_results_label.setText("")
+        elif self._search_matches:
+            n = len(self._search_matches)
+            self._search_results_label.setText(
+                f"{n} match" + ("es" if n != 1 else "")
+            )
+        else:
+            self._search_results_label.setText("no matches")
+
+    def _on_search_return_pressed(self) -> None:
+        """Enter in the search box jumps to the next match."""
+        self._on_find_next()
+
+    def _on_find_next(self) -> None:
+        self._cycle_to_match(+1)
+
+    def _on_find_previous(self) -> None:
+        self._cycle_to_match(-1)
+
+    def _cycle_to_match(self, step: int) -> None:
+        """Step through the cached match list by ``step`` (±1), wrapping.
+
+        Mirrors the standalone editor's ``_cycle_to_match`` exactly: if
+        the search box's current text doesn't match the cached query
+        (e.g. the user pasted text without firing ``textChanged``), we
+        rebuild the cache first.
+        """
+        if self._search_box is None or self._canvas is None:
+            return
+        current_text = self._search_box.text()
+        if current_text != self._search_last_query:
+            self._on_search_text_changed(current_text)
+        if not self._search_matches:
+            return
+        self._search_cursor = (
+            self._search_cursor + step
+        ) % len(self._search_matches)
+        idx = self._search_matches[self._search_cursor]
+        # Use center_on_point at min_zoom=1.0 (matches the click-on-
+        # issue navigation). center_on_label alone would centre at
+        # whatever zoom level the user happens to be at; from a fit-
+        # in-view the label would still be unreadable.
+        self._canvas.center_on_label(idx)
+        # center_on_label uses ensureVisible (gentle scroll); follow
+        # up with a zoom-up if we're below 1:1 so the label is
+        # readable. Skip if the call would no-op (no pixmap).
+        try:
+            self._canvas.center_on_point(
+                *self._label_centre(idx), min_zoom=1.0
+            )
+        except (AttributeError, TypeError):
+            # center_on_point or label-centre helper may be missing
+            # in test stubs; fall back to the plain center_on_label.
+            pass
+        if self._search_results_label is not None:
+            self._search_results_label.setText(
+                f"{self._search_cursor + 1} of {len(self._search_matches)}"
+            )
+
+    def _label_centre(self, label_index: int) -> Tuple[int, int]:
+        """Return the scene-pixel centre of the label at ``label_index``."""
+        cal = self.main_window.session.calibration
+        if cal is None or not (0 <= label_index < len(cal.labels)):
+            return (0, 0)
+        bx, by, bw, bh = cal.labels[label_index].bbox
+        return (bx + bw // 2, by + bh // 2)
+
+    def _focus_search(self) -> None:
+        """Ctrl+F: focus the search box and select-all (so typing replaces)."""
+        if self._search_box is None:
+            return
+        self._search_box.setFocus(QtCore.Qt.FocusReason.ShortcutFocusReason)
+        self._search_box.selectAll()
+
+    def _reset_search_state(self) -> None:
+        """Clear cached matches + clear the visible text. Called on Re-run."""
+        self._search_matches = []
+        self._search_cursor = -1
+        self._search_last_query = ""
+        if self._search_box is not None:
+            # blockSignals so we don't fire a spurious textChanged
+            # for the clear (which would also clear the hint, but it
+            # would re-enter this method indirectly via the cached
+            # query check).
+            self._search_box.blockSignals(True)
+            self._search_box.clear()
+            self._search_box.blockSignals(False)
+        if self._search_results_label is not None:
+            self._search_results_label.setText("")
 
     def _on_rerun_clicked(self) -> None:
         """Wipe the cached calibration and re-fire the pipeline call."""

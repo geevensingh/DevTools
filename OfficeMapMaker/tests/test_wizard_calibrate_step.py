@@ -838,3 +838,243 @@ def test_on_activated_pushes_targets_after_session_restore(qapp, inputs):
         assert any(t is not None for t in w._steps[0].issue_targets)
     finally:
         w.close()
+
+
+# ---------------------------------------------------------------------------
+# Inline find-by-id search box (toolbar)
+# ---------------------------------------------------------------------------
+
+
+def _activated_step_with_two_labels(inputs):
+    """Build a MainWindow + activated CalibrateStep on a 2-label fixture.
+
+    The fixture has labels ``1480`` (orphan) and ``1481``; both are
+    accessible to ``find_label_indices`` regardless of orphan state.
+    """
+    map_path, assn_path, out = inputs
+    w = MainWindow(map_path=map_path, assignments_path=assn_path, output_dir=out)
+    cal = _two_room_cal_with_orphan(map_path)
+    w.session.calibration = cal
+    step = w._steps[0].widget
+    step.on_activated()
+    return w, step
+
+
+def test_search_box_is_mounted_in_toolbar(qapp, inputs):
+    """The Find: label, line edit, and results counter live in the
+    toolbar between the Delete-selected action and the right-aligned
+    spacer."""
+    w, step = _activated_step_with_two_labels(inputs)
+    try:
+        assert step._search_box is not None
+        assert step._search_results_label is not None
+        # The QLineEdit must actually be added to the toolbar; check
+        # via widgetForAction is awkward for raw QWidget inserts, so
+        # walk the toolbar's children.
+        children = step._toolbar.findChildren(QtWidgets.QLineEdit)
+        assert step._search_box in children
+    finally:
+        w.close()
+
+
+def test_search_text_change_updates_match_count(qapp, inputs):
+    """Typing in the search box should refresh the cached matches and
+    update the "N matches" hint."""
+    w, step = _activated_step_with_two_labels(inputs)
+    try:
+        step._search_box.setText("148")
+        # Both 1480 and 1481 contain "148".
+        assert len(step._search_matches) == 2
+        assert "2 matches" in step._search_results_label.text()
+        assert step._search_cursor == -1  # not jumped yet
+    finally:
+        w.close()
+
+
+def test_search_no_match_shows_no_matches(qapp, inputs):
+    w, step = _activated_step_with_two_labels(inputs)
+    try:
+        step._search_box.setText("9999")
+        assert step._search_matches == []
+        assert step._search_results_label.text() == "no matches"
+    finally:
+        w.close()
+
+
+def test_search_empty_query_clears_hint(qapp, inputs):
+    """Clearing the search box should clear the hint -- not show 'no matches'."""
+    w, step = _activated_step_with_two_labels(inputs)
+    try:
+        step._search_box.setText("148")
+        assert step._search_results_label.text() != ""
+        step._search_box.setText("")
+        assert step._search_results_label.text() == ""
+    finally:
+        w.close()
+
+
+def test_search_enter_jumps_to_first_match(qapp, inputs):
+    """Pressing Enter (or calling _on_find_next) jumps to the first
+    match and calls center_on_label."""
+    w, step = _activated_step_with_two_labels(inputs)
+    try:
+        captured: list = []
+        step._canvas.center_on_label = (  # type: ignore[assignment]
+            lambda idx: captured.append(idx)
+        )
+
+        step._search_box.setText("148")
+        step._on_find_next()
+
+        assert len(captured) == 1
+        assert step._search_cursor == 0
+        # Hint switches to "1 of N" once cycling begins.
+        assert "1 of 2" in step._search_results_label.text()
+    finally:
+        w.close()
+
+
+def test_search_find_next_cycles_and_wraps(qapp, inputs):
+    """F3 / Find next steps forward and wraps from last → first."""
+    w, step = _activated_step_with_two_labels(inputs)
+    try:
+        captured: list = []
+        step._canvas.center_on_label = (  # type: ignore[assignment]
+            lambda idx: captured.append(idx)
+        )
+
+        step._search_box.setText("148")
+        step._on_find_next()  # cursor -> 0
+        step._on_find_next()  # cursor -> 1
+        step._on_find_next()  # cursor wraps -> 0
+
+        assert len(captured) == 3
+        assert step._search_cursor == 0
+        assert "1 of 2" in step._search_results_label.text()
+    finally:
+        w.close()
+
+
+def test_search_find_previous_wraps(qapp, inputs):
+    """Shift+F3 / Find previous from the first match wraps to the last."""
+    w, step = _activated_step_with_two_labels(inputs)
+    try:
+        captured: list = []
+        step._canvas.center_on_label = (  # type: ignore[assignment]
+            lambda idx: captured.append(idx)
+        )
+
+        step._search_box.setText("148")
+        step._on_find_previous()  # from -1, step -1 -> -2 % 2 -> 0
+        # Then step previous again -> wraps to last (index 1).
+        step._on_find_previous()
+
+        assert len(captured) == 2
+        assert step._search_cursor == 1
+        assert "2 of 2" in step._search_results_label.text()
+    finally:
+        w.close()
+
+
+def test_search_find_next_with_empty_match_is_noop(qapp, inputs):
+    """F3 with no matches must not crash and must not jump anywhere."""
+    w, step = _activated_step_with_two_labels(inputs)
+    try:
+        captured: list = []
+        step._canvas.center_on_label = (  # type: ignore[assignment]
+            lambda idx: captured.append(idx)
+        )
+
+        step._search_box.setText("9999")
+        step._on_find_next()
+
+        assert captured == []
+        assert step._search_cursor == -1
+    finally:
+        w.close()
+
+
+def test_focus_search_focuses_box_and_selects_all(qapp, inputs):
+    """Ctrl+F (``_focus_search``) puts focus in the search box and
+    selects existing text so retyping replaces."""
+    w, step = _activated_step_with_two_labels(inputs)
+    try:
+        step._search_box.setText("1480")
+
+        # On offscreen Qt, hasFocus() doesn't reliably reflect setFocus()
+        # without a visible top-level window AND active window state, so
+        # instead record the call directly.
+        focus_calls: list = []
+        orig_focus = step._search_box.setFocus
+        step._search_box.setFocus = (  # type: ignore[assignment]
+            lambda reason=QtCore.Qt.FocusReason.OtherFocusReason: (
+                focus_calls.append(reason), orig_focus(reason)
+            )
+        )
+
+        step._focus_search()
+
+        assert focus_calls == [QtCore.Qt.FocusReason.ShortcutFocusReason]
+        # selectAll() works regardless of focus state.
+        assert step._search_box.selectedText() == "1480"
+    finally:
+        w.close()
+
+
+def test_search_rerun_clears_state(qapp, inputs):
+    """When ``_refresh_editor_from_session`` swaps in a new
+    calibration, the cached match indices (which reference the old
+    label list) must be cleared."""
+    w, step = _activated_step_with_two_labels(inputs)
+    try:
+        step._search_box.setText("148")
+        assert step._search_matches  # populated
+
+        # Simulate a Re-run that replaced session.calibration with a
+        # new instance. The same fixture again is fine -- it's just a
+        # different Python object.
+        from dataclasses import replace as dc_replace
+
+        new_cal = _two_room_cal_with_orphan(inputs[0])
+        # Mutate a label id so the old cache would be stale.
+        for i, lab in enumerate(new_cal.labels):
+            new_cal.labels[i] = dc_replace(lab, id=lab.id + "X")
+        w.session.calibration = new_cal
+
+        step._refresh_editor_from_session()
+
+        assert step._search_matches == []
+        assert step._search_cursor == -1
+        assert step._search_last_query == ""
+        assert step._search_box.text() == ""
+        assert step._search_results_label.text() == ""
+    finally:
+        w.close()
+
+
+def test_search_recomputes_when_box_text_diverges(qapp, inputs):
+    """If the search box's current text differs from the cached query
+    (e.g. paste path that doesn't fire textChanged), F3 should rebuild
+    the cache before cycling."""
+    w, step = _activated_step_with_two_labels(inputs)
+    try:
+        captured: list = []
+        step._canvas.center_on_label = (  # type: ignore[assignment]
+            lambda idx: captured.append(idx)
+        )
+
+        # Seed the cache with a stale query.
+        step._search_box.setText("9999")
+        assert step._search_matches == []
+        # Now simulate text appearing without firing textChanged.
+        step._search_box.blockSignals(True)
+        step._search_box.setText("148")
+        step._search_box.blockSignals(False)
+
+        step._on_find_next()
+
+        # The cache must have been rebuilt for "148".
+        assert step._search_matches and len(step._search_matches) == 2
+        assert captured  # we actually jumped
+    finally:
+        w.close()
