@@ -300,6 +300,22 @@ class EditorMainWindow(QtWidgets.QMainWindow):
         )
         add_room_menu.addAction(self._act_add_room_polygon)
 
+        # Add wall patch — separate Tools entry (not under "Add room"
+        # because wall patches are a fill-mask repair, not a room).
+        # Shift+W pairs with the View-menu "Show wall patches" (W).
+        self._act_add_wall_patch = QtGui.QAction("Add wall &patch", self)
+        self._act_add_wall_patch.setShortcut(QtGui.QKeySequence("Shift+W"))
+        self._act_add_wall_patch.setCheckable(True)
+        self._act_add_wall_patch.setStatusTip(
+            "Arm add-wall-patch mode. Click two points on the canvas to "
+            "draw a wall-patch line (closes flood-fill leaks). Esc to "
+            "cancel — works whether or not the first click has been placed."
+        )
+        self._act_add_wall_patch.toggled.connect(
+            self._on_add_wall_patch_toggled
+        )
+        tools_menu.addAction(self._act_add_wall_patch)
+
         # Window menu — dock visibility toggles + the global Ctrl+F /
         # F3 shortcuts. ``createToggleViewAction()`` gives a properly
         # synced check-state out of the box.
@@ -384,6 +400,14 @@ class EditorMainWindow(QtWidgets.QMainWindow):
         )
         self._canvas.add_room_polygon_cancelled.connect(
             self._on_add_room_polygon_mode_ended
+        )
+
+        # And once more for add-wall-patch mode.
+        self._canvas.add_wall_patch_requested.connect(
+            self._on_add_wall_patch_mode_ended
+        )
+        self._canvas.add_wall_patch_cancelled.connect(
+            self._on_add_wall_patch_mode_ended
         )
 
         # ed5 — wire the filter / find dock to the canvas. The dock owns
@@ -556,6 +580,39 @@ class EditorMainWindow(QtWidgets.QMainWindow):
         self._act_add_room_polygon.blockSignals(True)
         self._act_add_room_polygon.setChecked(False)
         self._act_add_room_polygon.blockSignals(False)
+        self.statusBar().clearMessage()
+
+    def _on_add_wall_patch_toggled(self, checked: bool) -> None:
+        """Drive the canvas's add-wall-patch mode from the menu toggle.
+
+        Routes through the controller so it can short-circuit with a
+        friendly error if the map image hasn't been loaded yet (the
+        controller needs the image dimensions to clamp endpoints).
+        """
+        self._controller.set_add_wall_patch_mode(checked)
+        # The controller may have refused to arm (no image loaded) —
+        # in that case the canvas is still off and we need to un-check
+        # ourselves so the menu stays consistent with the canvas.
+        if checked and not self._canvas.add_wall_patch_mode():
+            self._act_add_wall_patch.blockSignals(True)
+            self._act_add_wall_patch.setChecked(False)
+            self._act_add_wall_patch.blockSignals(False)
+            return
+        if checked:
+            self.statusBar().showMessage(
+                "Click two points on the map to draw a wall-patch line "
+                "(closes flood-fill leaks). Esc cancels.", 0
+            )
+        else:
+            self.statusBar().clearMessage()
+
+    def _on_add_wall_patch_mode_ended(self, *_args) -> None:
+        """Canvas dropped out of add-wall-patch mode → re-sync the toggle."""
+        if not self._act_add_wall_patch.isChecked():
+            return
+        self._act_add_wall_patch.blockSignals(True)
+        self._act_add_wall_patch.setChecked(False)
+        self._act_add_wall_patch.blockSignals(False)
         self.statusBar().clearMessage()
 
     # ---------------------------------------------------- search / filter

@@ -156,6 +156,24 @@ class MapCanvas(QtWidgets.QGraphicsView):
     right-click) with fewer than ``_POLYGON_MIN_VERTICES`` placed.
     """
 
+    add_wall_patch_requested = QtCore.Signal(QtCore.QPointF, QtCore.QPointF)
+    """Emitted when the user finishes a two-click line in add-wall-patch mode.
+
+    Payload is ``(first_point, second_point)`` in scene (image-pixel)
+    coordinates. The controller clamps endpoints to the image bounds,
+    validates that the line is non-degenerate, builds a 4-tuple, and
+    pushes :class:`AddWallPatchCommand`. After pushing the command the
+    controller is responsible for calling ``invalidate_wall_mask()`` so
+    the next flood-fill picks up the new patch.
+    """
+
+    add_wall_patch_cancelled = QtCore.Signal()
+    """Emitted when add-wall-patch mode ends without producing a patch.
+
+    Sources: Esc (whether or not the first click was placed), or
+    ``set_add_wall_patch_mode(False)`` while in mid-gesture.
+    """
+
     def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
         self._scene = QtWidgets.QGraphicsScene(self)
@@ -231,6 +249,19 @@ class MapCanvas(QtWidgets.QGraphicsView):
         self._polygon_vertices: list[QtCore.QPointF] = []
         self._polygon_preview_item: Optional[
             QtWidgets.QGraphicsPolygonItem
+        ] = None
+
+        # Add-wall-patch mode: while True, two successive left-clicks define
+        # a wall-patch line segment. The first click records the segment's
+        # start point and shows a magenta dashed live-preview line that
+        # follows the cursor; the second click commits the segment, emits
+        # ``add_wall_patch_requested`` with both endpoints, and disarms.
+        # Esc cancels at any point (with or without a first click placed).
+        # Mutually exclusive with the other five arm modes.
+        self._add_wall_patch_mode = False
+        self._wall_patch_first_point: Optional[QtCore.QPointF] = None
+        self._wall_patch_preview_item: Optional[
+            QtWidgets.QGraphicsLineItem
         ] = None
 
         # Track mouse position even when no button is pressed so the status
@@ -617,6 +648,8 @@ class MapCanvas(QtWidgets.QGraphicsView):
                 self.set_add_room_rect_mode(False)
             if self._add_room_polygon_mode:
                 self.set_add_room_polygon_mode(False)
+            if self._add_wall_patch_mode:
+                self.set_add_wall_patch_mode(False)
         self._room_pick_mode = active
         if active:
             self.viewport().setCursor(QtCore.Qt.CursorShape.CrossCursor)
@@ -648,6 +681,8 @@ class MapCanvas(QtWidgets.QGraphicsView):
                 self.set_add_room_rect_mode(False)
             if self._add_room_polygon_mode:
                 self.set_add_room_polygon_mode(False)
+            if self._add_wall_patch_mode:
+                self.set_add_wall_patch_mode(False)
         self._add_label_mode = active
         if active:
             self.viewport().setCursor(QtCore.Qt.CursorShape.CrossCursor)
@@ -667,7 +702,7 @@ class MapCanvas(QtWidgets.QGraphicsView):
         room construction; the canvas is only responsible for the cursor,
         the click capture, and Esc cancellation.
 
-        Idempotent. Mutually exclusive with the other three arm-modes.
+        Idempotent. Mutually exclusive with the other five arm-modes.
         """
         if self._add_room_flood_mode == active:
             return
@@ -680,6 +715,8 @@ class MapCanvas(QtWidgets.QGraphicsView):
                 self.set_add_room_rect_mode(False)
             if self._add_room_polygon_mode:
                 self.set_add_room_polygon_mode(False)
+            if self._add_wall_patch_mode:
+                self.set_add_wall_patch_mode(False)
         self._add_room_flood_mode = active
         if active:
             self.viewport().setCursor(QtCore.Qt.CursorShape.CrossCursor)
@@ -701,7 +738,7 @@ class MapCanvas(QtWidgets.QGraphicsView):
         ``add_room_rect_cancelled`` instead so a misclick doesn't
         produce a 1-pixel room.
 
-        Idempotent. Mutually exclusive with the other three arm-modes.
+        Idempotent. Mutually exclusive with the other five arm-modes.
         Disarming mid-drag tears down any preview rect overlay.
         """
         if self._add_room_rect_mode == active:
@@ -715,6 +752,8 @@ class MapCanvas(QtWidgets.QGraphicsView):
                 self.set_add_room_flood_mode(False)
             if self._add_room_polygon_mode:
                 self.set_add_room_polygon_mode(False)
+            if self._add_wall_patch_mode:
+                self.set_add_wall_patch_mode(False)
         self._add_room_rect_mode = active
         if active:
             self.viewport().setCursor(QtCore.Qt.CursorShape.CrossCursor)
@@ -739,7 +778,7 @@ class MapCanvas(QtWidgets.QGraphicsView):
         the most recent vertex (so the user can correct a misclick
         without starting over).
 
-        Idempotent. Mutually exclusive with the other four arm-modes.
+        Idempotent. Mutually exclusive with the other five arm-modes.
         Disarming mid-draft discards any in-progress vertices + preview.
         """
         if self._add_room_polygon_mode == active:
@@ -753,6 +792,8 @@ class MapCanvas(QtWidgets.QGraphicsView):
                 self.set_add_room_flood_mode(False)
             if self._add_room_rect_mode:
                 self.set_add_room_rect_mode(False)
+            if self._add_wall_patch_mode:
+                self.set_add_wall_patch_mode(False)
         self._add_room_polygon_mode = active
         if active:
             self.viewport().setCursor(QtCore.Qt.CursorShape.CrossCursor)
@@ -772,6 +813,118 @@ class MapCanvas(QtWidgets.QGraphicsView):
         indicator. Zero when not in polygon mode or no vertices yet.
         """
         return len(self._polygon_vertices)
+
+    # ---------------------------------------------------- add wall-patch
+
+    def set_add_wall_patch_mode(self, active: bool) -> None:
+        """Enter or leave "click two points to draw a wall-patch line" mode.
+
+        While active, the viewport shows a crosshair cursor. The first
+        left-click records the start point and reveals a magenta dashed
+        line preview that follows the cursor; the second left-click
+        commits the line, emits ``add_wall_patch_requested`` with both
+        endpoints, and disarms. Esc cancels at any point — whether or
+        not the first click has been placed — and emits
+        ``add_wall_patch_cancelled``.
+
+        Wall-patch mode is mutually exclusive with the other five
+        arm-modes; turning this on turns the others off. Disarming
+        mid-gesture (either programmatically or via Esc) discards any
+        in-progress first point + preview overlay so the next arm
+        starts clean.
+        """
+        if self._add_wall_patch_mode == active:
+            return
+        if active:
+            if self._room_pick_mode:
+                self.set_room_pick_mode(False)
+            if self._add_label_mode:
+                self.set_add_label_mode(False)
+            if self._add_room_flood_mode:
+                self.set_add_room_flood_mode(False)
+            if self._add_room_rect_mode:
+                self.set_add_room_rect_mode(False)
+            if self._add_room_polygon_mode:
+                self.set_add_room_polygon_mode(False)
+        self._add_wall_patch_mode = active
+        if active:
+            self.viewport().setCursor(QtCore.Qt.CursorShape.CrossCursor)
+            self.setFocus(QtCore.Qt.FocusReason.OtherFocusReason)
+        else:
+            self.viewport().unsetCursor()
+            # If we had a first point placed, drop it + tear down preview
+            # so the next arm starts from a clean slate.
+            self._discard_wall_patch_preview()
+
+    def add_wall_patch_mode(self) -> bool:
+        return self._add_wall_patch_mode
+
+    def wall_patch_first_point(self) -> Optional[QtCore.QPointF]:
+        """Return the first-click point if one is placed, else ``None``.
+
+        Exposed for tests and any future status-bar "click second point"
+        indicator. ``None`` when not in wall-patch mode or no first
+        point yet.
+        """
+        return self._wall_patch_first_point
+
+    def _ensure_wall_patch_preview_item(self) -> QtWidgets.QGraphicsLineItem:
+        """Lazily create the in-progress wall-patch preview line item.
+
+        Re-uses the same item across mouse moves so we don't churn
+        ``QGraphicsLineItem`` instances on every mouseMove. Cosmetic
+        2 px dashed magenta — same family as the committed wall-patch
+        items (Z=50) but at Z=1001 so the preview always floats above
+        any existing patches it might cross, and so it stacks above the
+        polygon-preview (Z=1000) if someone managed to leave that
+        item lingering.
+        """
+        if self._wall_patch_preview_item is None:
+            item = QtWidgets.QGraphicsLineItem()
+            pen = QtGui.QPen(QtGui.QColor("#d600d6"))
+            pen.setStyle(QtCore.Qt.PenStyle.DashLine)
+            # Cosmetic so the dashed outline stays 2 px wide regardless
+            # of zoom — matches the rect / polygon preview convention.
+            pen.setCosmetic(True)
+            pen.setWidth(2)
+            pen.setCapStyle(QtCore.Qt.PenCapStyle.RoundCap)
+            item.setPen(pen)
+            item.setZValue(1001)
+            self._scene.addItem(item)
+            self._wall_patch_preview_item = item
+        return self._wall_patch_preview_item
+
+    def _refresh_wall_patch_preview(
+        self, cursor_scene_pos: QtCore.QPointF
+    ) -> None:
+        """Update the preview line to run from first point to cursor.
+
+        No-op if no first point has been placed yet (there's nothing to
+        preview). Once a first point exists, every mouse move re-points
+        the line at the cursor so the user can see exactly where the
+        commit click will land.
+        """
+        if self._wall_patch_first_point is None:
+            return
+        item = self._ensure_wall_patch_preview_item()
+        item.setLine(
+            QtCore.QLineF(self._wall_patch_first_point, cursor_scene_pos)
+        )
+
+    def _discard_wall_patch_preview(self) -> None:
+        """Drop the in-progress first point + remove preview overlay.
+
+        Called on Esc, on disarming the mode mid-gesture, and after a
+        successful commit. Idempotent.
+        """
+        if self._wall_patch_preview_item is not None:
+            try:
+                self._scene.removeItem(self._wall_patch_preview_item)
+            except RuntimeError:
+                # Scene already torn down — fine, the item is gone too.
+                pass
+            self._wall_patch_preview_item = None
+        self._wall_patch_first_point = None
 
     def image_size(self) -> Optional[tuple[int, int]]:
         """Return ``(width, height)`` of the loaded map in image pixels.
@@ -1007,6 +1160,17 @@ class MapCanvas(QtWidgets.QGraphicsView):
             event.accept()
             return
 
+        if (
+            self._add_wall_patch_mode
+            and self._wall_patch_first_point is not None
+        ):
+            # Re-render the preview line so the user can see exactly
+            # where the second-click line will commit. No-op before the
+            # first click is placed (nothing to preview yet).
+            self._refresh_wall_patch_preview(scene_pos)
+            event.accept()
+            return
+
         super().mouseMoveEvent(event)
 
     def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:  # noqa: N802 — Qt API
@@ -1095,6 +1259,31 @@ class MapCanvas(QtWidgets.QGraphicsView):
             # Right-click closes the polygon (same effect as Enter /
             # double-click). Suppress the default context-menu behaviour.
             self._finish_polygon()
+            event.accept()
+            return
+
+        if (
+            self._add_wall_patch_mode
+            and event.button() == QtCore.Qt.MouseButton.LeftButton
+        ):
+            scene_pos = self.mapToScene(event.position().toPoint())
+            if self._wall_patch_first_point is None:
+                # First click: record start point. Mode stays armed —
+                # we need a second click to define the line. Refresh
+                # the preview right away so the line shows up even
+                # before the user moves the mouse.
+                self._wall_patch_first_point = scene_pos
+                self._refresh_wall_patch_preview(scene_pos)
+            else:
+                # Second click: commit the line, then disarm. Capture
+                # the start point locally so disarm-side cleanup can
+                # null out our state before we emit (handlers may pop
+                # a dialog and we want the canvas already clean).
+                start = self._wall_patch_first_point
+                # set_add_wall_patch_mode(False) discards the preview +
+                # nulls _wall_patch_first_point, leaving a clean slate.
+                self.set_add_wall_patch_mode(False)
+                self.add_wall_patch_requested.emit(start, scene_pos)
             event.accept()
             return
 
@@ -1251,6 +1440,15 @@ class MapCanvas(QtWidgets.QGraphicsView):
             # is left on the scene.
             self.set_add_room_rect_mode(False)
             self.add_room_rect_cancelled.emit()
+            event.accept()
+            return
+        if key == QtCore.Qt.Key.Key_Escape and self._add_wall_patch_mode:
+            # Esc bails out of add-wall-patch mode. Works whether or
+            # not the first click was placed:
+            # set_add_wall_patch_mode(False) drops any first point +
+            # tears down the preview line.
+            self.set_add_wall_patch_mode(False)
+            self.add_wall_patch_cancelled.emit()
             event.accept()
             return
         if self._add_room_polygon_mode:

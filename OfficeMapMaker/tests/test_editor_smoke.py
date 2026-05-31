@@ -186,3 +186,71 @@ def test_launch_success_with_existing_qapp(tmp_path: Path, qtbot):
         if isinstance(w, EditorMainWindow):
             w.close()
             w.deleteLater()
+
+
+# -------------------------------------------- add-wall-patch menu wiring
+
+
+def test_add_wall_patch_menu_action_wired(tmp_path: Path, qtbot):
+    """The Tools → Add wall patch action is the user-facing entry to w9b.
+
+    Direct unit tests in ``test_editor_add_wall_patch`` already cover the
+    full command + canvas + controller two-click flow. This test pins
+    down the main-window wiring specifically: action exists, shortcut
+    is ``Shift+W``, toggling the menu action drives ``controller.
+    set_add_wall_patch_mode`` (verified by observing the canvas mode
+    change), and canvas-side disarm propagates back to un-check the
+    menu action.
+    """
+    cal_path, map_path = _make_calibration_on_disk(tmp_path)
+    from officemapmaker.calibration import load_calibration
+
+    cal = load_calibration(cal_path)
+    window = EditorMainWindow(
+        calibration=cal,
+        calibration_path=cal_path,
+        map_path=map_path,
+    )
+    qtbot.addWidget(window)
+    window.show()
+
+    # Action exists with the right shortcut + is checkable.
+    assert hasattr(window, "_act_add_wall_patch")
+    assert window._act_add_wall_patch.shortcut() == QtGui.QKeySequence("Shift+W")  # noqa: SLF001
+    assert window._act_add_wall_patch.isCheckable()  # noqa: SLF001
+
+    # Toggle on → canvas armed.
+    window._act_add_wall_patch.setChecked(True)  # noqa: SLF001
+    assert window._canvas.add_wall_patch_mode() is True  # noqa: SLF001
+
+    # Disarm via the canvas signal pathway (mimicking Esc / commit). The
+    # main-window slot wired to ``add_wall_patch_cancelled`` should
+    # un-check the menu action without re-firing ``toggled``.
+    window._canvas.set_add_wall_patch_mode(False)  # noqa: SLF001
+    window._canvas.add_wall_patch_cancelled.emit()  # noqa: SLF001
+    assert window._act_add_wall_patch.isChecked() is False  # noqa: SLF001
+
+
+def test_add_wall_patch_action_lives_in_tools_menu(tmp_path: Path, qtbot):
+    """The Tools menu should expose the add-wall-patch action."""
+    cal_path, map_path = _make_calibration_on_disk(tmp_path)
+    from officemapmaker.calibration import load_calibration
+
+    cal = load_calibration(cal_path)
+    window = EditorMainWindow(
+        calibration=cal,
+        calibration_path=cal_path,
+        map_path=map_path,
+    )
+    qtbot.addWidget(window)
+    window.show()
+
+    tools_menus = [
+        m for m in window.menuBar().findChildren(QtWidgets.QMenu)
+        if m.title().replace("&", "") == "Tools"
+    ]
+    assert tools_menus, "Tools menu missing"
+    tools_menu = tools_menus[0]
+    # The action lives directly in Tools (not under any submenu — wall
+    # patches aren't a kind of room).
+    assert window._act_add_wall_patch in tools_menu.actions()  # noqa: SLF001

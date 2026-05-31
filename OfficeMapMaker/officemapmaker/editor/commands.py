@@ -111,6 +111,36 @@ class RoomChange:
 RoomChangeCallback = Callable[[RoomChange], None]
 
 
+class WallPatchChange:
+    """Notification payload for an edit that affected the wall_patches list.
+
+    Parallel to :class:`LabelChange` / :class:`RoomChange` on the wall-patch
+    side. Wall patches don't carry a stable id (they're a plain list of
+    4-tuples in the data model), so this payload is intentionally minimal:
+    every wall-patch mutation is *structural* in the sense that the canvas
+    has to rebuild its wall-patch layer from scratch (insert/delete shifts
+    every subsequent patch's index).
+
+    The controller's handler is also responsible for calling
+    :meth:`EditorController.invalidate_wall_mask` so the next add-room
+    flood-fill picks up the new (or undone) patch — wall patches are a
+    *fill-mask repair*, so their whole purpose is to alter what flood-fill
+    can reach.
+
+    Attributes:
+        structural: Always True today (add/delete are the only operations).
+            Kept as a field for parity with the other change payloads and
+            in case future "move a wall patch endpoint" edits want a
+            non-structural variant.
+    """
+
+    def __init__(self, *, structural: bool = True) -> None:
+        self.structural: bool = structural
+
+
+WallPatchChangeCallback = Callable[[WallPatchChange], None]
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -541,9 +571,71 @@ class DeleteRoomCommand(QtGui.QUndoCommand):
             )
 
 
+class AddWallPatchCommand(QtGui.QUndoCommand):
+    """Append a new wall-patch line segment to the calibration (undoable).
+
+    Wall patches are the fill-mask repair mechanism: each entry is an
+    ``(x1, y1, x2, y2)`` line drawn onto the *binary fill mask* (never
+    onto the visible map) so flood-fill leaks through wall gaps can be
+    closed without altering the source image. See
+    :attr:`Calibration.wall_patches` for the data model.
+
+    Mirror of :class:`AddRoomCommand` on the wall-patch side. The patch
+    is always appended (never inserted at an arbitrary position) so undo
+    just removes whatever entry redo last added. The patch tuple is
+    stored eagerly so undo / redo remain idempotent across multiple
+    cycles (the controller can hand us the same patch and we won't
+    mutate it).
+    """
+
+    def __init__(
+        self,
+        calibration: Calibration,
+        new_patch: tuple[int, int, int, int],
+        *,
+        on_change: Optional["WallPatchChangeCallback"] = None,
+    ) -> None:
+        super().__init__(
+            f"add wall patch ({new_patch[0]},{new_patch[1]})→"
+            f"({new_patch[2]},{new_patch[3]})"
+        )
+        self._cal = calibration
+        # Coerce to a plain tuple of ints so future mutations on whatever
+        # the caller handed us can't change the stored patch.
+        self._patch: tuple[int, int, int, int] = (
+            int(new_patch[0]),
+            int(new_patch[1]),
+            int(new_patch[2]),
+            int(new_patch[3]),
+        )
+        self._on_change = on_change
+        # Index recorded at first redo so undo / redo always touch the
+        # same slot (same idiom as AddLabelCommand / AddRoomCommand).
+        self._new_index: Optional[int] = None
+
+    def redo(self) -> None:  # noqa: D401 — Qt API
+        if self._new_index is None:
+            self._new_index = len(self._cal.wall_patches)
+        if self._new_index > len(self._cal.wall_patches):
+            self._new_index = len(self._cal.wall_patches)
+        self._cal.wall_patches.insert(self._new_index, self._patch)
+        if self._on_change is not None:
+            self._on_change(WallPatchChange(structural=True))
+
+    def undo(self) -> None:  # noqa: D401 — Qt API
+        if self._new_index is None or self._new_index >= len(
+            self._cal.wall_patches
+        ):
+            return
+        del self._cal.wall_patches[self._new_index]
+        if self._on_change is not None:
+            self._on_change(WallPatchChange(structural=True))
+
+
 __all__ = [
     "AddLabelCommand",
     "AddRoomCommand",
+    "AddWallPatchCommand",
     "ChangeCallback",
     "ChangeRoomLinkCommand",
     "DeleteLabelCommand",
@@ -553,4 +645,6 @@ __all__ = [
     "LabelChange",
     "RoomChange",
     "RoomChangeCallback",
+    "WallPatchChange",
+    "WallPatchChangeCallback",
 ]

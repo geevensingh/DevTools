@@ -29,6 +29,7 @@ from .canvas import MapCanvas
 from .commands import (
     AddLabelCommand,
     AddRoomCommand,
+    AddWallPatchCommand,
     ChangeRoomLinkCommand,
     DeleteLabelCommand,
     DeleteRoomCommand,
@@ -36,6 +37,7 @@ from .commands import (
     EditLabelNotesCommand,
     LabelChange,
     RoomChange,
+    WallPatchChange,
 )
 from .items import LabelItem, RoomItem, compute_label_status, find_duplicate_label_ids
 from .sidebar import InspectorPanel
@@ -241,6 +243,19 @@ class EditorController(QtCore.QObject):
         )
         self._canvas.add_room_polygon_cancelled.connect(
             self._handle_canvas_add_room_polygon_cancelled
+        )
+
+        # Canvas add-wall-patch mode → controller: clamp the two
+        # endpoints to the image bounds, reject degenerate (zero-length
+        # or entirely-outside) segments, push AddWallPatchCommand, and
+        # invalidate the wall mask so the next flood-fill picks up the
+        # new patch. No map_path needed — wall patches are pure
+        # geometry that gets drawn onto whatever mask we build later.
+        self._canvas.add_wall_patch_requested.connect(
+            self._handle_canvas_add_wall_patch
+        )
+        self._canvas.add_wall_patch_cancelled.connect(
+            self._handle_canvas_add_wall_patch_cancelled
         )
 
         # Remember which label the user was editing when they entered pick
@@ -878,6 +893,101 @@ class EditorController(QtCore.QObject):
     def _handle_canvas_add_room_polygon_cancelled(self) -> None:
         """Esc / too-few-vertices close — informational hook."""
         return
+
+    # ------------------------------------------------- add wall-patch
+
+    def set_add_wall_patch_mode(self, active: bool) -> None:
+        """Public toggle for the canvas's add-wall-patch mode.
+
+        Same arm-guard as :meth:`set_add_room_rect_mode` — needs a loaded
+        pixmap so we know the image dimensions for endpoint clamping.
+        The map_path itself isn't needed (wall patches are pure
+        geometry; the source image is only consulted later, when
+        ``invalidate_wall_mask`` forces a rebuild).
+        """
+        if active and self._canvas.image_size() is None:
+            QtWidgets.QMessageBox.warning(
+                self._canvas,
+                "Add wall patch",
+                "Add-wall-patch mode needs the map image to be loaded\n"
+                "so endpoints can be clamped to the image bounds.\n"
+                "Re-open the editor with --map MAP.png.",
+            )
+            return
+        self._canvas.set_add_wall_patch_mode(active)
+
+    def _handle_canvas_add_wall_patch(
+        self,
+        start: "QtCore.QPointF",
+        end: "QtCore.QPointF",
+    ) -> None:
+        """User finished a two-click line in add-wall-patch mode.
+
+        Clamps both endpoints to the image bounds, validates that the
+        line is non-degenerate (zero-length after clamp means the user
+        drew entirely off-map or both points collapsed onto the same
+        edge), builds an integer 4-tuple, and pushes an
+        :class:`AddWallPatchCommand`. After the command is pushed,
+        :meth:`invalidate_wall_mask` is called via ``_on_wall_patch_change``
+        so the next flood-fill picks up the new patch.
+        """
+        # Defensive: canvas disarms before emitting, but be sure.
+        self._canvas.set_add_wall_patch_mode(False)
+
+        size = self._canvas.image_size()
+        if size is None:
+            QtWidgets.QMessageBox.warning(
+                self._canvas,
+                "Add wall patch",
+                "Could not read the map image dimensions. Re-open the\n"
+                "editor with --map MAP.png.",
+            )
+            return
+        img_w, img_h = size
+
+        # Clamp each endpoint independently to the image bounds. A line
+        # that straddles the edge is still useful (only the in-bounds
+        # portion ends up on the mask anyway); only reject if both
+        # points clamp to the *same* point (zero-length after clamp).
+        x1 = max(0, min(img_w - 1, int(round(start.x()))))
+        y1 = max(0, min(img_h - 1, int(round(start.y()))))
+        x2 = max(0, min(img_w - 1, int(round(end.x()))))
+        y2 = max(0, min(img_h - 1, int(round(end.y()))))
+
+        if (x1, y1) == (x2, y2):
+            QtWidgets.QMessageBox.warning(
+                self._canvas,
+                "Add wall patch",
+                "The two endpoints collapsed onto the same pixel after\n"
+                "clamping to the image bounds. Draw a non-degenerate\n"
+                "line inside the map.",
+            )
+            return
+
+        cmd = AddWallPatchCommand(
+            self._cal,
+            (x1, y1, x2, y2),
+            on_change=self._on_wall_patch_change,
+        )
+        self._undo_stack.push(cmd)
+
+    def _handle_canvas_add_wall_patch_cancelled(self) -> None:
+        """Esc / mid-gesture disarm — informational hook."""
+        return
+
+    def _on_wall_patch_change(self, change: WallPatchChange) -> None:
+        """Apply a :class:`WallPatchChange` to the canvas + invalidate the mask.
+
+        Wall patches are pure mask repair: every add / undo-add /
+        delete / undo-delete invalidates the cached wall mask so the
+        next flood-fill rebuilds it from the source image plus the new
+        patch set. Visual side: the canvas's wall-patch layer is
+        rebuilt wholesale (indices shift on insert/remove, so a partial
+        update isn't safe — and the layer is cheap to rebuild anyway).
+        """
+        if change.structural:
+            self._canvas.rebuild_wall_patches()
+        self.invalidate_wall_mask()
 
     def _next_room_id(self) -> int:
         """Return the next unused integer ``Room.id``.
