@@ -354,6 +354,7 @@ class MainWindow(QtWidgets.QMainWindow):
         from .steps.base import StepBase
         from .steps.calibrate_step import CalibrateStep
         from .steps.validate_labels_step import ValidateLabelsStep
+        from .steps.validate_fill_step import ValidateFillStep
 
         self._step_base_cls = StepBase  # cached for _activate_step lifecycle dispatch
         for entry in self._steps:
@@ -361,6 +362,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 entry.widget = CalibrateStep(self)
             elif entry.step_id == "validate_labels":
                 entry.widget = ValidateLabelsStep(self)
+            elif entry.step_id == "validate_fill":
+                entry.widget = ValidateFillStep(self)
             else:
                 entry.widget = self._make_placeholder_step(entry)
             self._content_stack.addWidget(entry.widget)
