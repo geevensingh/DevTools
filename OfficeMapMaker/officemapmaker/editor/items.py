@@ -29,9 +29,13 @@ from ..geometry import rle_to_mask
 
 # Z-order: the map pixmap lives at -1000 (set in MapCanvas.set_map_image).
 # Rooms go above the map but below labels so label rectangles are always
-# visible even over a heavily-tinted room.
+# visible even over a heavily-tinted room. Wall patches sit on top of
+# everything else (above labels too) because the whole point of seeing
+# them is to confirm they actually plug the gap they were drawn to plug —
+# burying them under labels would defeat the purpose.
 Z_ROOM = -10
 Z_LABEL = 0
+Z_WALL_PATCH = 50
 
 # Label box visual style.
 _LABEL_PEN_WIDTH = 2.0
@@ -60,6 +64,17 @@ _ROOM_FILL_ORPHAN = QtGui.QColor("#fff176")    # light yellow
 # rectangular; we don't need every contour vertex from cv2.findContours.
 # Tighter values keep more detail at the cost of more QGraphicsItem vertices.
 _POLYGON_APPROX_EPSILON_PX = 1.0
+
+# Wall-patch visual style. Magenta sits well outside the green/amber/red
+# label palette and the cyan/yellow room palette, so a patched gap is
+# unambiguous against either backdrop.
+_WALL_PATCH_COLOR = QtGui.QColor("#d600d6")
+_WALL_PATCH_PEN_WIDTH = 2.0
+# Pixels of extra hit-tolerance around the visible line. ``QGraphicsLineItem``
+# defaults to ~1px hit area; bumping to 4px (visible 2px + 1px on each side)
+# makes the line clickable for selection / delete without thickening the
+# stroke the user sees.
+_WALL_PATCH_HIT_TOLERANCE_PX = 3.0
 
 
 # ---------------------------------------------------------------------------
@@ -284,13 +299,91 @@ def _polygon_area(polygon: QtGui.QPolygonF) -> float:
     return 0.5 * total
 
 
+# ---------------------------------------------------------------------------
+# WallPatchItem
+# ---------------------------------------------------------------------------
+
+
+class WallPatchItem(QtWidgets.QGraphicsLineItem):
+    """One magenta line overlay for a calibration ``wall_patches`` entry.
+
+    Wall patches are 1-pixel-dark line segments rasterized onto the
+    flood-fill mask (see ``validate.build_fill_mask``) to close gaps in
+    the wall art that would otherwise leak fill into adjacent rooms or
+    hallways. They are NOT painted onto the visible image — only into
+    the mask — so the user has no way to see what they've added without
+    this overlay.
+
+    The drawn line is purely visual: the underlying data is the 4-tuple
+    ``(x1, y1, x2, y2)`` stored in ``Calibration.wall_patches[patch_index]``.
+
+    Hit-testing widens the click region beyond the visible 2px stroke to
+    ``_WALL_PATCH_HIT_TOLERANCE_PX`` on each side via :meth:`shape`, so
+    a 2-pixel-wide line is still reliably clickable for select+delete in
+    later sub-phases (w9c). The visible stroke stays cosmetic-2px so the
+    overlay doesn't get fatter at high zoom.
+    """
+
+    def __init__(
+        self,
+        patch_index: int,
+        x1: float,
+        y1: float,
+        x2: float,
+        y2: float,
+        *,
+        parent: Optional[QtWidgets.QGraphicsItem] = None,
+    ) -> None:
+        super().__init__(float(x1), float(y1), float(x2), float(y2), parent)
+        self.patch_index: int = patch_index
+        # Snapshot the endpoints as plain floats so callers (inspector,
+        # tests) don't have to round-trip through QLineF accessors.
+        self.endpoints: tuple[float, float, float, float] = (
+            float(x1), float(y1), float(x2), float(y2),
+        )
+        self.setZValue(Z_WALL_PATCH)
+        self.setData(0, "wall_patch")
+        self.setData(1, patch_index)
+        self.setAcceptHoverEvents(True)
+        self.setFlag(
+            QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, True
+        )
+        pen = QtGui.QPen(_WALL_PATCH_COLOR)
+        pen.setWidthF(_WALL_PATCH_PEN_WIDTH)
+        pen.setCosmetic(True)
+        pen.setCapStyle(QtCore.Qt.PenCapStyle.RoundCap)
+        self.setPen(pen)
+
+    def shape(self) -> QtGui.QPainterPath:  # noqa: D401 — Qt API
+        """Widen the hit region by ``_WALL_PATCH_HIT_TOLERANCE_PX``.
+
+        The default ``QGraphicsLineItem.shape`` follows the visible pen
+        width, which is cosmetic 2px — far too thin to reliably click on
+        a long diagonal line at low zoom. We build a stroke path with a
+        wider pen so selection is forgiving without altering the visible
+        stroke.
+        """
+        stroker = QtGui.QPainterPathStroker()
+        # Total widened width: visible stroke + tolerance on each side.
+        stroker.setWidth(_WALL_PATCH_PEN_WIDTH + 2.0 * _WALL_PATCH_HIT_TOLERANCE_PX)
+        stroker.setCapStyle(QtCore.Qt.PenCapStyle.RoundCap)
+        # Build the centerline path explicitly — line.path() doesn't
+        # exist on QGraphicsLineItem; we construct it from the stored line.
+        line = self.line()
+        path = QtGui.QPainterPath(line.p1())
+        path.lineTo(line.p2())
+        return stroker.createStroke(path)
+
+
 __all__ = [
     "LabelItem",
     "RoomItem",
+    "WallPatchItem",
     "build_room_polygon",
     "compute_label_status",
     "find_duplicate_label_ids",
     "room_mask_to_polygons",
     "Z_LABEL",
     "Z_ROOM",
+    "Z_WALL_PATCH",
 ]

@@ -28,6 +28,7 @@ from ..calibration import Calibration
 from .items import (
     LabelItem,
     RoomItem,
+    WallPatchItem,
     build_room_polygon,
     compute_label_status,
     find_duplicate_label_ids,
@@ -248,6 +249,13 @@ class MapCanvas(QtWidgets.QGraphicsView):
         self._label_items: dict[int, LabelItem] = {}
         # Room id = ``Room.id`` (the stable integer assigned at calibration).
         self._room_items: dict[int, RoomItem] = {}
+        # Wall-patch index = position in ``Calibration.wall_patches``.
+        # Wall patches don't carry a stable id of their own (they're a
+        # plain list of 4-tuples in the data model), so the index is
+        # the only viable key. Structural changes (add/delete) require a
+        # full rebuild via :meth:`rebuild_wall_patches` because shifting
+        # indices would otherwise invalidate every item's ``patch_index``.
+        self._wall_patch_items: list[WallPatchItem] = []
 
         # Reference to the live calibration so structural changes (Add/Delete
         # label) can rebuild the label items without the caller having to
@@ -258,6 +266,7 @@ class MapCanvas(QtWidgets.QGraphicsView):
         # "orphans only" filter also flips per-item visibility.
         self._labels_visible = True
         self._rooms_visible = True
+        self._wall_patches_visible = True
         self._orphans_only = False
         # ed5 filters: minimum room area (px) below which rooms are hidden
         # entirely (catches the door-arc-sized polygons that account for
@@ -306,8 +315,11 @@ class MapCanvas(QtWidgets.QGraphicsView):
             self._scene.removeItem(item)
         for item in list(self._room_items.values()):
             self._scene.removeItem(item)
+        for item in list(self._wall_patch_items):
+            self._scene.removeItem(item)
         self._label_items.clear()
         self._room_items.clear()
+        self._wall_patch_items.clear()
 
         # Build rooms first so they paint below the labels.
         labels_by_room: dict[int, list] = {}
@@ -334,6 +346,7 @@ class MapCanvas(QtWidgets.QGraphicsView):
             self._room_items[room.id] = item
 
         self._build_label_items_from_current_calibration()
+        self._build_wall_patch_items_from_current_calibration()
 
         # Re-apply current visibility settings to the new items.
         self._apply_visibility()
@@ -367,6 +380,37 @@ class MapCanvas(QtWidgets.QGraphicsView):
             item = LabelItem(lab, idx, status=status)
             self._scene.addItem(item)
             self._label_items[idx] = item
+
+    def _build_wall_patch_items_from_current_calibration(self) -> None:
+        """Internal helper: create one ``WallPatchItem`` per wall patch.
+
+        Wall patches are cheap to render (no RLE decode, no contour
+        approximation) so this runs on the main thread inline rather
+        than via the thread pool used for rooms.
+        """
+        if self._calibration is None:
+            return
+        for idx, patch in enumerate(self._calibration.wall_patches):
+            x1, y1, x2, y2 = patch
+            item = WallPatchItem(idx, x1, y1, x2, y2)
+            self._scene.addItem(item)
+            self._wall_patch_items.append(item)
+
+    def rebuild_wall_patches(self) -> None:
+        """Tear down and recreate all ``WallPatchItem``s from the current model.
+
+        Cheap counterpart to :meth:`rebuild_labels` / :meth:`rebuild_rooms`
+        for structural wall-patch changes (Add/Delete in later sub-phases).
+        Indices into ``Calibration.wall_patches`` shift on insert/remove,
+        so we always rebuild the whole list rather than try to splice.
+        """
+        if self._calibration is None:
+            return
+        for item in list(self._wall_patch_items):
+            self._scene.removeItem(item)
+        self._wall_patch_items.clear()
+        self._build_wall_patch_items_from_current_calibration()
+        self._apply_visibility()
 
     def rebuild_rooms(self) -> None:
         """Tear down and recreate all ``RoomItem``s from the current model.
@@ -480,6 +524,15 @@ class MapCanvas(QtWidgets.QGraphicsView):
         """Read-only view of the per-room overlay items, keyed by room id."""
         return dict(self._room_items)
 
+    def wall_patch_items(self) -> list[WallPatchItem]:
+        """Read-only view of the wall-patch overlay items, in patch-index order.
+
+        Returned as a list (not a dict) because patch_index is just the
+        position in ``Calibration.wall_patches``, so the natural key is
+        already the list position.
+        """
+        return list(self._wall_patch_items)
+
     # ----------------------------------------------------------- toggles
 
     def set_labels_visible(self, visible: bool) -> None:
@@ -488,6 +541,11 @@ class MapCanvas(QtWidgets.QGraphicsView):
 
     def set_rooms_visible(self, visible: bool) -> None:
         self._rooms_visible = visible
+        self._apply_visibility()
+
+    def set_wall_patches_visible(self, visible: bool) -> None:
+        """Show or hide every ``WallPatchItem`` in the scene."""
+        self._wall_patches_visible = bool(visible)
         self._apply_visibility()
 
     def set_orphans_only(self, on: bool) -> None:
@@ -523,6 +581,9 @@ class MapCanvas(QtWidgets.QGraphicsView):
 
     def rooms_visible(self) -> bool:
         return self._rooms_visible
+
+    def wall_patches_visible(self) -> bool:
+        return self._wall_patches_visible
 
     def orphans_only(self) -> bool:
         return self._orphans_only
@@ -853,6 +914,11 @@ class MapCanvas(QtWidgets.QGraphicsView):
             ):
                 base = False
             item.setVisible(base)
+        for item in self._wall_patch_items:
+            # Wall patches are unaffected by the orphans-only / area /
+            # hide-labeled filters; they're always either on or off as a
+            # group (the W toggle). Selection is independent.
+            item.setVisible(self._wall_patches_visible)
 
     # ---------------------------------------------------------------- zoom
 

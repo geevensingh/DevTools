@@ -201,6 +201,18 @@ class EditorMainWindow(QtWidgets.QMainWindow):
         self._act_orphans.toggled.connect(self._on_menu_orphans_only_toggled)
         view_menu.addAction(self._act_orphans)
 
+        # Wall-patch visibility toggle. Off-screen mask-only repairs are
+        # invisible by definition (they only affect the flood-fill mask,
+        # never the visible image), so this overlay is the only way to
+        # see them. W keeps the pattern: L = labels, R = rooms, O =
+        # orphans, W = wall patches.
+        self._act_wall_patches = QtGui.QAction("Show &wall patches", self)
+        self._act_wall_patches.setShortcut(QtGui.QKeySequence("W"))
+        self._act_wall_patches.setCheckable(True)
+        self._act_wall_patches.setChecked(self._canvas.wall_patches_visible())
+        self._act_wall_patches.toggled.connect(self._canvas.set_wall_patches_visible)
+        view_menu.addAction(self._act_wall_patches)
+
         # Tools menu — actions that change the canvas's interaction mode.
         # Add-label is a toggle (canvas stays armed until the user clicks
         # somewhere or presses Esc); delete-label is a one-shot.
@@ -799,12 +811,14 @@ class EditorMainWindow(QtWidgets.QMainWindow):
         cal = self._calibration
         n_labels = len(cal.labels)
         n_rooms = len(cal.rooms)
+        n_wall_patches = len(cal.wall_patches)
         n_orphan_labels = sum(1 for lab in cal.labels if lab.room_id is None)
         room_ids_with_labels = {lab.room_id for lab in cal.labels if lab.room_id is not None}
         n_orphan_rooms = sum(1 for room in cal.rooms if room.id not in room_ids_with_labels)
         return (
             f"labels: {n_labels} ({n_orphan_labels} orphan) · "
-            f"rooms: {n_rooms} ({n_orphan_rooms} unlabeled)"
+            f"rooms: {n_rooms} ({n_orphan_rooms} unlabeled) · "
+            f"wall-patches: {n_wall_patches}"
         )
 
 
