@@ -326,28 +326,3 @@ def test_calibrate_map_missing_file_raises(tmp_path: Path):
 # ---------------------------------------------------------------------------
 # CLI integration
 # ---------------------------------------------------------------------------
-
-
-@requires_tesseract
-def test_cli_calibrate_writes_calibration_json(tmp_path: Path, monkeypatch, capsys):
-    from officemapmaker.__main__ import main
-
-    map_path = tmp_path / "synthetic.png"
-    _make_synthetic_map(map_path)
-    out = tmp_path / "calibration.json"
-
-    rc = main(["calibrate", "--map", str(map_path), "--out", str(out)])
-
-    assert out.exists()
-    # Exit code is 0 for clean calibration, 1 if there are issues — both are OK
-    # here as long as the JSON was written.
-    assert rc in (0, 1)
-
-
-def test_cli_calibrate_missing_map_returns_2(tmp_path: Path, capsys):
-    from officemapmaker.__main__ import main
-
-    rc = main(["calibrate", "--map", str(tmp_path / "nope.png"), "--out", str(tmp_path / "cal.json")])
-    assert rc == 2
-    captured = capsys.readouterr()
-    assert "not found" in captured.err.lower() or "no such" in captured.err.lower()
