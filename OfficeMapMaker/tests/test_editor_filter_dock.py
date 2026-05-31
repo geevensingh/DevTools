@@ -300,6 +300,64 @@ class TestCanvasCenterOnLabel:
         assert canvas.label_items()[0].isSelected() is False
 
 
+class TestCanvasCenterOnPoint:
+    def test_pans_to_arbitrary_scene_point(self, qtbot):
+        """``center_on_point(x, y)`` should put the viewport centre on
+        ``(x, y)`` in scene coordinates."""
+        canvas = MapCanvas()
+        qtbot.addWidget(canvas)
+        canvas.show()
+        canvas.resize(200, 200)
+        _attach_pixmap(canvas, size=2000)
+
+        canvas.center_on_point(800, 1200, min_zoom=0.0)
+        view_centre_scene = canvas.mapToScene(
+            canvas.viewport().rect().center()
+        )
+        dx = abs(view_centre_scene.x() - 800)
+        dy = abs(view_centre_scene.y() - 1200)
+        # Same single-pixel-of-slop tolerance as center_on_label tests.
+        assert dx < 20
+        assert dy < 20
+
+    def test_zooms_up_to_min_zoom_when_below(self, qtbot):
+        """A view at fit-in-view (zoom ~0.1) must zoom in to at least
+        ``min_zoom`` so the point is visible at a useful scale."""
+        canvas = MapCanvas()
+        qtbot.addWidget(canvas)
+        canvas.show()
+        canvas.resize(200, 200)
+        _attach_pixmap(canvas, size=2000)
+        canvas.fit_in_view()
+        assert canvas.current_zoom() < 0.5
+
+        canvas.center_on_point(1000, 1000, min_zoom=1.0)
+        # Should have zoomed in to at least 1.0 (modulo float rounding).
+        assert canvas.current_zoom() >= 0.99
+
+    def test_preserves_zoom_when_already_above(self, qtbot):
+        """If the user is already zoomed in past ``min_zoom``, we just
+        pan -- don't yank them back to the threshold."""
+        canvas = MapCanvas()
+        qtbot.addWidget(canvas)
+        canvas.show()
+        canvas.resize(200, 200)
+        _attach_pixmap(canvas, size=2000)
+        canvas.fit_in_view()
+        canvas.zoom_by(20.0)  # well above min_zoom=1.0
+        zoom_before = canvas.current_zoom()
+        assert zoom_before > 1.5
+
+        canvas.center_on_point(500, 500, min_zoom=1.0)
+        assert canvas.current_zoom() == pytest.approx(zoom_before, rel=1e-6)
+
+    def test_no_pixmap_is_noop(self, qtbot):
+        canvas = MapCanvas()
+        qtbot.addWidget(canvas)
+        # No _attach_pixmap call -> _pixmap_item is None.
+        canvas.center_on_point(100, 100)  # must not raise
+
+
 # =============================================================================
 # FilterDock widget plumbing
 # =============================================================================

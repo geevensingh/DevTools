@@ -307,9 +307,10 @@ def test_initial_activation_fires_on_construction(qapp, inputs):
 
 
 def test_classify_issues_empty_is_ok():
-    status, msgs = _classify_issues([])
+    status, msgs, targets = _classify_issues([])
     assert status == StepStatus.OK
     assert msgs == []
+    assert targets == []
 
 
 def test_classify_issues_warning_only():
@@ -317,9 +318,10 @@ def test_classify_issues_warning_only():
         CalibrationIssue(severity="warning", code="a", message="x"),
         CalibrationIssue(severity="warning", code="b", message="y"),
     ]
-    status, msgs = _classify_issues(issues)
+    status, msgs, targets = _classify_issues(issues)
     assert status == StepStatus.WARNING
     assert len(msgs) == 2
+    assert targets == [None, None]
 
 
 def test_classify_issues_error_dominates():
@@ -328,8 +330,28 @@ def test_classify_issues_error_dominates():
         CalibrationIssue(severity="warning", code="a", message="x"),
         CalibrationIssue(severity="error", code="b", message="y"),
     ]
-    status, _ = _classify_issues(issues)
+    status, _, _ = _classify_issues(issues)
     assert status == StepStatus.ERROR
+
+
+def test_classify_issues_propagates_points():
+    """Each issue's ``point`` flows into the returned ``targets`` list."""
+    issues = [
+        CalibrationIssue(
+            severity="warning", code="orphan_label",
+            message="x", point=(100, 200),
+        ),
+        CalibrationIssue(
+            severity="warning", code="no_rooms_detected",
+            message="y",  # point defaults to None
+        ),
+        CalibrationIssue(
+            severity="warning", code="orphan_room",
+            message="z", point=(300, 400),
+        ),
+    ]
+    _, _, targets = _classify_issues(issues)
+    assert targets == [(100, 200), None, (300, 400)]
 
 
 # ---------------------------------------------------------------------------
@@ -424,7 +446,7 @@ def test_undo_index_changed_recomputes_issue_count(qapp, inputs):
         from officemapmaker.calibrate import revalidate_calibration
 
         initial = revalidate_calibration(cal)
-        initial_status, initial_msgs = _classify_issues(initial)
+        initial_status, initial_msgs, _initial_targets = _classify_issues(initial)
         w.set_step_status("calibrate", initial_status, issues=initial_msgs)
         n_initial = len(w._steps[0].issues)
         assert n_initial >= 1, "fixture should produce at least one issue"
@@ -671,5 +693,148 @@ def test_add_room_toolbar_resyncs_on_canvas_cancel(
         assert not action.isChecked(), (
             f"{label!r} should pop up when {cancel_signal} fires"
         )
+    finally:
+        w.close()
+
+
+# ---------------------------------------------------------------------------
+# Click-to-navigate from the issues panel
+# ---------------------------------------------------------------------------
+
+
+def test_navigate_to_issue_target_centers_canvas(qapp, inputs):
+    """``navigate_to_issue_target((x, y))`` switches to the editor pane and
+    asks the canvas to centre on the requested point."""
+    map_path, assn_path, out = inputs
+
+    w = MainWindow(map_path=map_path, assignments_path=assn_path, output_dir=out)
+    try:
+        cal = _two_room_cal_with_orphan(map_path)
+        w.session.calibration = cal
+        step = w._steps[0].widget
+        step.on_activated()
+
+        captured: dict = {}
+        orig = step._canvas.center_on_point
+
+        def recorder(x, y, *, min_zoom=1.0):
+            captured["xy"] = (x, y)
+            captured["min_zoom"] = min_zoom
+            return orig(x, y, min_zoom=min_zoom)
+
+        step._canvas.center_on_point = recorder  # type: ignore[assignment]
+
+        step.navigate_to_issue_target((123, 456))
+
+        assert captured["xy"] == (123, 456)
+        assert captured["min_zoom"] == 1.0
+        assert step._stack.currentWidget() is step._editor_pane
+    finally:
+        w.close()
+
+
+def test_issue_panel_click_calls_navigate_to_issue_target(qapp, inputs):
+    """Clicking an issue row in the panel dispatches to the current
+    step's ``navigate_to_issue_target`` with the row's stored target."""
+    map_path, assn_path, out = inputs
+
+    w = MainWindow(map_path=map_path, assignments_path=assn_path, output_dir=out)
+    try:
+        cal = _two_room_cal_with_orphan(map_path)
+        w.session.calibration = cal
+        step = w._steps[0].widget
+        step.on_activated()
+
+        captured: dict = {}
+
+        def stub(target):
+            captured["target"] = target
+
+        step.navigate_to_issue_target = stub  # type: ignore[assignment]
+
+        w.set_step_status(
+            "calibrate", StepStatus.WARNING,
+            issues=["one with target", "one without"],
+            issue_targets=[(11, 22), None],
+        )
+
+        # Simulate the user clicking the first row.
+        first = w._issues_list.item(0)
+        assert first is not None
+        assert first.data(QtCore.Qt.ItemDataRole.UserRole) == (11, 22)
+        w._on_issue_item_activated(first)
+        assert captured["target"] == (11, 22)
+
+        # Second row has no target; clicking it must not call the stub
+        # (so we'd still see the first call's value).
+        captured.clear()
+        second = w._issues_list.item(1)
+        assert second is not None
+        assert second.data(QtCore.Qt.ItemDataRole.UserRole) is None
+        w._on_issue_item_activated(second)
+        assert "target" not in captured
+    finally:
+        w.close()
+
+
+def test_set_step_status_stores_issue_targets(qapp, inputs):
+    """``set_step_status(... issue_targets=[...])`` is stored on the entry
+    and padded/truncated to issues length."""
+    map_path, assn_path, out = inputs
+
+    w = MainWindow(map_path=map_path, assignments_path=assn_path, output_dir=out)
+    try:
+        # Exact match.
+        w.set_step_status(
+            "calibrate", StepStatus.WARNING,
+            issues=["a", "b"], issue_targets=[(1, 2), None],
+        )
+        assert w._steps[0].issue_targets == [(1, 2), None]
+
+        # No targets supplied -> all None, parallel to issues.
+        w.set_step_status(
+            "calibrate", StepStatus.WARNING, issues=["only"]
+        )
+        assert w._steps[0].issue_targets == [None]
+
+        # Too few targets -> right-padded with None.
+        w.set_step_status(
+            "calibrate", StepStatus.WARNING,
+            issues=["a", "b", "c"], issue_targets=[(9, 9)],
+        )
+        assert w._steps[0].issue_targets == [(9, 9), None, None]
+
+        # Too many targets -> truncated.
+        w.set_step_status(
+            "calibrate", StepStatus.WARNING,
+            issues=["only"], issue_targets=[(1, 1), (2, 2), (3, 3)],
+        )
+        assert w._steps[0].issue_targets == [(1, 1)]
+    finally:
+        w.close()
+
+
+def test_on_activated_pushes_targets_after_session_restore(qapp, inputs):
+    """A restored session has issue messages but no per-issue targets.
+    ``on_activated`` must run a quick revalidation so the panel's
+    click-to-show works on the first launch after restart."""
+    map_path, assn_path, out = inputs
+
+    w = MainWindow(map_path=map_path, assignments_path=assn_path, output_dir=out)
+    try:
+        cal = _two_room_cal_with_orphan(map_path)
+        w.session.calibration = cal
+        # Pre-seed entry.issues with bare strings (no targets) to mimic
+        # what the __init__ restore path does.
+        w._steps[0].issues = ["stale message"]
+        w._steps[0].issue_targets = []
+
+        step = w._steps[0].widget
+        step.on_activated()
+
+        # The orphan label "1480" has bbox (40,40,30,20), so its
+        # bbox_center is (55, 50). _classify_issues should have
+        # populated at least one target with a real point.
+        assert any(t is not None for t in w._steps[0].issue_targets)
     finally:
         w.close()

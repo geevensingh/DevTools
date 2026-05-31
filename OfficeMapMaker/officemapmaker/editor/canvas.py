@@ -559,6 +559,26 @@ class MapCanvas(QtWidgets.QGraphicsView):
         item.setSelected(True)
         self.centerOn(item)
 
+    def center_on_point(
+        self, x: float, y: float, *, min_zoom: float = 1.0
+    ) -> None:
+        """Pan (and if needed zoom in) so map pixel ``(x, y)`` is centred.
+
+        Used by the wizard's issues panel: clicking an issue navigates
+        the canvas to its location. If the current zoom is below
+        ``min_zoom`` (e.g. the user is at fit-in-view on a 4000-px map,
+        zoom ~0.2), zoom up to ``min_zoom`` first so the user can
+        actually see what the issue is about; otherwise the user's
+        current zoom is preserved and we just pan.
+        """
+        if self._pixmap_item is None:
+            return
+        if self._zoom < min_zoom and self._zoom > 0:
+            factor = min_zoom / self._zoom
+            self.scale(factor, factor)
+            self._zoom *= factor
+        self.centerOn(QtCore.QPointF(float(x), float(y)))
+
     def label_items(self) -> dict[int, LabelItem]:
         """Read-only view of the per-label overlay items, keyed by index."""
         return dict(self._label_items)

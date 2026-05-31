@@ -30,7 +30,7 @@ import re
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, Tuple
 
 import numpy as np
 
@@ -67,11 +67,18 @@ class CalibrationIssue:
             looking at in the review PDF).
         code: A short machine-readable key, e.g. ``"orphan_label"``.
         message: Human-readable detail with offending IDs and coordinates.
+        point: Optional ``(x, y)`` pixel coordinate on the map that
+            best represents the issue. Used by the wizard's issues
+            panel: when an item with a ``point`` is clicked, the
+            calibrate step pans/zooms the canvas to it. ``None`` for
+            top-level issues that don't correspond to a single location
+            (e.g. ``no_rooms_detected``).
     """
 
     severity: str
     code: str
     message: str
+    point: Optional[Tuple[int, int]] = None
 
     def __str__(self) -> str:
         return f"[{self.severity}] {self.code}: {self.message}"
@@ -373,6 +380,7 @@ def _build_calibration(
                         "any detected room; it will be ignored unless you "
                         "edit calibration.json to assign a room_id"
                     ),
+                    point=center,
                 )
             )
             ocr_assignments.append((ocr, None, center))
@@ -423,6 +431,7 @@ def _build_calibration(
                         f"label {label.id!r} is not inside its assigned room "
                         f"{label.room_id} — internal bug, please file a report"
                     ),
+                    point=bbox_center(label.bbox),
                 )
             )
 
@@ -440,6 +449,7 @@ def _build_calibration(
                     "has no OCR label; it will be ignored unless you add one in "
                     "calibration.json"
                 ),
+                point=bbox_center(rooms[rid].bbox),
             )
         )
 
@@ -553,6 +563,7 @@ def revalidate_calibration(
                     "assigned to any room; it will be ignored unless you "
                     "assign a room"
                 ),
+                point=bbox_center(label.bbox),
             )
         )
 
@@ -574,6 +585,7 @@ def revalidate_calibration(
                             f"{room_id}, which no longer exists; reassign "
                             "or delete this label"
                         ),
+                        point=bbox_center(label.bbox),
                     )
                 )
             continue
@@ -592,6 +604,7 @@ def revalidate_calibration(
                             f"label {label.id!r} (bbox {label.bbox}) is "
                             f"not inside its assigned room {room_id}"
                         ),
+                        point=bbox_center(label.bbox),
                     )
                 )
 
@@ -608,6 +621,7 @@ def revalidate_calibration(
                         f"{room.bbox}) has no label; it will be ignored "
                         "unless you add one"
                     ),
+                    point=bbox_center(room.bbox),
                 )
             )
 

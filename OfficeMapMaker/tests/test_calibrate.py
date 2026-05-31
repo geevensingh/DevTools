@@ -578,3 +578,70 @@ def test_revalidate_quick_still_flags_orphan_room(tmp_path: Path):
         (i.code, i.message) for i in quick
     ]
 
+
+# ---------------------------------------------------------------------------
+# CalibrationIssue.point — the per-issue pixel target used by the
+# wizard's click-to-show-on-map feature.
+# ---------------------------------------------------------------------------
+
+
+def test_revalidate_orphan_label_point_is_label_bbox_center(tmp_path: Path):
+    """An orphan label's issue carries its bbox-center as the point."""
+    from dataclasses import replace as dc_replace
+
+    cal = _two_room_calibration(tmp_path)
+    orphan = dc_replace(cal.labels[0], room_id=None)
+    cal.labels[0] = orphan
+    bx, by, bw, bh = orphan.bbox
+    expected = (bx + bw // 2, by + bh // 2)
+
+    issues = revalidate_calibration(cal, quick=True)
+    orphans = [i for i in issues if i.code == "orphan_label"]
+    assert orphans, [(i.code, i.message) for i in issues]
+    assert orphans[0].point == expected
+
+
+def test_revalidate_orphan_room_point_is_room_bbox_center(tmp_path: Path):
+    """An orphan room's issue carries its bbox-center as the point."""
+    cal = _two_room_calibration(tmp_path)
+    cal.labels = []  # both rooms become orphans
+
+    issues = revalidate_calibration(cal, quick=True)
+    by_room = {i.message.split()[1]: i for i in issues if i.code == "orphan_room"}
+    assert len(by_room) == len(cal.rooms)
+    for room in cal.rooms:
+        bx, by, bw, bh = room.bbox
+        expected = (bx + bw // 2, by + bh // 2)
+        issue = by_room[str(room.id)]
+        assert issue.point == expected, (
+            f"room {room.id}: expected point={expected}, got {issue.point}"
+        )
+
+
+def test_revalidate_label_referencing_deleted_room_has_point(tmp_path: Path):
+    """label_outside_assigned_room (deleted-room sub-case) carries a point."""
+    from dataclasses import replace as dc_replace
+
+    cal = _two_room_calibration(tmp_path)
+    # Make label[0] point at a room id that doesn't exist.
+    cal.labels[0] = dc_replace(cal.labels[0], room_id=999)
+    bx, by, bw, bh = cal.labels[0].bbox
+    expected = (bx + bw // 2, by + bh // 2)
+
+    issues = revalidate_calibration(cal, quick=True)
+    flagged = [i for i in issues if i.code == "label_outside_assigned_room"]
+    assert flagged, [(i.code, i.message) for i in issues]
+    assert flagged[0].point == expected
+
+
+def test_revalidate_no_rooms_issue_has_no_point():
+    """Top-level "no rooms detected" can't sensibly point anywhere."""
+    from officemapmaker.calibration import Calibration
+
+    issues = revalidate_calibration(
+        Calibration(map_image="x.png", map_hash="sha256:fake")
+    )
+    no_rooms = [i for i in issues if i.code == "no_rooms_detected"]
+    assert no_rooms
+    assert no_rooms[0].point is None
+

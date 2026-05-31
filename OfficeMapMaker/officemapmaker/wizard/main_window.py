@@ -37,7 +37,7 @@ from __future__ import annotations
 import enum
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Optional, Tuple
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
@@ -158,6 +158,13 @@ class _StepEntry:
     # issues panel will render the entries. Kept here in W1 so the
     # navigation/wiring code can be unit-tested before pipeline hookup.
     issues: List[str] = field(default_factory=list)
+    # Parallel to ``issues``: an optional ``(x, y)`` pixel coordinate
+    # on the map for each issue. When present, clicking that row in
+    # the issues panel pans/zooms the step's canvas to that point
+    # (via the step widget's ``navigate_to_issue_target`` hook).
+    # ``None`` entries mean "this issue has no single location" (e.g.
+    # "no rooms detected") and clicking them is a no-op.
+    issue_targets: List[Optional[Tuple[int, int]]] = field(default_factory=list)
 
 
 # Status badges. Using short ASCII text keeps them legible at small
@@ -344,6 +351,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self._issues_list.setStyleSheet(
             "QListWidget { background: white; border: 1px solid #ddd; }"
         )
+        # Single-click on an issue with a target pans/zooms the current
+        # step's canvas to that point. itemActivated covers Enter +
+        # double-click for keyboard / accessibility users.
+        self._issues_list.itemClicked.connect(self._on_issue_item_activated)
+        self._issues_list.itemActivated.connect(self._on_issue_item_activated)
         issues_layout.addWidget(self._issues_list)
         # Toggling the groupbox shows/hides its content; this gives a
         # cheap collapse-to-titlebar without writing a custom widget.
@@ -481,18 +493,34 @@ class MainWindow(QtWidgets.QMainWindow):
         status: StepStatus,
         *,
         issues: Optional[List[str]] = None,
+        issue_targets: Optional[List[Optional[Tuple[int, int]]]] = None,
     ) -> None:
         """Update a step's status badge and (optionally) issues list.
 
         Public so W3+ pipeline runners can call it as their finished
         signal fires. Also called from the W1 dev simulate-completion
         buttons.
+
+        ``issue_targets`` is an optional list parallel to ``issues``:
+        each entry is either an ``(x, y)`` pixel coordinate on the map
+        (clicking that row will pan/zoom the step's canvas there) or
+        ``None`` (clicking that row is a no-op). When omitted, every
+        issue is treated as having no target.
         """
         entry = self._step_by_id(step_id)
         if entry is None:
             return
         entry.status = status
         entry.issues = list(issues or [])
+        if issue_targets is None:
+            entry.issue_targets = [None] * len(entry.issues)
+        else:
+            # Defensively pad / truncate so the parallel-list invariant
+            # holds even if a caller passes the wrong length.
+            targets = list(issue_targets)
+            if len(targets) < len(entry.issues):
+                targets += [None] * (len(entry.issues) - len(targets))
+            entry.issue_targets = targets[: len(entry.issues)]
         idx = self._steps.index(entry)
         self._sidebar.item(idx).setText(self._format_sidebar_label(entry))
         if idx == self._current_index:
@@ -525,6 +553,7 @@ class MainWindow(QtWidgets.QMainWindow):
             entry = self._steps[i]
             entry.status = StepStatus.PENDING
             entry.issues = []
+            entry.issue_targets = []
             self._sidebar.item(i).setText(self._format_sidebar_label(entry))
         # Mirror to the session: invalidate_from clears steps from
         # ``from_index + 1`` forward.
@@ -645,8 +674,21 @@ class MainWindow(QtWidgets.QMainWindow):
     def _refresh_issues_panel(self) -> None:
         entry = self._steps[self._current_index]
         self._issues_list.clear()
-        for issue in entry.issues:
-            self._issues_list.addItem(issue)
+        # Pad targets to issues length so we never index past the end
+        # (defensive: set_step_status normally enforces this).
+        targets = list(entry.issue_targets)
+        if len(targets) < len(entry.issues):
+            targets += [None] * (len(entry.issues) - len(targets))
+        for issue, target in zip(entry.issues, targets):
+            item = QtWidgets.QListWidgetItem(issue)
+            if target is not None:
+                # Store the (x, y) tuple so the click handler can read
+                # it back without re-parsing the message string. The
+                # PointingHand cursor + tooltip signal that this row
+                # is interactive (most rows will have a target).
+                item.setData(QtCore.Qt.ItemDataRole.UserRole, tuple(target))
+                item.setToolTip("Click to show on map")
+            self._issues_list.addItem(item)
         has_issues = bool(entry.issues)
         # Auto-expand when there are issues; collapse when empty so the
         # panel doesn't waste vertical space on clean steps.
@@ -655,6 +697,29 @@ class MainWindow(QtWidgets.QMainWindow):
         self._issues_group.setTitle(
             f"Issues ({len(entry.issues)})" if has_issues else "Issues"
         )
+
+    def _on_issue_item_activated(
+        self, item: QtWidgets.QListWidgetItem
+    ) -> None:
+        """Dispatch an issue-row click to the current step's canvas.
+
+        The list item carries the issue's pixel target in its
+        ``UserRole`` data (set by :meth:`_refresh_issues_panel`). If
+        the target is present and the current step widget defines
+        ``navigate_to_issue_target``, we call it. Otherwise the click
+        is a no-op -- not every issue has a single location (e.g.
+        "no rooms detected"), and not every step supports navigation.
+        """
+        target = item.data(QtCore.Qt.ItemDataRole.UserRole)
+        if target is None:
+            return
+        if self._current_index < 0 or self._current_index >= len(self._steps):
+            return
+        widget = self._steps[self._current_index].widget
+        navigator = getattr(widget, "navigate_to_issue_target", None)
+        if navigator is None:
+            return
+        navigator(target)
 
     # ------------------------------------------------------------------
     # Helpers

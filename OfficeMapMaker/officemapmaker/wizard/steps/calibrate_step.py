@@ -33,7 +33,7 @@ hand-editing the session file.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, List, Optional, Tuple
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
@@ -126,6 +126,19 @@ class CalibrateStep(StepBase):
     def on_activated(self) -> None:
         cal = self.main_window.session.calibration
         if cal is not None:
+            # Refresh the issues panel from the live calibration. The
+            # restored session JSON only carries the messages, not the
+            # per-issue pixel targets, so without this step the
+            # click-to-show navigation in the issues panel would be
+            # dead on the first restored launch. quick=True keeps this
+            # to ~0.5ms on a 200+ room calibration.
+            live_issues = revalidate_calibration(cal, quick=True)
+            status, issue_strs, issue_targets = _classify_issues(live_issues)
+            self.main_window.set_step_status(
+                "calibrate", status, issues=issue_strs,
+                issue_targets=issue_targets,
+            )
+
             # Coming back to a step that's already calibrated --
             # rebuild the editor pane on first activation, otherwise
             # just stay where we are. If the map image can't be loaded
@@ -153,6 +166,32 @@ class CalibrateStep(StepBase):
         # The Run button is loud + obviously clickable, so the one
         # extra click on first launch is fine.
         self._stack.setCurrentWidget(self._landing)
+
+    def navigate_to_issue_target(
+        self, target: Tuple[int, int]
+    ) -> None:
+        """Pan/zoom the canvas to a pixel coordinate from the issues panel.
+
+        Called by ``MainWindow._on_issue_item_activated`` when the
+        user clicks an issue row that carries a target. Builds the
+        editor pane on first call (issues panel is interactive even
+        before the user has clicked into the editor), switches the
+        stack to it, and asks the canvas to centre on the point with
+        a sensible minimum zoom so single labels are visible.
+        """
+        try:
+            self._ensure_editor_built()
+        except (FileNotFoundError, OSError):
+            return
+        if self._editor_pane is None or self._canvas is None:
+            return
+        self._stack.setCurrentWidget(self._editor_pane)
+        x, y = int(target[0]), int(target[1])
+        # min_zoom=1.0 = pixel-for-pixel. On a typical 4000x5000 map
+        # the fit-in-view zoom is ~0.2, where a single label glyph is
+        # too small to see; jumping to 1:1 puts the user at a useful
+        # working scale around the issue.
+        self._canvas.center_on_point(x, y, min_zoom=1.0)
 
     # ------------------------------------------------------------------
     # Pipeline run
@@ -202,9 +241,10 @@ class CalibrateStep(StepBase):
         # map image into a QPixmap and can fail (corrupt PNG, file
         # vanished, etc.); we don't want a mount failure to leave the
         # step stuck on RUNNING when the calibration itself is valid.
-        status, issue_strs = _classify_issues(issues)
+        status, issue_strs, issue_targets = _classify_issues(issues)
         self.main_window.set_step_status(
-            "calibrate", status, issues=issue_strs
+            "calibrate", status, issues=issue_strs,
+            issue_targets=issue_targets,
         )
 
         # Now try to mount the editor. If the map image can't be
@@ -221,6 +261,7 @@ class CalibrateStep(StepBase):
                 "calibrate",
                 StepStatus.WARNING if status == StepStatus.OK else status,
                 issues=issue_strs + [extra],
+                issue_targets=issue_targets + [None],
             )
 
         self._run_button.setEnabled(True)
@@ -612,9 +653,10 @@ class CalibrateStep(StepBase):
         finally:
             QtWidgets.QApplication.restoreOverrideCursor()
 
-        status, issue_strs = _classify_issues(full_issues)
+        status, issue_strs, issue_targets = _classify_issues(full_issues)
         self.main_window.set_step_status(
-            "calibrate", status, issues=issue_strs
+            "calibrate", status, issues=issue_strs,
+            issue_targets=issue_targets,
         )
 
     # ------------------------------------------------------------------
@@ -642,9 +684,10 @@ class CalibrateStep(StepBase):
         if cal is None:
             return
         live_issues = revalidate_calibration(cal, quick=True)
-        status, issue_strs = _classify_issues(live_issues)
+        status, issue_strs, issue_targets = _classify_issues(live_issues)
         self.main_window.set_step_status(
-            "calibrate", status, issues=issue_strs
+            "calibrate", status, issues=issue_strs,
+            issue_targets=issue_targets,
         )
 
 
@@ -669,16 +712,19 @@ def _sync_toggle_off(action: QtGui.QAction) -> None:
 
 def _classify_issues(
     issues: List[CalibrationIssue],
-) -> tuple[StepStatus, List[str]]:
+) -> tuple[StepStatus, List[str], List[Optional[Tuple[int, int]]]]:
     """Decide the step's badge from the calibration issue list.
 
     Any error → ERROR. Any warning (and no errors) → WARNING. Empty
-    list → OK. The returned strings are the human-readable issue
-    messages for the issues panel.
+    list → OK. Returns three parallel lists: the status badge, the
+    human-readable issue messages for the issues panel, and the
+    optional ``(x, y)`` pixel target for each issue (used by the
+    panel's click-to-navigate behaviour).
     """
     messages = [str(i) for i in issues]
+    targets: List[Optional[Tuple[int, int]]] = [i.point for i in issues]
     if any(i.severity == "error" for i in issues):
-        return StepStatus.ERROR, messages
+        return StepStatus.ERROR, messages, targets
     if any(i.severity == "warning" for i in issues):
-        return StepStatus.WARNING, messages
-    return StepStatus.OK, messages
+        return StepStatus.WARNING, messages, targets
+    return StepStatus.OK, messages, targets
