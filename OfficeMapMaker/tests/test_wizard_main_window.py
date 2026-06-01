@@ -102,6 +102,14 @@ def test_reload_with_existing_session_restores_status_and_current_step(qapp, inp
         assert w2._steps[0].status == StepStatus.OK
         assert w2._steps[1].status == StepStatus.WARNING
         assert w2._steps[1].issues == ["only warning"]
+        # The content stack must actually point at the restored step's
+        # widget, not at index 0 (the QStackedWidget default). Regression
+        # test for the bug where reopening a session at step N showed the
+        # step-N badge highlighted in the sidebar but rendered step 0's
+        # content in the main pane -- a user clicking "Run calibration"
+        # would silently wipe N steps of work.
+        assert w2._content_stack.currentIndex() == 2
+        assert w2._content_stack.currentWidget() is w2._steps[2].widget
     finally:
         w2.close()
 

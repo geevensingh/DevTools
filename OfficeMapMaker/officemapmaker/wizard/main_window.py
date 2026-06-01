@@ -413,9 +413,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self._refresh_navigation()
         # Initial selection so the right pane shows something useful.
         # The setCurrentRow call short-circuits in _on_sidebar_row_changed
-        # when the row is already self._current_index, so we also
-        # explicitly fire on_activated() on the initial step here.
+        # when the row is already self._current_index (the common case
+        # when restoring a session that left off on a non-zero step), so
+        # we also have to explicitly: (a) switch the content stack to the
+        # restored step's widget -- otherwise the stack stays on its
+        # default index 0 and the user sees the Calibrate pane even
+        # though the sidebar highlights step 4; (b) populate the issues
+        # panel; and (c) fire on_activated() on the restored step.
         self._sidebar.setCurrentRow(self._current_index)
+        self._content_stack.setCurrentIndex(self._current_index)
+        self._refresh_issues_panel()
         initial_widget = self._steps[self._current_index].widget
         if isinstance(initial_widget, self._step_base_cls):
             initial_widget.on_activated()
