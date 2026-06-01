@@ -521,10 +521,38 @@ def _plan_one_office(
                 crowded = True
                 break
 
+    if placement is None:
+        # Full inscribed rect failed too. Before giving up to LEADER, try
+        # a polygon-aware fit (Bug 3): instead of requiring a single
+        # axis-aligned rectangle, search the polygon mask per-pixel and
+        # let each name find its own spot anywhere inside the room.
+        # Handles irregular polygons (door cutouts, stairwell notches)
+        # whose largest inscribed rectangle is much smaller than the
+        # visible area.
+        for strategy in (
+            FitStrategy.SHRINK,
+            FitStrategy.INITIALS,
+            FitStrategy.LAST_ONLY,
+        ):
+            texts = _format_names(people, strategy)
+            placement = _try_fit_polygon(
+                texts=texts,
+                people=people,
+                polygon=polygon,
+                room_bbox=room.bbox,
+                min_px=min_font_px,
+                max_px=preferred_font_px,
+                font_path=font_path,
+            )
+            if placement is not None:
+                chosen = strategy
+                crowded = True
+                break
+
     leader_lines: list[tuple[int, int, int, int]] = []
     if placement is None:
-        # Even the full rect won't hold the names — fall back to a leader
-        # line that respects neighboring rooms (Bug 1 fix).
+        # Even the polygon-aware fit won't hold the names — fall back to a
+        # leader line that respects neighboring rooms (Bug 1 fix).
         chosen = FitStrategy.LEADER
         texts = _format_names(people, FitStrategy.LAST_ONLY)
         other_rooms_mask: Optional[np.ndarray] = None
@@ -730,6 +758,104 @@ def _try_fit(
     return best_layout
 
 
+def _try_fit_polygon(
+    *,
+    texts: list[str],
+    people: list[Assignment],
+    polygon: np.ndarray,
+    room_bbox: BBox,
+    min_px: int,
+    max_px: int,
+    font_path: Optional[str],
+    line_spacing: float = 1.15,
+) -> Optional[list[NameEntry]]:
+    """Try to fit ``texts`` anywhere inside the polygon (per-pixel check).
+
+    Unlike :func:`_try_fit`, which requires every name to fit inside a
+    single axis-aligned rectangle, this walks the polygon mask and places
+    each name at the first row+column where the name's text bbox is
+    fully inside the polygon. Names are still stacked top-to-bottom (so
+    later names sit below earlier ones — no overlap) but each name's
+    horizontal position is chosen independently.
+
+    This is the Bug 3 fallback for irregular polygons (door cutouts,
+    stairwell notches, L-shapes) whose largest inscribed rectangle is
+    much smaller than the visible area.
+
+    Returns a list of ``NameEntry`` at the largest font that fits, or
+    ``None`` if even ``min_px`` doesn't fit somewhere inside the polygon.
+    """
+    if not texts:
+        return []
+
+    bx, by, bw, bh = room_bbox
+    if bw <= 0 or bh <= 0:
+        return None
+
+    # Crop the polygon to the room bbox and build a 2D prefix sum so the
+    # "is rectangle (x, y, w, h) fully inside the polygon?" query becomes
+    # a constant-time numpy expression: rect_area == w * h.
+    poly = polygon[by:by + bh, bx:bx + bw].astype(np.int32)
+    psum = np.zeros((bh + 1, bw + 1), dtype=np.int32)
+    psum[1:, 1:] = poly.cumsum(0).cumsum(1)
+
+    def find_first_fit(
+        tw: int, th: int, y_min: int
+    ) -> Optional[tuple[int, int]]:
+        """First (x, y) >= (0, y_min) where (x, y, tw, th) is fully inside polygon."""
+        if tw <= 0 or th <= 0 or tw > bw or th > bh:
+            return None
+        y_min = max(0, y_min)
+        if y_min + th > bh:
+            return None
+        # Vectorized rect-sum over every candidate (y, x): if the rect-sum
+        # equals the rect area, every pixel inside the rect is inside the
+        # polygon.
+        a = psum[y_min + th : bh + 1, tw : bw + 1]
+        b = psum[y_min + th : bh + 1, 0 : bw + 1 - tw]
+        c = psum[y_min : bh + 1 - th, tw : bw + 1]
+        d = psum[y_min : bh + 1 - th, 0 : bw + 1 - tw]
+        full = (a - b - c + d) == tw * th
+        if not full.any():
+            return None
+        ys, xs = np.where(full)
+        return int(xs[0]), int(ys[0] + y_min)
+
+    lo, hi = min_px, max_px
+    best_layout: Optional[list[NameEntry]] = None
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        sizes = [_measure_text(t, mid, font_path) for t in texts]
+        line_h = int(round(mid * line_spacing))
+        placed: list[NameEntry] = []
+        y_cursor = 0
+        ok = True
+        for person, text, (tw, th) in zip(people, texts, sizes):
+            spot = find_first_fit(tw, th, y_cursor)
+            if spot is None:
+                ok = False
+                break
+            x, y = spot
+            placed.append(
+                NameEntry(
+                    full_name=person.name,
+                    rendered_text=text,
+                    bbox=(bx + x, by + y, tw, th),
+                    font_px=mid,
+                )
+            )
+            # Next name starts at least line_h below this name's top so the
+            # placements never visually overlap.
+            y_cursor = y + line_h
+        if ok:
+            best_layout = placed
+            lo = mid + 1
+        else:
+            hi = mid - 1
+
+    return best_layout
+
+
 def _build_leader_placement(
     *,
     texts: list[str],
@@ -854,6 +980,17 @@ def _build_leader_placement(
             )
         )
         y_cursor += line_h
+
+    # Skip the callout when the chosen position happens to fall fully
+    # inside the office's own polygon — a line from the room centroid to
+    # text that's also in the room would be visually meaningless. This
+    # can happen when the polygon-aware fit fell through to LEADER but
+    # the grid scan happened to land back inside the room.
+    block_inside_room = bool(
+        polygon[text_y:text_y + block_h, text_x:text_x + block_w].all()
+    )
+    if block_inside_room:
+        return placed, []
 
     # Single leader line from room centroid to the midpoint-left of the text block.
     leader_x = text_x if text_x > cx else text_x + block_w

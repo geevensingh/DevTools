@@ -379,6 +379,161 @@ def test_plan_layout_leader_line_avoids_other_labeled_rooms():
 
 
 # ---------------------------------------------------------------------------
+# plan_layout — polygon-aware fit (Bug 3) + in-room leader skip
+# ---------------------------------------------------------------------------
+
+
+def _irregular_room_polygon(img_size=(400, 400)) -> tuple[Room, np.ndarray]:
+    """Build a polygon where the largest inscribed rect is wide-but-flat
+    and a stacked name pair only fits in a taller-but-narrower secondary
+    region. Used to exercise the polygon-aware fallback (Bug 3).
+
+    Layout::
+
+        (0,0) +---------------------------------+ (200, 0)
+              |  R1: 200 wide, 18 tall          |
+              +------------------+--+------------+ (200, 18)
+                                 |  | bridge: 5 wide, 22 tall
+              +------------------+  +
+              |  R2: 60 wide,    |  |
+              |       80 tall    |  |
+              |                  |  |
+              +------------------+--+ (60, 120)
+    """
+    img_w, img_h = img_size
+    mask = np.zeros((img_h, img_w), dtype=bool)
+    # R1: wide-but-flat top bar — biggest inscribed rect by area (200*18=3600).
+    mask[0:18, 0:200] = True
+    # Bridge connecting top bar to bottom area so we have a single CC.
+    mask[18:40, 80:85] = True
+    # R2: narrow-but-tall lower area (60*80=4800). Largest *single* rect that
+    # can hold two stacked names.
+    mask[40:120, 0:60] = True
+    rid = 99
+    room = Room(
+        id=rid,
+        polygon_rle=mask_to_rle(mask),
+        area_px=int(mask.sum()),
+        bbox=(0, 0, 200, 120),
+    )
+    return room, mask
+
+
+def test_plan_layout_polygon_aware_fit_succeeds_when_inscribed_rect_too_short():
+    """Bug 3: the inscribed-rect ladder used to give up if no axis-aligned
+    rectangle inside the polygon could hold the stacked names — even when
+    a different region of the same polygon had the right shape. The new
+    ``_try_fit_polygon`` step searches the polygon mask per-pixel and
+    finds positions that the rect-based ladder missed.
+    """
+    room, _ = _irregular_room_polygon()
+    # Two short stacked names: each ~30x15 at min font; total stack ~30x32.
+    # Top bar (200x18) can't hold them (18 < 32 stacked).
+    # Lower region (60x80) can.
+    cal = _build_cal(
+        labels=[_office_label("2100", room_id=99, fill_seed=(30, 80))],
+        rooms=[room],
+    )
+    layout, issues = plan_layout(cal, [_asn("AB", "2100"), _asn("CD", "2100")])
+    entry = layout.entries[0]
+    # Polygon-aware fit should succeed — no LEADER fallback.
+    assert entry.fit_strategy is not FitStrategy.LEADER
+    assert entry.leader_lines == []
+    # Every placed name's bbox must lie fully inside the polygon.
+    from officemapmaker.geometry import rle_to_mask
+
+    poly = rle_to_mask(room.polygon_rle) > 0
+    for n in entry.names:
+        nx, ny, nw, nh = n.bbox
+        assert poly[ny:ny + nh, nx:nx + nw].all(), (
+            f"name {n.rendered_text!r} bbox={n.bbox} not fully inside polygon"
+        )
+
+
+def test_try_fit_polygon_places_names_in_disjoint_polygon_regions():
+    """``_try_fit_polygon`` is allowed to give each stacked name its own
+    horizontal position. Two short names should each find a spot inside
+    the polygon, both fully inside, stacked top-to-bottom (no overlap).
+    """
+    from officemapmaker.layout import _try_fit_polygon  # type: ignore[attr-defined]
+
+    room, mask = _irregular_room_polygon()
+    people = [_asn("AB", "2100"), _asn("CD", "2100")]
+    placed = _try_fit_polygon(
+        texts=["AB", "CD"],
+        people=people,
+        polygon=mask,
+        room_bbox=room.bbox,
+        min_px=15,
+        max_px=24,
+        font_path=None,
+    )
+    assert placed is not None
+    assert len(placed) == 2
+    # Both names fully inside polygon.
+    for n in placed:
+        nx, ny, nw, nh = n.bbox
+        assert mask[ny:ny + nh, nx:nx + nw].all()
+    # Second name strictly below the first (no overlap, in stack order).
+    assert placed[1].bbox[1] >= placed[0].bbox[1] + placed[0].bbox[3]
+
+
+def test_try_fit_polygon_returns_none_when_no_name_fits():
+    """If even the smallest name doesn't fit anywhere inside the polygon
+    at ``min_px``, the helper returns ``None`` (the caller then falls to
+    LEADER).
+    """
+    from officemapmaker.layout import _try_fit_polygon  # type: ignore[attr-defined]
+
+    # 5x5 polygon — way too small for any text at min_px=15.
+    mask = np.zeros((40, 40), dtype=bool)
+    mask[10:15, 10:15] = True
+    room_bbox = (10, 10, 5, 5)
+    placed = _try_fit_polygon(
+        texts=["Bahnasawy"],
+        people=[_asn("Bahnasawy", "1015")],
+        polygon=mask,
+        room_bbox=room_bbox,
+        min_px=15,
+        max_px=24,
+        font_path=None,
+    )
+    assert placed is None
+
+
+def test_build_leader_placement_skips_line_when_text_lands_inside_polygon():
+    """Fix A: if the leader-line grid happens to find a clean spot inside
+    the office's own polygon, the leader line itself is pointless (and
+    confusing — it would be drawn from the centroid to text in the same
+    room). The helper must return an empty leader_lines list in that
+    case.
+    """
+    from officemapmaker.layout import _build_leader_placement  # type: ignore[attr-defined]
+
+    # A roomy 200x200 polygon with no other rooms around it. The grid
+    # will easily find a spot inside the polygon.
+    map_h, map_w = 400, 400
+    polygon = np.zeros((map_h, map_w), dtype=bool)
+    polygon[50:250, 50:250] = True
+    placed, leader_lines = _build_leader_placement(
+        texts=["X"],
+        people=[_asn("X", "2100")],
+        polygon=polygon,
+        other_rooms_mask=None,
+        map_h=map_h,
+        map_w=map_w,
+        min_px=15,
+        font_path=None,
+    )
+    assert len(placed) == 1
+    # Text should land inside the polygon.
+    nx, ny, nw, nh = placed[0].bbox
+    assert polygon[ny:ny + nh, nx:nx + nw].all()
+    # And therefore no leader line is drawn.
+    assert leader_lines == []
+
+
+# ---------------------------------------------------------------------------
 # plan_layout — error / warning paths
 # ---------------------------------------------------------------------------
 
