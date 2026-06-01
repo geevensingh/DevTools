@@ -5,22 +5,31 @@ spreadsheet and runs the name-fit planner (see ``officemapmaker.layout``):
 
 * For each office that has at least one person assigned, compute the
   largest inscribed rectangle inside the room polygon.
-* Run the abbreviation ladder: full names ``shrink`` to ``initials``
-  to ``last_only`` to ``leader`` line.
+* Run the abbreviation ladder: each name's full form is preferred;
+  if it doesn't fit, names are progressively abbreviated right-to-left
+  (e.g. ``Sai Ram Kuchibhatla`` → ``Sai Ram K.`` → ``Sai R. K.`` →
+  ``Sai R.`` → ``Sai``); the last resort is a leader line to an
+  out-of-room placement.
 * Pick a corner for the relocated office number.
 
 Issues come in two flavors:
 
 * ``error`` (blocks Next): ``office_has_no_room``, ``empty_inscribed_rect``,
-  ``person_not_placed``. These usually mean the spreadsheet refers to an
-  office whose room polygon disagrees with the calibration, or the
-  calibration has a degenerate polygon. Either way, the user goes back
-  to Step 1 to fix it.
+  ``person_not_placed``, ``duplicate_displayed_name_in_office``. These
+  usually mean the spreadsheet refers to an office whose room polygon
+  disagrees with the calibration, the calibration has a degenerate
+  polygon, or two assigned people share a displayed name once
+  abbreviation has been applied (which would be ambiguous on the map).
+  Either way, the user goes back to Step 1 (or the spreadsheet) to
+  fix it.
 * ``warning`` (Next allowed): ``mixed_teams_in_office`` (multiple teams
   in one office; first team alphabetically wins), ``abbreviation_fallback``
   (names didn't fit at full length), ``leader_line_fallback`` (didn't
-  even fit with last-name-only; name placed outside with a callout
-  line). These are all "FYI, the planner did its best" cases.
+  even fit at the shortest abbreviation; name placed outside with a
+  callout line), ``duplicate_displayed_name_on_map`` (two distinct
+  offices' displayed names collide — survivors should hand-edit the
+  spreadsheet or accept the ambiguity). These are all "FYI, the
+  planner did its best" cases.
 
 Like ``ValidateLabelsStep`` / ``ValidateFillStep``, the UI is a
 ``QStackedWidget`` with four panes:

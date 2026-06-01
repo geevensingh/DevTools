@@ -113,7 +113,7 @@ def _make_entry(office_id: str, *, x: int = 10, y: int = 20) -> LayoutEntry:
         office_id=office_id,
         room_id=1,
         team="BITS",
-        fit_strategy=FitStrategy.SHRINK,
+        fit_strategy=FitStrategy.FULL,
         names=[name],
         office_number=number,
         inscribed_rect=(x, y, 50, 40),

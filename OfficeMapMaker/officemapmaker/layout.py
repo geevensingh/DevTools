@@ -7,15 +7,17 @@ For each office that has at least one person assigned to it, the planner:
   2. Reserves a corner for the relocated office number.
   3. Runs the name-fit ladder:
 
-       a. ``shrink``     — full names, binary-search font size from
-                            ``preferred_font_px`` down to ``min_font_px``.
-       b. ``initials``   — replace each first name with its initial
-                            (e.g. ``Sravani Punyamurthula`` → ``S. Punyamurthula``)
-                            and re-shrink.
-       c. ``last_only``  — last word of each name only, re-shrink.
-       d. ``leader``     — render at ``min_font_px`` outside the room near
-                            the nearest map margin; draw a red leader line
-                            from the room centroid to the text bbox.
+       a. ``full``        — full names, binary-search font size from
+                             ``preferred_font_px`` down to ``min_font_px``.
+       b. ``abbreviated`` — uniformly shortens names in the room one
+                             ladder rung at a time (see ``_name_forms``)
+                             until everyone fits. Examples:
+                                 ``Geeven Singh`` → ``Geeven S.`` → ``Geeven``
+                                 ``Sai Ram Kuchibhatla`` → ``Sai Ram K.``
+                                     → ``Sai R. K.`` → ``Sai R.`` → ``Sai``
+       c. ``leader``      — render at ``min_font_px`` outside the room near
+                             the nearest map margin; draw a red leader line
+                             from the room centroid to the text bbox.
 
   4. Persists the result to ``layout.json``.
 
@@ -59,12 +61,38 @@ from .io_assignments import Assignment
 
 
 class FitStrategy(str, Enum):
-    """Which abbreviation strategy was used for an office's names."""
+    """Which abbreviation tier was used for an office's names.
 
-    SHRINK = "shrink"
-    INITIALS = "initials"
-    LAST_ONLY = "last_only"
+    Values:
+        ``FULL``         — every name fit at its full spreadsheet form.
+        ``ABBREVIATED``  — one or more names were shortened so the whole
+                            room fits inside the inscribed area. The exact
+                            shortening per name is preserved in
+                            ``NameEntry.rendered_text``; see
+                            :func:`_name_forms` for the ladder.
+        ``LEADER``       — even the most aggressive abbreviation didn't
+                            fit; names render outside the room with a
+                            red leader line back to the centroid.
+    """
+
+    FULL = "full"
+    ABBREVIATED = "abbreviated"
     LEADER = "leader"
+
+    @classmethod
+    def _missing_(cls, value):
+        # Backward compatibility: older sessions (and tests) used
+        # "shrink" / "initials" / "last_only" for the three abbreviation
+        # tiers. Map them onto the new two-bucket model so old
+        # layout.json files round-trip without a manual migration.
+        compat = {
+            "shrink": cls.FULL,
+            "initials": cls.ABBREVIATED,
+            "last_only": cls.ABBREVIATED,
+        }
+        if isinstance(value, str) and value in compat:
+            return compat[value]
+        return None
 
 
 @dataclass(frozen=True)
@@ -282,7 +310,7 @@ def plan_layout(
 
     Returns:
         ``(layout, issues)``. ``issues`` may contain warnings for any
-        office that fell back to ``LEADER`` or ``LAST_ONLY``.
+        office that fell back to ``LEADER`` or ``ABBREVIATED``.
     """
     issues: list[LayoutIssue] = []
 
@@ -436,6 +464,13 @@ def plan_layout(
             )
         )
 
+    # Duplicate displayed-name detection. Two people whose abbreviated
+    # text comes out identical confuse anyone reading the map who knows
+    # the full spreadsheet name. Same-office collisions are errors (the
+    # room can never be disambiguated); floor-wide collisions are
+    # warnings (a reader who knows which area to look in is usually OK).
+    issues.extend(_detect_duplicate_displayed_names(entries))
+
     layout = Layout(
         map_image=calibration.map_image,
         map_hash=map_hash or calibration.map_hash,
@@ -477,23 +512,29 @@ def _plan_one_office(
         max(rect_h - reserved_h, 0),
     )
 
-    # Try each strategy in order against the reserved (number-clear) area.
+    # Abbreviation ladder is now per-level (0..max_level) rather than
+    # per-strategy enum. Level 0 is full names; higher levels progressively
+    # shorten each person's name from the end while preserving the first
+    # token. See ``_name_forms`` for the per-person ladder. Within each
+    # tier (reserved-strip → full-rect → polygon) we try every level in
+    # order and stop at the first one that fits.
+    max_level = _max_level_for(people)
+
     placement: Optional[list[NameEntry]] = None
     chosen: Optional[FitStrategy] = None
+    chosen_level: int = 0
     crowded = False
-    for strategy in (FitStrategy.SHRINK, FitStrategy.INITIALS, FitStrategy.LAST_ONLY):
-        texts = _format_names(people, strategy)
-        placement = _try_fit(
-            texts=texts,
-            people=people,
-            area=names_area,
-            min_px=min_font_px,
-            max_px=preferred_font_px,
-            font_path=font_path,
-        )
-        if placement is not None:
-            chosen = strategy
-            break
+
+    placement, chosen_level = _fit_at_any_level(
+        people=people,
+        area=names_area,
+        max_level=max_level,
+        min_px=min_font_px,
+        max_px=preferred_font_px,
+        font_path=font_path,
+    )
+    if placement is not None:
+        chosen = FitStrategy.FULL if chosen_level == 0 else FitStrategy.ABBREVIATED
 
     if placement is None:
         # Reserved-strip layout failed — names didn't fit with the
@@ -502,24 +543,19 @@ def _plan_one_office(
         # share a corner with them. The result may visually crowd the
         # number, but that's far better than punting to a leader line that
         # could land in another office or in the hallway.
-        for strategy in (
-            FitStrategy.SHRINK,
-            FitStrategy.INITIALS,
-            FitStrategy.LAST_ONLY,
-        ):
-            texts = _format_names(people, strategy)
-            placement = _try_fit(
-                texts=texts,
-                people=people,
-                area=rect,
-                min_px=min_font_px,
-                max_px=preferred_font_px,
-                font_path=font_path,
+        placement, chosen_level = _fit_at_any_level(
+            people=people,
+            area=rect,
+            max_level=max_level,
+            min_px=min_font_px,
+            max_px=preferred_font_px,
+            font_path=font_path,
+        )
+        if placement is not None:
+            chosen = (
+                FitStrategy.FULL if chosen_level == 0 else FitStrategy.ABBREVIATED
             )
-            if placement is not None:
-                chosen = strategy
-                crowded = True
-                break
+            crowded = True
 
     if placement is None:
         # Full inscribed rect failed too. Before giving up to LEADER, try
@@ -529,32 +565,30 @@ def _plan_one_office(
         # Handles irregular polygons (door cutouts, stairwell notches)
         # whose largest inscribed rectangle is much smaller than the
         # visible area.
-        for strategy in (
-            FitStrategy.SHRINK,
-            FitStrategy.INITIALS,
-            FitStrategy.LAST_ONLY,
-        ):
-            texts = _format_names(people, strategy)
-            placement = _try_fit_polygon(
-                texts=texts,
-                people=people,
-                polygon=polygon,
-                room_bbox=room.bbox,
-                min_px=min_font_px,
-                max_px=preferred_font_px,
-                font_path=font_path,
+        placement, chosen_level = _fit_polygon_at_any_level(
+            people=people,
+            polygon=polygon,
+            room_bbox=room.bbox,
+            max_level=max_level,
+            min_px=min_font_px,
+            max_px=preferred_font_px,
+            font_path=font_path,
+        )
+        if placement is not None:
+            chosen = (
+                FitStrategy.FULL if chosen_level == 0 else FitStrategy.ABBREVIATED
             )
-            if placement is not None:
-                chosen = strategy
-                crowded = True
-                break
+            crowded = True
 
     leader_lines: list[tuple[int, int, int, int]] = []
     if placement is None:
         # Even the polygon-aware fit won't hold the names — fall back to a
-        # leader line that respects neighboring rooms (Bug 1 fix).
+        # leader line that respects neighboring rooms (Bug 1 fix). The
+        # leader uses the most-abbreviated form to minimize the bbox we
+        # have to find clear space for.
         chosen = FitStrategy.LEADER
-        texts = _format_names(people, FitStrategy.LAST_ONLY)
+        chosen_level = max_level
+        texts = _format_names_at_level(people, max_level)
         other_rooms_mask: Optional[np.ndarray] = None
         if labeled_rooms_mask is not None:
             other_rooms_mask = labeled_rooms_mask & ~polygon
@@ -576,21 +610,31 @@ def _plan_one_office(
                 code="leader_line_fallback",
                 message=(
                     f"office {label.id} ({len(people)} people) did not fit even "
-                    f"with last-name-only; rendering names outside the room with "
-                    f"a leader line"
+                    f"at the shortest abbreviation; rendering names outside the "
+                    f"room with a leader line"
                 ),
                 office_id=label.id,
             )
         )
-    elif chosen is not FitStrategy.SHRINK:
+    elif chosen is FitStrategy.ABBREVIATED:
+        # Find one person whose rendered form actually differs from
+        # their full name -- that's the example the warning quotes so
+        # the user can eyeball "how aggressive was the shortening?"
+        example: Optional[tuple[str, str]] = None
+        for p, t in zip(people, [n.rendered_text for n in placement]):
+            if t != p.name:
+                example = (p.name, t)
+                break
+        msg = (
+            f"office {label.id} ({len(people)} people) shortened names to fit"
+        )
+        if example is not None:
+            msg += f" (e.g. {example[0]!r} → {example[1]!r})"
         issues.append(
             LayoutIssue(
                 severity="warning",
                 code="abbreviation_fallback",
-                message=(
-                    f"office {label.id} ({len(people)} people) required {chosen.value} "
-                    f"abbreviation to fit"
-                ),
+                message=msg,
                 office_id=label.id,
             )
         )
@@ -678,28 +722,221 @@ def _place_office_number(
     return ((cx, cy, nw, nh), True)
 
 
-def _format_names(people: list[Assignment], strategy: FitStrategy) -> list[str]:
-    """Format each name per the chosen strategy. Returns one string per person."""
-    out = []
+def _name_forms(name: str) -> list[str]:
+    """Return the progressively-shorter abbreviation forms for ``name``.
+
+    The first form is always the full name. The last form is the bare
+    first token. Each intermediate form drops a token's information by
+    one notch — either by abbreviating it to an initial, or by dropping
+    a token that was already an initial. The first token (typically the
+    given name) is preserved in every form so people stay searchable by
+    first name.
+
+    Examples:
+        >>> _name_forms("Anna")
+        ['Anna']
+        >>> _name_forms("Geeven Singh")
+        ['Geeven Singh', 'Geeven S.', 'Geeven']
+        >>> _name_forms("Sai Ram Kuchibhatla")
+        ['Sai Ram Kuchibhatla', 'Sai Ram K.', 'Sai R. K.', 'Sai R.', 'Sai']
+
+    For an N-token name (N >= 2) the ladder length is ``2*N - 1``:
+    abbreviate right-to-left until only the first token is still spelled
+    out, then drop initials right-to-left until only the first token
+    remains.
+    """
+    parts = name.split()
+    if len(parts) <= 1:
+        return [name]
+
+    n = len(parts)
+    forms = [name]
+    current = list(parts)
+    # Phase 1: abbreviate tokens right-to-left.
+    for k in range(1, n):
+        idx = n - k
+        current[idx] = current[idx][0].upper() + "."
+        forms.append(" ".join(current))
+    # Phase 2: drop the now-initialised tokens right-to-left, leaving
+    # the first (given) name standing.
+    for k in range(1, n):
+        forms.append(" ".join(current[:n - k]))
+    return forms
+
+
+def _format_names_at_level(people: list[Assignment], level: int) -> list[str]:
+    """Pick the ``level``-th abbreviation form for each person.
+
+    Shorter names are clamped to their shortest form. This keeps the
+    visual style uniform per office while still respecting names that
+    can't be shortened further.
+    """
+    out: list[str] = []
     for p in people:
-        parts = p.name.split()
-        if not parts:
-            out.append(p.name)
-            continue
-        if strategy is FitStrategy.SHRINK:
-            out.append(p.name)
-        elif strategy is FitStrategy.INITIALS:
-            if len(parts) == 1:
-                out.append(parts[0])
-            else:
-                first = parts[0][0].upper() + "."
-                rest = " ".join(parts[1:])
-                out.append(f"{first} {rest}")
-        elif strategy is FitStrategy.LAST_ONLY:
-            out.append(parts[-1])
-        else:  # LEADER uses LAST_ONLY texts
-            out.append(parts[-1])
+        forms = _name_forms(p.name)
+        out.append(forms[min(level, len(forms) - 1)])
     return out
+
+
+def _wrap_variants(text: str) -> list[str]:
+    """Return all whitespace-wrap variants of ``text``.
+
+    Each whitespace gap between tokens is independently kept as a space
+    or replaced with ``\\n``. The returned list is sorted by
+    ``(line_count, max_line_length)`` ascending — so the no-wrap variant
+    is first, then 2-line variants in order of balance, then 3-line, etc.
+    Callers that want "the smallest wrap that fits in width W" can iterate
+    in order and stop at the first variant whose max-line measured width
+    is ``<= W``.
+
+    A text with no internal whitespace returns ``[text]``.
+    """
+    parts = text.split()
+    if len(parts) <= 1:
+        return [text]
+    n_gaps = len(parts) - 1
+    variants: list[tuple[int, int, str]] = []
+    for mask in range(1 << n_gaps):
+        pieces = [parts[0]]
+        for i in range(n_gaps):
+            sep = "\n" if (mask >> i) & 1 else " "
+            pieces.append(sep)
+            pieces.append(parts[i + 1])
+        v = "".join(pieces)
+        line_count = v.count("\n") + 1
+        max_line = max(len(line) for line in v.split("\n"))
+        variants.append((line_count, max_line, v))
+    variants.sort()
+    return [v for _, _, v in variants]
+
+
+def _max_level_for(people: list[Assignment]) -> int:
+    """The highest abbreviation level worth trying for this room."""
+    return max(len(_name_forms(p.name)) - 1 for p in people)
+
+
+def _detect_duplicate_displayed_names(
+    entries: list["LayoutEntry"],
+) -> list["LayoutIssue"]:
+    """Flag pairs (or larger groups) of people whose rendered_text matches.
+
+    Per-office collisions (two people in the same room display the same
+    text) are emitted as ``error`` issues with the office_id set —
+    these are unambiguously bad because the reader can't tell the two
+    people apart even within the room. Floor-wide collisions across
+    multiple offices are emitted as ``warning`` issues with no office_id
+    (the message lists the affected offices). When the same displayed
+    text appears in both the same office *and* other offices on the map,
+    both an error (for the in-office pair) and a warning (for the
+    cross-office occurrences) are emitted.
+    """
+    out: list[LayoutIssue] = []
+
+    # 1. Per-office collisions (error).
+    for entry in entries:
+        by_text: dict[str, list[str]] = defaultdict(list)
+        for n in entry.names:
+            by_text[n.rendered_text].append(n.full_name)
+        for text, fulls in by_text.items():
+            if len(fulls) <= 1:
+                continue
+            out.append(
+                LayoutIssue(
+                    severity="error",
+                    code="duplicate_displayed_name_in_office",
+                    message=(
+                        f"office {entry.office_id} renders {len(fulls)} "
+                        f"people as the same text {text!r}: "
+                        f"{', '.join(repr(f) for f in fulls)}"
+                    ),
+                    office_id=entry.office_id,
+                )
+            )
+
+    # 2. Floor-wide collisions (warning). Group by rendered_text across
+    #    all entries; emit one warning per text that appears in 2+
+    #    distinct offices. Same-office repeats already covered above.
+    by_text_global: dict[str, list[tuple[str, str]]] = defaultdict(list)
+    for entry in entries:
+        for n in entry.names:
+            by_text_global[n.rendered_text].append((entry.office_id, n.full_name))
+    for text, occurrences in sorted(by_text_global.items()):
+        offices = {office_id for office_id, _ in occurrences}
+        if len(offices) <= 1:
+            continue
+        # Sort for stable ordering in the message.
+        occurrences_sorted = sorted(occurrences)
+        full_names = sorted({full for _, full in occurrences})
+        office_list = ", ".join(sorted(offices))
+        out.append(
+            LayoutIssue(
+                severity="warning",
+                code="duplicate_displayed_name_on_map",
+                message=(
+                    f"displayed text {text!r} appears in {len(offices)} "
+                    f"offices ({office_list}) for "
+                    f"{', '.join(repr(n) for n in full_names)}"
+                ),
+            )
+        )
+
+    return out
+
+
+def _fit_at_any_level(
+    *,
+    people: list[Assignment],
+    area: BBox,
+    max_level: int,
+    min_px: int,
+    max_px: int,
+    font_path: Optional[str],
+) -> tuple[Optional[list["NameEntry"]], int]:
+    """Try every abbreviation level (0..max_level) against ``area``.
+
+    Returns ``(placement, level)`` for the first level that fits, or
+    ``(None, -1)`` if no level fits.
+    """
+    for level in range(max_level + 1):
+        texts = _format_names_at_level(people, level)
+        placement = _try_fit(
+            texts=texts,
+            people=people,
+            area=area,
+            min_px=min_px,
+            max_px=max_px,
+            font_path=font_path,
+        )
+        if placement is not None:
+            return placement, level
+    return None, -1
+
+
+def _fit_polygon_at_any_level(
+    *,
+    people: list[Assignment],
+    polygon: np.ndarray,
+    room_bbox: BBox,
+    max_level: int,
+    min_px: int,
+    max_px: int,
+    font_path: Optional[str],
+) -> tuple[Optional[list["NameEntry"]], int]:
+    """Polygon-aware variant of :func:`_fit_at_any_level`."""
+    for level in range(max_level + 1):
+        texts = _format_names_at_level(people, level)
+        placement = _try_fit_polygon(
+            texts=texts,
+            people=people,
+            polygon=polygon,
+            room_bbox=room_bbox,
+            min_px=min_px,
+            max_px=max_px,
+            font_path=font_path,
+        )
+        if placement is not None:
+            return placement, level
+    return None, -1
 
 
 def _try_fit(
@@ -714,8 +951,14 @@ def _try_fit(
 ) -> Optional[list[NameEntry]]:
     """Try to fit ``texts`` into ``area`` by binary-searching font size.
 
-    Returns a list of ``NameEntry`` (one per person) at the largest font that
-    fits, or ``None`` if even ``min_px`` doesn't fit.
+    Each text is allowed to wrap on whitespace (``\\n``) if doing so lets
+    the font stay larger. At each font size we pick the fewest-line wrap
+    variant of each text that fits the area width; if no variant fits in
+    width, the font is too big. Then we sum the per-text heights (each
+    text contributes ``lines * line_h``) and check the area height.
+
+    Returns a list of ``NameEntry`` (one per person) at the largest font
+    that fits, or ``None`` if even ``min_px`` doesn't fit.
     """
     if not texts:
         return []
@@ -723,37 +966,53 @@ def _try_fit(
     if area_w <= 0 or area_h <= 0:
         return None
 
-    # Binary search for largest font_px that fits.
     lo, hi = min_px, max_px
-    best_size: Optional[int] = None
     best_layout: Optional[list[NameEntry]] = None
     while lo <= hi:
         mid = (lo + hi) // 2
-        sizes = [_measure_text(t, mid, font_path) for t in texts]
         line_h = int(round(mid * line_spacing))
-        total_h = line_h * len(texts)
-        max_w = max(w for w, _ in sizes)
-        if max_w <= area_w and total_h <= area_h:
-            # Fits — try larger.
-            best_size = mid
-            # Build layout at this size.
-            placed: list[NameEntry] = []
-            y_cursor = area_y
-            for person, text, (tw, th) in zip(people, texts, sizes):
-                tx = area_x + (area_w - tw) // 2  # center horizontally
-                placed.append(
-                    NameEntry(
-                        full_name=person.name,
-                        rendered_text=text,
-                        bbox=(tx, y_cursor, tw, th),
-                        font_px=mid,
-                    )
-                )
-                y_cursor += line_h
-            best_layout = placed
-            lo = mid + 1
-        else:
+
+        # For each text, pick the fewest-line wrap variant that fits in
+        # the area width. If no variant fits in width, this font is too
+        # big.
+        chosen: list[tuple[str, int, int, int]] = []  # (variant, w, h, lines)
+        ok = True
+        for text in texts:
+            picked: Optional[tuple[str, int, int, int]] = None
+            for v in _wrap_variants(text):
+                vw, vh = _measure_text(v, mid, font_path, line_spacing)
+                if vw <= area_w:
+                    picked = (v, vw, vh, v.count("\n") + 1)
+                    break
+            if picked is None:
+                ok = False
+                break
+            chosen.append(picked)
+
+        if not ok:
             hi = mid - 1
+            continue
+
+        total_h = sum(c[3] * line_h for c in chosen)
+        if total_h > area_h:
+            hi = mid - 1
+            continue
+
+        placed: list[NameEntry] = []
+        y_cursor = area_y
+        for person, (variant, vw, vh, vlines) in zip(people, chosen):
+            tx = area_x + (area_w - vw) // 2  # center horizontally
+            placed.append(
+                NameEntry(
+                    full_name=person.name,
+                    rendered_text=variant,
+                    bbox=(tx, y_cursor, vw, vh),
+                    font_px=mid,
+                )
+            )
+            y_cursor += vlines * line_h
+        best_layout = placed
+        lo = mid + 1
 
     return best_layout
 
@@ -825,13 +1084,26 @@ def _try_fit_polygon(
     best_layout: Optional[list[NameEntry]] = None
     while lo <= hi:
         mid = (lo + hi) // 2
-        sizes = [_measure_text(t, mid, font_path) for t in texts]
         line_h = int(round(mid * line_spacing))
         placed: list[NameEntry] = []
         y_cursor = 0
         ok = True
-        for person, text, (tw, th) in zip(people, texts, sizes):
-            spot = find_first_fit(tw, th, y_cursor)
+        for person, text in zip(people, texts):
+            # Try each wrap variant in order (fewest lines first) and
+            # accept the first one that finds a fit at or below y_cursor.
+            spot = None
+            chosen_variant = None
+            chosen_w = chosen_h = 0
+            chosen_lines = 1
+            for v in _wrap_variants(text):
+                vw, vh = _measure_text(v, mid, font_path, line_spacing)
+                s = find_first_fit(vw, vh, y_cursor)
+                if s is not None:
+                    spot = s
+                    chosen_variant = v
+                    chosen_w, chosen_h = vw, vh
+                    chosen_lines = v.count("\n") + 1
+                    break
             if spot is None:
                 ok = False
                 break
@@ -839,14 +1111,13 @@ def _try_fit_polygon(
             placed.append(
                 NameEntry(
                     full_name=person.name,
-                    rendered_text=text,
-                    bbox=(bx + x, by + y, tw, th),
+                    rendered_text=chosen_variant,
+                    bbox=(bx + x, by + y, chosen_w, chosen_h),
                     font_px=mid,
                 )
             )
-            # Next name starts at least line_h below this name's top so the
-            # placements never visually overlap.
-            y_cursor = y + line_h
+            # Next name starts below this one, accounting for its line count.
+            y_cursor = y + chosen_lines * line_h
         if ok:
             best_layout = placed
             lo = mid + 1
@@ -1003,9 +1274,13 @@ _FONT_CACHE: dict[tuple[Optional[str], int], object] = {}
 
 
 def _measure_text(
-    text: str, font_px: int, font_path: Optional[str]
+    text: str, font_px: int, font_path: Optional[str], line_spacing: float = 1.15
 ) -> tuple[int, int]:
     """Return ``(width, height)`` in pixels of ``text`` rendered at ``font_px``.
+
+    Handles ``\\n`` as a line break: returns ``(max_line_width,
+    (n_lines-1) * line_h + last_line_height)``, where ``line_h`` is
+    ``round(font_px * line_spacing)``.
 
     Cached because the planner re-measures the same strings many times
     during the binary search.
@@ -1020,11 +1295,24 @@ def _measure_text(
         except (OSError, IOError):
             font = ImageFont.load_default()
         _FONT_CACHE[key] = font
-    bbox = font.getbbox(text)  # type: ignore[union-attr]
-    w = int(bbox[2] - bbox[0])
-    h = int(bbox[3] - bbox[1])
-    # Guard against zero-height/width from empty strings.
-    return (max(w, 1), max(h, max(font_px // 2, 4)))
+
+    if "\n" not in text:
+        bbox = font.getbbox(text)  # type: ignore[union-attr]
+        w = int(bbox[2] - bbox[0])
+        h = int(bbox[3] - bbox[1])
+        return (max(w, 1), max(h, max(font_px // 2, 4)))
+
+    lines = text.split("\n")
+    line_metrics: list[tuple[int, int]] = []
+    for line in lines:
+        bbox = font.getbbox(line)  # type: ignore[union-attr]
+        lw = int(bbox[2] - bbox[0])
+        lh = int(bbox[3] - bbox[1])
+        line_metrics.append((max(lw, 1), max(lh, max(font_px // 2, 4))))
+    max_w = max(w for w, _ in line_metrics)
+    line_h = int(round(font_px * line_spacing))
+    total_h = (len(lines) - 1) * line_h + line_metrics[-1][1]
+    return (max_w, total_h)
 
 
 # ---------------------------------------------------------------------------
@@ -1106,7 +1394,7 @@ def render_layout_problems_png(
     draw = ImageDraw.Draw(faded)
 
     rooms_by_id = {r.id: r for r in calibration.rooms}
-    flagged = [e for e in layout.entries if e.fit_strategy is not FitStrategy.SHRINK]
+    flagged = [e for e in layout.entries if e.fit_strategy is not FitStrategy.FULL]
 
     for entry in flagged:
         room = rooms_by_id.get(entry.room_id)

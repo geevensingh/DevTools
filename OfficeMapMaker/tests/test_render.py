@@ -277,7 +277,7 @@ def test_render_composite_layout_with_unknown_office_emits_error(tmp_path):
                 office_id="9999",  # not in the calibration
                 room_id=999,
                 team="BITS",
-                fit_strategy=FitStrategy.SHRINK,
+                fit_strategy=FitStrategy.FULL,
                 names=[],
                 office_number=OfficeNumberPlacement(
                     text="9999", bbox=(10, 10, 30, 14), font_px=14
@@ -309,7 +309,7 @@ def test_render_composite_layout_with_unknown_team_emits_error(tmp_path):
         entries=[
             LayoutEntry(
                 office_id="100", room_id=1, team="",  # empty team string
-                fit_strategy=FitStrategy.SHRINK, names=[],
+                fit_strategy=FitStrategy.FULL, names=[],
                 office_number=OfficeNumberPlacement(
                     text="100", bbox=(120, 200, 30, 14), font_px=14
                 ),

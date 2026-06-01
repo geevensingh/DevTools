@@ -89,7 +89,7 @@ def test_layout_round_trips_through_json(tmp_path):
                 office_id="1480",
                 room_id=42,
                 team="BITS",
-                fit_strategy=FitStrategy.SHRINK,
+                fit_strategy=FitStrategy.FULL,
                 names=[
                     NameEntry(
                         full_name="Alice Smith",
@@ -115,7 +115,7 @@ def test_layout_round_trips_through_json(tmp_path):
 def test_layout_entry_by_office_lookup():
     entry = LayoutEntry(
         office_id="1480", room_id=1, team="BITS",
-        fit_strategy=FitStrategy.SHRINK, names=[],
+        fit_strategy=FitStrategy.FULL, names=[],
         office_number=OfficeNumberPlacement(text="1480", bbox=(0,0,1,1), font_px=10),
         inscribed_rect=(0, 0, 1, 1),
     )
@@ -139,7 +139,7 @@ def test_plan_layout_fits_full_names_in_a_large_room():
     assert [i for i in issues if i.severity == "error"] == []
     assert len(layout.entries) == 1
     entry = layout.entries[0]
-    assert entry.fit_strategy is FitStrategy.SHRINK
+    assert entry.fit_strategy is FitStrategy.FULL
     assert {n.rendered_text for n in entry.names} == {"Alice Smith", "Bob Jones"}
     # Every name bbox is inside the inscribed rect (height-only check; width
     # may be centered).
@@ -194,8 +194,15 @@ def test_plan_layout_ignores_assignments_for_unknown_offices():
 # ---------------------------------------------------------------------------
 
 
-def test_plan_layout_falls_back_to_initials_in_a_tighter_room():
-    """A narrow room forces 'First L.' over the full name."""
+def test_plan_layout_falls_back_to_abbreviated_in_a_tighter_room():
+    """A narrow room forces the planner off the full-name rung.
+
+    With the first-name-preserving ladder, ``Sravani Punyamurthula``
+    shortens to ``Sravani P.`` (level 1) and then to ``Sravani``
+    (level 2). Either of those (or LEADER if even that won't fit) is
+    acceptable here -- the test just guarantees the planner *did*
+    shorten and the first token survived.
+    """
     cal = _build_cal(
         labels=[_office_label("1480", room_id=1, fill_seed=(95, 80))],
         rooms=[_square_room(1, 70, 50, 50)],  # 50x50 room
@@ -208,18 +215,15 @@ def test_plan_layout_falls_back_to_initials_in_a_tighter_room():
         ],
     )
     entry = layout.entries[0]
-    assert entry.fit_strategy in (
-        FitStrategy.INITIALS,
-        FitStrategy.LAST_ONLY,
-        FitStrategy.LEADER,
-    )
-    if entry.fit_strategy is FitStrategy.INITIALS:
-        # Each rendered text starts with single-letter + period.
+    assert entry.fit_strategy in (FitStrategy.ABBREVIATED, FitStrategy.LEADER)
+    if entry.fit_strategy is FitStrategy.ABBREVIATED:
+        # Each rendered text still starts with the original first name
+        # (we prefer keeping first names readable).
         for n in entry.names:
-            assert n.rendered_text[1] == "."
+            assert n.rendered_text.split()[0] in {"Sravani", "Christopher"}
 
 
-def test_plan_layout_falls_back_to_last_only_in_a_very_tight_room():
+def test_plan_layout_falls_back_to_first_name_only_in_a_very_tight_room():
     cal = _build_cal(
         labels=[_office_label("1480", room_id=1, fill_seed=(85, 70))],
         rooms=[_square_room(1, 70, 60, 30)],  # 30x30 room
@@ -232,10 +236,14 @@ def test_plan_layout_falls_back_to_last_only_in_a_very_tight_room():
         ],
     )
     entry = layout.entries[0]
-    assert entry.fit_strategy in (FitStrategy.LAST_ONLY, FitStrategy.LEADER)
-    if entry.fit_strategy is FitStrategy.LAST_ONLY:
-        names = {n.rendered_text for n in entry.names}
-        assert names == {"Punyamurthula", "Vanderbilt"}
+    assert entry.fit_strategy in (FitStrategy.ABBREVIATED, FitStrategy.LEADER)
+    if entry.fit_strategy is FitStrategy.ABBREVIATED:
+        # At the most-aggressive rung the names collapse to just first
+        # names. We don't insist on that exact level (the planner may
+        # stop earlier if "Sravani P." fits) -- just that the first
+        # token is preserved.
+        for n in entry.names:
+            assert n.rendered_text.split()[0] in {"Sravani", "Christopher"}
     # Either way, a warning issue was raised.
     codes = {i.code for i in issues}
     assert "abbreviation_fallback" in codes or "leader_line_fallback" in codes
@@ -703,3 +711,173 @@ def _write_csv_assignments(tmp_path: Path, rows: list[tuple[str, str, str]]) -> 
         for name, office, team in rows:
             f.write(f"{name},{office},{team}\n")
     return p
+
+
+
+# ---------------------------------------------------------------------------
+# Name-abbreviation ladder (first-name-preferring)
+# ---------------------------------------------------------------------------
+
+
+def test_name_forms_single_token_is_itself():
+    from officemapmaker.layout import _name_forms  # type: ignore[attr-defined]
+    assert _name_forms("Anna") == ["Anna"]
+
+
+def test_name_forms_two_token_ladder():
+    from officemapmaker.layout import _name_forms  # type: ignore[attr-defined]
+    assert _name_forms("Geeven Singh") == ["Geeven Singh", "Geeven S.", "Geeven"]
+
+
+def test_name_forms_three_token_ladder():
+    from officemapmaker.layout import _name_forms  # type: ignore[attr-defined]
+    assert _name_forms("Sai Ram Kuchibhatla") == [
+        "Sai Ram Kuchibhatla",
+        "Sai Ram K.",
+        "Sai R. K.",
+        "Sai R.",
+        "Sai",
+    ]
+
+
+def test_name_forms_four_token_ladder_length_is_seven():
+    from officemapmaker.layout import _name_forms  # type: ignore[attr-defined]
+    forms = _name_forms("A B C D")
+    # 2*N - 1 = 7
+    assert len(forms) == 7
+    assert forms[0] == "A B C D"
+    assert forms[-1] == "A"
+
+
+# ---------------------------------------------------------------------------
+# Wrap variants (whitespace-to-newline)
+# ---------------------------------------------------------------------------
+
+
+def test_wrap_variants_single_token_is_itself():
+    from officemapmaker.layout import _wrap_variants  # type: ignore[attr-defined]
+    assert _wrap_variants("Anna") == ["Anna"]
+
+
+def test_wrap_variants_two_tokens_yields_no_wrap_then_wrap():
+    from officemapmaker.layout import _wrap_variants  # type: ignore[attr-defined]
+    # 1 gap -> 2 variants. No-wrap first (fewer lines).
+    variants = _wrap_variants("Geeven Singh")
+    assert variants == ["Geeven Singh", "Geeven\nSingh"]
+
+
+def test_wrap_variants_three_tokens_sorted_by_line_count_then_max_line():
+    from officemapmaker.layout import _wrap_variants  # type: ignore[attr-defined]
+    variants = _wrap_variants("Conference Room (12)")
+    # 3 tokens -> 2 gaps -> 4 variants.
+    # Line counts: variants[0] = 1 line, variants[1..2] = 2 lines, variants[3] = 3 lines.
+    line_counts = [v.count("\n") + 1 for v in variants]
+    assert line_counts == [1, 2, 2, 3]
+    assert variants[0] == "Conference Room (12)"
+    # The 3-line variant is "Conference\nRoom\n(12)".
+    assert variants[-1] == "Conference\nRoom\n(12)"
+    # Both 2-line variants are present.
+    assert set(variants[1:3]) == {"Conference\nRoom (12)", "Conference Room\n(12)"}
+
+
+# ---------------------------------------------------------------------------
+# Wrap is preferred over abbreviation when it fits
+# ---------------------------------------------------------------------------
+
+
+def test_plan_layout_prefers_wrap_over_abbreviation_for_long_room_label():
+    """A tall but narrow room should wrap a multi-word name onto two
+    lines (preserving every word at full length) rather than abbreviate
+    it. Regression for the "Conference Room (12)" -> "C. Room (12)"
+    bug from the millennium B run.
+    """
+    # 130px wide, 220px tall: too narrow for "Conference Room (12)" on
+    # one line at any readable font, but plenty of vertical headroom
+    # for the wrapped two-line variant, and "Conference" alone fits in
+    # the width at min font.
+    cal = _build_cal(
+        labels=[_office_label("1189", room_id=1, fill_seed=(140, 170))],
+        rooms=[_rect_room(1, 75, 60, 130, 220)],
+    )
+    layout, _ = plan_layout(cal, [_asn("Conference Room (12)", "1189")])
+    entry = layout.entries[0]
+    # FULL means the planner kept every word at full length (used wrap,
+    # not abbreviation).
+    assert entry.fit_strategy is FitStrategy.FULL
+    rendered = entry.names[0].rendered_text
+    # Wrap was actually used (newline present) and no token was
+    # abbreviated to an initial.
+    assert "\n" in rendered
+    assert "Conference" in rendered
+    assert "Room" in rendered
+    assert "(12)" in rendered
+
+
+# ---------------------------------------------------------------------------
+# Duplicate displayed-name detection
+# ---------------------------------------------------------------------------
+
+
+def test_plan_layout_errors_when_two_people_in_office_share_displayed_name():
+    """Two people in the SAME office whose displayed (rendered) names
+    end up identical -> error. They'd be visually indistinguishable.
+    """
+    # Big room -> both render at their full names. Two distinct
+    # ``Assignment`` rows with literally the same name string.
+    cal = _build_cal(
+        labels=[_office_label("1480", room_id=1, fill_seed=(150, 150))],
+        rooms=[_square_room(1, 50, 50, 200)],
+    )
+    layout, issues = plan_layout(
+        cal,
+        [
+            _asn("Alice Smith", "1480", row=2),
+            _asn("Alice Smith", "1480", row=3),
+        ],
+    )
+    codes = [(i.code, i.severity, i.office_id) for i in issues]
+    assert ("duplicate_displayed_name_in_office", "error", "1480") in codes
+
+
+def test_plan_layout_warns_when_two_people_on_map_share_displayed_name():
+    """Two people in DIFFERENT offices whose displayed names collide ->
+    warning (not error). The map is still navigable; the duplication
+    just looks suspicious.
+    """
+    cal = _build_cal(
+        labels=[
+            _office_label("1480", room_id=1, fill_seed=(150, 150)),
+            _office_label("1481", room_id=2, fill_seed=(450, 150)),
+        ],
+        rooms=[_square_room(1, 50, 50, 200), _square_room(2, 350, 50, 200)],
+    )
+    layout, issues = plan_layout(
+        cal,
+        [
+            _asn("Alice Smith", "1480", row=2),
+            _asn("Alice Smith", "1481", row=3),
+        ],
+    )
+    map_dupes = [
+        i for i in issues if i.code == "duplicate_displayed_name_on_map"
+    ]
+    assert len(map_dupes) >= 1
+    assert all(i.severity == "warning" for i in map_dupes)
+
+
+# ---------------------------------------------------------------------------
+# Backward-compat: FitStrategy deserializes legacy string values
+# ---------------------------------------------------------------------------
+
+
+def test_fit_strategy_legacy_string_values_map_to_new_members():
+    # Pre-refactor JSON files used these string values. They must still
+    # load (mapped onto the new members) so we don't break existing
+    # session/layout files.
+    assert FitStrategy("full") is FitStrategy.FULL
+    assert FitStrategy("abbreviated") is FitStrategy.ABBREVIATED
+    assert FitStrategy("leader") is FitStrategy.LEADER
+    # Legacy names from before the refactor:
+    assert FitStrategy("shrink") is FitStrategy.FULL
+    assert FitStrategy("initials") is FitStrategy.ABBREVIATED
+    assert FitStrategy("last_only") is FitStrategy.ABBREVIATED
