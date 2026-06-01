@@ -306,14 +306,18 @@ def plan_layout(
     # Union mask of every labeled room. Leader-line text should not land
     # inside any of these — putting a name inside someone else's office is
     # worse than going to a wider margin or accepting some hallway encroachment.
-    # Built lazily on first office that needs a polygon; cached for the rest.
+    # We also cache the decoded polygon for each labeled room so the per-
+    # office loop below doesn't pay the rle_to_mask cost (~22 ms each on a
+    # 3500x3500 map) twice.
     labeled_room_ids = {lab.room_id for lab in office_labels}
     labeled_rooms_mask: Optional[np.ndarray] = None
+    polygon_cache: dict[int, np.ndarray] = {}
     for room_id in labeled_room_ids:
         room = rooms_by_id.get(room_id)
         if room is None:
             continue
         pmask = rle_to_mask(room.polygon_rle) > 0
+        polygon_cache[room_id] = pmask
         if labeled_rooms_mask is None:
             labeled_rooms_mask = np.zeros_like(pmask)
         labeled_rooms_mask |= pmask
@@ -351,9 +355,17 @@ def plan_layout(
             )
             continue
 
-        polygon = rle_to_mask(room.polygon_rle) > 0
-        rect = largest_inscribed_rectangle(polygon)
-        if rect[2] == 0 or rect[3] == 0:
+        polygon = polygon_cache.get(label.room_id)
+        if polygon is None:
+            polygon = rle_to_mask(room.polygon_rle) > 0
+        # ``largest_inscribed_rectangle`` is O(H*W) over the entire mask;
+        # on a 3500x3500 map that is ~3 seconds per office. The room itself
+        # only occupies its bbox, so crop first and translate the result
+        # back to map coordinates (~2000x speedup).
+        bx, by, bw, bh = room.bbox
+        cropped = polygon[by:by + bh, bx:bx + bw]
+        local_rect = largest_inscribed_rectangle(cropped)
+        if local_rect[2] == 0 or local_rect[3] == 0:
             issues.append(
                 LayoutIssue(
                     severity="error",
@@ -366,6 +378,12 @@ def plan_layout(
                 )
             )
             continue
+        rect = (
+            local_rect[0] + bx,
+            local_rect[1] + by,
+            local_rect[2],
+            local_rect[3],
+        )
 
         # The first team listed wins for the office's color; warn if there's disagreement.
         teams = {p.team for p in people}
