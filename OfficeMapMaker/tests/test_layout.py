@@ -305,6 +305,64 @@ def test_plan_layout_inherits_calibration_hash_when_none_supplied():
 
 
 # ---------------------------------------------------------------------------
+# plan_layout — progress callback
+# ---------------------------------------------------------------------------
+
+
+def test_plan_layout_progress_callback_fires_once_per_office_plus_final():
+    cal = _build_cal(
+        labels=[
+            _office_label("1480", room_id=1, fill_seed=(150, 150)),
+            _office_label("1481", room_id=2, fill_seed=(450, 150)),
+            _office_label("1482", room_id=3, fill_seed=(650, 150)),
+        ],
+        rooms=[
+            _square_room(1, 50, 50, 200),
+            _square_room(2, 350, 50, 200),
+            _square_room(3, 550, 50, 200, img_size=(800, 600)),
+        ],
+    )
+    assignments = [
+        _asn("A B", "1480"), _asn("C D", "1481"), _asn("E F", "1482"),
+    ]
+    calls: list[tuple[float, str]] = []
+    plan_layout(cal, assignments, progress_cb=lambda f, m: calls.append((f, m)))
+    # One pre-office tick per office + one final 1.0 tick.
+    assert len(calls) == 4
+    # First three are monotonically increasing, in [0, 1).
+    fractions = [f for f, _ in calls]
+    assert fractions[0] == 0.0
+    assert fractions[1] == pytest.approx(1 / 3)
+    assert fractions[2] == pytest.approx(2 / 3)
+    assert fractions[3] == 1.0
+    # Messages mention which office and the running counter.
+    assert "1 of 3" in calls[0][1] and "1480" in calls[0][1]
+    assert "2 of 3" in calls[1][1] and "1481" in calls[1][1]
+    assert "3 of 3" in calls[2][1] and "1482" in calls[2][1]
+    assert "3" in calls[3][1]  # final summary mentions the count
+
+
+def test_plan_layout_progress_callback_with_zero_offices_still_terminates():
+    cal = _build_cal(labels=[], rooms=[])
+    calls: list[tuple[float, str]] = []
+    plan_layout(cal, [], progress_cb=lambda f, m: calls.append((f, m)))
+    # No per-office ticks; just the final summary tick.
+    assert len(calls) == 1
+    assert calls[0][0] == 1.0
+
+
+def test_plan_layout_works_without_progress_callback():
+    """Default behavior unchanged — progress_cb is opt-in."""
+    cal = _build_cal(
+        labels=[_office_label("1480", room_id=1, fill_seed=(150, 150))],
+        rooms=[_square_room(1, 50, 50, 200)],
+    )
+    # Just shouldn't raise.
+    layout, _ = plan_layout(cal, [_asn("X Y", "1480")])
+    assert len(layout.entries) == 1
+
+
+# ---------------------------------------------------------------------------
 # Review-artifact rendering
 # ---------------------------------------------------------------------------
 

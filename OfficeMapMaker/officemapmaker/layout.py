@@ -38,7 +38,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Callable, Iterable, Optional
 
 import numpy as np
 
@@ -257,6 +257,7 @@ def plan_layout(
     *,
     map_hash: str = "",
     font_path: Optional[str] = None,
+    progress_cb: Optional[Callable[[float, str], None]] = None,
 ) -> tuple[Layout, list[LayoutIssue]]:
     """Plan name placement for every office that has at least one assignee.
 
@@ -268,6 +269,16 @@ def plan_layout(
             ``Layout.map_hash`` for the next pass's staleness gate.
         font_path: Path to a TTF used for measuring text. Defaults to
             Arial on Windows; falls back to PIL's default if missing.
+        progress_cb: Optional callback invoked once per office as
+            ``progress_cb(fraction, message)`` where ``fraction`` is in
+            ``[0.0, 1.0]`` (offices processed / total) and ``message``
+            describes the current office (e.g. ``"Planning office 47 of
+            210 (1480)"``). The callback is invoked *before* each
+            office's inscribed-rectangle search begins, which is the
+            expensive per-office step. Skipped offices (those with no
+            label in calibration) still advance the counter so the bar
+            moves monotonically. Caller is responsible for any
+            thread-safety / event-loop marshalling.
 
     Returns:
         ``(layout, issues)``. ``issues`` may contain warnings for any
@@ -295,8 +306,17 @@ def plan_layout(
     entries: list[LayoutEntry] = []
     placed_people: set[tuple[str, str]] = set()  # (office_id_upper, full_name)
 
+    sorted_offices = sorted(by_office.items())
+    total_offices = len(sorted_offices)
+
     # Materialize the polygons up-front so any error message can reference room.id.
-    for office_id_upper, people in sorted(by_office.items()):
+    for office_idx, (office_id_upper, people) in enumerate(sorted_offices):
+        if progress_cb is not None:
+            progress_cb(
+                office_idx / total_offices if total_offices else 1.0,
+                f"Planning office {office_idx + 1} of {total_offices} "
+                f"({office_id_upper})",
+            )
         label = labels_by_id.get(office_id_upper)
         if label is None:
             # validate_labels already reports office_not_on_map; skip here.
@@ -387,6 +407,8 @@ def plan_layout(
         map_hash=map_hash or calibration.map_hash,
         entries=entries,
     )
+    if progress_cb is not None:
+        progress_cb(1.0, f"Planned {total_offices} office(s)")
     return layout, issues
 
 

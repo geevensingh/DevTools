@@ -613,3 +613,71 @@ def test_real_adapter_clean_plan_with_empty_calibration(tmp_path: Path):
     assert issues == []
     assert assignments == []
     assert preview_path is None
+
+
+def test_real_adapter_maps_per_office_progress_into_planner_window(tmp_path: Path):
+    """The wizard adapter should map plan_layout's 0..1 per-office
+    progress into the [0.2, 0.85] window of the overall bar so the UI
+    actually ticks during planning (the previously-frozen phase)."""
+    from PIL import Image
+
+    import numpy as np
+    from officemapmaker.calibration import Label, Room
+    from officemapmaker.geometry import mask_to_rle
+
+    map_path = tmp_path / "demo.png"
+    Image.new("RGB", (400, 400), color=(255, 255, 255)).save(map_path)
+
+    def _room(rid: int, x: int, y: int, side: int = 60) -> Room:
+        mask = np.zeros((400, 400), dtype=bool)
+        mask[y : y + side, x : x + side] = True
+        return Room(
+            id=rid, polygon_rle=mask_to_rle(mask), area_px=int(mask.sum()),
+            bbox=(x, y, side, side),
+        )
+
+    def _label(oid: str, rid: int, x: int, y: int) -> Label:
+        return Label(
+            id=oid, bbox=(x - 5, y - 5, 10, 10), room_id=rid,
+            fill_seed=(x, y), ocr_confidence=0.9,
+        )
+
+    cal = Calibration(
+        map_image="demo.png", map_hash="sha256:x",
+        labels=[_label("1480", 1, 80, 80),
+                _label("1481", 2, 200, 80),
+                _label("1482", 3, 320, 80)],
+        rooms=[_room(1, 50, 50), _room(2, 170, 50), _room(3, 290, 50)],
+    )
+
+    calls: list[tuple[float, str]] = []
+
+    def progress_cb(f, m):
+        calls.append((f, m))
+
+    def cancel_cb():
+        return False
+
+    cached = [Assignment(name="A B", office_id="1480", team="T", source_row=2),
+              Assignment(name="C D", office_id="1481", team="T", source_row=3),
+              Assignment(name="E F", office_id="1482", team="T", source_row=4)]
+    _run_plan_layout(
+        map_path, cal, tmp_path / "no.xlsx", cached, None,
+        progress_cb=progress_cb, cancel_cb=cancel_cb,
+    )
+
+    fractions = [f for f, _ in calls]
+    # Outer-adapter boundaries are still emitted.
+    assert 0.0 in fractions  # "Loading assignments..."
+    assert pytest.approx(0.2) in fractions  # "Planning layout for N..."
+    assert 1.0 in fractions  # "Done"
+    # Every per-office tick lands inside [0.2, 0.85].
+    inner = [f for f in fractions if 0.2 < f < 1.0]
+    assert inner, "expected per-office progress ticks between 0.2 and 1.0"
+    for f in inner:
+        assert 0.2 <= f <= 0.85 + 1e-6, (
+            f"expected planner tick in [0.2, 0.85], got {f}"
+        )
+    # The ticks should be monotonically non-decreasing.
+    assert inner == sorted(inner)
+

@@ -89,9 +89,9 @@ def _run_plan_layout(
 
     Cancellation is checked at three coarse boundaries (after the
     assignments load, after the plan, and before the preview render).
-    The plan and render calls are single Python calls with no inner
-    cancellation hooks; cancel mid-call is the same limitation the
-    rest of the pipeline has.
+    Planning itself now reports per-office progress via the inner
+    ``progress_cb`` thread-through; the preview render is still a
+    single Python call with no inner cancellation hook.
     """
     progress_cb(0.0, "Loading assignments...")
     if cached_assignments is not None:
@@ -104,7 +104,15 @@ def _run_plan_layout(
         raise PipelineCanceled()
 
     progress_cb(0.2, f"Planning layout for {len(assignments)} assignment(s)...")
-    layout, issues = plan_layout(calibration, assignments)
+
+    # Map planner's 0.0..1.0 per-office progress into the [0.2, 0.85]
+    # window of the wizard's overall progress bar.
+    def _planner_progress(frac: float, msg: str) -> None:
+        progress_cb(0.2 + 0.65 * max(0.0, min(1.0, frac)), msg)
+
+    layout, issues = plan_layout(
+        calibration, assignments, progress_cb=_planner_progress,
+    )
     if cancel_cb():
         from ...pipeline import PipelineCanceled
 
