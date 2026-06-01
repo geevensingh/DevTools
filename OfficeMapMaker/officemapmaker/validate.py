@@ -597,7 +597,14 @@ def virtual_flood_fill(
     # 0-pixels as 2 (a value distinct from both walls and unreachable interior).
     canvas = (wall_mask > 0).astype(np.uint8)
     flood_mask = np.zeros((h + 2, w + 2), dtype=np.uint8)
-    cv2.floodFill(canvas, flood_mask, (sx, sy), 2)
+    # 8-connectivity so the rendered fill matches the calibration polygon,
+    # which is built from cv2.connectedComponentsWithStats(..., connectivity=8)
+    # in geometry.find_connected_components. With 4-connectivity here, door
+    # cutouts (and other regions joined to the room body only through a
+    # diagonal pixel) would be inside the polygon but outside the fill —
+    # causing the layout planner to place office numbers in pixels that are
+    # never colored.
+    cv2.floodFill(canvas, flood_mask, (sx, sy), 2, flags=8)
     return canvas == 2
 
 
