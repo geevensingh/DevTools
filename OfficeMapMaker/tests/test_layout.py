@@ -683,9 +683,10 @@ def test_try_fit_vertically_centers_names_in_oversized_area():
     from officemapmaker.layout import _try_fit  # type: ignore[attr-defined]
 
     # Area 200 wide x 200 tall; two short names fit easily — the
-    # binary search picks the max font (24 px). At line-spacing 1.15
-    # each line is round(24 * 1.15) = 28 px, two names = 56 px total.
-    # Centering offset = (200 - 56) // 2 = 72 px from the top edge.
+    # tier ladder picks the largest tier <= 24 (also 24 px). At
+    # line-spacing 1.15 each line is round(24 * 1.15) = 28 px, two
+    # names = 56 px total. Centering offset = (200 - 56) // 2 = 72 px
+    # from the top edge.
     people = [_asn("Ab", "1000"), _asn("Cd", "1000")]
     placed = _try_fit(
         texts=["Ab", "Cd"],
@@ -714,6 +715,97 @@ def test_try_fit_vertically_centers_names_in_oversized_area():
     assert first_y >= 30
     # Second name should sit one line_h below the first.
     assert placed[1].bbox[1] == first_y + line_h
+
+
+# ---------------------------------------------------------------------------
+# Font tiering — name text quantized to a fixed ladder
+# ---------------------------------------------------------------------------
+
+
+def test_font_tiers_in_range_returns_descending_subset():
+    """Sanity-check the tier filter: returns descending tier values inside
+    the requested ``[min, max]``, or a single ``max_px`` fallback if the
+    range excludes every tier.
+    """
+    from officemapmaker.layout import FONT_TIERS_PX, _font_tiers_in_range  # type: ignore[attr-defined]
+
+    # Full range yields the full ladder.
+    assert _font_tiers_in_range(15, 24) == list(FONT_TIERS_PX)
+    # Narrow range yields a subset, still descending.
+    assert _font_tiers_in_range(18, 22) == [22, 20, 18]
+    # Range outside the ladder: fallback to a single max_px entry so the
+    # caller can still attempt a fit at the readability floor.
+    assert _font_tiers_in_range(28, 28) == [28]
+    # Inverted range returns empty (caller should treat as "no fit").
+    assert _font_tiers_in_range(24, 15) == []
+
+
+def test_plan_layout_only_uses_tiered_font_sizes_for_names():
+    """Every NameEntry's ``font_px`` must be one of ``FONT_TIERS_PX``.
+
+    Regression guard: the rendered map should never use ad-hoc sizes like
+    27 or 23 px — those existed in the pre-tier binary-search planner and
+    made the output look like several different people had labeled the
+    map. After this change, the at-most ``len(FONT_TIERS_PX)`` distinct
+    sizes appear across the whole floor plan.
+    """
+    from officemapmaker.layout import FONT_TIERS_PX  # type: ignore[attr-defined]
+
+    # Build a mix of rooms (square 80, 120, 200) so the planner is forced
+    # to step down through multiple tiers in at least one of them.
+    cal = _build_cal(
+        labels=[
+            _office_label("1010", room_id=1, fill_seed=(100, 100)),
+            _office_label("1020", room_id=2, fill_seed=(300, 100)),
+            _office_label("1030", room_id=3, fill_seed=(550, 100)),
+        ],
+        rooms=[
+            _square_room(1, 50, 50, 80),
+            _square_room(2, 220, 50, 120),
+            _square_room(3, 400, 50, 200),
+        ],
+    )
+    assignments = [
+        _asn("Alice Smith", "1010"),
+        _asn("Bob Jones", "1010"),
+        _asn("Charlie Davis", "1020"),
+        _asn("Diana Prince", "1020"),
+        _asn("Edward Elric", "1030"),
+        _asn("Felix Lopez", "1030"),
+    ]
+    layout, _ = plan_layout(cal, assignments)
+
+    sizes_seen = {n.font_px for e in layout.entries for n in e.names}
+    assert sizes_seen, "no names placed — fixture is broken"
+    illegal = sizes_seen - set(FONT_TIERS_PX)
+    assert not illegal, (
+        f"name font_px values {sorted(illegal)} are not in the tier ladder "
+        f"{FONT_TIERS_PX}; got sizes_seen={sorted(sizes_seen)}"
+    )
+
+
+def test_plan_layout_caps_name_font_at_largest_tier():
+    """In an obscenely large room, the planner must not exceed the
+    largest tier (24 px). Pre-tiering, the binary search would have
+    grown names to 30+ px in such a room.
+    """
+    from officemapmaker.layout import FONT_TIERS_PX  # type: ignore[attr-defined]
+
+    cal = _build_cal(
+        # Huge empty room — names could grow well past 24 px if uncapped.
+        labels=[_office_label("1480", room_id=1, fill_seed=(300, 300))],
+        rooms=[_square_room(1, 50, 50, 500, img_size=(800, 800))],
+    )
+    layout, _ = plan_layout(cal, [_asn("X Y", "1480")])
+    name_sizes = [n.font_px for n in layout.entries[0].names]
+    assert name_sizes, "no names placed — fixture is broken"
+    assert max(name_sizes) <= max(FONT_TIERS_PX), (
+        f"name font_px={max(name_sizes)} exceeded the largest tier "
+        f"{max(FONT_TIERS_PX)}"
+    )
+    # And in a room this large, we expect the planner to actually reach
+    # the cap (it should pick the top tier, not step down).
+    assert max(name_sizes) == max(FONT_TIERS_PX)
 
 
 def test_plan_layout_inflates_polygon_to_include_label_bboxes():

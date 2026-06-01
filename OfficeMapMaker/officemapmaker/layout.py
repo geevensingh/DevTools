@@ -57,6 +57,50 @@ from .validate import LABEL_BBOX_PAD
 
 
 # ---------------------------------------------------------------------------
+# Font tiering
+# ---------------------------------------------------------------------------
+#
+# Name-text font size is restricted to a small set of allowed values so the
+# rendered map looks like one consistent piece of work instead of ~14
+# different sizes scattered around the floor plan. The planner walks this
+# list from largest to smallest and stops at the first tier that fits the
+# inscribed-rectangle / polygon area. The number of distinct rendered
+# sizes on the final map is therefore at most ``len(FONT_TIERS_PX)``.
+#
+# Values are in pixels at the calibration's ``tile_dpi``. They are intended
+# to read as a clear "step ladder" of sizes; even spacing (2 px) between
+# the larger tiers keeps the visual hierarchy tight, and the bottom step
+# of 1 px (16 → 15) buys one extra row's worth of fit for the smallest
+# offices without introducing another visible size class.
+#
+# The list is fixed (not DPI-derived) deliberately: the user wants the
+# rendered output to look consistent across maps, and choosing different
+# tier ladders per DPI would defeat that.
+FONT_TIERS_PX: tuple[int, ...] = (24, 22, 20, 18, 16, 15)
+
+
+def _font_tiers_in_range(min_px: int, max_px: int) -> list[int]:
+    """Return allowed name-text font sizes (descending) within ``[min_px, max_px]``.
+
+    Used by :func:`_try_fit` and :func:`_try_fit_polygon` instead of a
+    binary search across the integer range so every rendered name uses one
+    of the canonical :data:`FONT_TIERS_PX` sizes.
+
+    If no tier value falls inside the range — only possible when the
+    DPI-derived readability minimum exceeds the largest tier (24 px) — we
+    fall back to a single-element list containing ``max_px``. That keeps
+    readability honored on dense high-DPI maps even though the tier
+    ladder is bypassed for that rare case.
+    """
+    if max_px < min_px:
+        return []
+    tiers = [t for t in FONT_TIERS_PX if min_px <= t <= max_px]
+    if not tiers:
+        tiers = [max_px]
+    return tiers
+
+
+# ---------------------------------------------------------------------------
 # Data model
 # ---------------------------------------------------------------------------
 
@@ -317,7 +361,13 @@ def plan_layout(
 
     rd = calibration.render_defaults
     min_font_px = max(8, int(round(rd.min_font_pt * rd.tile_dpi / 72)))
-    preferred_font_px = max(min_font_px + 4, int(round(min_font_px * 2)))
+    # Cap name-text font at the largest entry in ``FONT_TIERS_PX`` so the
+    # rendered output looks consistent across rooms (rooms only ever use
+    # one of the tiered sizes — see :func:`_try_fit` / :func:`_try_fit_polygon`).
+    # If the DPI-derived readability floor exceeds the largest tier, honor
+    # readability over the tier cap (``_font_tiers_in_range`` then falls
+    # back to a single-size search at ``min_font_px``).
+    preferred_font_px = max(min_font_px, max(FONT_TIERS_PX))
     number_font_px = max(min_font_px, int(round(min_font_px * 1.2)))
 
     # Group assignments by office_id (case-insensitive — matches validate.py).
@@ -1164,16 +1214,20 @@ def _try_fit(
     font_path: Optional[str],
     line_spacing: float = 1.15,
 ) -> Optional[list[NameEntry]]:
-    """Try to fit ``texts`` into ``area`` by binary-searching font size.
+    """Try to fit ``texts`` into ``area`` by walking the tier ladder.
+
+    Iterates :func:`_font_tiers_in_range` ``(min_px, max_px)`` from
+    largest to smallest and returns the first tier whose layout fits.
 
     Each text is allowed to wrap on whitespace (``\\n``) if doing so lets
-    the font stay larger. At each font size we pick the fewest-line wrap
+    the font stay larger. At each tier we pick the fewest-line wrap
     variant of each text that fits the area width; if no variant fits in
-    width, the font is too big. Then we sum the per-text heights (each
-    text contributes ``lines * line_h``) and check the area height.
+    width, the tier is too big and we try the next-smaller one. Then we
+    sum the per-text heights (each text contributes ``lines * line_h``)
+    and check the area height.
 
-    Returns a list of ``NameEntry`` (one per person) at the largest font
-    that fits, or ``None`` if even ``min_px`` doesn't fit.
+    Returns a list of ``NameEntry`` (one per person) at the largest tier
+    that fits, or ``None`` if even the smallest tier doesn't fit.
     """
     if not texts:
         return []
@@ -1181,21 +1235,15 @@ def _try_fit(
     if area_w <= 0 or area_h <= 0:
         return None
 
-    lo, hi = min_px, max_px
-    best_layout: Optional[list[NameEntry]] = None
-    while lo <= hi:
-        mid = (lo + hi) // 2
-        line_h = int(round(mid * line_spacing))
+    for size in _font_tiers_in_range(min_px, max_px):
+        line_h = int(round(size * line_spacing))
 
-        # For each text, pick the fewest-line wrap variant that fits in
-        # the area width. If no variant fits in width, this font is too
-        # big.
         chosen: list[tuple[str, int, int, int]] = []  # (variant, w, h, lines)
         ok = True
         for text in texts:
             picked: Optional[tuple[str, int, int, int]] = None
             for v in _wrap_variants(text):
-                vw, vh = _measure_text(v, mid, font_path, line_spacing)
+                vw, vh = _measure_text(v, size, font_path, line_spacing)
                 if vw <= area_w:
                     picked = (v, vw, vh, v.count("\n") + 1)
                     break
@@ -1205,12 +1253,10 @@ def _try_fit(
             chosen.append(picked)
 
         if not ok:
-            hi = mid - 1
             continue
 
         total_h = sum(c[3] * line_h for c in chosen)
         if total_h > area_h:
-            hi = mid - 1
             continue
 
         placed: list[NameEntry] = []
@@ -1227,14 +1273,13 @@ def _try_fit(
                     full_name=person.name,
                     rendered_text=variant,
                     bbox=(tx, y_cursor, vw, vh),
-                    font_px=mid,
+                    font_px=size,
                 )
             )
             y_cursor += vlines * line_h
-        best_layout = placed
-        lo = mid + 1
+        return placed
 
-    return best_layout
+    return None
 
 
 def _try_fit_polygon(
@@ -1261,8 +1306,8 @@ def _try_fit_polygon(
     stairwell notches, L-shapes) whose largest inscribed rectangle is
     much smaller than the visible area.
 
-    Returns a list of ``NameEntry`` at the largest font that fits, or
-    ``None`` if even ``min_px`` doesn't fit somewhere inside the polygon.
+    Returns a list of ``NameEntry`` at the largest tier that fits, or
+    ``None`` if even the smallest tier doesn't fit somewhere inside the polygon.
     """
     if not texts:
         return []
@@ -1300,11 +1345,8 @@ def _try_fit_polygon(
         ys, xs = np.where(full)
         return int(xs[0]), int(ys[0] + y_min)
 
-    lo, hi = min_px, max_px
-    best_layout: Optional[list[NameEntry]] = None
-    while lo <= hi:
-        mid = (lo + hi) // 2
-        line_h = int(round(mid * line_spacing))
+    for size in _font_tiers_in_range(min_px, max_px):
+        line_h = int(round(size * line_spacing))
         placed: list[NameEntry] = []
         y_cursor = 0
         ok = True
@@ -1316,7 +1358,7 @@ def _try_fit_polygon(
             chosen_w = chosen_h = 0
             chosen_lines = 1
             for v in _wrap_variants(text):
-                vw, vh = _measure_text(v, mid, font_path, line_spacing)
+                vw, vh = _measure_text(v, size, font_path, line_spacing)
                 s = find_first_fit(vw, vh, y_cursor)
                 if s is not None:
                     spot = s
@@ -1333,18 +1375,15 @@ def _try_fit_polygon(
                     full_name=person.name,
                     rendered_text=chosen_variant,
                     bbox=(bx + x, by + y, chosen_w, chosen_h),
-                    font_px=mid,
+                    font_px=size,
                 )
             )
             # Next name starts below this one, accounting for its line count.
             y_cursor = y + chosen_lines * line_h
         if ok:
-            best_layout = placed
-            lo = mid + 1
-        else:
-            hi = mid - 1
+            return placed
 
-    return best_layout
+    return None
 
 
 def _build_leader_placement(
