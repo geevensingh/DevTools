@@ -44,7 +44,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterable, Optional, Sequence
+from typing import Callable, Iterable, Optional, Sequence
 
 import numpy as np
 
@@ -360,22 +360,63 @@ def _draw_text_on_bgr(
     PIL's ``getbbox`` underestimates rendered extent vs. ``draw.text``, so
     we measure the real ink region by diffing before/after. Returns
     ``(0, 0, 0, 0)`` when no pixels changed (e.g. empty text).
+
+    Performance: works on a small ROI around the planned text bbox so
+    a single text draw on a 4000x4000 map costs ~ms instead of ~600ms
+    (the full-canvas ``fromarray`` + ``tobytes`` round-trip was the
+    biggest single bottleneck on Millennium B).
     """
     from PIL import Image, ImageDraw
 
-    before = canvas_bgr.copy()
-    pil = Image.fromarray(canvas_bgr[..., ::-1])
-    draw = ImageDraw.Draw(pil)
-    font = _load_font(font_path, font_px)
-    draw.text(xy, text, fill=color, font=font)
-    canvas_bgr[:, :, :] = np.asarray(pil)[..., ::-1]
+    h, w = canvas_bgr.shape[:2]
+    if not text:
+        return (0, 0, 0, 0)
 
-    changed = np.any(canvas_bgr != before, axis=2)
+    # Compute an ROI big enough to contain the rendered text plus a
+    # safety margin for antialiasing / descenders / italics. PIL's
+    # ``font.getbbox`` is tight to the glyph extents; we pad by a fixed
+    # number of pixels on each side and clamp to canvas bounds.
+    font = _load_font(font_path, font_px)
+    try:
+        tb_x0, tb_y0, tb_x1, tb_y1 = font.getbbox(text)
+    except Exception:
+        # Defensive: if the font can't measure (e.g., empty after
+        # whitespace stripping), fall back to a generous box.
+        tb_x0, tb_y0, tb_x1, tb_y1 = 0, 0, len(text) * font_px, int(font_px * 1.3)
+    pad = max(4, font_px // 2)
+    ax = xy[0] + tb_x0 - pad
+    ay = xy[1] + tb_y0 - pad
+    bx_end = xy[0] + tb_x1 + pad
+    by_end = xy[1] + tb_y1 + pad
+    # Clamp to canvas.
+    rx0 = max(ax, 0)
+    ry0 = max(ay, 0)
+    rx1 = min(bx_end, w)
+    ry1 = min(by_end, h)
+    if rx1 <= rx0 or ry1 <= ry0:
+        return (0, 0, 0, 0)
+
+    roi = canvas_bgr[ry0:ry1, rx0:rx1]
+    before = roi.copy()
+    # PIL expects RGB; canvas is BGR. The ``[..., ::-1]`` returns a view
+    # with reversed last axis. ``Image.fromarray`` then copies that into
+    # a contiguous PIL buffer.
+    pil = Image.fromarray(roi[..., ::-1])
+    draw = ImageDraw.Draw(pil)
+    # Translate the global ``xy`` into ROI-local coords.
+    draw.text((xy[0] - rx0, xy[1] - ry0), text, fill=color, font=font)
+    # Copy the rendered ROI back (BGR <-> RGB swap, in-place into roi
+    # via slice assignment — roi is a view onto canvas_bgr).
+    roi[:, :, :] = np.asarray(pil)[..., ::-1]
+
+    changed = np.any(roi != before, axis=2)
     if not changed.any():
         return (0, 0, 0, 0)
     ys, xs = np.where(changed)
-    y0, y1 = int(ys.min()), int(ys.max()) + 1
-    x0, x1 = int(xs.min()), int(xs.max()) + 1
+    y0 = int(ys.min()) + ry0
+    y1 = int(ys.max()) + 1 + ry0
+    x0 = int(xs.min()) + rx0
+    x1 = int(xs.max()) + 1 + rx0
     return (x0, y0, x1 - x0, y1 - y0)
 
 
@@ -395,6 +436,8 @@ def render_composite(
     legend_corner: Optional[str] = None,
     font_path: Optional[str] = None,
     write_review_copy: bool = True,
+    progress_cb: Optional[Callable[[float, str], None]] = None,
+    cancel_cb: Optional[Callable[[], bool]] = None,
 ) -> RenderResult:
     """Produce ``composite.png`` from a reviewed layout and assignments.
 
@@ -412,11 +455,35 @@ def render_composite(
         font_path: Optional TrueType font override. ``None`` means use the
             same default as the layout planner (arial.ttf, then PIL bitmap).
         write_review_copy: If False, only ``output_png`` is written.
+        progress_cb: Optional callback invoked as
+            ``progress_cb(fraction, message)`` where ``fraction`` is in
+            ``[0.0, 1.0]``. Fires for the broad phases (load, palette,
+            wall mask) and once per office during the per-office flood-fill
+            (Step 3, by far the slow step), then once each for Step 4
+            (text drawing), Step 5 (legend), Step 6 (write), and Step 7
+            (diff). Caller is responsible for any thread-safety /
+            event-loop marshalling.
+        cancel_cb: Optional callback returning True if the caller wants
+            the render aborted. Checked between offices in Step 3 and
+            between top-level steps. Raises ``PipelineCanceled`` (from
+            ``officemapmaker.pipeline``) on True. Caller is responsible
+            for the cooperative-cancel contract.
 
     Returns:
         ``RenderResult`` with the issue list, palette, and pixel-diff stats.
     """
     import cv2
+
+    def _progress(fraction: float, message: str) -> None:
+        if progress_cb is not None:
+            progress_cb(fraction, message)
+
+    def _check_cancel() -> None:
+        if cancel_cb is not None and cancel_cb():
+            # Imported here to avoid making pipeline a hard dep of render.
+            from .pipeline import PipelineCanceled
+
+            raise PipelineCanceled()
 
     map_path = Path(map_path)
     output_png = Path(output_png)
@@ -424,6 +491,9 @@ def render_composite(
         raise FileNotFoundError(map_path)
 
     output_png.parent.mkdir(parents=True, exist_ok=True)
+
+    _progress(0.0, "Loading map...")
+    _check_cancel()
 
     original_bgr = cv2.imread(str(map_path), cv2.IMREAD_COLOR)
     if original_bgr is None:
@@ -435,6 +505,7 @@ def render_composite(
     issues: list[RenderIssue] = []
 
     # ---------- Step 1: palette ----------
+    _progress(0.02, "Building team palette...")
     assignments = list(assignments)
     assignments_by_office: dict[str, list[Assignment]] = {}
     for asn in assignments:
@@ -461,17 +532,50 @@ def render_composite(
     # wall mask before flood-fill. The numbers are about to be replaced
     # by our redrawn versions, so they should not block the fill (which
     # could leave ghost digit pixels or leak through broken strokes).
+    _progress(0.04, "Building wall mask...")
+    _check_cancel()
     wall_mask = build_fill_mask(
         original_bgr, calibration.wall_patches, calibration.labels
     )
     labels_by_office = _label_by_office(calibration)
     rooms_by_id = {r.id: r for r in calibration.rooms}
+    # Index labels by their room_id so we can inflate each polygon by its
+    # own label bbox(es) before the leak check. The label-erasure step
+    # clears each label's bbox from the wall_mask (so the flood-fill
+    # passes through the area the original digits used to occupy); the
+    # polygon, however, was computed at calibration time from the room's
+    # interior pixels *excluding* the label digits. Without this
+    # inflation every office reports a spurious ~100 px leak equal to
+    # the area of its own label.
+    labels_by_room: dict[int, list[Label]] = {}
+    for lbl in calibration.labels:
+        if lbl.room_id is not None:
+            labels_by_room.setdefault(lbl.room_id, []).append(lbl)
 
     # Expected-change mask starts empty; we OR in every region we expect to modify.
     expected_change = np.zeros((h, w), dtype=bool)
 
     # ---------- Step 3: flood-fill each office with its team color ----------
-    for entry in layout.entries:
+    # This is the dominant cost on a real map (4000x4000+ pixels x 200+
+    # offices). Every per-office op is cropped to ``room.bbox`` first —
+    # full-image flood-fills + full-image polygon masks would allocate
+    # ~75 MB per office in temporaries and run OpenCV's floodFill across
+    # the entire canvas every time. Cropping mirrors the same trick
+    # ``layout.py:_plan_one_office`` documents as a ~2000x speedup.
+    # The 0.04 -> 0.85 progress band is reserved for this loop.
+    total_entries = len(layout.entries)
+    step3_lo, step3_hi = 0.04, 0.85
+    for entry_idx, entry in enumerate(layout.entries):
+        if total_entries:
+            frac = step3_lo + (entry_idx / total_entries) * (step3_hi - step3_lo)
+            _progress(
+                frac,
+                f"Coloring office {entry_idx + 1} of {total_entries} "
+                f"({entry.office_id})",
+            )
+        if entry_idx % 8 == 0:
+            _check_cancel()
+
         label = labels_by_office.get(entry.office_id.upper())
         if label is None:
             issues.append(
@@ -502,21 +606,6 @@ def render_composite(
             )
             continue
 
-        filled = virtual_flood_fill(wall_mask, label.fill_seed)
-        if not filled.any():
-            issues.append(
-                RenderIssue(
-                    severity="warning",
-                    code="seed_unreachable_at_render",
-                    message=(
-                        f"office {entry.office_id} fill seed at {label.fill_seed} "
-                        f"is on a wall or off-image; office will not be colored"
-                    ),
-                    office_id=entry.office_id,
-                )
-            )
-            continue
-
         # Clip the flood-fill to the room polygon so that wall-gap leaks
         # cannot smear team color into hallways or neighbouring offices.
         # If a leak was detected, surface it as a warning so the user can
@@ -525,27 +614,125 @@ def render_composite(
         # When no polygon is available (shouldn't happen post-calibration)
         # we paint the raw flood-fill and trust the diff-check safety net.
         room = rooms_by_id.get(entry.room_id)
+        bgr = (color[2], color[1], color[0])
+        sx, sy = label.fill_seed
+
         if room is not None:
-            polygon = rle_to_mask(room.polygon_rle) > 0
-            leak = filled & ~polygon
-            leak_px = int(leak.sum())
+            bx, by, bw, bh = room.bbox
+            # Inflate the crop bbox by a small safety margin so we can detect
+            # ``fill_leak_clipped``. The polygon's bbox is tight by definition
+            # (polygon touches all 4 edges), so flooding within the tight bbox
+            # could never produce ``filled & ~polygon != 0`` (any leak past
+            # the polygon would escape the bbox itself and be invisible).
+            # The margin gives the fill room to escape into a buffer where
+            # we can detect it. Clamped to image dims; on the 4000-wide
+            # Millennium B map a 32-px margin is < 1% overhead vs full-image.
+            _MARGIN = 32
+            ibx = max(bx - _MARGIN, 0)
+            iby = max(by - _MARGIN, 0)
+            ibx_end = min(bx + bw + _MARGIN, w)
+            iby_end = min(by + bh + _MARGIN, h)
+            ibw = ibx_end - ibx
+            ibh = iby_end - iby
+            # Translate the seed into bbox-local coords. If the seed sits
+            # outside the room bbox (shouldn't happen post-calibration —
+            # the calibration places the seed inside the CC polygon),
+            # we treat it like an unreachable seed.
+            local_sx, local_sy = sx - ibx, sy - iby
+            if not (0 <= local_sx < ibw and 0 <= local_sy < ibh):
+                issues.append(
+                    RenderIssue(
+                        severity="warning",
+                        code="seed_unreachable_at_render",
+                        message=(
+                            f"office {entry.office_id} fill seed at {label.fill_seed} "
+                            f"is outside its room bbox; office will not be colored"
+                        ),
+                        office_id=entry.office_id,
+                    )
+                )
+                continue
+
+            # Crop the wall mask to the inflated room bbox; flood-fill on
+            # the crop avoids the per-office full-image allocation + scan.
+            wall_crop = wall_mask[iby:iby_end, ibx:ibx_end]
+            filled_crop = virtual_flood_fill(wall_crop, (local_sx, local_sy))
+            if not filled_crop.any():
+                issues.append(
+                    RenderIssue(
+                        severity="warning",
+                        code="seed_unreachable_at_render",
+                        message=(
+                            f"office {entry.office_id} fill seed at {label.fill_seed} "
+                            f"is on a wall or off-image; office will not be colored"
+                        ),
+                        office_id=entry.office_id,
+                    )
+                )
+                continue
+
+            # Decode the polygon (full-image) then immediately copy out
+            # the bbox crop and drop the rest. ``rle_to_mask`` is the only
+            # full-image op we can't easily avoid (it's a packed-bits
+            # RLE that has to be reconstituted whole), but at ~30 MB per
+            # decode for 4000x4000 it's still fast compared to the old
+            # per-office flood + boolean-ops cost.
+            full_polygon = rle_to_mask(room.polygon_rle) > 0
+            polygon_crop = full_polygon[iby:iby_end, ibx:ibx_end].copy()
+            del full_polygon
+
+            # Inflate the polygon crop by every label bbox that lives in
+            # this room. The label area was cleared from the wall_mask by
+            # ``build_fill_mask`` (so flood-fill propagates through it),
+            # but the polygon was computed at calibration time from the
+            # room's interior pixels *excluding* the label digits. Without
+            # this inflation the fill correctly includes the label area
+            # and the leak-detection step reports it as a spurious
+            # ~100 px leak.
+            for room_label in labels_by_room.get(room.id, ()):
+                lx, ly, lw_px, lh_px = room_label.bbox
+                lx0 = max(lx, ibx)
+                ly0 = max(ly, iby)
+                lx1 = min(lx + lw_px, ibx_end)
+                ly1 = min(ly + lh_px, iby_end)
+                if lx1 > lx0 and ly1 > ly0:
+                    polygon_crop[ly0 - iby:ly1 - iby, lx0 - ibx:lx1 - ibx] = True
+
+            leak_crop = filled_crop & ~polygon_crop
+            leak_px = int(leak_crop.sum())
             if leak_px > 0:
+                # If the fill reaches the inflated crop edge (other than at
+                # the image boundary), the real leak extends further than
+                # we can see — note that in the warning.
+                touched_edge = (
+                    (ibx > 0 and filled_crop[:, 0].any())
+                    or (ibx_end < w and filled_crop[:, -1].any())
+                    or (iby > 0 and filled_crop[0, :].any())
+                    or (iby_end < h and filled_crop[-1, :].any())
+                )
+                extra = (
+                    " (leak extends beyond the per-office detection window; "
+                    "true leak is larger)"
+                    if touched_edge
+                    else ""
+                )
                 issues.append(
                     RenderIssue(
                         severity="warning",
                         code="fill_leak_clipped",
                         message=(
-                            f"office {entry.office_id} flood-fill leaked {leak_px:,} px "
-                            f"outside its calibration polygon; clipped at render time "
-                            f"so the team color stays inside the room. The source map "
-                            f"has a wall gap — run 'validate fill' for details and "
-                            f"suggested wall_patches if you want to fix it at the source."
+                            f"office {entry.office_id} flood-fill leaked at least "
+                            f"{leak_px:,} px outside its calibration polygon{extra}; "
+                            f"clipped at render time so the team color stays inside "
+                            f"the room. The source map has a wall gap — run "
+                            f"'validate fill' for details and suggested wall_patches "
+                            f"if you want to fix it at the source."
                         ),
                         office_id=entry.office_id,
                     )
                 )
-            filled = filled & polygon
-            if not filled.any():
+            filled_crop &= polygon_crop
+            if not filled_crop.any():
                 issues.append(
                     RenderIssue(
                         severity="warning",
@@ -559,17 +746,38 @@ def render_composite(
                     )
                 )
                 continue
-            expected_change |= polygon
+            # Mark expected_change for the full polygon (cropped slice is a
+            # view onto the full mask, so in-place OR updates the parent).
+            expected_change[iby:iby_end, ibx:ibx_end] |= polygon_crop
+            # Paint the canvas through a bbox slice. ``canvas_crop[mask] =``
+            # boolean-indexes only the bbox sub-array — orders of magnitude
+            # cheaper than ``canvas[full_mask] =``.
+            canvas_crop = canvas[iby:iby_end, ibx:ibx_end]
+            canvas_crop[filled_crop] = bgr
         else:
+            # Fallback path for entries with no calibration room (shouldn't
+            # happen post-calibration). Use the slow full-image fill +
+            # trust the diff-check safety net.
+            filled = virtual_flood_fill(wall_mask, label.fill_seed)
+            if not filled.any():
+                issues.append(
+                    RenderIssue(
+                        severity="warning",
+                        code="seed_unreachable_at_render",
+                        message=(
+                            f"office {entry.office_id} fill seed at {label.fill_seed} "
+                            f"is on a wall or off-image; office will not be colored"
+                        ),
+                        office_id=entry.office_id,
+                    )
+                )
+                continue
             expected_change |= filled
-
-        # Paint the filled interior with the team color; walls stay dark
-        # because we only touch pixels in ``filled`` (already clipped to the
-        # room polygon above when available). OpenCV order is BGR.
-        bgr = (color[2], color[1], color[0])
-        canvas[filled] = bgr
+            canvas[filled] = bgr
 
     # ---------- Step 4: white-out original office-number labels, then draw planned text ----------
+    _progress(0.85, "Drawing names and office numbers...")
+    _check_cancel()
     placed_text_mask = np.zeros((h, w), dtype=bool)
     for entry in layout.entries:
         label = labels_by_office.get(entry.office_id.upper())
@@ -622,6 +830,8 @@ def render_composite(
     expected_change |= placed_text_mask
 
     # ---------- Step 5: legend ----------
+    _progress(0.92, "Drawing legend...")
+    _check_cancel()
     corner = legend_corner or calibration.render_defaults.legend_corner
     legend_bbox = None
     if palette.colors:
@@ -634,6 +844,7 @@ def render_composite(
             expected_change[ly0:ly1, lx0:lx1] = True
 
     # ---------- Step 6: write ----------
+    _progress(0.95, "Writing composite PNG...")
     cv2.imwrite(str(output_png), canvas)
     review_path = output_png.with_name(output_png.stem + "_review.png")
     if write_review_copy:
@@ -653,6 +864,7 @@ def render_composite(
     )
 
     # ---------- Step 7: auto-checks ----------
+    _progress(0.97, "Verifying composite...")
     diff = np.any(canvas != original_bgr, axis=2)
     changed = int(diff.sum())
 
@@ -687,6 +899,9 @@ def render_composite(
         )
 
     # Per-office sanity: the team color should appear somewhere inside the room.
+    # Crop to room.bbox for the same reason as Step 3 — full-image polygon
+    # decodes + ``(canvas == bgr).all(axis=2)`` per office would double the
+    # render time on a big map.
     for entry in layout.entries:
         team = _team_for_office(entry, assignments_by_office)
         color = palette.color_for(team)
@@ -696,8 +911,12 @@ def render_composite(
         room = rooms_by_id.get(entry.room_id)
         if room is None:
             continue
-        polygon = rle_to_mask(room.polygon_rle) > 0
-        present = ((canvas == bgr_target).all(axis=2) & polygon).any()
+        bx, by, bw, bh = room.bbox
+        full_polygon = rle_to_mask(room.polygon_rle) > 0
+        polygon_crop = full_polygon[by:by + bh, bx:bx + bw].copy()
+        del full_polygon
+        canvas_crop = canvas[by:by + bh, bx:bx + bw]
+        present = ((canvas_crop == bgr_target).all(axis=2) & polygon_crop).any()
         if not present:
             issues.append(
                 RenderIssue(
@@ -724,6 +943,7 @@ def render_composite(
             )
         )
 
+    _progress(1.0, "Done")
     return RenderResult(
         composite_path=output_png,
         review_path=review_path if write_review_copy else output_png,

@@ -390,6 +390,111 @@ def test_render_composite_clips_leaks_to_polygon_and_warns(tmp_path):
     )
 
 
+def test_render_composite_does_not_warn_on_label_area_when_polygon_excludes_label(tmp_path):
+    """The label-erasure flood-fill must not produce spurious leak warnings.
+
+    ``build_fill_mask`` clears each label's bbox from the wall mask so the
+    original digits don't block flood-fill (and so our redrawn numbers
+    don't fight ghost pixels). But the calibration polygon was computed
+    from interior pixels *excluding* those digits. Without inflating the
+    polygon by the label bboxes before the leak check, every office
+    reports a spurious ``fill_leak_clipped`` warning equal to the label
+    bbox area (~100 px). This test guards that regression.
+
+    The synthetic map has a fully enclosed room with a label inside it;
+    the room polygon (built by hand) deliberately excludes the label
+    bbox. After render, no leak warning should fire.
+    """
+    h, w = 200, 300
+    img = np.full((h, w, 3), 255, dtype=np.uint8)
+    cv2.rectangle(img, (40, 40), (260, 160), (0, 0, 0), thickness=2)
+    # Draw a fake "100" label in the room interior so it actually exists
+    # as dark pixels on the original map (so the label-erasure step has
+    # something to clear).
+    cv2.rectangle(img, (140, 90), (160, 110), (0, 0, 0), thickness=1)
+    map_path = tmp_path / "map.png"
+    cv2.imwrite(str(map_path), img)
+
+    # Build a polygon that is the room interior MINUS the label bbox -
+    # this is exactly what calibration produces (CC of the binarized map).
+    mask = np.zeros((h, w), dtype=bool)
+    mask[42:159, 42:259] = True
+    # Remove the label bbox from the polygon - the digits are dark pixels.
+    mask[90:111, 140:161] = False
+
+    room = Room(
+        id=1, polygon_rle=mask_to_rle(mask), area_px=int(mask.sum()),
+        bbox=(42, 42, 217, 117),
+    )
+    label = Label(
+        id="100", bbox=(140, 90, 20, 20), room_id=1,
+        fill_seed=(80, 100), ocr_confidence=0.95,
+    )
+    cal = Calibration(
+        map_image="map.png", map_hash="sha256:labeled",
+        labels=[label], rooms=[room], wall_patches=[],
+        render_defaults=RenderDefaults(min_font_pt=7, tile_dpi=150),
+    )
+    assignments = [Assignment("Alice", "100", "BITS", 2)]
+    layout, _ = plan_layout(cal, assignments)
+    out = tmp_path / "composite.png"
+    result = render_composite(map_path, cal, layout, assignments, out)
+
+    leak_warnings = [i for i in result.issues if i.code == "fill_leak_clipped"]
+    assert leak_warnings == [], (
+        "polygon should be inflated by the room's label bboxes before the "
+        "leak check; instead got spurious warnings: "
+        f"{[w.message for w in leak_warnings]}"
+    )
+    assert result.errors == []
+
+
+def test_render_composite_progress_callback_fires_in_order(synthetic_setup, tmp_path):
+    """progress_cb should be invoked with monotonically non-decreasing fractions."""
+    tmp_path, map_path, cal, _ = synthetic_setup
+    assignments = [
+        Assignment("Alice", "100", "BITS", 2),
+        Assignment("Bob", "200", "FPAA", 3),
+    ]
+    layout, _ = plan_layout(cal, assignments)
+    out = tmp_path / "composite.png"
+
+    calls: list[tuple[float, str]] = []
+
+    def cb(fraction: float, message: str) -> None:
+        calls.append((fraction, message))
+
+    render_composite(map_path, cal, layout, assignments, out, progress_cb=cb)
+
+    assert len(calls) >= 5, f"expected several progress calls, got {calls}"
+    # First call should be near 0.0; last should be 1.0.
+    assert calls[0][0] <= 0.05, f"first fraction not near 0: {calls[0]}"
+    assert calls[-1][0] == 1.0, f"last fraction not 1.0: {calls[-1]}"
+    # Fractions are monotonically non-decreasing.
+    for prev, curr in zip(calls, calls[1:]):
+        assert curr[0] >= prev[0], (
+            f"progress went backwards: {prev} then {curr}; full sequence: {calls}"
+        )
+
+
+def test_render_composite_cancel_cb_raises_pipeline_canceled(synthetic_setup, tmp_path):
+    """cancel_cb returning True should abort render via PipelineCanceled."""
+    from officemapmaker.pipeline import PipelineCanceled
+
+    tmp_path, map_path, cal, _ = synthetic_setup
+    assignments = [Assignment("Alice", "100", "BITS", 2)]
+    layout, _ = plan_layout(cal, assignments)
+    out = tmp_path / "composite.png"
+
+    with pytest.raises(PipelineCanceled):
+        render_composite(
+            map_path, cal, layout, assignments, out,
+            cancel_cb=lambda: True,
+        )
+    # Composite should not exist when cancel fires early.
+    assert not out.exists()
+
+
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------

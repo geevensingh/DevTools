@@ -32,12 +32,12 @@ Like ``LayoutStep``, the UI is a ``QStackedWidget`` with three panes:
   preview to that office (using the office's calibration room bbox).
   "Ignore" hides advisory warnings the user has decided are fine.
 
-The composite is rendered on a worker thread; the call into
-``render_composite`` is single-shot (no progress hooks, no cancellation
-mid-call -- this is the same limitation the rest of the pipeline has).
-The result is auto-saved to ``output_dir/composite.png`` (plus the
-review copy) and an "Open in Explorer" button reveals it in the file
-manager.
+The composite is rendered on a worker thread. ``render_composite``
+exposes per-office progress and cancel hooks (added when the per-office
+crop optimization landed -- a 4000x4000 map x 200+ offices used to take
+~5 minutes as one atomic call). The result is auto-saved to
+``output_dir/composite.png`` (plus the review copy) and an "Open in
+Explorer" button reveals it in the file manager.
 """
 
 from __future__ import annotations
@@ -94,15 +94,17 @@ def _run_render_composite(
 
         raise PipelineCanceled()
 
-    progress_cb(
-        0.1,
-        f"Rendering composite for {len(layout.entries)} office(s) "
-        f"(this is the slow step)...",
-    )
-    # render_composite has no inner progress / cancel hooks. The 0.1 -> 1.0
-    # window is one big atomic call.
+    # render_composite now exposes progress + cancel hooks of its own.
+    # Reserve the first 5% of the wizard progress bar for assignment
+    # loading; map render_composite's internal 0.0 -> 1.0 onto the
+    # remaining 0.05 -> 1.0 band.
+    def _inner_progress(fraction: float, message: str) -> None:
+        progress_cb(0.05 + 0.95 * fraction, message)
+
     result = render_composite(
         map_path, calibration, layout, assignments, output_png,
+        progress_cb=_inner_progress,
+        cancel_cb=cancel_cb,
     )
     if cancel_cb():
         from ...pipeline import PipelineCanceled
