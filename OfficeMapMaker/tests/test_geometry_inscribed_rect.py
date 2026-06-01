@@ -78,3 +78,58 @@ def test_concave_polygon_skips_the_notch():
     # or 20×14 (bottom) = 280 — both are valid maxima of equal area.
     assert w * h == 280
     assert mask[y : y + h, x : x + w].all()
+
+
+def test_height_cap_unset_matches_classical_lir():
+    """The default (no cap) must be identical to the historical behavior."""
+    rng = np.random.default_rng(seed=7)
+    mask = rng.random((40, 50)) > 0.3
+    plain = largest_inscribed_rectangle(mask)
+    capped_none = largest_inscribed_rectangle(mask, height_cap=None)
+    assert plain == capped_none
+
+
+def test_height_cap_no_effect_when_rect_already_fits():
+    """If the optimal rect is already shorter than the cap, the cap is a
+    no-op (the rect's height stays at its actual value)."""
+    mask = np.zeros((20, 30), dtype=bool)
+    mask[3:13, 5:25] = True  # 20 wide × 10 tall
+    # Cap is much higher than any inscribed rect → unchanged.
+    assert largest_inscribed_rectangle(mask, height_cap=100) == (5, 3, 20, 10)
+
+
+def test_height_cap_prefers_wider_rect_in_diamond():
+    """The motivating case: a diamond (rhombus) polygon. The classical
+    LIR is a narrow tall strip along one edge; with a height cap the
+    algorithm prefers a wider, shorter rectangle through the middle.
+    """
+    # Build a 41×41 diamond by checking |x-20| + |y-20| <= 20.
+    h = w = 41
+    mask = np.zeros((h, w), dtype=bool)
+    yy, xx = np.mgrid[0:h, 0:w]
+    mask[np.abs(xx - 20) + np.abs(yy - 20) <= 20] = True
+    plain = largest_inscribed_rectangle(mask)
+    # The plain LIR for a 41×41 diamond is a ~29×15 strip on either
+    # axis (square of side ~21 rotated). Whatever the exact tie-break,
+    # asking for a small height cap should pick a clearly wider rect.
+    capped = largest_inscribed_rectangle(mask, height_cap=5)
+    assert capped[2] > plain[2], (
+        f"capped LIR should be wider than plain LIR for a diamond; "
+        f"got plain={plain}, capped={capped}"
+    )
+    # The capped rect's height must be ≤ the cap…
+    assert capped[3] <= 5
+    # …and entirely inside the diamond.
+    cx, cy, cw, ch = capped
+    assert mask[cy:cy + ch, cx:cx + cw].all()
+
+
+def test_height_cap_returns_rect_inside_mask():
+    """The capped rect must remain inscribed in the mask, even with a
+    very small cap."""
+    rng = np.random.default_rng(seed=11)
+    mask = rng.random((40, 40)) > 0.4
+    x, y, w, h = largest_inscribed_rectangle(mask, height_cap=3)
+    if w > 0:
+        assert mask[y : y + h, x : x + w].all()
+        assert h <= 3

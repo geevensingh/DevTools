@@ -416,6 +416,35 @@ def plan_layout(
         bx, by, bw, bh = room.bbox
         cropped = polygon[by:by + bh, bx:bx + bw]
         local_rect = largest_inscribed_rectangle(cropped)
+        # Diamond / rhombus / oval-shaped rooms have a counterintuitive
+        # quirk: the largest *axis-aligned* inscribed rectangle by area
+        # is a narrow tall strip on one edge, even though a wider/shorter
+        # rectangle in the middle of the polygon would fit names much
+        # better. (Example: Millennium B office 1015 — diamond polygon
+        # whose plain LIR is 68×189 but whose middle is ~150 px wide.)
+        # The fix: compute a second LIR with a height cap derived from
+        # the number of people + line spacing. This makes wider-but-
+        # shorter rectangles competitive against tall narrow strips.
+        # For rooms where the plain LIR is already within the cap (the
+        # common rectangular case), both LIRs are identical and we keep
+        # the plain one (more vertical breathing room).
+        n_people = max(1, len(people))
+        # Reserve enough height for every name at preferred line spacing
+        # plus the office number strip + a small margin. Line spacing
+        # matches ``_try_fit``'s default of 1.15.
+        useful_h = (
+            int(round(n_people * preferred_font_px * 1.15))
+            + number_font_px
+            + 8
+        )
+        text_rect = largest_inscribed_rectangle(cropped, height_cap=useful_h)
+        # Only switch to the text-optimized rectangle if it's meaningfully
+        # wider AND still tall enough to fit one line at the minimum font.
+        # (If the polygon is so narrow that the capped LIR loses height
+        # without gaining width, stay with the plain LIR.)
+        min_useful_h = int(round(min_font_px * 1.15)) + number_font_px + 4
+        if text_rect[2] > local_rect[2] and text_rect[3] >= min_useful_h:
+            local_rect = text_rect
         if local_rect[2] == 0 or local_rect[3] == 0:
             issues.append(
                 LayoutIssue(

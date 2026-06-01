@@ -297,7 +297,9 @@ def rle_to_mask(rle: str) -> np.ndarray:
 # ---------------------------------------------------------------------------
 
 
-def largest_inscribed_rectangle(mask: np.ndarray) -> BBox:
+def largest_inscribed_rectangle(
+    mask: np.ndarray, *, height_cap: Optional[int] = None
+) -> BBox:
     """Return the largest axis-aligned rectangle entirely inside ``mask``.
 
     Uses the classic O(H*W) algorithm: for each row, maintain per-column
@@ -308,6 +310,16 @@ def largest_inscribed_rectangle(mask: np.ndarray) -> BBox:
     Args:
         mask: ``numpy`` array of shape ``(H, W)``. Any nonzero value counts
             as "inside". Both ``bool`` and ``uint8`` are accepted.
+        height_cap: optional integer. If given, rectangles taller than the
+            cap are scored as ``width * height_cap`` (instead of
+            ``width * height``), and the returned rectangle's height is
+            clipped to the cap. This makes wider-but-shorter rectangles
+            competitive against tall narrow strips — useful when the
+            rectangle will be used to lay out a fixed amount of text,
+            since extra height beyond what the text needs is wasted.
+            For rectangles already ≤ the cap, scoring is identical to
+            the uncapped variant; ``height_cap=None`` (default) preserves
+            the classical "largest area" behavior.
 
     Returns:
         ``(x, y, w, h)`` of the largest inscribed rectangle. ``(0, 0, 0, 0)``
@@ -332,10 +344,16 @@ def largest_inscribed_rectangle(mask: np.ndarray) -> BBox:
         # Vectorized "consecutive True ending here": increment where inside,
         # reset to 0 where not.
         heights = np.where(row, heights + 1, 0)
-        area, left, right, height = _largest_rect_in_histogram(heights)
+        if height_cap is not None:
+            scored = np.minimum(heights, height_cap)
+        else:
+            scored = heights
+        area, left, right, height = _largest_rect_in_histogram(scored)
         if area > best_area:
             best_area = area
             # Bottom of the rectangle is row y; top is (y - height + 1).
+            # ``height`` here is the capped value (== uncapped when no cap
+            # is set), so the returned rect's height is naturally clipped.
             best = (
                 int(left),
                 int(y - height + 1),
