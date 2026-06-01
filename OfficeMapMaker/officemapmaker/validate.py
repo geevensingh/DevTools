@@ -29,6 +29,20 @@ from .geometry import rle_to_mask
 from .io_assignments import Assignment
 
 
+# Pad (in pixels) applied around every Label.bbox when treating the
+# label area as "interior" for flood-fill, polygon inflation, and the
+# layout planner's polygon_cache. The OCR'd label bbox is tight to the
+# rasterized digit glyphs, but anti-aliased / sub-pixel-rendered digit
+# ink frequently extends 1-2 pixels beyond the tight bbox. Without
+# padding, those edge pixels remain as walls in wall_mask and persist
+# as visible gray dots in the rendered composite (and they shrink the
+# layout planner's LIR by 1-2 pixels too). Every site that inflates
+# the label area MUST use this value to stay consistent — otherwise
+# the flood-fill, polygon clip, and leak check disagree on what
+# counts as "inside the label area" and spurious leak warnings fire.
+LABEL_BBOX_PAD: int = 2
+
+
 # ---------------------------------------------------------------------------
 # Issue type
 # ---------------------------------------------------------------------------
@@ -551,8 +565,10 @@ def build_fill_mask(
         h, w = wall_mask.shape
         for lab in labels:
             x, y, lw, lh = lab.bbox
-            x0, y0 = max(int(x), 0), max(int(y), 0)
-            x1, y1 = min(int(x + lw), w), min(int(y + lh), h)
+            x0 = max(int(x) - LABEL_BBOX_PAD, 0)
+            y0 = max(int(y) - LABEL_BBOX_PAD, 0)
+            x1 = min(int(x + lw) + LABEL_BBOX_PAD, w)
+            y1 = min(int(y + lh) + LABEL_BBOX_PAD, h)
             if x1 > x0 and y1 > y0:
                 wall_mask[y0:y1, x0:x1] = 0
     for x1, y1, x2, y2 in wall_patches:

@@ -53,6 +53,7 @@ from .geometry import (
     rle_to_mask,
 )
 from .io_assignments import Assignment
+from .validate import LABEL_BBOX_PAD
 
 
 # ---------------------------------------------------------------------------
@@ -364,8 +365,10 @@ def plan_layout(
         h_mask, w_mask = pmask.shape
         for lab in labels_by_room.get(room_id, ()):
             x, y, lw, lh = lab.bbox
-            x0, y0 = max(int(x), 0), max(int(y), 0)
-            x1, y1 = min(int(x + lw), w_mask), min(int(y + lh), h_mask)
+            x0 = max(int(x) - LABEL_BBOX_PAD, 0)
+            y0 = max(int(y) - LABEL_BBOX_PAD, 0)
+            x1 = min(int(x + lw) + LABEL_BBOX_PAD, w_mask)
+            y1 = min(int(y + lh) + LABEL_BBOX_PAD, h_mask)
             if x1 > x0 and y1 > y0:
                 pmask[y0:y1, x0:x1] = True
         polygon_cache[room_id] = pmask

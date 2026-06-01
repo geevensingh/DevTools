@@ -569,6 +569,85 @@ def test_render_composite_does_not_clip_multi_line_names(tmp_path):
     )
 
 
+def test_render_composite_erases_digit_ink_extending_beyond_label_bbox(tmp_path):
+    """Anti-aliased digit ink just outside the OCR'd bbox must be erased.
+
+    OCR produces a tight bbox around the rasterized digit glyphs, but
+    anti-aliased / sub-pixel-rendered ink frequently spills 1-2 pixels
+    beyond that tight box. Without padding the label-bbox erasure in
+    ``build_fill_mask``, those edge pixels remain as walls (so the
+    flood-fill skips them) and persist as visible gray dots in the
+    rendered composite. This test stamps a black bar of pixels 1 px
+    outside a label's bbox and asserts those pixels become team color
+    after render.
+    """
+    h, w = 200, 300
+    img = np.full((h, w, 3), 255, dtype=np.uint8)
+    cv2.rectangle(img, (40, 40), (260, 160), (0, 0, 0), thickness=2)
+    label_bbox = (140, 90, 20, 14)
+    # Draw the "in-bbox" ink so the label looks like a real label.
+    cv2.rectangle(img, (140, 90), (160, 104), (0, 0, 0), thickness=1)
+    # Draw a 1-px-wide black bar exactly 1 px below the OCR'd bbox.
+    # This simulates anti-aliased descender ink that real digits emit.
+    bar_y = label_bbox[1] + label_bbox[3]  # = 104, 1 px below bbox bottom
+    img[bar_y, label_bbox[0] : label_bbox[0] + label_bbox[2]] = (0, 0, 0)
+    # Sanity: the bar is actually black on the source map.
+    assert tuple(img[bar_y, label_bbox[0] + 5]) == (0, 0, 0)
+
+    map_path = tmp_path / "map.png"
+    cv2.imwrite(str(map_path), img)
+
+    # Build a polygon that is the room interior MINUS the label bbox MINUS
+    # the bar (so the bar is dark pixels that the CC polygon excluded —
+    # the exact scenario LABEL_BBOX_PAD is designed to fix).
+    mask = np.zeros((h, w), dtype=bool)
+    mask[42:159, 42:259] = True
+    mask[90:104, 140:160] = False
+    mask[bar_y, 140:160] = False
+
+    room = Room(
+        id=1, polygon_rle=mask_to_rle(mask), area_px=int(mask.sum()),
+        bbox=(42, 42, 217, 117),
+    )
+    label = Label(
+        id="100", bbox=label_bbox, room_id=1,
+        fill_seed=(80, 130), ocr_confidence=0.95,
+    )
+    cal = Calibration(
+        map_image="map.png", map_hash="sha256:padding",
+        labels=[label], rooms=[room], wall_patches=[],
+        render_defaults=RenderDefaults(min_font_pt=7, tile_dpi=150),
+    )
+    assignments = [Assignment("Alice", "100", "BITS", 2)]
+    layout, _ = plan_layout(cal, assignments)
+    out = tmp_path / "composite.png"
+    result = render_composite(map_path, cal, layout, assignments, out)
+
+    palette = result.palette
+    assert palette is not None
+    rgb = palette.color_for("BITS")
+    assert rgb is not None
+    expected_bgr = np.array((rgb[2], rgb[1], rgb[0]), dtype=np.uint8)
+
+    composite = cv2.imread(str(out), cv2.IMREAD_COLOR)
+    # Sample a pixel in the middle of the descender bar.
+    bar_pixel = composite[bar_y, label_bbox[0] + 10]
+    assert tuple(bar_pixel) == tuple(expected_bgr), (
+        f"pixel at ({bar_y}, {label_bbox[0] + 10}) is {tuple(bar_pixel)}; "
+        f"expected team color {tuple(expected_bgr)}. The 1-px descender bar "
+        f"outside the OCR'd label bbox should have been erased by the "
+        f"LABEL_BBOX_PAD padding."
+    )
+    # Belt-and-suspenders: no leak warnings either (the inflated polygon
+    # must cover the padded fill area).
+    leak_warnings = [i for i in result.issues if i.code == "fill_leak_clipped"]
+    assert leak_warnings == [], (
+        f"label-bbox padding must be applied consistently in build_fill_mask "
+        f"AND in the render polygon inflation, else the leak check fires "
+        f"spurious warnings: {[w.message for w in leak_warnings]}"
+    )
+
+
 def test_render_composite_cancel_cb_raises_pipeline_canceled(synthetic_setup, tmp_path):
     """cancel_cb returning True should abort render via PipelineCanceled."""
     from officemapmaker.pipeline import PipelineCanceled

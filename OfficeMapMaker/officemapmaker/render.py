@@ -59,7 +59,7 @@ from .palette import (
     contrast_ratio,
     rgb_to_hex,
 )
-from .validate import build_fill_mask, virtual_flood_fill
+from .validate import LABEL_BBOX_PAD, build_fill_mask, virtual_flood_fill
 
 
 __all__ = [
@@ -697,13 +697,16 @@ def render_composite(
             # room's interior pixels *excluding* the label digits. Without
             # this inflation the fill correctly includes the label area
             # and the leak-detection step reports it as a spurious
-            # ~100 px leak.
+            # ~100 px leak. The padding by ``LABEL_BBOX_PAD`` must match
+            # ``build_fill_mask`` exactly — otherwise the flood-fill
+            # reaches 2 px past the polygon (where ``build_fill_mask``
+            # padded the wall-clear) and triggers a spurious leak warning.
             for room_label in labels_by_room.get(room.id, ()):
                 lx, ly, lw_px, lh_px = room_label.bbox
-                lx0 = max(lx, ibx)
-                ly0 = max(ly, iby)
-                lx1 = min(lx + lw_px, ibx_end)
-                ly1 = min(ly + lh_px, iby_end)
+                lx0 = max(lx - LABEL_BBOX_PAD, ibx)
+                ly0 = max(ly - LABEL_BBOX_PAD, iby)
+                lx1 = min(lx + lw_px + LABEL_BBOX_PAD, ibx_end)
+                ly1 = min(ly + lh_px + LABEL_BBOX_PAD, iby_end)
                 if lx1 > lx0 and ly1 > ly0:
                     polygon_crop[ly0 - iby:ly1 - iby, lx0 - ibx:lx1 - ibx] = True
 
