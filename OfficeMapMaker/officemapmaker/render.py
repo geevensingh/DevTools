@@ -373,16 +373,25 @@ def _draw_text_on_bgr(
         return (0, 0, 0, 0)
 
     # Compute an ROI big enough to contain the rendered text plus a
-    # safety margin for antialiasing / descenders / italics. PIL's
-    # ``font.getbbox`` is tight to the glyph extents; we pad by a fixed
-    # number of pixels on each side and clamp to canvas bounds.
+    # safety margin for antialiasing / descenders / italics. We must use
+    # ``ImageDraw.textbbox`` rather than ``font.getbbox``: ``font.getbbox``
+    # has no concept of ``\n`` and lays the literal newline glyph out
+    # horizontally, producing a single-line-tall bbox even for multi-line
+    # text. That under-sized ROI then clips the second line of names like
+    # "Conference\nRoom (12)". ``textbbox`` correctly accounts for line
+    # breaks and matches what ``draw.text`` actually renders.
     font = _load_font(font_path, font_px)
+    _probe = ImageDraw.Draw(Image.new("RGB", (1, 1)))
     try:
-        tb_x0, tb_y0, tb_x1, tb_y1 = font.getbbox(text)
+        tb_x0, tb_y0, tb_x1, tb_y1 = _probe.textbbox((0, 0), text, font=font)
     except Exception:
-        # Defensive: if the font can't measure (e.g., empty after
-        # whitespace stripping), fall back to a generous box.
-        tb_x0, tb_y0, tb_x1, tb_y1 = 0, 0, len(text) * font_px, int(font_px * 1.3)
+        # Defensive: if measurement fails (e.g., empty after whitespace
+        # stripping or unusual fonts), fall back to a generous box that
+        # accounts for any embedded newlines.
+        n_lines = text.count("\n") + 1
+        tb_x0, tb_y0 = 0, 0
+        tb_x1 = max(len(line) for line in text.splitlines() or [text]) * font_px
+        tb_y1 = int(font_px * 1.3 * n_lines)
     pad = max(4, font_px // 2)
     ax = xy[0] + tb_x0 - pad
     ay = xy[1] + tb_y0 - pad
@@ -775,24 +784,21 @@ def render_composite(
             expected_change |= filled
             canvas[filled] = bgr
 
-    # ---------- Step 4: white-out original office-number labels, then draw planned text ----------
+    # ---------- Step 4: draw planned office numbers and names ----------
+    # NOTE: We no longer white-out the original office-number bbox here.
+    # Step 3's polygon-clipped flood-fill already paints team color through
+    # the label area: ``build_fill_mask`` clears each label's bbox from the
+    # wall mask (so the flood propagates through the original digits), and
+    # the per-room polygon is inflated by every label bbox before clipping
+    # (lines 692-699). The result is that the original digit pixels are
+    # already replaced with team color. Painting white on top would
+    # overwrite the team color with a visible white rectangle. The newly
+    # planned office number (drawn below) is rendered on top of the team
+    # fill, which already cleanly covers the original digits.
     _progress(0.85, "Drawing names and office numbers...")
     _check_cancel()
     placed_text_mask = np.zeros((h, w), dtype=bool)
     for entry in layout.entries:
-        label = labels_by_office.get(entry.office_id.upper())
-        if label is not None:
-            # White-out the original number bbox so the relocated number can move freely.
-            x, y, lw, lh = label.bbox
-            x0, y0 = max(x, 0), max(y, 0)
-            x1, y1 = min(x + lw, w), min(y + lh, h)
-            if x1 > x0 and y1 > y0:
-                # Only count as "expected change" the pixels that were actually
-                # walls / labels (non-fill); the flood-fill mask already covers
-                # the interior pixels.
-                canvas[y0:y1, x0:x1] = (255, 255, 255)
-                placed_text_mask[y0:y1, x0:x1] = True
-
         # Draw office number at planned corner.
         on = entry.office_number
         actual = _draw_text_on_bgr(

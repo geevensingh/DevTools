@@ -477,6 +477,98 @@ def test_render_composite_progress_callback_fires_in_order(synthetic_setup, tmp_
         )
 
 
+def test_render_composite_does_not_leave_white_rectangle_at_original_label(
+    synthetic_setup, tmp_path
+):
+    """Step 4 must not white-out the original label bbox.
+
+    Step 3's flood-fill already paints team color through the original
+    digit area (``build_fill_mask`` clears each label's bbox; the per-room
+    polygon is inflated by the label bbox before clipping). A white-out
+    in step 4 would visibly replace the team color with a white rectangle
+    inside the colored room. Regression test: assert that the pixel at
+    the center of office A's original label bbox is the team color rather
+    than pure white.
+    """
+    tmp_path, map_path, cal, _ = synthetic_setup
+    assignments = [Assignment("A", "100", "BITS", 2)]
+    layout, _ = plan_layout(cal, assignments)
+    out_path = tmp_path / "composite.png"
+    result = render_composite(map_path, cal, layout, assignments, out_path)
+
+    palette = result.palette
+    assert palette is not None
+    rgb = palette.color_for("BITS")
+    assert rgb is not None
+    expected_bgr = (rgb[2], rgb[1], rgb[0])
+
+    composite = cv2.imread(str(out_path), cv2.IMREAD_COLOR)
+    # Center of office A's original label bbox (120, 200, 20, 14).
+    lx, ly, lw, lh = (120, 200, 20, 14)
+    cy, cx = ly + lh // 2, lx + lw // 2
+    # We use a small window around the center to avoid accidentally
+    # sampling a pixel covered by a newly-drawn glyph.
+    window = composite[cy - 1 : cy + 2, cx - 1 : cx + 2]
+    matches = (window == np.array(expected_bgr, dtype=np.uint8)).all(axis=2)
+    assert matches.any(), (
+        f"original label bbox of office A should be team-colored "
+        f"({expected_bgr}); instead the {window.shape[:2]} window at "
+        f"({cy}, {cx}) contains colors:\n{window.reshape(-1, 3)}"
+    )
+    # And there should NOT be pure-white pixels in that window (a leftover
+    # white-out would paint the whole 20x14 label bbox white).
+    white = (window == np.array((255, 255, 255), dtype=np.uint8)).all(axis=2)
+    assert not white.any(), (
+        "no pixel inside the original label bbox should be pure white "
+        "(would indicate the step-4 white-out regression):\n"
+        f"{window.reshape(-1, 3)}"
+    )
+
+
+def test_render_composite_does_not_clip_multi_line_names(tmp_path):
+    """``_draw_text_on_bgr`` must render every line of multi-line text.
+
+    PIL's ``font.getbbox`` doesn't understand ``\\n``: it lays the literal
+    newline glyph out horizontally, returning a single-line-tall bbox.
+    Using it to size the render ROI would clip the bottom line of names
+    like "Conference\\nRoom (12)". This test forces the planner to wrap
+    a long name to two lines and asserts that ink pixels appear at the
+    expected Y range for both lines.
+    """
+    from officemapmaker.render import _draw_text_on_bgr
+
+    h, w = 200, 400
+    canvas = np.full((h, w, 3), 255, dtype=np.uint8)
+    text = "Conference\nRoom (12)"
+    font_px = 30
+    x, y = 20, 20
+    actual = _draw_text_on_bgr(canvas, text, (x, y), font_px)
+
+    # The returned actual bbox is the ink bbox of the rendered text.
+    # For two lines at ~font_px tall with PIL's default spacing, the
+    # total height should be at least 1.7x the single-line height.
+    ax, ay, aw, ah = actual
+    assert ah >= int(font_px * 1.7), (
+        f"rendered ink height {ah} is too small for two lines at font_px="
+        f"{font_px}; suggests the second line was clipped"
+    )
+
+    # Slice out the rendered region and verify that ink (non-white pixels)
+    # is present in the bottom third — i.e. the "Room (12)" line.
+    region = canvas[ay : ay + ah, ax : ax + aw]
+    third = max(ah // 3, 1)
+    top_line = region[:third]
+    bottom_line = region[ah - third :]
+    top_ink = np.any(top_line != 255, axis=2).sum()
+    bottom_ink = np.any(bottom_line != 255, axis=2).sum()
+    assert top_ink > 0, "expected ink in the top line (Conference)"
+    assert bottom_ink > 0, (
+        f"expected ink in the bottom line (Room (12)); got {bottom_ink} "
+        f"non-white pixels in the bottom {third} rows. Second line was "
+        f"likely clipped by an under-sized ROI."
+    )
+
+
 def test_render_composite_cancel_cb_raises_pipeline_canceled(synthetic_setup, tmp_path):
     """cancel_cb returning True should abort render via PipelineCanceled."""
     from officemapmaker.pipeline import PipelineCanceled
