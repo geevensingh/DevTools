@@ -53,7 +53,7 @@ from .geometry import (
     rle_to_mask,
 )
 from .io_assignments import Assignment
-from .validate import LABEL_BBOX_PAD
+from .validate import LABEL_BBOX_PAD, build_fill_mask, virtual_flood_fill
 
 
 # ---------------------------------------------------------------------------
@@ -330,6 +330,7 @@ def plan_layout(
     *,
     map_hash: str = "",
     font_path: Optional[str] = None,
+    image_bgr: Optional[np.ndarray] = None,
     progress_cb: Optional[Callable[[float, str], None]] = None,
 ) -> tuple[Layout, list[LayoutIssue]]:
     """Plan name placement for every office that has at least one assignee.
@@ -342,6 +343,18 @@ def plan_layout(
             ``Layout.map_hash`` for the next pass's staleness gate.
         font_path: Path to a TTF used for measuring text. Defaults to
             Arial on Windows; falls back to PIL's default if missing.
+        image_bgr: Optional in-memory copy of the source map (BGR). If
+            provided (or loadable from ``calibration.map_image``), each
+            room's polygon is intersected with the actual 4-connectivity
+            flood-fill region the renderer will produce. Without this
+            intersection the polygon (built from an 8-connectivity
+            connected-component scan in ``geometry.find_connected_components``)
+            can include door-pocket / door-arc pixels that the renderer's
+            4-conn flood-fill cannot reach, and the planner could place
+            office numbers in pixels that the renderer never colors. When
+            the image is not available (e.g. synthetic test calibrations)
+            the intersection is skipped and the planner uses the raw
+            polygon.
         progress_cb: Optional callback invoked once per office as
             ``progress_cb(fraction, message)`` where ``fraction`` is in
             ``[0.0, 1.0]`` (offices processed / total) and ``message``
@@ -395,6 +408,16 @@ def plan_layout(
     # office loop below doesn't pay the rle_to_mask cost (~22 ms each on a
     # 3500x3500 map) twice.
     #
+    # Each cached polygon is also intersected with the actual 4-connectivity
+    # flood-fill region the renderer will produce (when the source image is
+    # available). The calibration polygon comes from an 8-connectivity CC
+    # scan, so it can include pixels — typically door-pocket / door-arc
+    # areas joined to the room body only through a single-pixel diagonal —
+    # that the renderer's 4-conn flood-fill cannot reach. Without the
+    # intersection the planner can pick those unreachable pixels as the
+    # office-number position, and the rendered output then shows the number
+    # on a white background while the rest of the room is colored.
+    #
     # As we cache each polygon we ALSO OR in every label.bbox that belongs
     # to that room. The original office-number digits in the source image
     # are black pixels, so the connected-component polygon has digit-shaped
@@ -405,6 +428,28 @@ def plan_layout(
     # interior for planning purposes (the rendered output then erases the
     # original digits via ``build_fill_mask(..., labels=...)``).
     labeled_room_ids = {lab.room_id for lab in office_labels}
+
+    # Load the source image (if not provided) so we can compute per-room
+    # fill masks. If the image isn't available (synthetic test calibrations,
+    # missing file, etc.) we silently fall back to using the raw polygon.
+    wall_mask: Optional[np.ndarray] = None
+    if labeled_room_ids:
+        if image_bgr is None and calibration.map_image:
+            try:
+                import cv2  # lazy; layout module shouldn't pay cv2 import cost when unused
+                image_bgr = cv2.imread(str(calibration.map_image))
+            except Exception:
+                image_bgr = None
+        if image_bgr is not None:
+            try:
+                wall_mask = build_fill_mask(
+                    image_bgr,
+                    wall_patches=calibration.wall_patches,
+                    labels=calibration.labels,
+                )
+            except Exception:
+                wall_mask = None
+
     labeled_rooms_mask: Optional[np.ndarray] = None
     polygon_cache: dict[int, np.ndarray] = {}
     for room_id in labeled_room_ids:
@@ -413,6 +458,39 @@ def plan_layout(
             continue
         pmask = rle_to_mask(room.polygon_rle) > 0
         h_mask, w_mask = pmask.shape
+
+        # Intersect with the per-room 4-conn fill mask so the planner only
+        # considers pixels the renderer will actually color. Crop the
+        # wall_mask + flood-fill to the room bbox for speed (full-image
+        # flood-fill is ~30 ms on a 4000x4000 map; cropped is ~50 us).
+        if wall_mask is not None:
+            room_labels = labels_by_room.get(room_id, ())
+            if room_labels:
+                bx, by, bw, bh = room.bbox
+                bx0 = max(int(bx), 0)
+                by0 = max(int(by), 0)
+                bx1 = min(int(bx + bw), w_mask)
+                by1 = min(int(by + bh), h_mask)
+                if bx1 > bx0 and by1 > by0:
+                    wall_crop = wall_mask[by0:by1, bx0:bx1]
+                    fill_crop = np.zeros_like(wall_crop, dtype=bool)
+                    for lab in room_labels:
+                        sx, sy = lab.fill_seed
+                        local_sx, local_sy = int(sx) - bx0, int(sy) - by0
+                        if 0 <= local_sx < (bx1 - bx0) and 0 <= local_sy < (by1 - by0):
+                            fill_crop |= virtual_flood_fill(
+                                wall_crop, (local_sx, local_sy)
+                            )
+                    if fill_crop.any():
+                        # AND polygon (cropped) with the reachable fill area.
+                        pmask_crop = pmask[by0:by1, bx0:bx1]
+                        pmask_crop &= fill_crop
+                        # If the flood-fill reached pixels outside the
+                        # polygon (e.g. real wall leaks), do NOT add them
+                        # to the cached polygon. The polygon is the
+                        # authoritative "this is the room" boundary; the
+                        # AND step only ever shrinks it.
+
         for lab in labels_by_room.get(room_id, ()):
             x, y, lw, lh = lab.bbox
             x0 = max(int(x) - LABEL_BBOX_PAD, 0)
