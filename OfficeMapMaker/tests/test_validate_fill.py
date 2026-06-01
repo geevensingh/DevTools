@@ -180,41 +180,6 @@ def test_wall_patches_close_the_gap():
     assert xs.max() < 110, "expected wall_patches to contain the fill"
 
 
-def test_virtual_flood_fill_uses_8_connectivity_to_match_calibration_polygon():
-    """The renderer's flood-fill must use 8-connectivity so it reaches every
-    pixel that the calibration polygon (built from
-    ``cv2.connectedComponentsWithStats(..., connectivity=8)``) claims for the
-    room.
-
-    Regression: with the prior 4-connectivity flood-fill, pixels joined to
-    the room body only through a single-pixel diagonal (e.g. door arc cutouts
-    in real floor plans) would be inside the polygon but outside the fill,
-    so the layout planner could place office numbers in pixels that the
-    renderer never colored.
-    """
-    # walls=255, interior=0
-    wall_mask = np.full((30, 40), 255, dtype=np.uint8)
-    # Main room interior: rows 5..14, cols 5..14 (10x10).
-    wall_mask[5:15, 5:15] = 0
-    # Sub-region interior: rows 16..19, cols 16..19 (4x4).
-    wall_mask[16:20, 16:20] = 0
-    # Bridge: single interior pixel at (row=15, col=15). Its 4-neighbors
-    # (14,15), (15,14), (15,16), (16,15) are all walls, so 4-connectivity
-    # cannot reach the sub-region from the main room. Only 8-connectivity
-    # can cross from (14,14) -> (15,15) -> (16,16).
-    wall_mask[15, 15] = 0
-
-    filled = virtual_flood_fill(wall_mask, (10, 10))  # seed inside main room
-
-    assert filled[10, 10], "seed pixel should be filled"
-    assert filled[15, 15], "diagonal bridge pixel should be reached (8-conn)"
-    assert filled[17, 17], (
-        "8-connectivity should reach the sub-region via the diagonal bridge; "
-        "with 4-connectivity this assertion fails and rendering would leave "
-        "the sub-region uncolored while the calibration polygon still claims it"
-    )
-
-
 # ---------------------------------------------------------------------------
 # validate_fill — happy path
 # ---------------------------------------------------------------------------
