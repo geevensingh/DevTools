@@ -430,6 +430,84 @@ def test_place_office_number_in_polygon_falls_back_when_crowded():
     assert crowded is True
 
 
+def test_place_office_number_in_polygon_finds_clear_space_above_names():
+    """For a non-rectangular polygon where every hand-picked candidate
+    (original label, 4 polygon-bbox corners, 4 LIR corners) is blocked
+    by a name or falls outside the polygon, the mask-scan fallback
+    should find a clear rectangle anywhere in the polygon and place
+    the number there.
+
+    Models Millennium B office 1016: polygon is ~120 px tall but the
+    LIR is only ~40 px tall in the middle. With names filling the LIR
+    and the polygon-bbox corners falling outside the polygon (the
+    polygon has narrow top/bottom shoulders), every one of the 9
+    hand-picked corner candidates failed and the algorithm used to
+    return ``crowded=True``, forcing the fallback to overlap "Tejas
+    Bansod" with the office number.
+    """
+    from officemapmaker.layout import _place_office_number_in_polygon  # type: ignore[attr-defined]
+
+    # Capsule-shaped polygon: a wide middle band (y=20..99, x=0..119)
+    # with narrow shoulders at top and bottom (y=0..19 and y=100..119,
+    # x=30..89). This shape makes the polygon's bbox corners fall
+    # OUTSIDE the polygon, so the 4 polygon-corner candidates fail
+    # without needing names to block them.
+    polygon = np.zeros((130, 130), dtype=bool)
+    polygon[20:100, 0:120] = True   # wide middle band
+    polygon[0:20, 30:90] = True     # narrow top shoulder
+    polygon[100:120, 30:90] = True  # narrow bottom shoulder
+
+    room_bbox = (0, 0, 120, 120)
+    # Caller-supplied LIR: middle horizontal band, 120 wide × 40 tall.
+    inscribed_rect = (0, 40, 120, 40)
+    # Two names completely fill the LIR (blocking the LIR-corner
+    # candidates too).
+    name_top = NameEntry(
+        full_name="Suman Dhabal",
+        rendered_text="Suman Dhabal",
+        bbox=(5, 45, 110, 12),
+        font_px=14,
+    )
+    name_bot = NameEntry(
+        full_name="Tejas Bansod",
+        rendered_text="Tejas Bansod",
+        bbox=(5, 65, 110, 12),
+        font_px=14,
+    )
+    # Original label was inside the LIR (blocked by name_top).
+    original_label_bbox = (50, 45, 20, 10)
+    number_size = (40, 13)
+
+    bbox, crowded = _place_office_number_in_polygon(
+        polygon=polygon,
+        room_bbox=room_bbox,
+        number_size=number_size,
+        names=[name_top, name_bot],
+        inscribed_rect=inscribed_rect,
+        original_label_bbox=original_label_bbox,
+    )
+    # The mask-scan fallback found a clear rectangle — not crowded.
+    assert crowded is False, "expected mask-scan fallback to find clear space"
+    nx, ny, nw, nh = bbox
+    # Number landed entirely inside the polygon (no pixel on a wall).
+    assert polygon[ny:ny + nh, nx:nx + nw].all(), (
+        f"number bbox {bbox} must be entirely inside the polygon"
+    )
+    # Number does not overlap either name's padded bbox.
+    pad = 3
+    for n in (name_top, name_bot):
+        n_x1, n_y1, n_w, n_h = n.bbox
+        n_x1 -= pad
+        n_y1 -= pad
+        n_x2 = n_x1 + n_w + 2 * pad
+        n_y2 = n_y1 + n_h + 2 * pad
+        nx2, ny2 = nx + nw, ny + nh
+        overlap = nx < n_x2 and nx2 > n_x1 and ny < n_y2 and ny2 > n_y1
+        assert not overlap, (
+            f"number bbox {bbox} overlaps padded name bbox of {n.full_name!r}"
+        )
+
+
 def test_plan_layout_leader_line_avoids_other_labeled_rooms():
     """Bug 1: leader-line fallback used to pick left/right of the room
     purely from the map midpoint, so a small room in the left half always

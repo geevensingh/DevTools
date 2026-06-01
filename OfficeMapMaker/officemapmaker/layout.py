@@ -796,11 +796,17 @@ def _place_office_number_in_polygon(
          the number ends up where the user expects, just rendered fresh
          in the team color overlay).
       2. The four corners of the room (polygon) bbox.
-      3. The four corners of the LIR (final fallback before declaring
-         crowded, matching today's default).
+      3. The four corners of the LIR (final corner candidate before the
+         mask scan, matching today's default).
+      4. The largest clear rectangle (LIR) of ``polygon AND NOT names``,
+         with the number clamped to be as close to the original label
+         position as the clear rectangle allows. Catches cases where the
+         polygon has a wide clear band above or below the LIR that none
+         of the 9 corner candidates happen to land in.
 
-    Returns ``(bbox, crowded)``. ``crowded=True`` means every candidate
-    overlapped names or fell outside the polygon. The caller should fall
+    Returns ``(bbox, crowded)``. ``crowded=True`` means even the mask
+    scan in step 4 couldn't find a rectangle of ``number_size``
+    entirely inside ``polygon AND NOT names``. The caller should fall
     back to the reserved-strip layout (``_place_office_number``) which
     shrinks the names area instead of compromising on number placement.
     """
@@ -850,8 +856,34 @@ def _place_office_number_in_polygon(
         if fits(cx, cy):
             return ((cx, cy, nw, nh), False)
 
-    # Nothing fits cleanly — caller decides what to do (typically falls
-    # back to the reserved-strip layout via ``_place_office_number``).
+    # No hand-picked candidate fit. Search the avail mask for the largest
+    # clear rectangle anywhere in the polygon and place the number inside
+    # it, clamped close to the original label position. This handles
+    # rooms where the polygon has lots of empty real estate above or
+    # below the LIR — the typical case when names fill the LIR but the
+    # polygon extends well past it (see Millennium B office 1016: the
+    # polygon is ~118 px tall, the LIR is only ~41 px tall in the
+    # middle, and names fill the LIR — so the only place a number can go
+    # without overlapping a name is in the wide clear band *above* the
+    # LIR, which none of the 9 corner candidates reach).
+    rx_safe = max(0, min(rx, img_w))
+    ry_safe = max(0, min(ry, img_h))
+    rx_end = max(rx_safe, min(rx + rw, img_w))
+    ry_end = max(ry_safe, min(ry + rh, img_h))
+    avail_crop = avail[ry_safe:ry_end, rx_safe:rx_end]
+    if avail_crop.size > 0:
+        clear_x, clear_y, clear_w, clear_h = largest_inscribed_rectangle(
+            avail_crop
+        )
+        if clear_w >= nw and clear_h >= nh:
+            # Target the original-label center; clamp into the clear rect.
+            target_x = ox + ow // 2 - nw // 2 - rx_safe
+            target_y = oy + oh // 2 - nh // 2 - ry_safe
+            cx_local = max(clear_x, min(target_x, clear_x + clear_w - nw))
+            cy_local = max(clear_y, min(target_y, clear_y + clear_h - nh))
+            return ((cx_local + rx_safe, cy_local + ry_safe, nw, nh), False)
+
+    # Truly crowded — fallback.
     cx, cy = (lx + lw - nw - margin, ly + lh - nh - margin)
     return ((cx, cy, nw, nh), True)
 
