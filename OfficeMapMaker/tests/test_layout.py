@@ -254,6 +254,131 @@ def test_plan_layout_uses_leader_line_for_impossibly_small_rooms():
 
 
 # ---------------------------------------------------------------------------
+# plan_layout — full-rect fallback (Bug 2) + room-aware leader (Bug 1)
+# ---------------------------------------------------------------------------
+
+
+def _rect_room(rid: int, x: int, y: int, w: int, h: int, *, img_size=(800, 600)) -> Room:
+    """Like ``_square_room`` but with independent width/height."""
+    mask = np.zeros((img_size[1], img_size[0]), dtype=bool)
+    mask[y : y + h, x : x + w] = True
+    return Room(
+        id=rid,
+        polygon_rle=mask_to_rle(mask),
+        area_px=int(mask.sum()),
+        bbox=(x, y, w, h),
+    )
+
+
+def test_plan_layout_short_wide_room_uses_full_rect_instead_of_leader():
+    """Bug 2: reserving a bottom strip for the office number used to shrink
+    the names area below one line tall for wide-but-short rooms, forcing
+    a leader-line fallback even though a single short name would have fit
+    in the full rect. After the fix the planner retries against the full
+    inscribed rect before punting.
+    """
+    cal = _build_cal(
+        labels=[_office_label("1480", room_id=1, fill_seed=(125, 82))],
+        rooms=[_rect_room(1, 25, 65, 200, 35)],  # 200 wide, only 35 tall
+    )
+    layout, _ = plan_layout(cal, [_asn("Ali", "1480")])
+    entry = layout.entries[0]
+    assert entry.fit_strategy is not FitStrategy.LEADER
+    assert entry.leader_lines == []
+    # The single name must be placed somewhere inside the inscribed rect.
+    ix, iy, iw, ih = entry.inscribed_rect
+    nx, ny, nw, nh = entry.names[0].bbox
+    assert ix <= nx and nx + nw <= ix + iw
+    assert iy <= ny and ny + nh <= iy + ih
+
+
+def test_place_office_number_prefers_clear_corner():
+    """The corner picker tries bottom-right, bottom-left, top-right,
+    top-left in order and returns the first one that doesn't overlap any
+    placed name bbox.
+    """
+    from officemapmaker.layout import _place_office_number  # type: ignore[attr-defined]
+
+    rect = (0, 0, 100, 100)
+    number_size = (20, 10)
+    # A single name pinned at the bottom of the rect. Bottom-right is
+    # occupied; bottom-left is free.
+    name_at_bottom = NameEntry(
+        full_name="Z", rendered_text="Z", bbox=(60, 90, 30, 10), font_px=10
+    )
+    bbox, overlaps = _place_office_number(
+        rect=rect, number_size=number_size, names=[name_at_bottom]
+    )
+    assert overlaps is False
+    # Falls through to bottom-left.
+    assert bbox == (2, 88, 20, 10)
+
+
+def test_place_office_number_warns_when_every_corner_overlaps():
+    """If every corner overlaps at least one name, the helper signals the
+    overlap so the planner can emit ``office_number_overlaps_names``.
+    """
+    from officemapmaker.layout import _place_office_number  # type: ignore[attr-defined]
+
+    rect = (0, 0, 60, 60)
+    number_size = (20, 10)
+    # A name in each corner — every candidate slot overlaps one of them.
+    names = [
+        NameEntry(full_name="A", rendered_text="A", bbox=(0, 0, 60, 12), font_px=10),
+        NameEntry(full_name="B", rendered_text="B", bbox=(0, 24, 60, 12), font_px=10),
+        NameEntry(full_name="C", rendered_text="C", bbox=(0, 48, 60, 12), font_px=10),
+    ]
+    bbox, overlaps = _place_office_number(
+        rect=rect, number_size=number_size, names=names
+    )
+    assert overlaps is True
+    # Falls back to bottom-right (historical default).
+    assert bbox == (38, 48, 20, 10)
+
+
+def test_plan_layout_leader_line_avoids_other_labeled_rooms():
+    """Bug 1: leader-line fallback used to pick left/right of the room
+    purely from the map midpoint, so a small room in the left half always
+    pushed text rightward — even if the next room over was a labeled
+    office (causing one office's name to appear inside another office).
+    After the fix, the planner builds a union mask of every labeled room
+    and chooses a leader-text position that doesn't overlap any of them.
+    """
+    from officemapmaker.geometry import rle_to_mask
+
+    # Tiny room A in the left half; big labeled room B immediately to its
+    # right. Old code put A's text at x = A_max + 8 = 68, deep inside B.
+    cal = _build_cal(
+        labels=[
+            _office_label("1015", room_id=1, fill_seed=(55, 55)),
+            _office_label("1009", room_id=2, fill_seed=(165, 140)),
+        ],
+        rooms=[
+            _rect_room(1, 50, 50, 10, 10),
+            _rect_room(2, 65, 40, 200, 200),
+        ],
+    )
+    layout, _ = plan_layout(
+        cal, [_asn("Bahnasawy", "1015"), _asn("Smith", "1009")]
+    )
+    entry_1015 = next(e for e in layout.entries if e.office_id == "1015")
+    assert entry_1015.fit_strategy is FitStrategy.LEADER
+    # Decode room 2's polygon and confirm no name pixel from 1015 lands in it.
+    room2 = next(r for r in cal.rooms if r.id == 2)
+    other_mask = rle_to_mask(room2.polygon_rle) > 0
+    for n in entry_1015.names:
+        nx, ny, nw, nh = n.bbox
+        x0 = max(0, nx)
+        y0 = max(0, ny)
+        x1 = min(other_mask.shape[1], nx + nw)
+        y1 = min(other_mask.shape[0], ny + nh)
+        if x0 < x1 and y0 < y1:
+            assert not other_mask[y0:y1, x0:x1].any(), (
+                f"leader text {n.rendered_text!r} bbox={n.bbox} overlaps room 2"
+            )
+
+
+# ---------------------------------------------------------------------------
 # plan_layout — error / warning paths
 # ---------------------------------------------------------------------------
 

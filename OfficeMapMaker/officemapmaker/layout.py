@@ -303,6 +303,21 @@ def plan_layout(
     # Index for fast lookup; only one office_id per label by construction.
     labels_by_id: dict[str, Label] = {lab.id.upper(): lab for lab in office_labels}
 
+    # Union mask of every labeled room. Leader-line text should not land
+    # inside any of these — putting a name inside someone else's office is
+    # worse than going to a wider margin or accepting some hallway encroachment.
+    # Built lazily on first office that needs a polygon; cached for the rest.
+    labeled_room_ids = {lab.room_id for lab in office_labels}
+    labeled_rooms_mask: Optional[np.ndarray] = None
+    for room_id in labeled_room_ids:
+        room = rooms_by_id.get(room_id)
+        if room is None:
+            continue
+        pmask = rle_to_mask(room.polygon_rle) > 0
+        if labeled_rooms_mask is None:
+            labeled_rooms_mask = np.zeros_like(pmask)
+        labeled_rooms_mask |= pmask
+
     entries: list[LayoutEntry] = []
     placed_people: set[tuple[str, str]] = set()  # (office_id_upper, full_name)
 
@@ -379,6 +394,7 @@ def plan_layout(
             preferred_font_px=preferred_font_px,
             number_font_px=number_font_px,
             font_path=font_path,
+            labeled_rooms_mask=labeled_rooms_mask,
         )
         entries.append(entry)
         issues.extend(entry_issues)
@@ -424,15 +440,17 @@ def _plan_one_office(
     preferred_font_px: int,
     number_font_px: int,
     font_path: Optional[str],
+    labeled_rooms_mask: Optional[np.ndarray] = None,
 ) -> tuple[LayoutEntry, list[LayoutIssue]]:
     """Plan one office's layout. Returns (entry, issues)."""
     issues: list[LayoutIssue] = []
 
-    # Reserve a small bottom-right corner for the office number.
+    # Reserve a small bottom strip for the office number. This is the
+    # preferred layout: names cleanly above, number cleanly below, zero
+    # overlap.
     rect_x, rect_y, rect_w, rect_h = rect
     number_text = label.id
     number_size = _measure_text(number_text, number_font_px, font_path)
-    # The reserved strip is just tall enough for the number + a small margin.
     reserved_h = number_size[1] + 4
     names_area: BBox = (
         rect_x,
@@ -441,8 +459,10 @@ def _plan_one_office(
         max(rect_h - reserved_h, 0),
     )
 
-    # Try each strategy in order.
-    placement = None
+    # Try each strategy in order against the reserved (number-clear) area.
+    placement: Optional[list[NameEntry]] = None
+    chosen: Optional[FitStrategy] = None
+    crowded = False
     for strategy in (FitStrategy.SHRINK, FitStrategy.INITIALS, FitStrategy.LAST_ONLY):
         texts = _format_names(people, strategy)
         placement = _try_fit(
@@ -455,16 +475,48 @@ def _plan_one_office(
         )
         if placement is not None:
             chosen = strategy
-            leader_lines: list[tuple[int, int, int, int]] = []
             break
-    else:
-        # Fall back to leader line.
+
+    if placement is None:
+        # Reserved-strip layout failed — names didn't fit with the
+        # number-reservation honored. Retry against the *full* inscribed
+        # rect: the names get the whole room and the office number has to
+        # share a corner with them. The result may visually crowd the
+        # number, but that's far better than punting to a leader line that
+        # could land in another office or in the hallway.
+        for strategy in (
+            FitStrategy.SHRINK,
+            FitStrategy.INITIALS,
+            FitStrategy.LAST_ONLY,
+        ):
+            texts = _format_names(people, strategy)
+            placement = _try_fit(
+                texts=texts,
+                people=people,
+                area=rect,
+                min_px=min_font_px,
+                max_px=preferred_font_px,
+                font_path=font_path,
+            )
+            if placement is not None:
+                chosen = strategy
+                crowded = True
+                break
+
+    leader_lines: list[tuple[int, int, int, int]] = []
+    if placement is None:
+        # Even the full rect won't hold the names — fall back to a leader
+        # line that respects neighboring rooms (Bug 1 fix).
         chosen = FitStrategy.LEADER
         texts = _format_names(people, FitStrategy.LAST_ONLY)
+        other_rooms_mask: Optional[np.ndarray] = None
+        if labeled_rooms_mask is not None:
+            other_rooms_mask = labeled_rooms_mask & ~polygon
         placement, leader_lines = _build_leader_placement(
             texts=texts,
             people=people,
             polygon=polygon,
+            other_rooms_mask=other_rooms_mask,
             map_h=polygon.shape[0],
             map_w=polygon.shape[1],
             min_px=min_font_px,
@@ -497,13 +549,26 @@ def _plan_one_office(
             )
         )
 
-    # Place the office number in the bottom-right corner of the inscribed rect.
-    number_bbox: BBox = (
-        rect_x + rect_w - number_size[0] - 2,
-        rect_y + rect_h - number_size[1] - 2,
-        number_size[0],
-        number_size[1],
+    # Place the office number. The default corner is bottom-right of the
+    # inscribed rect (the historical placement). In the crowded fallback
+    # path we try every corner and pick one that doesn't overlap a name;
+    # if every corner overlaps we accept the overlap and warn.
+    number_bbox, number_overlaps_name = _place_office_number(
+        rect=rect, number_size=number_size, names=placement
     )
+    if crowded and number_overlaps_name:
+        issues.append(
+            LayoutIssue(
+                severity="warning",
+                code="office_number_overlaps_names",
+                message=(
+                    f"office {label.id} ({len(people)} people) had no clear "
+                    f"corner for the office number; the number will render on "
+                    f"top of a name"
+                ),
+                office_id=label.id,
+            )
+        )
     office_number = OfficeNumberPlacement(
         text=number_text, bbox=number_bbox, font_px=number_font_px
     )
@@ -519,6 +584,52 @@ def _plan_one_office(
         leader_lines=leader_lines,
     )
     return entry, issues
+
+
+def _place_office_number(
+    *,
+    rect: BBox,
+    number_size: tuple[int, int],
+    names: list[NameEntry],
+) -> tuple[BBox, bool]:
+    """Pick a corner of ``rect`` for the office number that avoids overlapping any
+    placed name.
+
+    Tries bottom-right, bottom-left, top-right, top-left in that order and returns
+    the first one whose bbox does not intersect any ``names`` bbox. If every corner
+    overlaps a name, returns the bottom-right corner together with ``True`` so the
+    caller can warn.
+    """
+    rect_x, rect_y, rect_w, rect_h = rect
+    nw, nh = number_size
+    margin = 2
+    corners = [
+        # bottom-right (historical default — preserves prior behavior for non-crowded layouts)
+        (rect_x + rect_w - nw - margin, rect_y + rect_h - nh - margin),
+        # bottom-left
+        (rect_x + margin, rect_y + rect_h - nh - margin),
+        # top-right
+        (rect_x + rect_w - nw - margin, rect_y + margin),
+        # top-left
+        (rect_x + margin, rect_y + margin),
+    ]
+    name_bboxes = [
+        (n.bbox[0], n.bbox[1], n.bbox[0] + n.bbox[2], n.bbox[1] + n.bbox[3])
+        for n in names
+    ]
+
+    def overlaps_any(x: int, y: int) -> bool:
+        nx2, ny2 = x + nw, y + nh
+        for bx1, by1, bx2, by2 in name_bboxes:
+            if x < bx2 and nx2 > bx1 and y < by2 and ny2 > by1:
+                return True
+        return False
+
+    for cx, cy in corners:
+        if not overlaps_any(cx, cy):
+            return ((cx, cy, nw, nh), False)
+    cx, cy = corners[0]
+    return ((cx, cy, nw, nh), True)
 
 
 def _format_names(people: list[Assignment], strategy: FitStrategy) -> list[str]:
@@ -606,6 +717,7 @@ def _build_leader_placement(
     texts: list[str],
     people: list[Assignment],
     polygon: np.ndarray,
+    other_rooms_mask: Optional[np.ndarray],
     map_h: int,
     map_w: int,
     min_px: int,
@@ -614,10 +726,15 @@ def _build_leader_placement(
 ) -> tuple[list[NameEntry], list[tuple[int, int, int, int]]]:
     """Last-resort: render outside the room near the nearest map margin.
 
-    Heuristic: place the names block to the right of the room (or to the
-    left if the room is in the right half), at ``min_px`` font size.
-    Leader line goes from the room centroid to the left edge of the
-    text block.
+    Picks a position that does not overlap any *other* labeled room (the
+    ``other_rooms_mask`` argument). Tries the four cardinal directions
+    around the room bounding box, plus three vertical / horizontal
+    alignments for each, then picks the candidate closest to the room
+    centroid. Falls back to the original "right vs. left of map" heuristic
+    only if no clean spot exists (in which case some overlap is accepted).
+
+    Leader line goes from the room centroid to the nearer vertical edge
+    of the text block.
     """
     centroid = mask_centroid(polygon)
     if centroid is None:
@@ -630,19 +747,82 @@ def _build_leader_placement(
     line_h = int(round(min_px * line_spacing))
     block_h = line_h * len(texts)
 
-    # Place to the right of the room if there's room, else to the left.
     margin = 8
-    if cx < map_w // 2:
-        # Room is in left half → put text in right margin (or right of room bbox).
-        ys, xs = np.where(polygon)
-        right_edge = int(xs.max()) if xs.size else cx
-        text_x = min(right_edge + margin, map_w - block_w - margin)
+    ys, xs = np.where(polygon)
+    if xs.size:
+        rx_min, rx_max = int(xs.min()), int(xs.max())
+        ry_min, ry_max = int(ys.min()), int(ys.max())
     else:
-        ys, xs = np.where(polygon)
-        left_edge = int(xs.min()) if xs.size else cx
-        text_x = max(left_edge - block_w - margin, margin)
+        rx_min, rx_max = cx, cx
+        ry_min, ry_max = cy, cy
+    rcx = (rx_min + rx_max) // 2
+    rcy = (ry_min + ry_max) // 2
 
-    text_y = max(min(cy - block_h // 2, map_h - block_h - margin), margin)
+    def in_bounds(x: int, y: int) -> bool:
+        return (
+            margin <= x
+            and x + block_w <= map_w - margin
+            and margin <= y
+            and y + block_h <= map_h - margin
+        )
+
+    def overlaps_others(x: int, y: int) -> bool:
+        if other_rooms_mask is None:
+            return False
+        h, w = other_rooms_mask.shape
+        x0, y0 = max(0, x), max(0, y)
+        x1, y1 = min(w, x + block_w), min(h, y + block_h)
+        if x0 >= x1 or y0 >= y1:
+            return False
+        return bool(other_rooms_mask[y0:y1, x0:x1].any())
+
+    # Candidate positions: 4 cardinal sides × 3 alignments adjacent to the
+    # room, plus a sparse grid across the rest of the map for cases where
+    # the immediate neighborhood is fully covered by another labeled room.
+    # Final pick is whichever feasible candidate is closest to the room
+    # centroid.
+    candidates: list[tuple[int, int]] = []
+    x_right = rx_max + margin
+    x_left = rx_min - block_w - margin
+    y_below = ry_max + margin
+    y_above = ry_min - block_h - margin
+    for y_ref in (ry_min, rcy - block_h // 2, ry_max - block_h):
+        candidates.append((x_right, y_ref))
+        candidates.append((x_left, y_ref))
+    for x_ref in (rx_min, rcx - block_w // 2, rx_max - block_w):
+        candidates.append((x_ref, y_below))
+        candidates.append((x_ref, y_above))
+    # Coarse map-wide grid. Step is half the longer text dimension so we
+    # don't miss thin gaps but stay O(map_w * map_h / step^2) cheap.
+    step = max(16, max(block_w, block_h) // 2)
+    for y in range(margin, map_h - block_h - margin + 1, step):
+        for x in range(margin, map_w - block_w - margin + 1, step):
+            candidates.append((x, y))
+
+    best: Optional[tuple[int, int]] = None
+    best_dist = float("inf")
+    for x, y in candidates:
+        if not in_bounds(x, y):
+            continue
+        if overlaps_others(x, y):
+            continue
+        bx_center = x + block_w // 2
+        by_center = y + block_h // 2
+        dist = (bx_center - rcx) ** 2 + (by_center - rcy) ** 2
+        if dist < best_dist:
+            best_dist = dist
+            best = (x, y)
+
+    if best is not None:
+        text_x, text_y = best
+    else:
+        # No clean spot — fall back to the original "left vs. right of map"
+        # heuristic. May overlap another room; nothing better available.
+        if cx < map_w // 2:
+            text_x = min(rx_max + margin, map_w - block_w - margin)
+        else:
+            text_x = max(rx_min - block_w - margin, margin)
+        text_y = max(min(cy - block_h // 2, map_h - block_h - margin), margin)
 
     placed: list[NameEntry] = []
     y_cursor = text_y
