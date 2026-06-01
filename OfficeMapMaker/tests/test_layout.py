@@ -508,6 +508,72 @@ def test_place_office_number_in_polygon_finds_clear_space_above_names():
         )
 
 
+def test_place_office_number_in_polygon_rejects_door_pocket_strip():
+    """Models Millennium B office 1180: a room body (LIR area) plus a
+    deep door-pocket strip below the LIR.
+
+    Before the LIR-proximity guard, the room's bbox bottom corners
+    (which fall inside the door pocket) were accepted as valid number
+    placements when the LIR was crowded by names — visually disconnecting
+    the office number from the rest of the office content. The wide
+    open door-pocket strip also let the mask-scan fallback drop the
+    number there.
+
+    With the proximity guard, the door pocket is rejected (it's farther
+    from the LIR than the number's own dimensions allow), the function
+    returns ``crowded=True``, and the caller falls back to the
+    reserved-strip layout (smaller names) which keeps the number
+    adjacent to the names.
+    """
+    from officemapmaker.layout import _place_office_number_in_polygon  # type: ignore[attr-defined]
+
+    # T-shaped polygon: a 100×60 main body on top, plus a 78×38 door
+    # pocket at the bottom connected by a 20-px-wide vertical neck.
+    polygon = np.zeros((140, 140), dtype=bool)
+    polygon[0:60, 0:100] = True       # main body (LIR area)
+    polygon[60:80, 40:60] = True      # narrow door-arc neck
+    polygon[80:118, 11:89] = True     # wide door pocket (78 px wide)
+
+    # Room bbox spans the whole polygon — bottom corners fall in the pocket.
+    room_bbox = (0, 0, 100, 118)
+    # LIR = the main body only.
+    inscribed_rect = (0, 0, 100, 60)
+    # Two names fill the LIR (mirrors "Joy Chepkwony" + "Namratha Olety
+    # Venkatesh" on Millennium B office 1180).
+    name_top = NameEntry(
+        full_name="Joy Chepkwony",
+        rendered_text="Joy Chepkwony",
+        bbox=(5, 5, 90, 22),
+        font_px=22,
+    )
+    name_bot = NameEntry(
+        full_name="Namratha Olety Venkatesh",
+        rendered_text="Namratha Olety Venkatesh",
+        bbox=(5, 32, 90, 22),
+        font_px=22,
+    )
+    # Original label was in the door pocket (where Tesseract found it on
+    # the source map — Millennium B's room labels often live in the door
+    # arc area).
+    original_label_bbox = (40, 90, 20, 10)
+    number_size = (40, 13)
+
+    bbox, crowded = _place_office_number_in_polygon(
+        polygon=polygon,
+        room_bbox=room_bbox,
+        number_size=number_size,
+        names=[name_top, name_bot],
+        inscribed_rect=inscribed_rect,
+        original_label_bbox=original_label_bbox,
+    )
+    # No acceptable placement exists (LIR is full of names, and the
+    # door pocket is too far from the LIR to be "near" it). The caller
+    # must fall back to the reserved-strip layout.
+    assert crowded is True, (
+        f"door pocket should be rejected as too far from LIR; got bbox={bbox}"
+    )
+
+
 def test_plan_layout_leader_line_avoids_other_labeled_rooms():
     """Bug 1: leader-line fallback used to pick left/right of the room
     purely from the map midpoint, so a small room in the left half always

@@ -857,11 +857,27 @@ def _place_office_number_in_polygon(
          polygon has a wide clear band above or below the LIR that none
          of the 9 corner candidates happen to land in.
 
-    Returns ``(bbox, crowded)``. ``crowded=True`` means even the mask
-    scan in step 4 couldn't find a rectangle of ``number_size``
-    entirely inside ``polygon AND NOT names``. The caller should fall
-    back to the reserved-strip layout (``_place_office_number``) which
-    shrinks the names area instead of compromising on number placement.
+    Every candidate (corner *and* mask-scan) must additionally pass a
+    **visual-proximity guard**: the candidate's bbox must intersect the
+    LIR dilated by one number width horizontally and one number height
+    vertically. This rejects placements deep inside narrow polygon
+    appendages — typically door pockets and door-arc cutouts that the
+    connected-components pass swallowed into the room polygon through
+    a small door opening. Those placements are technically *inside* the
+    polygon (the renderer happily fills them with the team color) but
+    visually they look disconnected from the room body, so users see
+    the number as "outside the room". Slack is proportional to the
+    number's own dimensions so legitimate L-shaped extensions (where
+    the number spills at most one number-dimension past the LIR edge)
+    remain acceptable.
+
+    Returns ``(bbox, crowded)``. ``crowded=True`` means no candidate
+    passed both the fit check (entirely inside ``polygon AND NOT
+    names``) *and* the proximity guard. The caller should fall back to
+    the reserved-strip layout (``_place_office_number``) which shrinks
+    the names area to make room for the number inside the LIR — that
+    yields a smaller-but-cohesive layout, which is what the user wants
+    over a same-sized-but-visually-disconnected one.
     """
     nw, nh = number_size
     rx, ry, rw, rh = room_bbox
@@ -887,6 +903,27 @@ def _place_office_number_in_polygon(
             return False
         return bool(avail[y:y + nh, x:x + nw].all())
 
+    # Pre-compute the LIR dilated by (nw, nh) for the proximity guard.
+    lir_dx1 = lx - nw
+    lir_dy1 = ly - nh
+    lir_dx2 = lx + lw + nw
+    lir_dy2 = ly + lh + nh
+
+    def near_lir(x: int, y: int) -> bool:
+        """AABB intersection between the candidate bbox and the dilated LIR.
+
+        Returns True iff the candidate sits within one number-dimension
+        of the LIR in each axis. See the function docstring for the
+        rationale.
+        """
+        return (
+            x < lir_dx2 and x + nw > lir_dx1
+            and y < lir_dy2 and y + nh > lir_dy1
+        )
+
+    def acceptable(x: int, y: int) -> bool:
+        return fits(x, y) and near_lir(x, y)
+
     candidates: list[tuple[int, int]] = []
     # 1. Centered on the original label position.
     candidates.append((ox + ow // 2 - nw // 2, oy + oh // 2 - nh // 2))
@@ -906,7 +943,7 @@ def _place_office_number_in_polygon(
     ])
 
     for cx, cy in candidates:
-        if fits(cx, cy):
+        if acceptable(cx, cy):
             return ((cx, cy, nw, nh), False)
 
     # No hand-picked candidate fit. Search the avail mask for the largest
@@ -918,7 +955,10 @@ def _place_office_number_in_polygon(
     # polygon is ~118 px tall, the LIR is only ~41 px tall in the
     # middle, and names fill the LIR — so the only place a number can go
     # without overlapping a name is in the wide clear band *above* the
-    # LIR, which none of the 9 corner candidates reach).
+    # LIR, which none of the 9 corner candidates reach). The result is
+    # *still* subject to the same ``near_lir`` proximity guard as the
+    # corner candidates, so a deep door-pocket strip can't sneak the
+    # number in via the mask scan when the corner candidates rejected it.
     rx_safe = max(0, min(rx, img_w))
     ry_safe = max(0, min(ry, img_h))
     rx_end = max(rx_safe, min(rx + rw, img_w))
@@ -934,7 +974,10 @@ def _place_office_number_in_polygon(
             target_y = oy + oh // 2 - nh // 2 - ry_safe
             cx_local = max(clear_x, min(target_x, clear_x + clear_w - nw))
             cy_local = max(clear_y, min(target_y, clear_y + clear_h - nh))
-            return ((cx_local + rx_safe, cy_local + ry_safe, nw, nh), False)
+            cx = cx_local + rx_safe
+            cy = cy_local + ry_safe
+            if near_lir(cx, cy):
+                return ((cx, cy, nw, nh), False)
 
     # Truly crowded — fallback.
     cx, cy = (lx + lw - nw - margin, ly + lh - nh - margin)
