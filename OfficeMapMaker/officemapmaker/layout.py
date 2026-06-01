@@ -331,12 +331,28 @@ def plan_layout(
     # Index for fast lookup; only one office_id per label by construction.
     labels_by_id: dict[str, Label] = {lab.id.upper(): lab for lab in office_labels}
 
+    # Group labels by their room so each room's polygon can be inflated to
+    # cover every label bbox inside it (see below).
+    labels_by_room: dict[int, list[Label]] = {}
+    for lab in office_labels:
+        labels_by_room.setdefault(lab.room_id, []).append(lab)
+
     # Union mask of every labeled room. Leader-line text should not land
     # inside any of these — putting a name inside someone else's office is
     # worse than going to a wider margin or accepting some hallway encroachment.
     # We also cache the decoded polygon for each labeled room so the per-
     # office loop below doesn't pay the rle_to_mask cost (~22 ms each on a
     # 3500x3500 map) twice.
+    #
+    # As we cache each polygon we ALSO OR in every label.bbox that belongs
+    # to that room. The original office-number digits in the source image
+    # are black pixels, so the connected-component polygon has digit-shaped
+    # holes where the original numbers sat. Those holes shrink the largest
+    # inscribed rectangle away from the digit area and force the layout
+    # planner to avoid an area we're about to redraw anyway. Inflating the
+    # polygon to cover the label bbox treats the digit area as room
+    # interior for planning purposes (the rendered output then erases the
+    # original digits via ``build_fill_mask(..., labels=...)``).
     labeled_room_ids = {lab.room_id for lab in office_labels}
     labeled_rooms_mask: Optional[np.ndarray] = None
     polygon_cache: dict[int, np.ndarray] = {}
@@ -345,6 +361,13 @@ def plan_layout(
         if room is None:
             continue
         pmask = rle_to_mask(room.polygon_rle) > 0
+        h_mask, w_mask = pmask.shape
+        for lab in labels_by_room.get(room_id, ()):
+            x, y, lw, lh = lab.bbox
+            x0, y0 = max(int(x), 0), max(int(y), 0)
+            x1, y1 = min(int(x + lw), w_mask), min(int(y + lh), h_mask)
+            if x1 > x0 and y1 > y0:
+                pmask[y0:y1, x0:x1] = True
         polygon_cache[room_id] = pmask
         if labeled_rooms_mask is None:
             labeled_rooms_mask = np.zeros_like(pmask)

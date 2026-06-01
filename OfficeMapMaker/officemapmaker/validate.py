@@ -357,7 +357,9 @@ def validate_fill(
     if image is None:
         raise ValueError(f"could not decode image: {map_path}")
 
-    wall_mask = build_fill_mask(image, calibration.wall_patches)
+    wall_mask = build_fill_mask(
+        image, calibration.wall_patches, calibration.labels
+    )
 
     rooms_by_id = {room.id: room for room in calibration.rooms}
     # Without a Classification enum we can no longer filter to "offices only";
@@ -515,6 +517,7 @@ def validate_fill(
 def build_fill_mask(
     image_bgr: np.ndarray,
     wall_patches: Iterable[tuple[int, int, int, int]],
+    labels: Optional[Iterable[Label]] = None,
 ) -> np.ndarray:
     """Build the wall mask used for virtual flood-fill.
 
@@ -522,6 +525,16 @@ def build_fill_mask(
     flood-fill sees the same walls the calibration saw. Then draws each
     ``wall_patches`` line at width=1 in the wall color (255). The visible
     map image is never modified — patches live only in this mask.
+
+    If ``labels`` is provided, every label's bbox is *cleared* (set to 0,
+    i.e. interior) in the wall mask before the patches are applied. The
+    rationale: the original office-number digits in the source image are
+    going to be replaced by our redrawn numbers, so they should not act
+    as walls — leaving them in causes flood-fill leaks through broken
+    digit strokes, leaves ghost digit pixels next to the redrawn number,
+    and shrinks the room polygon away from the digit area for layout
+    planning. Patches are drawn AFTER label clearing so a patch can
+    still close a gap that happens to lie inside a label bbox.
     """
     import cv2
 
@@ -534,6 +547,14 @@ def build_fill_mask(
         blockSize=15,
         C=10,
     )
+    if labels is not None:
+        h, w = wall_mask.shape
+        for lab in labels:
+            x, y, lw, lh = lab.bbox
+            x0, y0 = max(int(x), 0), max(int(y), 0)
+            x1, y1 = min(int(x + lw), w), min(int(y + lh), h)
+            if x1 > x0 and y1 > y0:
+                wall_mask[y0:y1, x0:x1] = 0
     for x1, y1, x2, y2 in wall_patches:
         cv2.line(wall_mask, (x1, y1), (x2, y2), 255, thickness=1)
     return wall_mask
@@ -647,7 +668,9 @@ def render_leak_overlay_png(
     if image is None:
         raise ValueError(f"could not decode image: {map_path}")
 
-    wall_mask = build_fill_mask(image, calibration.wall_patches)
+    wall_mask = build_fill_mask(
+        image, calibration.wall_patches, calibration.labels
+    )
     labels_by_id = {lab.id: lab for lab in calibration.labels}
 
     source = labels_by_id.get(leak.office_id)

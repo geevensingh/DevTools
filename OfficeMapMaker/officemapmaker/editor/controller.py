@@ -566,7 +566,9 @@ class EditorController(QtCore.QObject):
         image = cv2.imread(str(self._map_path), cv2.IMREAD_COLOR)
         if image is None:
             return None
-        self._wall_mask_cache = build_fill_mask(image, self._cal.wall_patches)
+        self._wall_mask_cache = build_fill_mask(
+            image, self._cal.wall_patches, self._cal.labels
+        )
         return self._wall_mask_cache
 
     def set_add_room_flood_mode(self, active: bool) -> None:

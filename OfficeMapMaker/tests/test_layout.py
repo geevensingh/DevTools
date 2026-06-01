@@ -509,6 +509,64 @@ def test_try_fit_polygon_returns_none_when_no_name_fits():
     assert placed is None
 
 
+def test_plan_layout_inflates_polygon_to_include_label_bboxes():
+    """The original office-number digits punch holes in the white-pixel
+    CC polygon. ``_plan_one_office`` should OR each room's label bboxes
+    back into the polygon before LIR / ``_try_fit_polygon`` see it, so
+    name placement isn't forced to avoid the soon-to-be-redrawn digits.
+    """
+    img_w, img_h = 200, 100
+    # Build a polygon that is a 100x60 rectangle MINUS a 40x20 hole
+    # right in its center (simulating where the OCR'd label sits).
+    mask = np.zeros((img_h, img_w), dtype=bool)
+    mask[20:80, 50:150] = True
+    # Hole at (80,40)-(120,60) — i.e. dead center.
+    mask[40:60, 80:120] = False
+    assert mask.sum() == 100 * 60 - 40 * 20  # sanity
+
+    room = Room(
+        id=1,
+        polygon_rle=mask_to_rle(mask),
+        area_px=int(mask.sum()),
+        bbox=(50, 20, 100, 60),
+    )
+    # Label sits exactly in the hole.
+    label = Label(
+        id="1480",
+        bbox=(80, 40, 40, 20),
+        room_id=1,
+        fill_seed=(100, 50),
+        ocr_confidence=0.9,
+    )
+    cal = Calibration(
+        map_image="map.png",
+        map_hash="sha256:dummy",
+        labels=[label],
+        rooms=[room],
+        wall_patches=[],
+        render_defaults=RenderDefaults(min_font_pt=7, tile_dpi=150),
+    )
+
+    layout, issues = plan_layout(cal, [_asn("Geeven Singh", "1480")])
+    assert [i for i in issues if i.severity == "error"] == []
+    entry = layout.entries[0]
+
+    # Without polygon inflation, the LIR would have to avoid the central
+    # hole and the largest rect would be ~100x20 (top or bottom strip).
+    # With inflation, the LIR is the full 100x60 rectangle.
+    ix, iy, iw, ih = entry.inscribed_rect
+    assert iw >= 95 and ih >= 55, (
+        f"expected near-full-room LIR after label inflation; got {entry.inscribed_rect}"
+    )
+    # Sanity: the inscribed rect overlaps the original label bbox.
+    lx, ly, lw, lh = label.bbox
+    overlap_x = max(0, min(ix + iw, lx + lw) - max(ix, lx))
+    overlap_y = max(0, min(iy + ih, ly + lh) - max(iy, ly))
+    assert overlap_x > 0 and overlap_y > 0, (
+        "inscribed rect should overlap the (soon-to-be-redrawn) label bbox"
+    )
+
+
 def test_build_leader_placement_skips_line_when_text_lands_inside_polygon():
     """Fix A: if the leader-line grid happens to find a clean spot inside
     the office's own polygon, the leader line itself is pointless (and

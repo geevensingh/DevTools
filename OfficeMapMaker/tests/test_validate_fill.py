@@ -319,7 +319,20 @@ def test_validate_fill_warns_when_seed_on_wall(tmp_path):
     cv2.imwrite(str(map_path), canvas)
 
     cal = _build_cal(
-        labels=[_office_label("1480", room_id=1, fill_seed=(20, 50))],  # on left wall
+        labels=[
+            _office_label(
+                "1480",
+                room_id=1,
+                fill_seed=(20, 50),  # on left wall
+                # Place the bbox well away from the seed so that the
+                # build_fill_mask label-erasure (which clears label bbox
+                # pixels to interior) does not coincidentally clear the
+                # wall the seed sits on. Without this, the seed would no
+                # longer be on a wall after erasure and the warning
+                # would not fire.
+                bbox=(60, 50, 20, 8),
+            )
+        ],
         rooms=[_room_for_box(1, 20, 20, 80, 60, img_h=h, img_w=w)],
     )
     leaks = validate_fill(map_path, cal)
@@ -437,3 +450,73 @@ def _write_minimal_cal_and_map(tmp_path: Path):
     cal_path = tmp_path / "calibration.json"
     save_calibration(cal, cal_path)
     return map_path, cal_path
+
+
+# ---------------------------------------------------------------------------
+# build_fill_mask label-bbox erasure
+# ---------------------------------------------------------------------------
+
+
+def test_build_fill_mask_clears_label_bbox_pixels():
+    """Passing ``labels=`` to build_fill_mask should zero (interior) every
+    pixel inside each label's bbox, so the soon-to-be-redrawn original
+    office-number digits don't block flood-fill or layout planning."""
+    canvas = _white_canvas(80, 120)
+    # Thin black "digit strokes" — adaptive threshold actually classifies
+    # these as walls (unlike a solid block, whose interior has black
+    # neighbors and gets dropped). Two horizontal strokes inside the
+    # bbox (40,30)-(80,50).
+    cv2.line(canvas, (42, 34), (78, 34), (0, 0, 0), thickness=2)
+    cv2.line(canvas, (42, 46), (78, 46), (0, 0, 0), thickness=2)
+
+    # Without labels, the strokes register as walls (non-zero in the mask).
+    bare = build_fill_mask(canvas, wall_patches=[])
+    assert bare[34, 60] > 0, "sanity: digit-stroke pixels should be in the wall mask"
+
+    # With labels, the digit bbox is cleared to interior (0).
+    lab = Label(
+        id="1480",
+        bbox=(40, 30, 40, 20),  # covers both strokes
+        room_id=None,
+        fill_seed=(60, 40),
+        ocr_confidence=0.9,
+    )
+    cleared = build_fill_mask(canvas, wall_patches=[], labels=[lab])
+    assert (cleared[30:50, 40:80] == 0).all(), (
+        "label bbox should be all-zero (interior) in the wall mask"
+    )
+
+
+def test_build_fill_mask_label_erasure_precedes_wall_patches():
+    """Wall_patches are drawn after label erasure, so a patch crossing
+    a label bbox still appears in the final mask (the patch's purpose
+    is to close a gap that may incidentally pass through a label)."""
+    canvas = _white_canvas(80, 120)
+    cv2.line(canvas, (42, 34), (78, 34), (0, 0, 0), thickness=2)
+
+    lab = Label(
+        id="1480",
+        bbox=(40, 30, 40, 20),
+        room_id=None,
+        fill_seed=(60, 40),
+        ocr_confidence=0.9,
+    )
+    # Horizontal patch line at y=40, crossing the label bbox.
+    mask = build_fill_mask(canvas, wall_patches=[(40, 40, 79, 40)], labels=[lab])
+    # Patch pixels survive even though they fall inside the erased label bbox.
+    assert (mask[40, 40:80] > 0).all(), (
+        "wall_patches drawn after label-erasure should still be present"
+    )
+
+
+def test_build_fill_mask_backward_compatible_without_labels():
+    """The new ``labels`` parameter is optional; existing callers that
+    don't pass it must get the same mask they always did."""
+    canvas = _white_canvas(80, 120)
+    cv2.line(canvas, (42, 34), (78, 34), (0, 0, 0), thickness=2)
+
+    a = build_fill_mask(canvas, wall_patches=[])
+    b = build_fill_mask(canvas, wall_patches=[], labels=None)
+    c = build_fill_mask(canvas, wall_patches=[], labels=[])
+    assert np.array_equal(a, b)
+    assert np.array_equal(a, c)

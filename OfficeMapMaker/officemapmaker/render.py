@@ -457,7 +457,13 @@ def render_composite(
             )
 
     # ---------- Step 2: build fill mask + label lookup ----------
-    wall_mask = build_fill_mask(original_bgr, calibration.wall_patches)
+    # Pass labels so original office-number digits are erased from the
+    # wall mask before flood-fill. The numbers are about to be replaced
+    # by our redrawn versions, so they should not block the fill (which
+    # could leave ghost digit pixels or leak through broken strokes).
+    wall_mask = build_fill_mask(
+        original_bgr, calibration.wall_patches, calibration.labels
+    )
     labels_by_office = _label_by_office(calibration)
     rooms_by_id = {r.id: r for r in calibration.rooms}
 
