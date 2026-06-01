@@ -587,6 +587,40 @@ def test_activation_with_cached_state_shows_results(qapp, inputs, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
+# Fit preview button calls fit_to_window on the preview view
+# ---------------------------------------------------------------------------
+
+
+def test_fit_preview_button_invokes_fit_to_window(qapp, inputs, monkeypatch):
+    map_path, assn_path, out = inputs
+
+    def fake_adapter(comp_path, out_dir, *, dpi, paper, overlap_in,
+                     progress_cb, cancel_cb):
+        result = _make_tile_result(out_dir, issues=[])
+        return (result,), []
+
+    monkeypatch.setattr(
+        "officemapmaker.wizard.steps.tile_step._run_tile_composite",
+        fake_adapter,
+    )
+
+    w = MainWindow(map_path=map_path, assignments_path=assn_path, output_dir=out)
+    try:
+        _install_layout_and_composite(w, out=out)
+        step = _go_to_tile(w)
+        step._run_button.click()
+        assert _drain_until(lambda: step._last_issues is not None)
+
+        calls: list[int] = []
+        orig = step._preview_view.fit_to_window
+        step._preview_view.fit_to_window = lambda: (calls.append(1), orig())[1]
+        step._fit_button.click()
+        assert calls
+    finally:
+        w.close()
+
+
+# ---------------------------------------------------------------------------
 # Real adapter smoke test: tiny composite -> real tile_composite() call
 # ---------------------------------------------------------------------------
 

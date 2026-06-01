@@ -49,12 +49,20 @@ class PreviewGraphicsView(QtWidgets.QGraphicsView):
     # ------------------------------------------------------------------
 
     def set_pixmap(self, pixmap: QtGui.QPixmap) -> None:
-        """Replace the displayed pixmap and fit-to-window."""
+        """Replace the displayed pixmap and fit-to-window.
+
+        The fit call is deferred to the next event-loop tick so the
+        viewport has its post-layout size by the time we compute the
+        scale. Without this, the very first ``set_pixmap`` (when the
+        containing pane hasn't been shown yet) ends up calling
+        ``fitInView`` on a 0x0 viewport, baking in a near-zero
+        transform that survives the subsequent resize.
+        """
         scene = self.scene()
         scene.clear()
         self._pixmap_item = scene.addPixmap(pixmap)
         scene.setSceneRect(QtCore.QRectF(pixmap.rect()))
-        self.fit_to_window()
+        QtCore.QTimer.singleShot(0, self.fit_to_window)
 
     def clear_pixmap(self) -> None:
         self.scene().clear()

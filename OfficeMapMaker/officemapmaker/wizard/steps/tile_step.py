@@ -343,6 +343,13 @@ class TileStep(StepBase):
             self._results_overlap = self._make_controls_row(parent=widget)
         header_row.addWidget(controls)
 
+        self._fit_button = QtWidgets.QPushButton("Fit preview")
+        self._fit_button.setToolTip(
+            "Reset zoom so the whole contact sheet fits in the view"
+        )
+        self._fit_button.clicked.connect(self._on_fit_clicked)
+        header_row.addWidget(self._fit_button)
+
         self._open_button = QtWidgets.QPushButton("Open output folder")
         self._open_button.setToolTip("Reveal tiles\\ in the file manager")
         self._open_button.clicked.connect(self._on_open_folder_clicked)
@@ -654,6 +661,9 @@ class TileStep(StepBase):
         if not target.exists():
             target = self._tile_result.out_dir
         _reveal_in_explorer(target)
+
+    def _on_fit_clicked(self) -> None:
+        self._preview_view.fit_to_window()
 
     # ------------------------------------------------------------------
     # Table population
