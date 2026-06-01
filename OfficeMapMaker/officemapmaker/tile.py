@@ -80,6 +80,7 @@ __all__ = [
 PAPER_SIZES_IN: dict[str, tuple[float, float]] = {
     "letter": (8.5, 11.0),
     "a4": (8.27, 11.69),
+    "tabloid": (11.0, 17.0),
 }
 
 # Footer text styling

@@ -104,9 +104,23 @@ def test_compute_tile_grid_rejects_oversized_overlap():
         compute_tile_grid((100, 100), overlap_in=12.0)
 
 
-def test_paper_sizes_in_contains_letter_and_a4():
+def test_paper_sizes_in_contains_letter_a4_and_tabloid():
     assert PAPER_SIZES_IN["letter"] == (8.5, 11.0)
     assert "a4" in PAPER_SIZES_IN
+    assert PAPER_SIZES_IN["tabloid"] == (11.0, 17.0)
+
+
+def test_compute_tile_grid_tabloid_uses_full_page():
+    # 1500x2300 fits in one tabloid page at 150 DPI (1650x2550 printable),
+    # but trying letter would require 2 rows.
+    grid_tab = compute_tile_grid(
+        (1500, 2300), dpi=150, paper="tabloid", overlap_in=0.25,
+    )
+    assert grid_tab.rows == 1 and grid_tab.cols == 1
+    grid_letter = compute_tile_grid(
+        (1500, 2300), dpi=150, paper="letter", overlap_in=0.25,
+    )
+    assert grid_letter.rows >= 2
 
 
 # ---------------------------------------------------------------------------
