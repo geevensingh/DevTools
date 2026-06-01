@@ -344,6 +344,92 @@ def test_place_office_number_warns_when_every_corner_overlaps():
     assert bbox == (38, 48, 20, 10)
 
 
+def test_place_office_number_in_polygon_uses_l_extension_space():
+    """For an L-shaped room, the office number should land in the
+    L-extension (polygon area outside the LIR) rather than being
+    crammed into a corner of the LIR alongside the names.
+
+    This is the key behavior gain from the polygon-aware placement: in
+    rooms where the polygon extends beyond the LIR, the number gets
+    breathing room without shrinking the names' area.
+    """
+    from officemapmaker.layout import _place_office_number_in_polygon  # type: ignore[attr-defined]
+
+    # An L-shaped polygon: top arm 100 wide × 60 tall at (0,0); bottom
+    # extension 50 wide × 40 tall at (0, 60). The LIR is the top arm.
+    polygon = np.zeros((120, 120), dtype=bool)
+    polygon[0:60, 0:100] = True   # top arm
+    polygon[60:100, 0:50] = True  # L-extension (bottom-left)
+    room_bbox = (0, 0, 100, 100)
+    inscribed_rect = (0, 0, 100, 60)  # top arm
+    # A name filling the LIR (so the office number can't share it).
+    name = NameEntry(
+        full_name="Long Name Here",
+        rendered_text="Long Name Here",
+        bbox=(5, 5, 90, 50),
+        font_px=20,
+    )
+    # Original label was in the L-extension.
+    original_label_bbox = (10, 70, 20, 10)
+    number_size = (30, 12)
+
+    bbox, crowded = _place_office_number_in_polygon(
+        polygon=polygon,
+        room_bbox=room_bbox,
+        number_size=number_size,
+        names=[name],
+        inscribed_rect=inscribed_rect,
+        original_label_bbox=original_label_bbox,
+    )
+    assert crowded is False
+    nx, ny, nw, nh = bbox
+    # Number landed in the L-extension (below the LIR's bottom edge at y=60)…
+    assert ny >= 60, f"expected number in L-extension (y>=60), got y={ny}"
+    # …entirely inside the polygon…
+    assert polygon[ny:ny + nh, nx:nx + nw].all()
+    # …not overlapping the name's bbox.
+    name_x1, name_y1, name_w, name_h = name.bbox
+    name_x2, name_y2 = name_x1 + name_w, name_y1 + name_h
+    nx2, ny2 = nx + nw, ny + nh
+    overlap = nx < name_x2 and nx2 > name_x1 and ny < name_y2 and ny2 > name_y1
+    assert not overlap
+
+
+def test_place_office_number_in_polygon_falls_back_when_crowded():
+    """For a strictly-rectangular polygon with names filling the LIR,
+    no candidate position is clear, so the function returns
+    ``crowded=True`` to signal the caller to fall back to the
+    reserved-strip layout.
+    """
+    from officemapmaker.layout import _place_office_number_in_polygon  # type: ignore[attr-defined]
+
+    # Polygon == LIR (rectangular room, no extra polygon space).
+    polygon = np.zeros((80, 80), dtype=bool)
+    polygon[0:60, 0:60] = True
+    room_bbox = (0, 0, 60, 60)
+    inscribed_rect = (0, 0, 60, 60)
+    # Names completely fill the polygon (with the small candidate margins
+    # there is nowhere clear for the number to go).
+    name = NameEntry(
+        full_name="Filler",
+        rendered_text="Filler",
+        bbox=(0, 0, 60, 60),
+        font_px=20,
+    )
+    original_label_bbox = (20, 50, 20, 10)  # inside the polygon
+    number_size = (30, 12)
+
+    bbox, crowded = _place_office_number_in_polygon(
+        polygon=polygon,
+        room_bbox=room_bbox,
+        number_size=number_size,
+        names=[name],
+        inscribed_rect=inscribed_rect,
+        original_label_bbox=original_label_bbox,
+    )
+    assert crowded is True
+
+
 def test_plan_layout_leader_line_avoids_other_labeled_rooms():
     """Bug 1: leader-line fallback used to pick left/right of the room
     purely from the map midpoint, so a small room in the left half always

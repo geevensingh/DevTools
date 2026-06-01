@@ -521,9 +521,22 @@ def _plan_one_office(
     """Plan one office's layout. Returns (entry, issues)."""
     issues: list[LayoutIssue] = []
 
-    # Reserve a small bottom strip for the office number. This is the
-    # preferred layout: names cleanly above, number cleanly below, zero
-    # overlap.
+    # Two layout strategies share most of this function:
+    #
+    #   A. "Polygon-number": names get the *full* LIR for layout, and the
+    #      office number is placed anywhere in the polygon that doesn't
+    #      overlap names. Optimal for L-shaped/irregular rooms where the
+    #      polygon extends beyond the LIR — the L-extension absorbs the
+    #      number with room to spare while names use the LIR's full
+    #      height (bigger font, better vertical centering).
+    #
+    #   B. "Reserved-strip": names get the LIR minus a bottom strip; the
+    #      office number lives in that strip. Optimal for rectangular
+    #      rooms where polygon ≈ LIR and strategy A would have to crowd
+    #      the number on top of a name.
+    #
+    # We try A first; if its polygon-anywhere number placement reports
+    # ``crowded`` (no clear spot outside name bboxes), we fall back to B.
     rect_x, rect_y, rect_w, rect_h = rect
     number_text = label.id
     number_size = _measure_text(number_text, number_font_px, font_path)
@@ -539,25 +552,54 @@ def _plan_one_office(
     # per-strategy enum. Level 0 is full names; higher levels progressively
     # shorten each person's name from the end while preserving the first
     # token. See ``_name_forms`` for the per-person ladder. Within each
-    # tier (reserved-strip → full-rect → polygon) we try every level in
-    # order and stop at the first one that fits.
+    # tier (polygon-number → reserved-strip → full-rect → polygon-fit) we
+    # try every level in order and stop at the first one that fits.
     max_level = _max_level_for(people)
 
     placement: Optional[list[NameEntry]] = None
     chosen: Optional[FitStrategy] = None
     chosen_level: int = 0
     crowded = False
+    number_bbox: Optional[BBox] = None
 
-    placement, chosen_level = _fit_at_any_level(
+    # === Strategy A: full LIR for names, number anywhere in polygon. ===
+    placement_a, level_a = _fit_at_any_level(
         people=people,
-        area=names_area,
+        area=rect,
         max_level=max_level,
         min_px=min_font_px,
         max_px=preferred_font_px,
         font_path=font_path,
     )
-    if placement is not None:
-        chosen = FitStrategy.FULL if chosen_level == 0 else FitStrategy.ABBREVIATED
+    if placement_a is not None:
+        nb_a, poly_crowded = _place_office_number_in_polygon(
+            polygon=polygon,
+            room_bbox=room.bbox,
+            number_size=number_size,
+            names=placement_a,
+            inscribed_rect=rect,
+            original_label_bbox=label.bbox,
+        )
+        if not poly_crowded:
+            placement = placement_a
+            chosen_level = level_a
+            number_bbox = nb_a
+            chosen = (
+                FitStrategy.FULL if chosen_level == 0 else FitStrategy.ABBREVIATED
+            )
+
+    # === Strategy B: reserved-strip layout (classic). ===
+    if placement is None:
+        placement, chosen_level = _fit_at_any_level(
+            people=people,
+            area=names_area,
+            max_level=max_level,
+            min_px=min_font_px,
+            max_px=preferred_font_px,
+            font_path=font_path,
+        )
+        if placement is not None:
+            chosen = FitStrategy.FULL if chosen_level == 0 else FitStrategy.ABBREVIATED
 
     if placement is None:
         # Reserved-strip layout failed — names didn't fit with the
@@ -662,26 +704,26 @@ def _plan_one_office(
             )
         )
 
-    # Place the office number. The default corner is bottom-right of the
-    # inscribed rect (the historical placement). In the crowded fallback
-    # path we try every corner and pick one that doesn't overlap a name;
-    # if every corner overlaps we accept the overlap and warn.
-    number_bbox, number_overlaps_name = _place_office_number(
-        rect=rect, number_size=number_size, names=placement
-    )
-    if crowded and number_overlaps_name:
-        issues.append(
-            LayoutIssue(
-                severity="warning",
-                code="office_number_overlaps_names",
-                message=(
-                    f"office {label.id} ({len(people)} people) had no clear "
-                    f"corner for the office number; the number will render on "
-                    f"top of a name"
-                ),
-                office_id=label.id,
-            )
+    # Strategy A may have already set ``number_bbox`` (polygon-anywhere
+    # placement succeeded). For every other path — including the leader
+    # fallback — fall back to the classic LIR-corner placement.
+    if number_bbox is None:
+        number_bbox, number_overlaps_name = _place_office_number(
+            rect=rect, number_size=number_size, names=placement
         )
+        if crowded and number_overlaps_name:
+            issues.append(
+                LayoutIssue(
+                    severity="warning",
+                    code="office_number_overlaps_names",
+                    message=(
+                        f"office {label.id} ({len(people)} people) had no clear "
+                        f"corner for the office number; the number will render on "
+                        f"top of a name"
+                    ),
+                    office_id=label.id,
+                )
+            )
     office_number = OfficeNumberPlacement(
         text=number_text, bbox=number_bbox, font_px=number_font_px
     )
@@ -697,6 +739,92 @@ def _plan_one_office(
         leader_lines=leader_lines,
     )
     return entry, issues
+
+
+def _place_office_number_in_polygon(
+    *,
+    polygon: np.ndarray,
+    room_bbox: BBox,
+    number_size: tuple[int, int],
+    names: list[NameEntry],
+    inscribed_rect: BBox,
+    original_label_bbox: BBox,
+    margin: int = 3,
+    name_padding: int = 3,
+) -> tuple[BBox, bool]:
+    """Find a position for the office number anywhere inside the room
+    polygon that does not overlap any placed name bbox.
+
+    The classic placement (``_place_office_number``) confines the number
+    to a corner of the LIR (largest inscribed rectangle). That works for
+    rectangular rooms but wastes space in L-shaped rooms whose polygon
+    extends beyond the LIR — the L-extension (door-arc cutouts,
+    stairwell notches, etc.) is empty real estate the number could
+    happily occupy without crowding the names.
+
+    Tries, in order:
+      1. Centered on the original label position (visually most natural —
+         the number ends up where the user expects, just rendered fresh
+         in the team color overlay).
+      2. The four corners of the room (polygon) bbox.
+      3. The four corners of the LIR (final fallback before declaring
+         crowded, matching today's default).
+
+    Returns ``(bbox, crowded)``. ``crowded=True`` means every candidate
+    overlapped names or fell outside the polygon. The caller should fall
+    back to the reserved-strip layout (``_place_office_number``) which
+    shrinks the names area instead of compromising on number placement.
+    """
+    nw, nh = number_size
+    rx, ry, rw, rh = room_bbox
+    lx, ly, lw, lh = inscribed_rect
+    ox, oy, ow, oh = original_label_bbox
+
+    img_h, img_w = polygon.shape
+
+    # Build the "available" mask: polygon AND NOT any name bbox (padded).
+    # Inflating name bboxes by a few pixels keeps the number visually
+    # detached from the names rather than touching them.
+    avail = polygon.copy()
+    for n in names:
+        nbx, nby, nbw, nbh = n.bbox
+        x1 = max(0, nbx - name_padding)
+        y1 = max(0, nby - name_padding)
+        x2 = min(img_w, nbx + nbw + name_padding)
+        y2 = min(img_h, nby + nbh + name_padding)
+        avail[y1:y2, x1:x2] = False
+
+    def fits(x: int, y: int) -> bool:
+        if x < 0 or y < 0 or x + nw > img_w or y + nh > img_h:
+            return False
+        return bool(avail[y:y + nh, x:x + nw].all())
+
+    candidates: list[tuple[int, int]] = []
+    # 1. Centered on the original label position.
+    candidates.append((ox + ow // 2 - nw // 2, oy + oh // 2 - nh // 2))
+    # 2. Polygon (room) bbox corners.
+    candidates.extend([
+        (rx + rw - nw - margin, ry + rh - nh - margin),  # bottom-right
+        (rx + margin, ry + rh - nh - margin),            # bottom-left
+        (rx + rw - nw - margin, ry + margin),            # top-right
+        (rx + margin, ry + margin),                      # top-left
+    ])
+    # 3. LIR corners (matches the classic placement as final fallback).
+    candidates.extend([
+        (lx + lw - nw - margin, ly + lh - nh - margin),
+        (lx + margin, ly + lh - nh - margin),
+        (lx + lw - nw - margin, ly + margin),
+        (lx + margin, ly + margin),
+    ])
+
+    for cx, cy in candidates:
+        if fits(cx, cy):
+            return ((cx, cy, nw, nh), False)
+
+    # Nothing fits cleanly — caller decides what to do (typically falls
+    # back to the reserved-strip layout via ``_place_office_number``).
+    cx, cy = (lx + lw - nw - margin, ly + lh - nh - margin)
+    return ((cx, cy, nw, nh), True)
 
 
 def _place_office_number(
