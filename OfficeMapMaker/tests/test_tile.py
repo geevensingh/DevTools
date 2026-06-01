@@ -12,6 +12,7 @@ from PIL import Image
 from officemapmaker.tile import (
     PAPER_SIZES_IN,
     TileIssue,
+    compute_fit_to_one_page_percent,
     compute_tile_grid,
     tile_composite,
 )
@@ -220,6 +221,101 @@ def test_compute_tile_grid_auto_raises_when_both_orientations_invalid():
 
 
 # ---------------------------------------------------------------------------
+# compute_fit_to_one_page_percent
+# ---------------------------------------------------------------------------
+
+
+def test_fit_percent_portrait_shrinks_large_composite():
+    # 5000x5000 composite, letter portrait (1275x1650 @ 150 DPI).
+    # Limiting dim is width: 1275/5000 = 25.5%.
+    percent = compute_fit_to_one_page_percent(
+        (5000, 5000), dpi=150, paper="letter", orientation="portrait",
+    )
+    assert percent == pytest.approx(25.5, abs=0.01)
+
+
+def test_fit_percent_landscape_uses_swapped_page_dims():
+    # 5000x5000 composite, letter landscape (1650x1275 @ 150 DPI).
+    # Limiting dim is height: 1275/5000 = 25.5%.
+    percent = compute_fit_to_one_page_percent(
+        (5000, 5000), dpi=150, paper="letter", orientation="landscape",
+    )
+    assert percent == pytest.approx(25.5, abs=0.01)
+
+
+def test_fit_percent_landscape_better_for_wide_composite():
+    # Wide composite (3000x800): portrait fit = min(1275/3000, 1650/800)
+    # = 1275/3000 = 42.5%. Landscape fit = min(1650/3000, 1275/800)
+    # = 1650/3000 = 55.0%. Landscape requires less shrinking.
+    portrait = compute_fit_to_one_page_percent(
+        (3000, 800), dpi=150, paper="letter", orientation="portrait",
+    )
+    landscape = compute_fit_to_one_page_percent(
+        (3000, 800), dpi=150, paper="letter", orientation="landscape",
+    )
+    assert landscape > portrait
+
+
+def test_fit_percent_auto_picks_orientation_with_least_shrink():
+    # Same wide composite — auto should return the landscape value.
+    auto = compute_fit_to_one_page_percent(
+        (3000, 800), dpi=150, paper="letter", orientation="auto",
+    )
+    landscape = compute_fit_to_one_page_percent(
+        (3000, 800), dpi=150, paper="letter", orientation="landscape",
+    )
+    assert auto == landscape
+
+
+def test_fit_percent_can_exceed_100_for_small_composite():
+    # 500x500 composite on letter portrait (1275x1650).  Limiting
+    # dim: 1275/500 = 255%.  Smaller composites can be enlarged.
+    percent = compute_fit_to_one_page_percent(
+        (500, 500), dpi=150, paper="letter", orientation="portrait",
+    )
+    assert percent == pytest.approx(255.0, abs=0.5)
+
+
+def test_fit_percent_actually_produces_one_tile_when_applied():
+    # End-to-end check: take the helper's value, resize via
+    # compute_tile_grid, confirm we get exactly one tile.
+    comp_size = (5000, 5000)
+    percent = compute_fit_to_one_page_percent(
+        comp_size, dpi=150, paper="letter", orientation="portrait",
+    )
+    scaled = (
+        int(round(comp_size[0] * percent / 100.0)),
+        int(round(comp_size[1] * percent / 100.0)),
+    )
+    grid = compute_tile_grid(
+        scaled, dpi=150, paper="letter", overlap_in=0.25,
+        orientation="portrait",
+    )
+    assert len(grid.tiles) == 1
+    assert grid.rows == 1
+    assert grid.cols == 1
+
+
+def test_fit_percent_rejects_bad_inputs():
+    with pytest.raises(ValueError):
+        compute_fit_to_one_page_percent(
+            (0, 100), dpi=150, paper="letter", orientation="portrait",
+        )
+    with pytest.raises(ValueError):
+        compute_fit_to_one_page_percent(
+            (100, 100), dpi=0, paper="letter", orientation="portrait",
+        )
+    with pytest.raises(ValueError):
+        compute_fit_to_one_page_percent(
+            (100, 100), dpi=150, paper="nonsense", orientation="portrait",
+        )
+    with pytest.raises(ValueError):
+        compute_fit_to_one_page_percent(
+            (100, 100), dpi=150, paper="letter", orientation="diagonal",
+        )
+
+
+# ---------------------------------------------------------------------------
 # tile_composite — end-to-end with a synthetic composite
 # ---------------------------------------------------------------------------
 
@@ -418,6 +514,77 @@ def test_tile_composite_records_grid_geometry_on_result(tmp_path):
     assert result.grid.dpi == 150
     assert result.grid.page_size_in == (8.5, 11.0)
     assert result.grid.composite_size == (1500, 2000)
+
+
+def test_tile_composite_scale_percent_50_halves_composite(tmp_path):
+    composite = _make_synthetic_composite(tmp_path / "composite.png", size=(2000, 3000))
+    _write_meta_sidecar(composite, palette={"A": "#E6BCBC"})
+
+    full = tile_composite(
+        composite, out_dir=tmp_path / "full", dpi=150, paper="letter",
+        orientation="portrait",
+    )
+    half = tile_composite(
+        composite, out_dir=tmp_path / "half", dpi=150, paper="letter",
+        orientation="portrait", scale_percent=50.0,
+    )
+
+    # 50% scale halves each dim, so the tile grid records the resized
+    # composite size and should produce strictly fewer tiles.
+    assert half.grid.composite_size == (1000, 1500)
+    assert full.grid.composite_size == (2000, 3000)
+    assert len(half.tile_paths) < len(full.tile_paths)
+
+
+def test_tile_composite_scale_percent_default_is_100(tmp_path):
+    # Calling without scale_percent must match the explicit 100% call.
+    composite = _make_synthetic_composite(tmp_path / "composite.png")
+    _write_meta_sidecar(composite, palette={"A": "#E6BCBC"})
+
+    default = tile_composite(
+        composite, out_dir=tmp_path / "default", dpi=150, paper="letter",
+        orientation="portrait",
+    )
+    explicit = tile_composite(
+        composite, out_dir=tmp_path / "explicit", dpi=150, paper="letter",
+        orientation="portrait", scale_percent=100.0,
+    )
+
+    assert default.grid.composite_size == explicit.grid.composite_size
+    assert len(default.tile_paths) == len(explicit.tile_paths)
+
+
+def test_tile_composite_scale_percent_must_be_positive(tmp_path):
+    composite = _make_synthetic_composite(tmp_path / "composite.png")
+    _write_meta_sidecar(composite, palette={"A": "#E6BCBC"})
+
+    with pytest.raises(ValueError):
+        tile_composite(
+            composite, out_dir=tmp_path / "tiles", scale_percent=0.0,
+        )
+    with pytest.raises(ValueError):
+        tile_composite(
+            composite, out_dir=tmp_path / "tiles", scale_percent=-10.0,
+        )
+
+
+def test_tile_composite_scale_percent_200_grows_composite(tmp_path):
+    # Scale up a tiny composite -> grid records the larger size and
+    # produces more tiles than the un-scaled version.
+    composite = _make_synthetic_composite(tmp_path / "composite.png", size=(800, 1000))
+    _write_meta_sidecar(composite, palette={"A": "#E6BCBC"})
+
+    small = tile_composite(
+        composite, out_dir=tmp_path / "small", dpi=150, paper="letter",
+        orientation="portrait",
+    )
+    big = tile_composite(
+        composite, out_dir=tmp_path / "big", dpi=150, paper="letter",
+        orientation="portrait", scale_percent=200.0,
+    )
+
+    assert big.grid.composite_size == (1600, 2000)
+    assert len(big.tile_paths) >= len(small.tile_paths)
 
 
 # ---------------------------------------------------------------------------

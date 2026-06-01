@@ -276,7 +276,8 @@ def test_orientation_choice_is_passed_to_adapter(qapp, inputs, monkeypatch):
     captured: dict = {}
 
     def fake_adapter(comp_path, out_dir, *, dpi, paper, overlap_in,
-                     orientation, progress_cb, cancel_cb):
+                     orientation, scale_percent,
+                     progress_cb, cancel_cb):
         captured["orientation"] = orientation
         result = _make_tile_result(out_dir, issues=[], n_tiles=1)
         return (result,), list(result.issues)
@@ -319,7 +320,8 @@ def test_run_button_populates_results_with_warning_status(
     captured: dict = {}
 
     def fake_adapter(comp_path, out_dir, *, dpi, paper, overlap_in,
-                     orientation, progress_cb, cancel_cb):
+                     orientation, scale_percent,
+                     progress_cb, cancel_cb):
         captured["composite"] = comp_path
         captured["out_dir"] = out_dir
         captured["dpi"] = dpi
@@ -366,7 +368,8 @@ def test_clean_run_shows_empty_state(qapp, inputs, monkeypatch):
     map_path, assn_path, out = inputs
 
     def fake_adapter(comp_path, out_dir, *, dpi, paper, overlap_in,
-                     orientation, progress_cb, cancel_cb):
+                     orientation, scale_percent,
+                     progress_cb, cancel_cb):
         result = _make_tile_result(out_dir, issues=[])
         return (result,), []
 
@@ -400,7 +403,8 @@ def test_controls_pass_through_to_adapter(qapp, inputs, monkeypatch):
     captured: dict = {}
 
     def fake_adapter(comp_path, out_dir, *, dpi, paper, overlap_in,
-                     orientation, progress_cb, cancel_cb):
+                     orientation, scale_percent,
+                     progress_cb, cancel_cb):
         captured["dpi"] = dpi
         captured["paper"] = paper
         captured["overlap_in"] = overlap_in
@@ -445,7 +449,8 @@ def test_ignore_removes_row_and_updates_status(qapp, inputs, monkeypatch):
                       message="text too small at this DPI")
 
     def fake_adapter(comp_path, out_dir, *, dpi, paper, overlap_in,
-                     orientation, progress_cb, cancel_cb):
+                     orientation, scale_percent,
+                     progress_cb, cancel_cb):
         result = _make_tile_result(out_dir, issues=[issue])
         return (result,), list(result.issues)
 
@@ -483,7 +488,8 @@ def test_rerun_clears_cached_results_and_ignore(qapp, inputs, monkeypatch):
     issue = TileIssue(severity="warning", code="x", message="m")
 
     def fake_adapter(comp_path, out_dir, *, dpi, paper, overlap_in,
-                     orientation, progress_cb, cancel_cb):
+                     orientation, scale_percent,
+                     progress_cb, cancel_cb):
         result = _make_tile_result(out_dir, issues=[issue])
         return (result,), list(result.issues)
 
@@ -522,7 +528,8 @@ def test_done_button_closes_main_window(qapp, inputs, monkeypatch):
     map_path, assn_path, out = inputs
 
     def fake_adapter(comp_path, out_dir, *, dpi, paper, overlap_in,
-                     orientation, progress_cb, cancel_cb):
+                     orientation, scale_percent,
+                     progress_cb, cancel_cb):
         result = _make_tile_result(out_dir, issues=[])
         return (result,), []
 
@@ -566,7 +573,8 @@ def test_open_folder_button_invokes_reveal(qapp, inputs, monkeypatch):
     map_path, assn_path, out = inputs
 
     def fake_adapter(comp_path, out_dir, *, dpi, paper, overlap_in,
-                     orientation, progress_cb, cancel_cb):
+                     orientation, scale_percent,
+                     progress_cb, cancel_cb):
         result = _make_tile_result(out_dir, issues=[])
         return (result,), []
 
@@ -609,7 +617,8 @@ def test_activation_with_cached_state_shows_results(qapp, inputs, monkeypatch):
     map_path, assn_path, out = inputs
 
     def fake_adapter(comp_path, out_dir, *, dpi, paper, overlap_in,
-                     orientation, progress_cb, cancel_cb):
+                     orientation, scale_percent,
+                     progress_cb, cancel_cb):
         result = _make_tile_result(out_dir, issues=[])
         return (result,), []
 
@@ -642,7 +651,8 @@ def test_fit_preview_button_invokes_fit_to_window(qapp, inputs, monkeypatch):
     map_path, assn_path, out = inputs
 
     def fake_adapter(comp_path, out_dir, *, dpi, paper, overlap_in,
-                     orientation, progress_cb, cancel_cb):
+                     orientation, scale_percent,
+                     progress_cb, cancel_cb):
         result = _make_tile_result(out_dir, issues=[])
         return (result,), []
 
@@ -668,6 +678,75 @@ def test_fit_preview_button_invokes_fit_to_window(qapp, inputs, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
+# Scale % field + Fit-to-1-page button
+# ---------------------------------------------------------------------------
+
+
+def test_scale_field_defaults_to_100(qapp, inputs):
+    map_path, assn_path, out = inputs
+
+    w = MainWindow(map_path=map_path, assignments_path=assn_path, output_dir=out)
+    try:
+        _install_layout_and_composite(w, out=out)
+        step = _go_to_tile(w)
+        assert step._landing_scale.value() == pytest.approx(100.0)
+    finally:
+        w.close()
+
+
+def test_scale_percent_passed_through_to_adapter(qapp, inputs, monkeypatch):
+    map_path, assn_path, out = inputs
+
+    captured: dict = {}
+
+    def fake_adapter(comp_path, out_dir, *, dpi, paper, overlap_in,
+                     orientation, scale_percent,
+                     progress_cb, cancel_cb):
+        captured["scale_percent"] = scale_percent
+        result = _make_tile_result(out_dir, issues=[])
+        return (result,), []
+
+    monkeypatch.setattr(
+        "officemapmaker.wizard.steps.tile_step._run_tile_composite",
+        fake_adapter,
+    )
+
+    w = MainWindow(map_path=map_path, assignments_path=assn_path, output_dir=out)
+    try:
+        _install_layout_and_composite(w, out=out)
+        step = _go_to_tile(w)
+        step._landing_scale.setValue(75.0)
+        step._run_button.click()
+        assert _drain_until(lambda: step._last_issues is not None)
+
+        assert captured["scale_percent"] == pytest.approx(75.0)
+        # Mirrored to the results-pane scale field as well.
+        assert step._results_scale.value() == pytest.approx(75.0)
+    finally:
+        w.close()
+
+
+def test_fit_to_one_page_button_writes_scale_field(qapp, inputs):
+    map_path, assn_path, out = inputs
+
+    w = MainWindow(map_path=map_path, assignments_path=assn_path, output_dir=out)
+    try:
+        # 200x200 composite + letter portrait + 150 DPI -> page is
+        # 1275x1650 px, so fit% is well over 100 (composite is small).
+        _install_layout_and_composite(w, out=out)
+        step = _go_to_tile(w)
+        step._landing_paper.setCurrentText("letter")
+        step._landing_orientation.setCurrentText("portrait")
+        step._landing_dpi.setValue(150)
+        step._landing_scale.setValue(100.0)
+        step._landing_fit_btn.click()
+        # Tiny 200x200 composite fits with room to spare -> scale > 100.
+        assert step._landing_scale.value() > 100.0
+    finally:
+        w.close()
+
+
+# ---------------------------------------------------------------------------
 # Real adapter smoke test: tiny composite -> real tile_composite() call
 # ---------------------------------------------------------------------------
 
@@ -687,7 +766,7 @@ def test_real_adapter_writes_tile_outputs(tmp_path: Path):
 
     result, issues = _run_tile_composite(
         composite, out_dir,
-        dpi=150, paper="letter", overlap_in=0.25, orientation="portrait",
+        dpi=150, paper="letter", overlap_in=0.25, orientation="portrait", scale_percent=100.0,
         progress_cb=progress_cb, cancel_cb=cancel_cb,
     )
     (tile_result,) = result
@@ -717,7 +796,7 @@ def test_real_adapter_cancels_before_render(tmp_path: Path):
     with pytest.raises(PipelineCanceled):
         _run_tile_composite(
             composite, out_dir,
-            dpi=150, paper="letter", overlap_in=0.25, orientation="portrait",
+            dpi=150, paper="letter", overlap_in=0.25, orientation="portrait", scale_percent=100.0,
             progress_cb=progress_cb, cancel_cb=cancel_cb,
         )
     assert not out_dir.exists() or not any(out_dir.iterdir())

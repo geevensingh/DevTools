@@ -68,6 +68,7 @@ __all__ = [
     "TileIssue",
     "TileResult",
     "compute_tile_grid",
+    "compute_fit_to_one_page_percent",
     "tile_composite",
 ]
 
@@ -317,6 +318,57 @@ def compute_tile_grid(
         tiles=tuple(tiles),
         orientation=orientation,
     )
+
+
+def compute_fit_to_one_page_percent(
+    composite_size: tuple[int, int],
+    *,
+    dpi: int = 150,
+    paper: str = "letter",
+    orientation: str = "portrait",
+) -> float:
+    """Return the scale percent that makes ``composite_size`` fit on one page.
+
+    Picks the largest scale factor where the resized composite still fits
+    entirely inside a single page (no tiling needed).  Returned as a
+    percent (i.e. ``50.0`` means scale to 50%).
+
+    ``orientation="auto"`` returns the larger of the portrait and
+    landscape fit percents — i.e. the orientation that requires the
+    least shrinking.  The caller is expected to keep ``orientation=auto``
+    when invoking ``tile_composite``; the auto resolver there will pick
+    the orientation that yields a single tile at the chosen scale.
+
+    Overlap is irrelevant for a single-tile fit (no neighbors), so this
+    helper deliberately ignores ``overlap_in``.
+    """
+    if orientation not in ORIENTATIONS:
+        raise ValueError(
+            f"unsupported orientation: {orientation!r} "
+            f"(supported: {list(ORIENTATIONS)})"
+        )
+    if paper not in PAPER_SIZES_IN:
+        raise ValueError(
+            f"unsupported paper size: {paper!r} (supported: {sorted(PAPER_SIZES_IN)})"
+        )
+    if dpi <= 0:
+        raise ValueError(f"dpi must be positive, got {dpi}")
+    comp_w, comp_h = composite_size
+    if comp_w <= 0 or comp_h <= 0:
+        raise ValueError(f"composite_size must be positive, got {composite_size}")
+
+    def _percent_for(orient: str) -> float:
+        page_w_in, page_h_in = PAPER_SIZES_IN[paper]
+        if orient == "landscape":
+            page_w_in, page_h_in = page_h_in, page_w_in
+        page_w_px = int(round(page_w_in * dpi))
+        page_h_px = int(round(page_h_in * dpi))
+        scale = min(page_w_px / comp_w, page_h_px / comp_h)
+        return scale * 100.0
+
+    if orientation == "auto":
+        return max(_percent_for("portrait"), _percent_for("landscape"))
+    return _percent_for(orientation)
 
 
 # ---------------------------------------------------------------------------
@@ -616,6 +668,7 @@ def tile_composite(
     paper: str = "letter",
     overlap_in: float = 0.25,
     orientation: str = "portrait",
+    scale_percent: float = 100.0,
     meta: Optional[dict] = None,
     min_font_pt: int = 7,
 ) -> TileResult:
@@ -632,6 +685,13 @@ def tile_composite(
         orientation: ``"portrait"`` (default), ``"landscape"``, or
             ``"auto"``.  Auto picks whichever orientation produces fewer
             total tiles (tiebreak: portrait).
+        scale_percent: Resize the composite by this percent before
+            tiling.  ``100.0`` (default) leaves the composite untouched.
+            ``50.0`` halves the composite in each dim (so the resulting
+            text is half the physical size on the printed page, and the
+            tile count drops accordingly).  Use
+            :func:`compute_fit_to_one_page_percent` to derive a value
+            that fits the whole composite on a single page.
         meta: Pre-loaded composite metadata (mostly used by tests).  If
             None, we look for ``<composite_stem>_meta.json`` next to the
             composite and load it; if not found, we render a minimal
@@ -645,6 +705,8 @@ def tile_composite(
     out_dir = Path(out_dir)
     if not composite_path.exists():
         raise FileNotFoundError(composite_path)
+    if scale_percent <= 0:
+        raise ValueError(f"scale_percent must be positive, got {scale_percent}")
     out_dir.mkdir(parents=True, exist_ok=True)
 
     issues: list[TileIssue] = []
@@ -680,8 +742,16 @@ def tile_composite(
             )
             meta = {}
 
-    # Load composite + compute grid.
+    # Load composite + optionally resize.
     composite = Image.open(composite_path).convert("RGB")
+    if scale_percent != 100.0:
+        orig_w, orig_h = composite.size
+        new_w = max(1, int(round(orig_w * scale_percent / 100.0)))
+        new_h = max(1, int(round(orig_h * scale_percent / 100.0)))
+        # LANCZOS gives high quality both up- and down-scaling at the
+        # cost of being ~3x slower than BILINEAR.  Tiling is a once-per-
+        # job operation so we accept the cost for sharper text.
+        composite = composite.resize((new_w, new_h), Image.LANCZOS)
     comp_size = composite.size  # (w, h)
     grid = compute_tile_grid(
         comp_size, dpi=dpi, paper=paper, overlap_in=overlap_in,

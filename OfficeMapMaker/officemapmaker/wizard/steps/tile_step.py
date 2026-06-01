@@ -49,6 +49,7 @@ from ...tile import (
     PAPER_SIZES_IN,
     TileIssue,
     TileResult,
+    compute_fit_to_one_page_percent,
     tile_composite,
 )
 from ..main_window import StepStatus
@@ -69,6 +70,7 @@ def _run_tile_composite(
     paper: str,
     overlap_in: float,
     orientation: str,
+    scale_percent: float,
     progress_cb,
     cancel_cb,
 ) -> Tuple[Tuple[TileResult], List[TileIssue]]:
@@ -98,6 +100,7 @@ def _run_tile_composite(
         paper=paper,
         overlap_in=overlap_in,
         orientation=orientation,
+        scale_percent=scale_percent,
     )
     if cancel_cb():
         from ...pipeline import PipelineCanceled
@@ -244,8 +247,9 @@ class TileStep(StepBase):
         self, *, parent: QtWidgets.QWidget
     ) -> Tuple[QtWidgets.QWidget, QtWidgets.QComboBox,
                QtWidgets.QComboBox, QtWidgets.QSpinBox,
-               QtWidgets.QDoubleSpinBox]:
-        """Build a row with paper / orientation / DPI / overlap controls.
+               QtWidgets.QDoubleSpinBox, QtWidgets.QDoubleSpinBox,
+               QtWidgets.QPushButton]:
+        """Build a row with paper / orientation / DPI / overlap / scale controls.
 
         Returned so each pane can have its own row but share defaults.
         The landing-pane row and the results-pane header row both call
@@ -301,7 +305,31 @@ class TileStep(StepBase):
         )
         row.addWidget(overlap)
 
-        return row_widget, paper, orientation, dpi, overlap
+        row.addSpacing(8)
+        row.addWidget(QtWidgets.QLabel("Scale (%):"))
+        scale = QtWidgets.QDoubleSpinBox()
+        scale.setRange(1.0, 1000.0)
+        scale.setSingleStep(5.0)
+        scale.setDecimals(1)
+        scale.setValue(100.0)
+        scale.setToolTip(
+            "Resize the composite before tiling. 100% = unchanged; 50% "
+            "halves the printed size (and the tile count); 200% doubles "
+            "it (more pages, larger text). Use the 'Fit to 1 page' "
+            "button to compute the scale that fits the whole map on a "
+            "single sheet."
+        )
+        row.addWidget(scale)
+
+        fit_btn = QtWidgets.QPushButton("Fit to 1 page")
+        fit_btn.setToolTip(
+            "Compute the scale that makes the entire composite fit "
+            "on a single page at the current paper size + orientation, "
+            "and write that value into the Scale field."
+        )
+        row.addWidget(fit_btn)
+
+        return row_widget, paper, orientation, dpi, overlap, scale, fit_btn
 
     def _build_landing_pane(self) -> QtWidgets.QWidget:
         widget = QtWidgets.QWidget()
@@ -328,8 +356,12 @@ class TileStep(StepBase):
         layout.addWidget(desc)
 
         controls, self._landing_paper, self._landing_orientation, \
-            self._landing_dpi, self._landing_overlap = \
+            self._landing_dpi, self._landing_overlap, \
+            self._landing_scale, self._landing_fit_btn = \
             self._make_controls_row(parent=widget)
+        self._landing_fit_btn.clicked.connect(
+            lambda: self._on_fit_to_one_page_clicked(landing=True)
+        )
         layout.addWidget(controls)
 
         self._run_button = QtWidgets.QPushButton("Build tiles + PDF")
@@ -357,8 +389,12 @@ class TileStep(StepBase):
         header_row.addStretch(1)
 
         controls, self._results_paper, self._results_orientation, \
-            self._results_dpi, self._results_overlap = \
+            self._results_dpi, self._results_overlap, \
+            self._results_scale, self._results_fit_btn = \
             self._make_controls_row(parent=widget)
+        self._results_fit_btn.clicked.connect(
+            lambda: self._on_fit_to_one_page_clicked(landing=False)
+        )
         header_row.addWidget(controls)
 
         self._fit_button = QtWidgets.QPushButton("Fit preview")
@@ -548,6 +584,7 @@ class TileStep(StepBase):
         )
         self._results_dpi.setValue(self._landing_dpi.value())
         self._results_overlap.setValue(self._landing_overlap.value())
+        self._results_scale.setValue(self._landing_scale.value())
 
     def _sync_controls_from_results_to_landing(self) -> None:
         self._landing_paper.setCurrentText(self._results_paper.currentText())
@@ -556,11 +593,12 @@ class TileStep(StepBase):
         )
         self._landing_dpi.setValue(self._results_dpi.value())
         self._landing_overlap.setValue(self._results_overlap.value())
+        self._landing_scale.setValue(self._results_scale.value())
 
-    def _current_controls(self) -> Tuple[str, str, int, float]:
+    def _current_controls(self) -> Tuple[str, str, int, float, float]:
         """Whichever pane is currently visible owns the live values.
 
-        Returns (paper, orientation, dpi, overlap_in).
+        Returns (paper, orientation, dpi, overlap_in, scale_percent).
         """
         if self._stack.currentWidget() is self._results_pane:
             return (
@@ -568,13 +606,67 @@ class TileStep(StepBase):
                 self._results_orientation.currentText(),
                 self._results_dpi.value(),
                 self._results_overlap.value(),
+                self._results_scale.value(),
             )
         return (
             self._landing_paper.currentText(),
             self._landing_orientation.currentText(),
             self._landing_dpi.value(),
             self._landing_overlap.value(),
+            self._landing_scale.value(),
         )
+
+    def _on_fit_to_one_page_clicked(self, *, landing: bool) -> None:
+        """Compute the scale that fits the composite on one page.
+
+        Reads the composite size via PIL (only the header is parsed,
+        not the pixel data) and writes the result into whichever pane's
+        Scale field initiated the click.
+        """
+        composite_path = self._lookup_composite_path()
+        if composite_path is None or not composite_path.exists():
+            QtWidgets.QMessageBox.warning(
+                self, "Composite missing",
+                "Cannot compute scale without a composite. Run Step 5 "
+                "(Build composite) first."
+            )
+            return
+
+        try:
+            from PIL import Image
+            with Image.open(composite_path) as img:
+                comp_size = img.size  # (w, h); only the header is parsed
+        except (OSError, ValueError) as exc:
+            QtWidgets.QMessageBox.warning(
+                self, "Composite unreadable",
+                f"Could not read {composite_path.name}: {exc}"
+            )
+            return
+
+        if landing:
+            paper = self._landing_paper.currentText()
+            orientation = self._landing_orientation.currentText()
+            dpi = self._landing_dpi.value()
+            scale_field = self._landing_scale
+        else:
+            paper = self._results_paper.currentText()
+            orientation = self._results_orientation.currentText()
+            dpi = self._results_dpi.value()
+            scale_field = self._results_scale
+
+        try:
+            percent = compute_fit_to_one_page_percent(
+                comp_size, dpi=dpi, paper=paper, orientation=orientation,
+            )
+        except ValueError as exc:
+            QtWidgets.QMessageBox.warning(
+                self, "Cannot compute fit", str(exc)
+            )
+            return
+
+        # Clamp to the spinbox range so we don't silently truncate.
+        clamped = max(scale_field.minimum(), min(scale_field.maximum(), percent))
+        scale_field.setValue(clamped)
 
     def _kick_off_tile(self) -> None:
         self._run_button.setEnabled(False)
@@ -589,7 +681,7 @@ class TileStep(StepBase):
         self._composite_path = composite_path
 
         out_dir = Path(self.main_window.output_dir) / "tiles"
-        paper, orientation, dpi, overlap = self._current_controls()
+        paper, orientation, dpi, overlap, scale = self._current_controls()
 
         runner = self.main_window.run_pipeline_step(
             self.STEP_ID,
@@ -600,6 +692,7 @@ class TileStep(StepBase):
                 "paper": paper,
                 "overlap_in": overlap,
                 "orientation": orientation,
+                "scale_percent": scale,
             },
             on_finished=self._on_tile_finished,
             on_failed=self._on_tile_failed,
@@ -795,9 +888,11 @@ class TileStep(StepBase):
 
         n_tiles = len(self._tile_result.tile_paths)
         grid = self._tile_result.grid
+        scale = self._results_scale.value()
+        scale_suffix = f", {scale:g}%" if scale != 100.0 else ""
         head = (
             f"{n_tiles} tile(s) ({grid.rows}x{grid.cols}, "
-            f"{grid.orientation}) "
+            f"{grid.orientation}{scale_suffix}) "
             f"-> {self._tile_result.out_dir.name}\\"
         )
         if total == 0:
