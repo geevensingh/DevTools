@@ -587,6 +587,7 @@ class MainWindow(QtWidgets.QMainWindow):
         from .steps.build_step import BuildStep
         from .steps.calibrate_step import CalibrateStep
         from .steps.layout_step import LayoutStep
+        from .steps.tile_step import TileStep
         from .steps.validate_fill_step import ValidateFillStep
         from .steps.validate_labels_step import ValidateLabelsStep
 
@@ -602,6 +603,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 entry.widget = LayoutStep(self)
             elif entry.step_id == "build":
                 entry.widget = BuildStep(self)
+            elif entry.step_id == "tile":
+                entry.widget = TileStep(self)
             else:
                 entry.widget = self._make_placeholder_step(entry)
             self._content_stack.addWidget(entry.widget)
