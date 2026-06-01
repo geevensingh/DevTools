@@ -45,6 +45,7 @@ from typing import List, Optional, Tuple
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ...tile import (
+    ORIENTATIONS,
     PAPER_SIZES_IN,
     TileIssue,
     TileResult,
@@ -67,6 +68,7 @@ def _run_tile_composite(
     dpi: int,
     paper: str,
     overlap_in: float,
+    orientation: str,
     progress_cb,
     cancel_cb,
 ) -> Tuple[Tuple[TileResult], List[TileIssue]]:
@@ -95,6 +97,7 @@ def _run_tile_composite(
         dpi=dpi,
         paper=paper,
         overlap_in=overlap_in,
+        orientation=orientation,
     )
     if cancel_cb():
         from ...pipeline import PipelineCanceled
@@ -240,8 +243,9 @@ class TileStep(StepBase):
     def _make_controls_row(
         self, *, parent: QtWidgets.QWidget
     ) -> Tuple[QtWidgets.QWidget, QtWidgets.QComboBox,
-               QtWidgets.QSpinBox, QtWidgets.QDoubleSpinBox]:
-        """Build a row with paper / DPI / overlap controls.
+               QtWidgets.QComboBox, QtWidgets.QSpinBox,
+               QtWidgets.QDoubleSpinBox]:
+        """Build a row with paper / orientation / DPI / overlap controls.
 
         Returned so each pane can have its own row but share defaults.
         The landing-pane row and the results-pane header row both call
@@ -259,6 +263,18 @@ class TileStep(StepBase):
         paper.setCurrentText("letter")
         paper.setToolTip("Page size for the printed tiles + bundled PDF.")
         row.addWidget(paper)
+
+        row.addSpacing(8)
+        row.addWidget(QtWidgets.QLabel("Orientation:"))
+        orientation = QtWidgets.QComboBox()
+        for key in ORIENTATIONS:
+            orientation.addItem(key)
+        orientation.setCurrentText("auto")
+        orientation.setToolTip(
+            "Portrait or landscape page layout. 'Auto' picks whichever "
+            "produces fewer total tiles (tiebreak: portrait)."
+        )
+        row.addWidget(orientation)
 
         row.addSpacing(8)
         row.addWidget(QtWidgets.QLabel("DPI:"))
@@ -285,7 +301,7 @@ class TileStep(StepBase):
         )
         row.addWidget(overlap)
 
-        return row_widget, paper, dpi, overlap
+        return row_widget, paper, orientation, dpi, overlap
 
     def _build_landing_pane(self) -> QtWidgets.QWidget:
         widget = QtWidgets.QWidget()
@@ -311,8 +327,9 @@ class TileStep(StepBase):
         desc.setStyleSheet("QLabel { color: #555; }")
         layout.addWidget(desc)
 
-        controls, self._landing_paper, self._landing_dpi, \
-            self._landing_overlap = self._make_controls_row(parent=widget)
+        controls, self._landing_paper, self._landing_orientation, \
+            self._landing_dpi, self._landing_overlap = \
+            self._make_controls_row(parent=widget)
         layout.addWidget(controls)
 
         self._run_button = QtWidgets.QPushButton("Build tiles + PDF")
@@ -339,8 +356,9 @@ class TileStep(StepBase):
         header_row.addWidget(self._summary_label)
         header_row.addStretch(1)
 
-        controls, self._results_paper, self._results_dpi, \
-            self._results_overlap = self._make_controls_row(parent=widget)
+        controls, self._results_paper, self._results_orientation, \
+            self._results_dpi, self._results_overlap = \
+            self._make_controls_row(parent=widget)
         header_row.addWidget(controls)
 
         self._fit_button = QtWidgets.QPushButton("Fit preview")
@@ -525,24 +543,35 @@ class TileStep(StepBase):
 
     def _sync_controls_from_landing_to_results(self) -> None:
         self._results_paper.setCurrentText(self._landing_paper.currentText())
+        self._results_orientation.setCurrentText(
+            self._landing_orientation.currentText()
+        )
         self._results_dpi.setValue(self._landing_dpi.value())
         self._results_overlap.setValue(self._landing_overlap.value())
 
     def _sync_controls_from_results_to_landing(self) -> None:
         self._landing_paper.setCurrentText(self._results_paper.currentText())
+        self._landing_orientation.setCurrentText(
+            self._results_orientation.currentText()
+        )
         self._landing_dpi.setValue(self._results_dpi.value())
         self._landing_overlap.setValue(self._results_overlap.value())
 
-    def _current_controls(self) -> Tuple[str, int, float]:
-        """Whichever pane is currently visible owns the live values."""
+    def _current_controls(self) -> Tuple[str, str, int, float]:
+        """Whichever pane is currently visible owns the live values.
+
+        Returns (paper, orientation, dpi, overlap_in).
+        """
         if self._stack.currentWidget() is self._results_pane:
             return (
                 self._results_paper.currentText(),
+                self._results_orientation.currentText(),
                 self._results_dpi.value(),
                 self._results_overlap.value(),
             )
         return (
             self._landing_paper.currentText(),
+            self._landing_orientation.currentText(),
             self._landing_dpi.value(),
             self._landing_overlap.value(),
         )
@@ -560,7 +589,7 @@ class TileStep(StepBase):
         self._composite_path = composite_path
 
         out_dir = Path(self.main_window.output_dir) / "tiles"
-        paper, dpi, overlap = self._current_controls()
+        paper, orientation, dpi, overlap = self._current_controls()
 
         runner = self.main_window.run_pipeline_step(
             self.STEP_ID,
@@ -570,6 +599,7 @@ class TileStep(StepBase):
                 "dpi": dpi,
                 "paper": paper,
                 "overlap_in": overlap,
+                "orientation": orientation,
             },
             on_finished=self._on_tile_finished,
             on_failed=self._on_tile_failed,
@@ -766,7 +796,8 @@ class TileStep(StepBase):
         n_tiles = len(self._tile_result.tile_paths)
         grid = self._tile_result.grid
         head = (
-            f"{n_tiles} tile(s) ({grid.rows}x{grid.cols}) "
+            f"{n_tiles} tile(s) ({grid.rows}x{grid.cols}, "
+            f"{grid.orientation}) "
             f"-> {self._tile_result.out_dir.name}\\"
         )
         if total == 0:

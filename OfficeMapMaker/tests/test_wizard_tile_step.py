@@ -247,8 +247,55 @@ def test_landing_pane_shown_when_composite_exists(qapp, inputs):
         assert step._run_button.isEnabled()
         # Default control values.
         assert step._landing_paper.currentText() == "letter"
+        assert step._landing_orientation.currentText() == "auto"
         assert step._landing_dpi.value() == 150
         assert step._landing_overlap.value() == pytest.approx(0.25)
+    finally:
+        w.close()
+
+
+def test_orientation_combobox_lists_all_supported_values(qapp, inputs):
+    from officemapmaker.tile import ORIENTATIONS
+
+    map_path, assn_path, out = inputs
+    w = MainWindow(map_path=map_path, assignments_path=assn_path, output_dir=out)
+    try:
+        _install_layout_and_composite(w, out=out)
+        step = _go_to_tile(w)
+        items = [
+            step._landing_orientation.itemText(i)
+            for i in range(step._landing_orientation.count())
+        ]
+        assert items == list(ORIENTATIONS)
+    finally:
+        w.close()
+
+
+def test_orientation_choice_is_passed_to_adapter(qapp, inputs, monkeypatch):
+    map_path, assn_path, out = inputs
+    captured: dict = {}
+
+    def fake_adapter(comp_path, out_dir, *, dpi, paper, overlap_in,
+                     orientation, progress_cb, cancel_cb):
+        captured["orientation"] = orientation
+        result = _make_tile_result(out_dir, issues=[], n_tiles=1)
+        return (result,), list(result.issues)
+
+    monkeypatch.setattr(
+        "officemapmaker.wizard.steps.tile_step._run_tile_composite",
+        fake_adapter,
+    )
+
+    w = MainWindow(map_path=map_path, assignments_path=assn_path, output_dir=out)
+    try:
+        _install_layout_and_composite(w, out=out)
+        step = _go_to_tile(w)
+        step._landing_orientation.setCurrentText("landscape")
+        step._run_button.click()
+        assert _drain_until(lambda: step._last_issues is not None)
+        assert captured["orientation"] == "landscape"
+        # And the results-pane combobox was synced.
+        assert step._results_orientation.currentText() == "landscape"
     finally:
         w.close()
 
@@ -272,7 +319,7 @@ def test_run_button_populates_results_with_warning_status(
     captured: dict = {}
 
     def fake_adapter(comp_path, out_dir, *, dpi, paper, overlap_in,
-                     progress_cb, cancel_cb):
+                     orientation, progress_cb, cancel_cb):
         captured["composite"] = comp_path
         captured["out_dir"] = out_dir
         captured["dpi"] = dpi
@@ -319,7 +366,7 @@ def test_clean_run_shows_empty_state(qapp, inputs, monkeypatch):
     map_path, assn_path, out = inputs
 
     def fake_adapter(comp_path, out_dir, *, dpi, paper, overlap_in,
-                     progress_cb, cancel_cb):
+                     orientation, progress_cb, cancel_cb):
         result = _make_tile_result(out_dir, issues=[])
         return (result,), []
 
@@ -353,7 +400,7 @@ def test_controls_pass_through_to_adapter(qapp, inputs, monkeypatch):
     captured: dict = {}
 
     def fake_adapter(comp_path, out_dir, *, dpi, paper, overlap_in,
-                     progress_cb, cancel_cb):
+                     orientation, progress_cb, cancel_cb):
         captured["dpi"] = dpi
         captured["paper"] = paper
         captured["overlap_in"] = overlap_in
@@ -398,7 +445,7 @@ def test_ignore_removes_row_and_updates_status(qapp, inputs, monkeypatch):
                       message="text too small at this DPI")
 
     def fake_adapter(comp_path, out_dir, *, dpi, paper, overlap_in,
-                     progress_cb, cancel_cb):
+                     orientation, progress_cb, cancel_cb):
         result = _make_tile_result(out_dir, issues=[issue])
         return (result,), list(result.issues)
 
@@ -436,7 +483,7 @@ def test_rerun_clears_cached_results_and_ignore(qapp, inputs, monkeypatch):
     issue = TileIssue(severity="warning", code="x", message="m")
 
     def fake_adapter(comp_path, out_dir, *, dpi, paper, overlap_in,
-                     progress_cb, cancel_cb):
+                     orientation, progress_cb, cancel_cb):
         result = _make_tile_result(out_dir, issues=[issue])
         return (result,), list(result.issues)
 
@@ -475,7 +522,7 @@ def test_done_button_closes_main_window(qapp, inputs, monkeypatch):
     map_path, assn_path, out = inputs
 
     def fake_adapter(comp_path, out_dir, *, dpi, paper, overlap_in,
-                     progress_cb, cancel_cb):
+                     orientation, progress_cb, cancel_cb):
         result = _make_tile_result(out_dir, issues=[])
         return (result,), []
 
@@ -519,7 +566,7 @@ def test_open_folder_button_invokes_reveal(qapp, inputs, monkeypatch):
     map_path, assn_path, out = inputs
 
     def fake_adapter(comp_path, out_dir, *, dpi, paper, overlap_in,
-                     progress_cb, cancel_cb):
+                     orientation, progress_cb, cancel_cb):
         result = _make_tile_result(out_dir, issues=[])
         return (result,), []
 
@@ -562,7 +609,7 @@ def test_activation_with_cached_state_shows_results(qapp, inputs, monkeypatch):
     map_path, assn_path, out = inputs
 
     def fake_adapter(comp_path, out_dir, *, dpi, paper, overlap_in,
-                     progress_cb, cancel_cb):
+                     orientation, progress_cb, cancel_cb):
         result = _make_tile_result(out_dir, issues=[])
         return (result,), []
 
@@ -595,7 +642,7 @@ def test_fit_preview_button_invokes_fit_to_window(qapp, inputs, monkeypatch):
     map_path, assn_path, out = inputs
 
     def fake_adapter(comp_path, out_dir, *, dpi, paper, overlap_in,
-                     progress_cb, cancel_cb):
+                     orientation, progress_cb, cancel_cb):
         result = _make_tile_result(out_dir, issues=[])
         return (result,), []
 
@@ -640,7 +687,7 @@ def test_real_adapter_writes_tile_outputs(tmp_path: Path):
 
     result, issues = _run_tile_composite(
         composite, out_dir,
-        dpi=150, paper="letter", overlap_in=0.25,
+        dpi=150, paper="letter", overlap_in=0.25, orientation="portrait",
         progress_cb=progress_cb, cancel_cb=cancel_cb,
     )
     (tile_result,) = result
@@ -670,7 +717,7 @@ def test_real_adapter_cancels_before_render(tmp_path: Path):
     with pytest.raises(PipelineCanceled):
         _run_tile_composite(
             composite, out_dir,
-            dpi=150, paper="letter", overlap_in=0.25,
+            dpi=150, paper="letter", overlap_in=0.25, orientation="portrait",
             progress_cb=progress_cb, cancel_cb=cancel_cb,
         )
     assert not out_dir.exists() or not any(out_dir.iterdir())

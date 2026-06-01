@@ -124,6 +124,102 @@ def test_compute_tile_grid_tabloid_uses_full_page():
 
 
 # ---------------------------------------------------------------------------
+# Orientation: portrait / landscape / auto
+# ---------------------------------------------------------------------------
+
+
+def test_compute_tile_grid_default_orientation_is_portrait():
+    grid = compute_tile_grid((100, 100), dpi=150, paper="letter")
+    assert grid.orientation == "portrait"
+    assert grid.page_size_in == (8.5, 11.0)
+    assert grid.tile_px == (1275, 1650)
+
+
+def test_compute_tile_grid_landscape_swaps_page_dims():
+    grid = compute_tile_grid(
+        (100, 100), dpi=150, paper="letter", orientation="landscape",
+    )
+    assert grid.orientation == "landscape"
+    assert grid.page_size_in == (11.0, 8.5)
+    assert grid.tile_px == (1650, 1275)
+
+
+def test_compute_tile_grid_landscape_can_use_fewer_tiles_for_wide_composite():
+    # A 3000x800 wide-but-short composite needs 3 portrait tiles
+    # (1275x1650, height fits in 1 row, width needs 3 cols) but only
+    # 2 landscape tiles (1650x1275, height fits in 1 row, width needs
+    # 2 cols).
+    portrait = compute_tile_grid(
+        (3000, 800), dpi=150, paper="letter",
+        overlap_in=0.25, orientation="portrait",
+    )
+    landscape = compute_tile_grid(
+        (3000, 800), dpi=150, paper="letter",
+        overlap_in=0.25, orientation="landscape",
+    )
+    assert len(landscape.tiles) < len(portrait.tiles)
+
+
+def test_compute_tile_grid_auto_picks_fewer_tiles():
+    auto = compute_tile_grid(
+        (3000, 800), dpi=150, paper="letter",
+        overlap_in=0.25, orientation="auto",
+    )
+    landscape = compute_tile_grid(
+        (3000, 800), dpi=150, paper="letter",
+        overlap_in=0.25, orientation="landscape",
+    )
+    assert auto.orientation == "landscape"
+    assert len(auto.tiles) == len(landscape.tiles)
+
+
+def test_compute_tile_grid_auto_tiebreak_is_portrait():
+    # Square composite: portrait and landscape produce the same tile
+    # count.  Auto must pick portrait.
+    portrait = compute_tile_grid(
+        (3000, 3000), dpi=150, paper="letter",
+        overlap_in=0.25, orientation="portrait",
+    )
+    landscape = compute_tile_grid(
+        (3000, 3000), dpi=150, paper="letter",
+        overlap_in=0.25, orientation="landscape",
+    )
+    if len(portrait.tiles) == len(landscape.tiles):
+        auto = compute_tile_grid(
+            (3000, 3000), dpi=150, paper="letter",
+            overlap_in=0.25, orientation="auto",
+        )
+        assert auto.orientation == "portrait"
+
+
+def test_compute_tile_grid_auto_picks_portrait_for_millennium_b_sized_composite():
+    # Reflects the real Millennium B composite shape (3659x4217).
+    # Letter portrait = 9 tiles (3x3); landscape = 12 tiles (3x4).
+    auto = compute_tile_grid(
+        (3659, 4217), dpi=150, paper="letter",
+        overlap_in=0.25, orientation="auto",
+    )
+    assert auto.orientation == "portrait"
+    assert auto.rows * auto.cols == 9
+
+
+def test_compute_tile_grid_rejects_unknown_orientation():
+    with pytest.raises(ValueError, match="unsupported orientation"):
+        compute_tile_grid((100, 100), orientation="diagonal")
+
+
+def test_compute_tile_grid_auto_raises_when_both_orientations_invalid():
+    # An overlap larger than the smaller page dim makes both
+    # orientations fail (portrait and landscape have the same dims
+    # swapped, so any overlap > min(w, h) is unviable both ways).
+    with pytest.raises(ValueError, match="larger than a page"):
+        compute_tile_grid(
+            (5000, 5000), dpi=150, paper="letter",
+            overlap_in=9.0, orientation="auto",
+        )
+
+
+# ---------------------------------------------------------------------------
 # tile_composite — end-to-end with a synthetic composite
 # ---------------------------------------------------------------------------
 

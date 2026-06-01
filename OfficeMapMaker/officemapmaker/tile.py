@@ -62,6 +62,7 @@ from .palette import parse_hex_color
 
 __all__ = [
     "PAPER_SIZES_IN",
+    "ORIENTATIONS",
     "TilePlacement",
     "TileGrid",
     "TileIssue",
@@ -69,6 +70,13 @@ __all__ = [
     "compute_tile_grid",
     "tile_composite",
 ]
+
+
+# Orientation values accepted by ``compute_tile_grid``.  ``"auto"`` tries both
+# portrait and landscape and picks whichever produces fewer tiles (tiebreak:
+# portrait).  Each row in the tile grid is laid out in the same orientation;
+# we do not (yet) mix orientations within a single job.
+ORIENTATIONS: tuple[str, ...] = ("auto", "portrait", "landscape")
 
 
 # ---------------------------------------------------------------------------
@@ -134,7 +142,7 @@ class TileGrid:
     """Result of :func:`compute_tile_grid`."""
 
     composite_size: tuple[int, int]  # (w, h) in composite pixels
-    page_size_in: tuple[float, float]  # (w, h) in inches (portrait)
+    page_size_in: tuple[float, float]  # (w, h) in inches (actual orientation)
     dpi: int
     overlap_in: float
     rows: int
@@ -142,6 +150,7 @@ class TileGrid:
     tile_px: tuple[int, int]  # (w, h) of the composite-crop region per tile
     overlap_px: int
     tiles: tuple[TilePlacement, ...]
+    orientation: str = "portrait"  # "portrait" or "landscape" (resolved; never "auto")
 
 
 @dataclass(frozen=True)
@@ -180,6 +189,7 @@ def compute_tile_grid(
     dpi: int = 150,
     paper: str = "letter",
     overlap_in: float = 0.25,
+    orientation: str = "portrait",
 ) -> TileGrid:
     """Decide how many tiles are needed and the crop rectangle of each.
 
@@ -190,7 +200,20 @@ def compute_tile_grid(
     composite isn't a perfect multiple of the tile size.  The
     bottom-right tile may overshoot the composite — we keep the overshoot
     region transparent (white) when we render the page.
+
+    ``orientation`` may be ``"portrait"``, ``"landscape"``, or ``"auto"``.
+    Auto computes the grid in both orientations and returns whichever
+    produces fewer total tiles; ties go to portrait.  The chosen
+    orientation is reflected in ``TileGrid.orientation`` and
+    ``TileGrid.page_size_in`` (the latter has its dims swapped for
+    landscape, so downstream consumers like the PDF bundler get the
+    right page size automatically).
     """
+    if orientation not in ORIENTATIONS:
+        raise ValueError(
+            f"unsupported orientation: {orientation!r} "
+            f"(supported: {list(ORIENTATIONS)})"
+        )
     if paper not in PAPER_SIZES_IN:
         raise ValueError(
             f"unsupported paper size: {paper!r} (supported: {sorted(PAPER_SIZES_IN)})"
@@ -200,7 +223,43 @@ def compute_tile_grid(
     if overlap_in < 0:
         raise ValueError(f"overlap_in must be non-negative, got {overlap_in}")
 
+    if orientation == "auto":
+        # Compute both orientations and pick the one with fewer tiles.
+        # If only one orientation is geometrically valid (e.g. the
+        # overlap exceeds one of the page dimensions), return that one.
+        portrait_grid: Optional[TileGrid] = None
+        landscape_grid: Optional[TileGrid] = None
+        first_err: Optional[Exception] = None
+        try:
+            portrait_grid = compute_tile_grid(
+                composite_size, dpi=dpi, paper=paper,
+                overlap_in=overlap_in, orientation="portrait",
+            )
+        except ValueError as exc:
+            first_err = exc
+        try:
+            landscape_grid = compute_tile_grid(
+                composite_size, dpi=dpi, paper=paper,
+                overlap_in=overlap_in, orientation="landscape",
+            )
+        except ValueError as exc:
+            if first_err is None:
+                first_err = exc
+        if portrait_grid is None and landscape_grid is None:
+            assert first_err is not None
+            raise first_err
+        if portrait_grid is None:
+            return landscape_grid  # type: ignore[return-value]
+        if landscape_grid is None:
+            return portrait_grid
+        # Tiebreak: portrait wins on equal tile count.
+        if len(landscape_grid.tiles) < len(portrait_grid.tiles):
+            return landscape_grid
+        return portrait_grid
+
     page_w_in, page_h_in = PAPER_SIZES_IN[paper]
+    if orientation == "landscape":
+        page_w_in, page_h_in = page_h_in, page_w_in
     page_w_px = int(round(page_w_in * dpi))
     page_h_px = int(round(page_h_in * dpi))
     overlap_px = int(round(overlap_in * dpi))
@@ -256,6 +315,7 @@ def compute_tile_grid(
         tile_px=(page_w_px, page_h_px),
         overlap_px=overlap_px,
         tiles=tuple(tiles),
+        orientation=orientation,
     )
 
 
@@ -555,6 +615,7 @@ def tile_composite(
     dpi: int = 150,
     paper: str = "letter",
     overlap_in: float = 0.25,
+    orientation: str = "portrait",
     meta: Optional[dict] = None,
     min_font_pt: int = 7,
 ) -> TileResult:
@@ -568,6 +629,9 @@ def tile_composite(
         dpi: Print resolution.  Default 150 DPI (≈1275×1650 px letter).
         paper: Paper key in :data:`PAPER_SIZES_IN`.
         overlap_in: Inches of overlap between adjacent tiles.
+        orientation: ``"portrait"`` (default), ``"landscape"``, or
+            ``"auto"``.  Auto picks whichever orientation produces fewer
+            total tiles (tiebreak: portrait).
         meta: Pre-loaded composite metadata (mostly used by tests).  If
             None, we look for ``<composite_stem>_meta.json`` next to the
             composite and load it; if not found, we render a minimal
@@ -620,7 +684,8 @@ def tile_composite(
     composite = Image.open(composite_path).convert("RGB")
     comp_size = composite.size  # (w, h)
     grid = compute_tile_grid(
-        comp_size, dpi=dpi, paper=paper, overlap_in=overlap_in
+        comp_size, dpi=dpi, paper=paper, overlap_in=overlap_in,
+        orientation=orientation,
     )
 
     # ---- Render tiles ----
