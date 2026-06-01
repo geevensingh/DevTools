@@ -509,6 +509,49 @@ def test_try_fit_polygon_returns_none_when_no_name_fits():
     assert placed is None
 
 
+def test_try_fit_vertically_centers_names_in_oversized_area():
+    """When the safe area is taller than the names need (common in
+    L-shaped rooms where the largest inscribed rectangle is sized for
+    the wider axis but the names only need 2-3 short lines), the names
+    block should sit visually centered in the area, not hug the top
+    edge.
+    """
+    from officemapmaker.layout import _try_fit  # type: ignore[attr-defined]
+
+    # Area 200 wide x 200 tall; two short names fit easily — the
+    # binary search picks the max font (24 px). At line-spacing 1.15
+    # each line is round(24 * 1.15) = 28 px, two names = 56 px total.
+    # Centering offset = (200 - 56) // 2 = 72 px from the top edge.
+    people = [_asn("Ab", "1000"), _asn("Cd", "1000")]
+    placed = _try_fit(
+        texts=["Ab", "Cd"],
+        people=people,
+        area=(0, 0, 200, 200),
+        min_px=16,
+        max_px=24,
+        font_path=None,
+    )
+    assert placed is not None
+    assert len(placed) == 2
+
+    font_px = placed[0].font_px
+    line_h = int(round(font_px * 1.15))
+    total_h = 2 * line_h  # one line each, two names
+    expected_top = (200 - total_h) // 2
+
+    first_y = placed[0].bbox[1]
+    # Allow off-by-one for integer rounding inside _try_fit.
+    assert abs(first_y - expected_top) <= 1, (
+        f"first_y={first_y}, expected ~{expected_top} "
+        f"(font_px={font_px}, line_h={line_h})"
+    )
+    # And the regression bites if someone restores ``y_cursor = area_y``:
+    # the top padding should be substantial, not zero.
+    assert first_y >= 30
+    # Second name should sit one line_h below the first.
+    assert placed[1].bbox[1] == first_y + line_h
+
+
 def test_plan_layout_inflates_polygon_to_include_label_bboxes():
     """The original office-number digits punch holes in the white-pixel
     CC polygon. ``_plan_one_office`` should OR each room's label bboxes

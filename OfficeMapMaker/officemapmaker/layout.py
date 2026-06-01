@@ -1022,7 +1022,12 @@ def _try_fit(
             continue
 
         placed: list[NameEntry] = []
-        y_cursor = area_y
+        # Vertically center the block of names within ``area`` so that
+        # when names take less than the full area height (common in
+        # L-shaped rooms where the LIR's safe rectangle is wider than
+        # it needs to be for 2-3 lines of text), they sit visually
+        # centered rather than hugging the top edge.
+        y_cursor = area_y + max(0, (area_h - total_h) // 2)
         for person, (variant, vw, vh, vlines) in zip(people, chosen):
             tx = area_x + (area_w - vw) // 2  # center horizontally
             placed.append(
