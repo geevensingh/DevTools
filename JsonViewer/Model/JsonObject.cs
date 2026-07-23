@@ -292,7 +292,7 @@
             DeserializeResult deserializeResult = await JsonObjectFactory.TryDeserialize(this.Value as string);
             FileLogger.Assert(deserializeResult != null);
 
-            Dictionary<string, object> dict = deserializeResult.GetEverythingDictionary();
+            SortedDictionary<string, object> dict = deserializeResult.GetEverythingDictionary();
             this.Value = dict;
             this.EnsureValues();
             FileLogger.Assert(_dataType == DataType.Json);
